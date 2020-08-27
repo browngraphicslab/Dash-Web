@@ -3,33 +3,24 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, DataSym, Doc } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { InkField } from '../../fields/InkField';
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast } from "../../fields/Types";
 import { ImageField } from '../../fields/URLField';
-import { GetEffectiveAcl } from '../../fields/util';
-import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
-import { DragManager } from '../util/DragManager';
 import { SelectionManager } from '../util/SelectionManager';
-import { SharingManager } from '../util/SharingManager';
 import { undoBatch } from '../util/UndoManager';
-import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
+import { CollectionDockingView } from './collections/CollectionDockingView';
 import './collections/ParentDocumentSelector.scss';
-import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
-import { PresBox } from './nodes/PresBox';
 import './PropertiesButtons.scss';
-import { TemplateMenu } from "./TemplateMenu";
-import { Template, Templates } from "./Templates";
 import React = require("react");
+import { CollectionViewType } from './collections/CollectionView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -69,7 +60,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             return SelectionManager.SelectedDocuments()[0];
         } else return undefined;
     }
-    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @computed get onClick() { return this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing"; }
 
@@ -200,55 +190,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    @computed
-    get metadataButton() {
-        //const view0 = this.view0;
-        if (this.selectedDoc) {
-            return <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>} placement="top">
-                <div className="propertiesButtons-linkFlyout">
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                        content={<MetadataEntryMenu docs={[this.selectedDoc]} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                        <div>
-                            <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
-                                {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="lg" />}
-                            </div>
-                            <div className="propertiesButtons-title">Metadata</div>
-                        </div>
-                    </Flyout>
-                </div></Tooltip>;
-        } else {
-            return null;
-        }
-
-    }
-
-    @computed
-    get templateButton() {
-        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
-        const templates: Map<Template, boolean> = new Map();
-        const views = [this.selectedDocumentView];
-        Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-        return !docView ? (null) :
-            <Tooltip title={<div className="dash-tooltip">Customize layout</div>} placement="top">
-                <div className="propertiesButtons-linkFlyout">
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} //onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                        content={<TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                        <div>
-                            <div className={"propertiesButtons-linkButton-empty"} >
-                                <FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="lg" />
-                            </div>
-                            <div className="propertiesButtons-title">Layout</div>
-                        </div>
-                    </Flyout>
-                </div></Tooltip>;
-    }
-
-
     @action @undoBatch
     onLock = () => {
-        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
-        docView?.toggleLockPosition();
+        SelectionManager.SelectedDocuments().forEach(dv => dv.toggleLockPosition());
     }
 
     @computed
@@ -282,31 +226,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    @computed
-    get deleteButton() {
-        const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">Close Document</div>} placement="top">
-            <div>
-                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={this.deleteDocument}>
-                    <FontAwesomeIcon className="propertiesButtons-icon" icon="times" size="lg" />
-                </div>
-                <div className="propertiesButtons-title"> close </div>
-            </div>
-        </Tooltip>;
-    }
-
-    @undoBatch
-    @action
-    deleteDocument = () => {
-        const removeDoc = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView?.props.removeDocument : SelectionManager.SelectedSchemaCollection()?.props.removeDocument;
-        this.selectedDoc && removeDoc?.(this.selectedDoc);
-        SelectionManager.DeselectAll();
-    }
-
     @undoBatch
     @action
     setDictation = () => {
-        this.selectedDoc && (this.selectedDoc._showAudio = !this.selectedDoc._showAudio);
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showAudio = dv.rootDoc._showAudio === !dv.rootDoc._showAudio);
     }
 
     @computed
@@ -326,7 +249,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setTitle = () => {
-        this.selectedDoc && (this.selectedDoc._showTitle = this.selectedDoc._showTitle === undefined ? "title" : undefined);
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showTitle = dv.rootDoc._showTitle === undefined ? "title" : undefined);
     }
 
     @computed
@@ -345,7 +268,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setCaption = () => {
-        this.selectedDoc && (this.selectedDoc._showCaption = this.selectedDoc._showCaption === undefined ? "caption" : undefined);
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined);
     }
 
     @computed
@@ -364,7 +287,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setChrome = () => {
-        this.selectedDoc && (this.selectedDoc._chromeStatus = this.selectedDoc._chromeStatus === "disabled" ? "enabled" : "disabled");
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._chromeStatus = dv.rootDoc._chromeStatus === "disabled" ? "enabled" : "disabled");
     }
 
     @computed
@@ -406,28 +329,31 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     handleOptionChange = (e: any) => {
         const value = e.target.value;
         this.selectedDoc && (this.selectedDoc.onClickBehavior = e.target.value);
-        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
-        if (value === "nothing") {
-            docView?.noOnClick();
-        } else if (value === "enterPortal") {
-            docView?.noOnClick();
-            docView?.makeIntoPortal();
-        } else if (value === "toggleDetail") {
-            docView?.noOnClick();
-            docView?.toggleDetail();
-        } else if (value === "linkInPlace") {
-            docView?.noOnClick();
-            docView?.toggleFollowLink("inPlace", true, false);
-        } else if (value === "linkOnRight") {
-            docView?.noOnClick();
-            docView?.toggleFollowLink("onRight", false, false);
-        }
+
+        SelectionManager.SelectedDocuments().forEach(dv => {
+            if (value === "nothing") {
+                dv.noOnClick();
+            } else if (value === "enterPortal") {
+                dv.noOnClick();
+                dv.makeIntoPortal();
+            } else if (value === "toggleDetail") {
+                dv.noOnClick();
+                dv.toggleDetail();
+            } else if (value === "linkInPlace") {
+                dv.noOnClick();
+                dv.toggleFollowLink("inPlace", true, false);
+            } else if (value === "linkOnRight") {
+                dv.noOnClick();
+                dv.toggleFollowLink("onRight", false, false);
+            }
+        });
     }
 
     @undoBatch @action
     editOnClickScript = () => {
         if (this.selectedDoc) {
-            DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => DocUtils.makeCustomViewClicked(dv.rootDoc, undefined, "onClick"));
+            else DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
         }
     }
 
@@ -510,12 +436,18 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @action @undoBatch
     changeFitToBox = () => {
-        this.selectedDoc && (this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox);
+        if (this.selectedDoc) {
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._fitToBox = !dv.rootDoc._fitToBox);
+            else this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox;
+        }
     }
 
     @action @undoBatch
     changeClusters = () => {
-        this.selectedDoc && (this.selectedDoc._useClusters = !this.selectedDoc._useClusters);
+        if (this.selectedDoc) {
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._useClusters = !dv.rootDoc._useClusters);
+            else this.selectedDoc._useClusters = !this.selectedDoc._useClusters;
+        }
     }
 
     @computed
@@ -558,43 +490,19 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    // @computed
-    // get importButton() {
-    //     const targetDoc = this.selectedDoc;
-    //     return !targetDoc ? (null) : <Tooltip
-    //         title={<><div className="dash-tooltip">{"Import a Document"}</div></>}>
-    //         <div className={"propertiesButtons-linkButton-empty"}
-    //             onPointerDown={() => {
-    //                 if (this.selectedDocumentView) {
-    //                     CollectionFreeFormView.importDocument(100, 100);
-    //                 }
-    //             }}>
-    //             {<FontAwesomeIcon className="documentdecorations-icon"
-    //                 icon="upload" size="sm" />}
-    //         </div>
-    //     </Tooltip>;
-    // }
-
-
     render() {
         if (!this.selectedDoc) return (null);
 
-        const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        const layoutField = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)];
+        const isText = layoutField instanceof RichTextField;
+        const isImage = layoutField instanceof ImageField;
+        const isInk = layoutField instanceof InkField;
+        const isCollection = this.selectedDoc.type === DocumentType.COL;
+        const isFreeForm = this.selectedDoc._viewType === CollectionViewType.Freeform;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
-        const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
-        const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
-        const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
-        //const collectionAcl = GetEffectiveAcl(this.selectedDocumentView?.props.ContainingCollectionDoc?.[DataSym]);
 
-        return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
-            {/* <div className="propertiesButtons-button">
-                {this.templateButton}
-            </div> */}
-            {/* <div className="propertiesButtons-button">
-                {this.metadataButton}
-            </div> */}
+        return <div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
                 {this.titleButton}
             </div>
@@ -610,11 +518,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button" style={{ display: isText || isImage ? "" : "none" }}>
                 {this.dictationButton}
             </div>
-            {/* {collectionAcl === AclAdmin || collectionAcl === AclEdit ?
-                <div className="propertiesButtons-button">
-                    {this.deleteButton}
-                </div>
-                : (null)} */}
             <div className="propertiesButtons-button">
                 {this.onClickButton}
             </div>
@@ -627,22 +530,16 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
                 {this.googlePhotosButton}
             </div>
-            {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
-                    {this.importButton}
-                </div> */}
 
             <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
                 {this.clustersButton}
             </div>
-
             <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
                 {this.fitContentButton}
             </div>
-
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
                 {this.maskButton}
             </div>
-        </div>
         </div>;
     }
 }

@@ -320,7 +320,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     docFirst.cluster = i;
                 }
             })));
-            if (docFirst.cluster === -1 && preferredInd !== -1 && (!this._clusterSets[preferredInd] || !this._clusterSets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
+            if (docFirst.cluster === -1 && preferredInd !== -1 && this._clusterSets.length > preferredInd && (!this._clusterSets[preferredInd] || !this._clusterSets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
                 docFirst.cluster = preferredInd;
             }
             this._clusterSets.map((set, i) => {
@@ -333,7 +333,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     doc.cluster = this._clusterSets.length;
                     this._clusterSets.push([doc]);
                 });
-            } else {
+            } else if (this._clusterSets.length) {
                 for (let i = this._clusterSets.length; i <= NumCast(docFirst.cluster); i++) !this._clusterSets[i] && this._clusterSets.push([]);
                 docs.map(doc => this._clusterSets[doc.cluster = NumCast(docFirst.cluster)].push(doc));
             }
@@ -354,7 +354,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     doc.cluster = i;
                 }
             }));
-            if (doc.cluster === -1 && preferredInd !== -1 && (!this._clusterSets[preferredInd] || !this._clusterSets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
+            if (doc.cluster === -1 && preferredInd !== -1 && this._clusterSets.length > preferredInd && (!this._clusterSets[preferredInd] || !this._clusterSets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
                 doc.cluster = preferredInd;
             }
             this._clusterSets.map((set, i) => {
@@ -365,7 +365,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             if (doc.cluster === -1) {
                 doc.cluster = this._clusterSets.length;
                 this._clusterSets.push([doc]);
-            } else {
+            } else if (this._clusterSets.length) {
                 for (let i = this._clusterSets.length; i <= doc.cluster; i++) !this._clusterSets[i] && this._clusterSets.push([]);
                 this._clusterSets[doc.cluster].push(doc);
             }
