@@ -756,12 +756,12 @@ export class CurrentUserUtils {
         return doc.myPresentations as any as Doc;
     }
 
-    static setupInactiveDocs(doc: Doc) {
+    static setupRecentlyClosedDocs(doc: Doc) {
         // setup Recently Closed library item
         doc.myRecentlyClosedDocs === undefined;
         if (doc.myRecentlyClosedDocs === undefined) {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "Inactive", _height: 500,
+                title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
@@ -801,7 +801,7 @@ export class CurrentUserUtils {
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
-        CurrentUserUtils.setupInactiveDocs(doc);
+        CurrentUserUtils.setupRecentlyClosedDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
