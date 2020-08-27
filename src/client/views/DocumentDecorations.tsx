@@ -283,7 +283,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         const newY = Math.sin(angle) * (ink.X - this._centerPoints[index].X) + Math.cos(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
                     }
-                    doc.data = new InkField(newPoints);
+                    Doc.GetProto(doc).data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
                     const left = Math.min(...xs);
@@ -531,7 +531,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
                         newPoints.push({ X: newX, Y: newY });
                     });
-                    doc.data = new InkField(newPoints);
+                    Doc.GetProto(doc).data = new InkField(newPoints);
 
                 }
                 doc._nativeWidth = 0;
@@ -587,7 +587,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="cog" />
+                    <FontAwesomeIcon size="lg" icon="bars" />
                 </div></Tooltip>) : canDelete ? (
                     <Tooltip title={<><div className="dash-tooltip">Close</div></>} placement="top">
                         <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
@@ -614,7 +614,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             </> :
             <>
                 {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="cog" />
+                    <FontAwesomeIcon size="lg" icon="bars" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>

@@ -32,7 +32,7 @@ const { Howl } = require('howler');
 
 
 export const pageSchema = createSchema({
-    curPage: "number",
+    _curPage: "number",
     fitWidth: "boolean",
     googlePhotosUrl: "string",
     googlePhotosTags: "string"

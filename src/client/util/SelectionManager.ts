@@ -21,7 +21,6 @@ export namespace SelectionManager {
         }
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
-
             // if doc is not in SelectedDocuments, add it
             if (!manager.SelectedDocuments.get(docView)) {
                 if (!ctrlPressed) {

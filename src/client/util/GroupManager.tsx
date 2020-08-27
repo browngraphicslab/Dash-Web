@@ -66,7 +66,7 @@ export class GroupManager extends React.Component<{}> {
             const evaluating = raw.map(async user => {
                 const userDocument = await DocServer.GetRefField(user.userDocumentId);
                 if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument["sidebar-sharing"], Doc);
+                    const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
                     runInAction(() => {
                         if (notificationDoc instanceof Doc) {
                             this.users.push(user.email);

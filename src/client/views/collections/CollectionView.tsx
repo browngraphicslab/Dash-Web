@@ -157,7 +157,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }
 
                 if (effectiveAcl === AclAddonly) {
-                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+                    added.map(doc => {
+                        Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+                        doc.context = this.props.Document;
+                    });
                 }
                 else {
                     added.map(doc => {
@@ -178,16 +181,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
-                    added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                    const myPresentations = Doc.UserDoc().myPresentations as Doc;
-                    added.map(add => {
-                        if (add.type === DocumentType.PRES) Doc.AddDocToList(myPresentations, "data", add);
-                    });
-                    // targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                    const lastModified = "lastModified";
-                    targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                 }
             }
         }

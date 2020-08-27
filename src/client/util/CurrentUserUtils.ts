@@ -1,4 +1,4 @@
-import { computed, observable, reaction } from "mobx";
+import { computed, observable, reaction, action } from "mobx";
 import * as rp from 'request-promise';
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -24,6 +24,8 @@ import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMu
 import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkManager } from "./LinkManager";
 import { Id } from "../../fields/FieldSymbols";
+import { HistoryUtil } from "./History";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -394,7 +396,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
@@ -444,29 +446,17 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc },
-            //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
-
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
-            // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
-            // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
-            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
-            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
-            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
             { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
-            { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
-
-
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static async setupCreatorButtons(doc: Doc) {
@@ -496,7 +486,8 @@ export class CurrentUserUtils {
             dragFactory,
             clickFactory,
             userDoc: noviceMode ? undefined as any : doc,
-            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"), system: true
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"),
+            system: true
         }));
 
         if (dragCreatorSet === undefined) {
@@ -516,23 +507,23 @@ export class CurrentUserUtils {
     }[] {
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
-            { title: "Dashboards", target: Cast(doc["sidebar-dashboards"], Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Dashboards", target: Cast(doc.myDashboards, Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Inactive", target: Cast(doc.myInactiveDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
+            { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
+            { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Inactive", target: Cast(doc["sidebar-inactiveDocs"], Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Import", target: Cast(doc["sidebar-import"], Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
-            { title: "Sharing", target: Cast(doc["sidebar-sharing"], Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
-            { title: "Tools", target: Cast(doc["sidebar-tools"], Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Pres. Trails", target: Cast(doc["sidebar-presentations"], Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
-            { title: "User Doc", target: Cast(doc["sidebar-userDoc"], Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
+            { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
         ];
     }
 
     static setupSearchPanel(doc: Doc) {
-        if (doc["search-panel"] === undefined) {
-            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
-                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, _searchDoc: true,
+        if (doc.mySearchPanelDoc === undefined) {
+            doc.mySearchPanelDoc = new PrefetchProxy(Docs.Create.SearchDocument({
+                _width: 500, _height: 300, backgroundColor: "dimGray", ignoreClick: true, _searchDoc: true,
                 childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", system: true
             })) as any as Doc;
         }
@@ -722,12 +713,12 @@ export class CurrentUserUtils {
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
-        if (doc["sidebar-tools"] === undefined) {
+        if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "sidebar-tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
+                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
             })) as any as Doc;
 
-            doc["sidebar-tools"] = toolsStack;
+            doc.myTools = toolsStack;
         }
     }
 
@@ -736,22 +727,14 @@ export class CurrentUserUtils {
         await doc.myDashboards;
         if (doc.myDashboards === undefined) {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "DASHBOARDS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true,
-                treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data",
-            }));
-        }
-        if (doc["sidebar-dashboards"] === undefined) {
-            const newDashboard = ScriptField.MakeScript(`createNewDashboard()`);
-            (doc.myDashboards as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
-            (doc.myDashboards as Doc).contextMenuLabels = new List<string>(["Create New Dashboard"]);
-
-            const dashboards = doc.myDashboards as Doc;
-
-            doc["sidebar-dashboards"] = new PrefetchProxy(Docs.Create.TreeDocument([dashboards], {
+                title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
+            }));
+            const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
+            (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
+            (doc.myDashboards as any as Doc).contextMenuLabels = new List<string>(["Create New Dashboard"]);
         }
         return doc.myDashboards as any as Doc;
     }
@@ -760,79 +743,42 @@ export class CurrentUserUtils {
         await doc.myPresentations;
         if (doc.myPresentations === undefined) {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
-            }));
-        }
-
-        if (doc["sidebar-presentations"] === undefined) {
-            const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
-            (doc.myPresentations as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
-            (doc.myPresentations as Doc).contextMenuLabels = new List<string>(["Create New Presentation"]);
-            const presentations = doc.myPresentations as Doc;
-
-            doc["sidebar-presentations"] = new PrefetchProxy(Docs.Create.TreeDocument([presentations], {
+                title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
+            }));
+            const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
+            (doc.myPresentations as any as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
+            (doc.myPresentations as any as Doc).contextMenuLabels = new List<string>(["Create New Presentation"]);
+            const presentations = doc.myPresentations as any as Doc;
         }
         return doc.myPresentations as any as Doc;
     }
 
-    static setupCatalog(doc: Doc) {
-        doc.myCatalog === undefined;
-        if (doc.myCatalog === undefined) {
-            doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
-                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", _stayInCollection: true, treeViewOpen: true, system: true
-            }));
-        }
-
-        if (doc["sidebar-catalog"] === undefined) {
-            const catalog = doc.myCatalog as Doc;
-
-            doc["sidebar-catalog"] = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
-                title: "sidebar-catalog",
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
-        }
-    }
     static setupInactiveDocs(doc: Doc) {
         // setup Recently Closed library item
         doc.myInactiveDocs === undefined;
         if (doc.myInactiveDocs === undefined) {
             doc.myInactiveDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "CLOSED DOCS", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true,
-                treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data",
-            }));
-        }
-        // this is equivalent to using PrefetchProxies to make sure the inactiveDocs doc is ready
-        PromiseValue(Cast(doc.myInactiveDocs, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
-        if (doc["sidebar-inactiveDocs"] === undefined) {
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-            (doc.myInactiveDocs as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myInactiveDocs as Doc).contextMenuLabels = new List<string>(["Clear All"]);
-
-            const inactiveDocs = doc.myInactiveDocs as Doc;
-
-            doc["sidebar-inactiveDocs"] = new PrefetchProxy(Docs.Create.TreeDocument([inactiveDocs], {
-                title: "sidebar-inactiveDocs",
+                title: "Inactive", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
+            }));
+            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            (doc.myInactiveDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myInactiveDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 
 
     static setupUserDoc(doc: Doc) {
-        if (doc["sidebar-userDoc"] === undefined) {
+        if (doc.myUserDoc === undefined) {
             doc.treeViewOpen = true;
             doc.treeViewExpandedView = "fields";
-            doc["sidebar-userDoc"] = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "sidebar-userDoc",
+            doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
@@ -854,7 +800,6 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupDashboards(doc);
-        CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupInactiveDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
@@ -884,8 +829,8 @@ export class CurrentUserUtils {
     }
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
-        if (doc.myOverlayDocuments === undefined) {
-            doc.myOverlayDocuments = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "overlay documents", backgroundColor: "#aca3a6", system: true }));
+        if (doc.myOverlayDocs === undefined) {
+            doc.myOverlayDocs = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "overlay documents", backgroundColor: "#aca3a6", system: true }));
         }
     }
 
@@ -900,20 +845,20 @@ export class CurrentUserUtils {
 
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
-        if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+        if (doc.mySharedDocs === undefined) {
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
-        if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+        if (doc.myImportDocs === undefined) {
+            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
-        if (doc["sidebar-import"] === undefined) {
-            const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
+        if (doc.myImportPanel === undefined) {
+            const uploads = Cast(doc.myImportDocs, Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
-            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
         }
     }
 
@@ -1033,9 +978,90 @@ export class CurrentUserUtils {
             }
         });
     }
+
+    public static _urlState: HistoryUtil.DocUrl;
+
+    public static openDashboard = (userDoc: Doc, doc: Doc, fromHistory = false) => {
+        CurrentUserUtils.MainDocId = doc[Id];
+
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest dashboard
+            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
+            userDoc ? (userDoc.activeDashboard = doc) : (CurrentUserUtils.GuestDashboard = doc);
+        }
+        const state = CurrentUserUtils._urlState;
+        if (state.sharing === true && !userDoc) {
+            DocServer.Control.makeReadOnly();
+        } else {
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (doc.readOnly) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
+        }
+
+        return true;
+    }
+
+    public static snapshotDashboard = (userDoc: Doc) => {
+        const activeDashboard = Cast(userDoc.activeDashboard, Doc, null);
+        CollectionDockingView.Copy(activeDashboard).then(copy => {
+            Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
+            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+            setTimeout(() => CurrentUserUtils.openDashboard(userDoc, copy), 0);
+        });
+    }
+
+    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+        const myPresentations = userDoc.myPresentations as Doc;
+        const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
+        const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
+        const dashboardCount = DocListCast(dashboards.data).length + 1;
+        const emptyPane = Cast(userDoc.emptyPane, Doc, null);
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+        const freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            _width: 1500,
+            _height: 1000,
+            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
+        };
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
+        Doc.AddDocToList(myPresentations, "data", presentation);
+        userDoc.activePresentation = presentation;
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
+        const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
+
+        Doc.AddDocToList(dashboards, "data", dashboardDoc);
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
+        }, 0);
+    }
 }
 
-Scripting.addGlobal(function createNewDashboard() { return MainView.Instance.createNewDashboard(); },
+Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
+    "creates a snapshot copy of a dashboard");
+Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },
     "creates a new dashboard when called");
 Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
     "creates a new presentation when called");

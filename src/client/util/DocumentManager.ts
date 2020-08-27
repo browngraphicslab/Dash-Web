@@ -181,7 +181,7 @@ export class DocumentManager {
 
                     // now find the target document within the context
                     if (targetDoc.displayTimecode) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
-                        targetDocContext.currentTimecode = targetDoc.displayTimecode;
+                        targetDocContext._currentTimecode = targetDoc.displayTimecode;
                         finished?.();
                     } else { // no timecode means we need to find the context view and focus on our target
                         setTimeout(() => {
@@ -228,7 +228,7 @@ export class DocumentManager {
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
                     const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                    containerDoc.currentTimecode = targetTimecode;
+                    containerDoc._currentTimecode = targetTimecode;
                     const targetContext = await target?.context as Doc;
                     const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
                     DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);

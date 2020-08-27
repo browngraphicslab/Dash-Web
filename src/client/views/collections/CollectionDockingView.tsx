@@ -25,7 +25,6 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from "../../util/UndoManager";
-import { MainView } from '../MainView';
 import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import "./CollectionDockingView.scss";
@@ -34,6 +33,7 @@ import { SubCollectionViewProps, CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -87,7 +87,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
         if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
-            return MainView.Instance.openDashboard(docView.props.Document);
+            return CurrentUserUtils.openDashboard(Doc.UserDoc(), docView.props.Document);
         }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
@@ -188,6 +188,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     public static AddRightSplit(document: Doc, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
+        if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
             type: 'stack',
@@ -630,7 +631,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
     }
 
+    stackActiveChanged = () => {
+        try {
+            CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
+            this.stateChanged();
+        } catch (e) { } // catch exception thrown when config has not been initialzed yet
+    }
+
     stackCreated = (stack: any) => {
+        stack.layoutManager.on("activeContentItemChanged", this.stackActiveChanged);
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
@@ -757,9 +766,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     CollectionDockingView.AddRightSplit(curPres);
                 }
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
-                const myPresentations = Doc.UserDoc().myPresentations as Doc;
-                const presData = DocListCast(myPresentations.data);
-                if (!presData.includes(curPres)) Doc.AddDocToList(myPresentations, "data", curPres);
             }
         }
     }
@@ -857,8 +863,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
-        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
-            return MainView.Instance.openDashboard(doc);
+        if (doc._viewType === CollectionViewType.Docking) {
+            return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {
@@ -893,8 +899,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     getCurrentFrame = (): number => {
         const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
-        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
-        return currentFrame;
+        return Cast(presTargetDoc._currentFrame, "number", null);
     }
 
     renderMiniMap() {

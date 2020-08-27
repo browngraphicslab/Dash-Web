@@ -244,6 +244,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.hideMarquee();
             MarqueeOptionsMenu.Instance.fadeOut(true);
             document.removeEventListener("pointerdown", hideMarquee);
+            document.removeEventListener("wheel", hideMarquee);
         };
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
@@ -255,6 +256,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
             MarqueeOptionsMenu.Instance.pinWithView = this.pinWithView;
             document.addEventListener("pointerdown", hideMarquee);
+            document.addEventListener("wheel", hideMarquee);
         } else {
             this.hideMarquee();
         }
@@ -400,9 +402,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 CollectionDockingView.AddRightSplit(curPres);
             }
-            const myPresentations = Doc.UserDoc().myPresentations as Doc;
-            const presData = DocListCast(myPresentations.data);
-            if (!presData.includes(curPres)) Doc.AddDocToList(myPresentations, "data", curPres);
             if (e instanceof KeyboardEvent ? e.key === "c" : true) {
                 const x = this.Bounds.left + this.Bounds.width / 2;
                 const y = this.Bounds.top + this.Bounds.height / 2;

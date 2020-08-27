@@ -310,9 +310,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            {/* <div className="documentButtonBar-button">
+            {!Doc.UserDoc()["documentLinksButton-hideEnd"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
-            </div> */}
+            </div>}
             <div className="documentButtonBar-button">
                 {this.moreButton}
             </div>

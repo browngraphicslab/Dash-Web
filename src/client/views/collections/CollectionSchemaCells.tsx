@@ -10,27 +10,24 @@ import { DateField } from "../../../fields/DateField";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { RichTextField } from "../../../fields/RichTextField";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, DateCast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero, Utils } from "../../../Utils";
+import { Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
-import { DragManager, SetupDrag } from "../../util/DragManager";
+import { DragManager } from "../../util/DragManager";
 import { KeyCodes } from "../../util/KeyCodes";
 import { CompileScript } from "../../util/Scripting";
 import { SearchUtil } from "../../util/SearchUtil";
 import { SnappingManager } from "../../util/SnappingManager";
-import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
-import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.scss';
+import { MAX_ROW_HEIGHT } from '../globalCssVariables.scss';
 import { DocumentIconContainer } from "../nodes/DocumentIcon";
-import { FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
@@ -61,20 +58,24 @@ export interface CellProps {
 
 @observer
 export class CollectionSchemaCell extends React.Component<CellProps> {
+    public static resolvedFieldKey(column: string, rowDoc: Doc) {
+        const fieldKey = column;
+        if (fieldKey.startsWith("*")) {
+            const rootKey = fieldKey.substring(1);
+            const allKeys = [...Array.from(Object.keys(rowDoc)), ...Array.from(Object.keys(Doc.GetProto(rowDoc)))];
+            const matchedKeys = allKeys.filter(key => key.includes(rootKey));
+            if (matchedKeys.length) return matchedKeys[0];
+        }
+        return fieldKey;
+    }
     @observable protected _isEditing: boolean = false;
     protected _focusRef = React.createRef<HTMLDivElement>();
-    protected _document = this.props.rowProps.original;
+    protected _rowDoc = this.props.rowProps.original;
     protected _dropDisposer?: DragManager.DragDropDisposer;
-
-    async componentDidMount() {
-        document.addEventListener("keydown", this.onKeyDown);
-    }
-
     @observable contents: string = "";
 
-    componentWillUnmount() {
-        document.removeEventListener("keydown", this.onKeyDown);
-    }
+    componentDidMount() { document.addEventListener("keydown", this.onKeyDown); }
+    componentWillUnmount() { document.removeEventListener("keydown", this.onKeyDown); }
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
@@ -96,7 +97,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     onPointerDown = async (e: React.PointerEvent): Promise<void> => {
-
+        this.onItemDown(e);
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
 
@@ -110,33 +111,26 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             } catch { }
         }
 
-        // this._isEditing = true;
-        // this.props.setIsEditing(true);
-
-        const field = this.props.rowProps.original[this.props.rowProps.column.id!];
-        const doc = FieldValue(Cast(field, Doc));
-        if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
+        const doc = Cast(this._rowDoc[this.renderFieldKey], Doc, null);
+        doc && this.props.setPreviewDoc(doc);
     }
 
     @undoBatch
     applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
         const res = run({ this: doc, $r: row, $c: col, $: (r: number = 0, c: number = 0) => this.props.getField(r + row, c + col) });
         if (!res.success) return false;
-        // doc[this.props.fieldKey] = res.result;
-        // return true;
-        doc[this.props.rowProps.column.id as string] = res.result;
+        doc[this.renderFieldKey] = res.result;
         return true;
     }
 
     private drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.complete.docDragData) {
-            const fieldKey = this.props.rowProps.column.id as string;
             if (de.complete.docDragData.draggedDocuments.length === 1) {
-                this._document[fieldKey] = de.complete.docDragData.draggedDocuments[0];
+                this._rowDoc[this.renderFieldKey] = de.complete.docDragData.draggedDocuments[0];
             }
             else {
                 const coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.complete.docDragData.draggedDocuments, {});
-                this._document[fieldKey] = coll;
+                this._rowDoc[this.renderFieldKey] = coll;
             }
             e.stopPropagation();
         }
@@ -147,22 +141,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
 
-    // expandDoc = (e: React.PointerEvent) => {
-    //     let field = this.props.rowProps.original[this.props.rowProps.column.id as string];
-    //     let doc = FieldValue(Cast(field, Doc));
-
-    //     this.props.setPreviewDoc(doc!);
-
-    //     // this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
-
-    //     e.stopPropagation();
-    // }
-
-    returnHighlights(bing: (() => string), positions?: number[]) {
-        const results = [];
-        const contents = bing();
-
-        if (positions !== undefined) {
+    returnHighlights(contents: string, positions?: number[]) {
+        if (positions) {
+            const results = [];
             StrCast(this.props.Document._searchString);
             const length = StrCast(this.props.Document._searchString).length;
             const color = contents ? "black" : "grey";
@@ -177,72 +158,24 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             );
             return results;
         }
-        else {
-            return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "undefined"}</span>;
+        return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "undefined"}</span>;
+    }
+
+    @computed get renderFieldKey() { return CollectionSchemaCell.resolvedFieldKey(this.props.rowProps.column.id!, this.props.rowProps.original); }
+    onItemDown = async (e: React.PointerEvent) => {
+        if (this.props.Document._searchDoc) {
+            const doc = Doc.GetProto(this._rowDoc);
+            const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
+            const targetContext = aliasdoc.length <= 0 ? undefined : Cast(aliasdoc[0].context, Doc, null);
+            DocumentManager.Instance.jumpToDocument(this._rowDoc, false, () => undefined, targetContext);
         }
     }
-    type: string = "";
-
     renderCellWithType(type: string | undefined) {
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
-        const props: FieldViewProps = {
-            Document: this.props.rowProps.original,
-            DataDoc: this.props.rowProps.original,
-            LibraryPath: [],
-            dropAction: "alias",
-            bringToFront: emptyFunction,
-            rootSelected: returnFalse,
-            fieldKey: this.props.rowProps.column.id as string,
-            docFilters: returnEmptyFilter,
-            searchFilterDocs: returnEmptyDoclist,
-            ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-            isSelected: returnFalse,
-            select: emptyFunction,
-            renderDepth: this.props.renderDepth + 1,
-            ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
-            active: returnFalse,
-            whenActiveChanged: emptyFunction,
-            PanelHeight: returnZero,
-            PanelWidth: returnZero,
-            NativeHeight: returnZero,
-            NativeWidth: returnZero,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
-            ContentScaling: returnOne
-        };
+        const fieldKey = this.renderFieldKey;
+        const field = this._rowDoc[fieldKey];
 
-        let matchedKeys = [props.fieldKey];
-        if (props.fieldKey.startsWith("*")) {
-            const allKeys = Array.from(Object.keys(props.Document));
-            allKeys.push(...Array.from(Object.keys(Doc.GetProto(props.Document))));
-            matchedKeys = allKeys.filter(key => key.includes(props.fieldKey.substring(1)));
-        }
-        const fieldKey = matchedKeys.length ? matchedKeys[0] : props.fieldKey;
-        const field = props.Document[fieldKey];
-        const doc = FieldValue(Cast(field, Doc));
-        const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
-
-        const onItemDown = async (e: React.PointerEvent) => {
-            if (this.props.Document._searchDoc) {
-                const doc = Doc.GetProto(this.props.rowProps.original);
-                const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
-                let targetContext = undefined;
-                if (aliasdoc.length > 0) {
-                    targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
-                }
-                DocumentManager.Instance.jumpToDocument(this.props.rowProps.original, false, undefined, targetContext);
-            }
-            else {
-                fieldIsDoc &&
-                    SetupDrag(this._focusRef,
-                        () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                        this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
-                        this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-            }
-        };
         const onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
@@ -252,31 +185,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             dragRef.current!.className = "collectionSchemaView-cellContainer";
         };
 
-        let contents: any = "incorrect type";
-        if (type === undefined) contents = field === undefined ? undefined : Field.toString(field as Field);//StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
-        if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
-        if (type === "string") {
-            fieldKey === "text" ?
-                contents = Cast(field, RichTextField)?.Text :
-                contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
-        }
-        if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
-        if (type === "document") {
-            const doc = FieldValue(Cast(field, Doc));
-            contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
-        }
-        if (type === "image") {
-            const image = FieldValue(Cast(field, ImageField));
-            const doc = FieldValue(Cast(field, Doc));
-            contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
-        }
-        if (type === "list") {
-            contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
-        }
-        if (type === "date") {
-            contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
-        }
-
+        let contents = Field.toString(field as Field);
+        contents = contents === "" ? "--" : contents;
 
         let className = "collectionSchemaView-cellWrapper";
         if (this._isEditing) className += " editing";
@@ -284,11 +194,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
         const positions = [];
-        let cfield = props.Document[props.fieldKey];
-        this.type = props.fieldKey;
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
-            let term = (cfield instanceof Promise) ? "...promise pending..." : Field.toString(cfield as Field);
-            term = term.toLowerCase();
+            let term = (field instanceof Promise) ? "...promise pending..." : contents.toLowerCase();
             const search = StrCast(this.props.Document._searchString).toLowerCase();
             let start = term.indexOf(search);
             let tally = 0;
@@ -305,125 +212,55 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 positions.pop();
             }
         }
-        let search = false;
-        if (this.props.Document._searchDoc) {
-            search = true;
-        }
-
         const placeholder = type === "number" ? "0" : contents === "" ? "--" : "undefined";
         return (
-            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
+            <div className="collectionSchemaView-cellContainer" style={{ cursor: field instanceof Doc ? "grab" : "auto" }}
                 ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-                <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
-                    <div className="collectionSchemaView-cellContents"
-                        ref={type === undefined || type === "document" ? this.dropRef : null}>
-                        {!search ?
+                <div className={className} ref={this._focusRef} tabIndex={-1}>
+                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null}>
+                        {!this.props.Document._searchDoc ?
                             <EditableView
-                                positions={positions.length > 0 ? positions : undefined}
-                                search={Cast(this.props.Document._searchString, "string", null)}
                                 editing={this._isEditing}
                                 isEditingCallback={this.isEditingCallback}
                                 display={"inline"}
                                 contents={contents}
-                                highlight={positions.length > 0 ? true : undefined}
-                                //contents={StrCast(contents)}
                                 height={"auto"}
                                 maxHeight={Number(MAX_ROW_HEIGHT)}
                                 placeholder={placeholder}
-                                bing={() => {
-                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    if (cfield !== undefined) {
-                                        // if (typeof(cfield)===RichTextField)
-                                        const a = cfield as RichTextField;
-                                        const b = cfield as DateField;
-                                        console.log(b);
-                                        if (a.Text !== undefined) {
-                                            return (a.Text);
-                                        }
-                                        else if (b.toString() !== undefined) {
-                                            return b.toString();
-                                        }
-                                        else if (StrCast(cfield)) {
-                                            return StrCast(cfield);
-                                        }
-                                        else {
-                                            return String(NumCast(cfield));
-                                        }
-                                    }
-                                }}
                                 GetValue={() => {
-                                    if (type === "number" && (contents === 0 || contents === "0")) {
-                                        return "0";
-                                    } else {
-                                        const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                        if (type === "number") {
-                                            return StrCast(cfield);
-                                        }
-                                        const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
-                                        const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
-                                        const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
-                                            Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
-                                        return val;
-
-                                    }
-
+                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(field));
+                                    const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
+                                    const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
+                                    return cscript ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
+                                        Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
                                 }}
                                 SetValue={action((value: string) => {
                                     let retVal = false;
-
                                     if (value.startsWith(":=") || value.startsWith("=:=")) {
                                         const script = value.substring(value.startsWith("=:=") ? 3 : 2);
-                                        retVal = this.props.setComputed(script, value.startsWith(":=") ? Doc.GetProto(props.Document) : props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                        retVal = this.props.setComputed(script, value.startsWith(":=") ? Doc.GetProto(this.props.Document) : this.props.Document, this.renderFieldKey, this.props.row, this.props.col);
                                     } else {
                                         const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                        if (script.compiled) {
-                                            retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
-                                        }
-
+                                        script.compiled && (retVal = this.applyToDoc(this._rowDoc, this.props.row, this.props.col, script.run));
                                     }
                                     if (retVal) {
                                         this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
                                         this.props.setIsEditing(false);
                                     }
                                     return retVal;
-
-                                    //return true;
                                 })}
                                 OnFillDown={async (value: string) => {
                                     const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                    if (script.compiled) {
-                                        DocListCast(this.props.Document[this.props.fieldKey]).
-                                            forEach((doc, i) => value.startsWith(":=") ?
-                                                this.props.setComputed(value.substring(2), doc, this.props.rowProps.column.id!, i, this.props.col) :
-                                                this.applyToDoc(doc, i, this.props.col, script.run));
-                                    }
+                                    script.compiled && DocListCast(field).
+                                        forEach((doc, i) => value.startsWith(":=") ?
+                                            this.props.setComputed(value.substring(2), doc, this.renderFieldKey, i, this.props.col) :
+                                            this.applyToDoc(doc, i, this.props.col, script.run));
                                 }}
                             />
                             :
-                            this.returnHighlights(() => {
-                                const dateCheck: Date | undefined = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : undefined;
-                                if (dateCheck !== undefined) {
-                                    cfield = dateCheck.toLocaleString();
-                                }
-                                if (props.fieldKey === "context") {
-                                    cfield = this.contents;
-                                }
-                                if (props.fieldKey === "*lastModified") {
-                                    if (FieldValue(props.Document["data-lastModified"]) !== undefined) {
-                                        const d = ComputedField.WithoutComputed(() => FieldValue(props.Document["data-lastModified"])) as DateField;
-                                        cfield = d.date.toLocaleString();
-                                    }
-
-                                    else if (FieldValue(props.Document["text-lastModified"]) !== undefined) {
-                                        const d = ComputedField.WithoutComputed(() => FieldValue(props.Document["text-lastModified"])) as DateField;
-                                        cfield = d.date.toLocaleString();
-                                    }
-                                }
-                                return Field.toString(cfield as Field);
-                            }, positions)
+                            this.returnHighlights(contents, positions)
                         }
                     </div >
-                    {/* {fieldIsDoc ? docExpander : null} */}
                 </div>
             </div>
         );
@@ -433,43 +270,36 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 }
 
 @observer
-export class CollectionSchemaNumberCell extends CollectionSchemaCell {
-    render() { return this.renderCellWithType("number"); }
-}
+export class CollectionSchemaNumberCell extends CollectionSchemaCell { render() { return this.renderCellWithType("number"); } }
 
 @observer
-export class CollectionSchemaBooleanCell extends CollectionSchemaCell {
-    render() { return this.renderCellWithType("boolean"); }
-}
+export class CollectionSchemaBooleanCell extends CollectionSchemaCell { render() { return this.renderCellWithType("boolean"); } }
 
 @observer
-export class CollectionSchemaStringCell extends CollectionSchemaCell {
-    render() { return this.renderCellWithType("string"); }
-}
+export class CollectionSchemaStringCell extends CollectionSchemaCell { render() { return this.renderCellWithType("string"); } }
 
 @observer
 export class CollectionSchemaDateCell extends CollectionSchemaCell {
-    @observable private _date: Date = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date :
-        this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof Date ? this.props.rowProps.original[this.props.rowProps.column.id as string] : new Date();
+    @computed get _date(): Opt<DateField> { return this._rowDoc[this.renderFieldKey] instanceof DateField ? DateCast(this._rowDoc[this.renderFieldKey]) : undefined; }
 
     @action
     handleChange = (date: any) => {
-        this._date = date;
         // const script = CompileScript(date.toString(), { requiredType: "Date", addReturn: true, params: { this: Doc.name } });
         // if (script.compiled) {
         //     this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
         // } else {
         // ^ DateCast is always undefined for some reason, but that is what the field should be set to
-        this._document[this.props.rowProps.column.id as string] = date as Date;
+        this._rowDoc[this.renderFieldKey] = new DateField(date as Date);
         //}
     }
 
     render() {
-        return <DatePicker
-            selected={this._date}
-            onSelect={date => this.handleChange(date)}
-            onChange={date => this.handleChange(date)}
-        />;
+        return !this.props.isFocused ? <span onPointerDown={this.onPointerDown}>{this._date ? Field.toString(this._date as Field) : "--"}</span> :
+            <DatePicker
+                selected={this._date?.date || new Date}
+                onSelect={date => this.handleChange(date)}
+                onChange={date => this.handleChange(date)}
+            />;
     }
 }
 
@@ -478,45 +308,11 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
     _overlayDisposer?: () => void;
 
-    private prop: FieldViewProps = {
-        Document: this.props.rowProps.original,
-        DataDoc: this.props.rowProps.original,
-        LibraryPath: [],
-        dropAction: "alias",
-        bringToFront: emptyFunction,
-        rootSelected: returnFalse,
-        fieldKey: this.props.rowProps.column.id as string,
-        ContainingCollectionView: this.props.CollectionView,
-        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-        isSelected: returnFalse,
-        select: emptyFunction,
-        renderDepth: this.props.renderDepth + 1,
-        ScreenToLocalTransform: Transform.Identity,
-        focus: emptyFunction,
-        active: returnFalse,
-        whenActiveChanged: emptyFunction,
-        PanelHeight: returnZero,
-        PanelWidth: returnZero,
-        NativeHeight: returnZero,
-        NativeWidth: returnZero,
-        addDocTab: this.props.addDocTab,
-        pinToPres: this.props.pinToPres,
-        ContentScaling: returnOne,
-        docFilters: returnEmptyFilter,
-        searchFilterDocs: returnEmptyDoclist,
-    };
-    @observable private _field = this.prop.Document[this.prop.fieldKey];
-    @observable private _doc = FieldValue(Cast(this._field, Doc));
-    @observable private _docTitle = this._doc?.title;
-    @observable private _preview = false;
-    @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
-    @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
-    @computed get tableWidth() { return this.prop.PanelWidth() - 2 * this.borderWidth - 4 - this.previewWidth(); }
+    @computed get _doc() { return FieldValue(Cast(this._rowDoc[this.renderFieldKey], Doc)); }
 
     @action
     onSetValue = (value: string) => {
-        this._docTitle = value;
-        //this.prop.Document[this.prop.fieldKey] = this._text;
+        this._doc && (Doc.GetProto(this._doc).title = value);
 
         const script = CompileScript(value, {
             addReturn: true,
@@ -526,46 +322,22 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
         const results = script.compiled && script.run();
         if (results && results.success) {
-            this._doc = results.result;
-            this._document[this.prop.fieldKey] = results.result;
-            this._docTitle = this._doc?.title;
-
+            this._rowDoc[this.renderFieldKey] = results.result;
             return true;
         }
         return false;
     }
 
+    componentWillUnmount() { this.onBlur(); }
+
+    onBlur = () => { this._overlayDisposer?.(); };
     onFocus = () => {
-        this._overlayDisposer?.();
+        this.onBlur();
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
     @action
-    onOpenClick = () => {
-        this._preview = false;
-        if (this._doc) {
-            this.props.addDocTab(this._doc, "onRight");
-            return true;
-        }
-        return false;
-    }
-
-    @action
-    showPreview = (bool: boolean, e: any) => {
-        if (this._isEditing) {
-            this._preview = false;
-        } else {
-            if (bool) {
-                this.props.showDoc(this._doc, this.prop.DataDoc, e.clientX, e.clientY);
-            } else {
-                this.props.showDoc(undefined);
-            }
-        }
-    }
-
-    @action
-    isEditingCalling = (isEditing: boolean): void => {
-        this.showPreview(false, "");
+    isEditingCallback = (isEditing: boolean): void => {
         document.removeEventListener("keydown", this.onKeyDown);
         isEditing && document.addEventListener("keydown", this.onKeyDown);
         this._isEditing = isEditing;
@@ -573,201 +345,80 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
     }
 
-    onDown = (e: any) => {
-        this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
-        this.props.setPreviewDoc(this.props.rowProps.original);
-
-        let url: string;
-        if (url = StrCast(this.props.rowProps.row.href)) {
-            try {
-                new URL(url);
-                const temp = window.open(url)!;
-                temp.blur();
-                window.focus();
-            } catch { }
-        }
-
-        const field = this.props.rowProps.original[this.props.rowProps.column.id!];
-        const doc = FieldValue(Cast(field, Doc));
-        if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
-
-        this.showPreview(true, e);
-
-    }
-
     render() {
-        if (typeof this._field === "object" && this._doc && this._docTitle) {
-            return (
-                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
-                    onPointerDown={this.onDown}
-                    onPointerEnter={(e) => { this.showPreview(true, e); }}
-                    onPointerLeave={(e) => { this.showPreview(false, e); }}
+        return !this._doc ? this.renderCellWithType("document") :
+            <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
+                onPointerDown={this.onPointerDown}
+            >
+                <div className="collectionSchemaView-cellContents-document"
+                    style={{ padding: "5.9px" }}
+                    ref={this.dropRef}
+                    onFocus={this.onFocus}
+                    onBlur={this.onBlur}
                 >
-
-                    <div className="collectionSchemaView-cellContents-document"
-                        style={{ padding: "5.9px" }}
-                        ref={this.dropRef}
-                        onFocus={this.onFocus}
-                        onBlur={() => this._overlayDisposer?.()}
-                    >
-
-                        <EditableView
-                            editing={this._isEditing}
-                            isEditingCallback={this.isEditingCalling}
-                            display={"inline"}
-                            contents={this._docTitle}
-                            height={"auto"}
-                            maxHeight={Number(MAX_ROW_HEIGHT)}
-                            GetValue={() => {
-                                return StrCast(this._docTitle);
-                            }}
-                            SetValue={action((value: string) => {
-                                this.onSetValue(value);
-                                this.showPreview(false, "");
-                                return true;
-                            })}
-                        />
-                    </div >
-                    <div onClick={this.onOpenClick} className="collectionSchemaView-cellContents-docButton">
-                        <FontAwesomeIcon icon="external-link-alt" size="lg" ></FontAwesomeIcon> </div>
+                    <EditableView
+                        editing={this._isEditing}
+                        isEditingCallback={this.isEditingCallback}
+                        display={"inline"}
+                        contents={this._doc.title || "--"}
+                        height={"auto"}
+                        maxHeight={Number(MAX_ROW_HEIGHT)}
+                        GetValue={() => StrCast(this._doc?.title)}
+                        SetValue={action((value: string) => {
+                            this.onSetValue(value);
+                            return true;
+                        })}
+                    />
+                </div >
+                <div onClick={() => this._doc && this.props.addDocTab(this._doc, "onRight")} className="collectionSchemaView-cellContents-docButton">
+                    <FontAwesomeIcon icon="external-link-alt" size="lg" />
                 </div>
-            );
-        } else {
-            return this.renderCellWithType("document");
-        }
+            </div>;
     }
 }
 
 @observer
 export class CollectionSchemaImageCell extends CollectionSchemaCell {
-    // render() {
-    //     return this.renderCellWithType("image");
-    // }
 
-    choosePath(url: URL, dataDoc: any) {
-        const lower = url.href.toLowerCase();
-        if (url.protocol === "data") {
-            return url.href;
-        } else if (url.href.indexOf(window.location.origin) === -1) {
-            return Utils.CorsProxy(url.href);
-        } else if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) {
-            return url.href;//Why is this here
-        }
+    choosePath(url: URL) {
+        if (url.protocol === "data") return url.href;
+        if (url.href.indexOf(window.location.origin) === -1) return Utils.CorsProxy(url.href);
+        if (!/\.(png|jpg|jpeg|gif|webp)$/.test(url.href.toLowerCase())) return url.href;//Why is this here
+
         const ext = path.extname(url.href);
-        const _curSuffix = "_o";
-        return url.href.replace(ext, _curSuffix + ext);
+        return url.href.replace(ext, "_o" + path.extname(url.href));
     }
 
     render() {
-        const props: FieldViewProps = {
-            Document: this.props.rowProps.original,
-            DataDoc: this.props.rowProps.original,
-            LibraryPath: [],
-            dropAction: "alias",
-            bringToFront: emptyFunction,
-            rootSelected: returnFalse,
-            fieldKey: this.props.rowProps.column.id as string,
-            ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-            isSelected: returnFalse,
-            select: emptyFunction,
-            renderDepth: this.props.renderDepth + 1,
-            ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
-            active: returnFalse,
-            whenActiveChanged: emptyFunction,
-            PanelHeight: returnZero,
-            PanelWidth: returnZero,
-            NativeHeight: returnZero,
-            NativeWidth: returnZero,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
-            ContentScaling: returnOne,
-            docFilters: returnEmptyFilter,
-            searchFilterDocs: returnEmptyDoclist,
-        };
+        const field = Cast(this._rowDoc[this.renderFieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
+        const alts = DocListCast(this._rowDoc[this.renderFieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
+        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url)); // access the primary layout data of the alternate documents
+        const paths = field ? [this.choosePath(field.url), ...altpaths] : altpaths;
+        const url = paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
 
-        let image = true;
-        let url = [];
-        if (props.DataDoc) {
-            const field = Cast(props.DataDoc[props.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
-            const alts = DocListCast(props.DataDoc[props.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
-            const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url, props.DataDoc)); // access the primary layout data of the alternate documents
-            const paths = field ? [this.choosePath(field.url, props.DataDoc), ...altpaths] : altpaths;
-            if (paths.length) {
-                url = paths;
-            } else {
-                url = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
-                image = false;
-            }
-            //url = paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
-        } else {
-            url = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
-            image = false;
-        }
+        const heightToWidth = NumCast(this._rowDoc._nativeHeight) / NumCast(this._rowDoc._nativeWidth);
+        let width = Math.min(75, this.props.rowProps.width);
+        const height = Math.min(75, width * heightToWidth);
+        width = height / heightToWidth;
 
-        const heightToWidth = NumCast(props.DataDoc?._nativeHeight) / NumCast(props.DataDoc?._nativeWidth);
-        const height = this.props.rowProps.width * heightToWidth;
-
-        if (props.fieldKey === "data") {
-            if (url !== []) {
-                const reference = React.createRef<HTMLDivElement>();
-                return (
-                    <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                        <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
-                            <img src={url[0]} width={image ? this.props.rowProps.width : "30px"}
-                                height={image ? height : "30px"} />
-                        </div >
-                    </div>
-                );
-
-            } else {
-                return this.renderCellWithType("image");
-            }
-        } else {
-            return this.renderCellWithType("image");
-        }
+        const reference = React.createRef<HTMLDivElement>();
+        return <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+            <div className="collectionSchemaView-cellContents" key={this._rowDoc[Id]} ref={reference}>
+                <img src={url[0]}
+                    width={paths.length ? width : "20px"}
+                    height={paths.length ? height : "20px"} />
+            </div >
+        </div>;
     }
 }
 
 
-
-
-
 @observer
 export class CollectionSchemaListCell extends CollectionSchemaCell {
-
     _overlayDisposer?: () => void;
 
-    private prop: FieldViewProps = {
-        Document: this.props.rowProps.original,
-        DataDoc: this.props.rowProps.original,
-        LibraryPath: [],
-        dropAction: "alias",
-        bringToFront: emptyFunction,
-        rootSelected: returnFalse,
-        fieldKey: this.props.rowProps.column.id as string,
-        ContainingCollectionView: this.props.CollectionView,
-        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-        isSelected: returnFalse,
-        select: emptyFunction,
-        renderDepth: this.props.renderDepth + 1,
-        ScreenToLocalTransform: Transform.Identity,
-        focus: emptyFunction,
-        active: returnFalse,
-        whenActiveChanged: emptyFunction,
-        PanelHeight: returnZero,
-        PanelWidth: returnZero,
-        NativeHeight: returnZero,
-        NativeWidth: returnZero,
-        addDocTab: this.props.addDocTab,
-        pinToPres: this.props.pinToPres,
-        ContentScaling: returnOne,
-        docFilters: returnEmptyFilter,
-        searchFilterDocs: returnEmptyDoclist,
-    };
-    @observable private _field = this.prop.Document[this.prop.fieldKey];
-    @observable private _optionsList = this._field as List<any>;
+    @computed get _field() { return this._rowDoc[this.renderFieldKey]; }
+    @computed get _optionsList() { return this._field as List<any>; }
     @observable private _opened = false;
     @observable private _text = "select an item";
     @observable private _selectedNum = 0;
@@ -777,7 +428,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         // change if its a document
         this._optionsList[this._selectedNum] = this._text = value;
 
-        (this.prop.Document[this.prop.fieldKey] as List<any>).splice(this._selectedNum, 1, value);
+        (this._field as List<any>).splice(this._selectedNum, 1, value);
     }
 
     @action
@@ -792,33 +443,22 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     }
 
     render() {
-        let type = "list";
-        let link = false;
+        const link = false;
         const reference = React.createRef<HTMLDivElement>();
 
-        if (typeof this._field === "object" && this._optionsList[0]) {
-            const options = !this._opened ? (null) : <div>
-                {this._optionsList.map((element, index) => {
-                    let title = "";
-                    if (element instanceof Doc) {
-                        type = "document";
-                        if (this.prop.fieldKey.toLowerCase() === "links") {
-                            link = true;
-                            type = "link";
-                        }
-                        title = StrCast(element.title);
-                    }
-                    return <div className="collectionSchemaView-dropdownOption" style={{ padding: "6px" }}
-                        onPointerDown={(e) => this.onSelected(StrCast(element), index)} >
-                        {element}
-                        {title}
-                    </div>;
-                })}
-            </div>;
+        if (this._optionsList?.length) {
+            const options = !this._opened ? (null) :
+                <div>
+                    {this._optionsList.map((element, index) => {
+                        const val = Field.toString(element);
+                        return <div className="collectionSchemaView-dropdownOption" key={index} style={{ padding: "6px" }} onPointerDown={(e) => this.onSelected(StrCast(element), index)} >
+                            {val}
+                        </div>;
+                    })}
+                </div>;
 
             const plainText = <div style={{ padding: "5.9px" }}>{this._text}</div>;
-            const textarea = <div className="collectionSchemaView-cellContents" key={this.prop.Document[Id]} style={{ padding: "5.9px" }}
-                ref={type === undefined || type === "document" ? this.dropRef : null} >
+            const textarea = <div className="collectionSchemaView-cellContents" key={this._rowDoc[Id]} style={{ padding: "5.9px" }} ref={this.dropRef} >
                 <EditableView
                     editing={this._isEditing}
                     isEditingCallback={this.isEditingCallback}
@@ -838,11 +478,11 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
             //☰
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                    <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
+                    <div className="collectionSchemaView-cellContents" key={this._rowDoc[Id]} ref={reference}>
                         <div className="collectionSchemaView-dropDownWrapper">
                             <button type="button" className="collectionSchemaView-dropdownButton" style={{ right: "length", position: "relative" }}
                                 onClick={action(e => this._opened = !this._opened)} >
-                                <FontAwesomeIcon icon={this._opened ? "caret-up" : "caret-down"} size="lg" />
+                                <FontAwesomeIcon icon={this._opened ? "caret-up" : "caret-down"} size="sm" />
                             </button>
                             <div className="collectionSchemaView-dropdownText"> {link ? plainText : textarea} </div>
                         </div>
@@ -858,26 +498,13 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
-    @observable private _isChecked: boolean = typeof this.props.rowProps.original[this.props.rowProps.column.id as string] === "boolean" ? BoolCast(this.props.rowProps.original[this.props.rowProps.column.id as string]) : false;
-
-    @action
-    toggleChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._isChecked = e.target.checked;
-        const script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
-        script.compiled && this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
-    }
+    @computed get _isChecked() { return BoolCast(this._rowDoc[this.renderFieldKey]); }
 
     render() {
         const reference = React.createRef<HTMLDivElement>();
-        const onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView?.props.isSelected() ? undefined :
-                SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        };
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
-                    <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked} />
-                </div >
+                <input type="checkbox" checked={this._isChecked} onChange={e => this._rowDoc[this.renderFieldKey] = e.target.checked} />
             </div>
         );
     }
@@ -887,23 +514,14 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 @observer
 export class CollectionSchemaButtons extends CollectionSchemaCell {
     render() {
-        const doc = this.props.rowProps.original;
-        const searchMatch = (backward: boolean = true) => Doc.SearchMatchNext(doc, backward);
-        // const reference = React.createRef<HTMLDivElement>();
-        // const onItemDown = (e: React.PointerEvent) => {
-        //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
-        //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        // };
-        return !this.props.Document._searchDoc ? <></>
-            : [DocumentType.PDF, DocumentType.RTF].includes(StrCast(doc.type) as DocumentType) ?
-                <div style={{ paddingTop: 8, paddingLeft: 3, }} >
-                    <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
-                        <FontAwesomeIcon icon="arrow-up" size="sm" />
-                    </button>
-                    <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
-                        <FontAwesomeIcon icon="arrow-down" size="sm" />
-                    </button>
-                </div> :
-                <></>;
+        return !this._rowDoc._searchDoc || ![DocumentType.PDF, DocumentType.RTF].includes(StrCast(this._rowDoc.type) as DocumentType) ? <></> :
+            <div style={{ paddingTop: 8, paddingLeft: 3 }} >
+                <button style={{ padding: 2, left: 77 }} onClick={() => Doc.SearchMatchNext(this._rowDoc, true)}>
+                    <FontAwesomeIcon icon="arrow-up" size="sm" />
+                </button>
+                <button style={{ padding: 2 }} onClick={() => Doc.SearchMatchNext(this._rowDoc, false)} >
+                    <FontAwesomeIcon icon="arrow-down" size="sm" />
+                </button>
+            </div>;
     }
 }

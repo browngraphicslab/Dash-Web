@@ -100,9 +100,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this.Document.curPage = (this.Document.curPage || 1) - 1; return true; };
-    public forwardPage = () => { this.Document.curPage = (this.Document.curPage || 1) + 1; return true; };
-    public gotoPage = (p: number) => { this.Document.curPage = p; };
+    public backPage = () => { this.Document._curPage = (this.Document._curPage || 1) - 1; return true; };
+    public forwardPage = () => { this.Document._curPage = (this.Document._curPage || 1) + 1; return true; };
+    public gotoPage = (p: number) => { this.Document._curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
@@ -159,7 +159,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </button>
         </>;
         const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
-        const curPage = this.Document.curPage || 1;
+        const curPage = this.Document._curPage || 1;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
@@ -186,7 +186,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
                 <div className="pdfBox-pageNums">
                     <input value={curPage}
-                        onChange={e => this.Document.curPage = Number(e.currentTarget.value)}
+                        onChange={e => this.Document._curPage = Number(e.currentTarget.value)}
                         style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}

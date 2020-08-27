@@ -38,6 +38,7 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
+import { FormatShapePane } from '../collections/collectionFreeForm/FormatShapePane';
 
 export type DocFocusFunc = () => boolean;
 
@@ -105,17 +106,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _lastTap: number = 0;
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
-    private _dropDisposer?: DragManager.DragDropDisposer;
-    private _showKPQuery: boolean = false;
-    private _queries: string = "";
     private _titleRef = React.createRef<EditableView>();
+    private _dropDisposer?: DragManager.DragDropDisposer;
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
@@ -286,6 +285,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    _timeout: NodeJS.Timeout | undefined;
+
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
@@ -293,6 +294,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let preventDefault = true;
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && (this.props.Document.type !== DocumentType.FONTICON || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+                if (this._timeout) {
+                    clearTimeout(this._timeout);
+                    this._timeout = undefined;
+                }
                 if (!(e.nativeEvent as any).formattedHandled) {
                     if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                         const func = () => this.onDoubleClickHandler.script.run({
@@ -302,31 +307,41 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             shiftKey: e.shiftKey
                         }, console.log);
                         func();
-                    } else {
-                        UndoManager.RunInBatch(() => {
-                            let fullScreenDoc = this.props.Document;
-                            if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
-                                fullScreenDoc = Doc.MakeAlias(this.props.Document);
-                                fullScreenDoc.layoutKey = "layout_fullScreen";
-                            }
-                            this.props.addDocTab(fullScreenDoc, "inTab");
-                        }, "double tap");
-                        SelectionManager.DeselectAll();
+                    } else if (!Doc.IsSystem(this.props.Document)) {
+                        if (this.props.Document.type === DocumentType.INK) {
+                            FormatShapePane.Instance._controlBtn = true;
+                        } else {
+                            UndoManager.RunInBatch(() => {
+                                let fullScreenDoc = this.props.Document;
+                                if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
+                                    fullScreenDoc = Doc.MakeAlias(this.props.Document);
+                                    fullScreenDoc.layoutKey = "layout_fullScreen";
+                                }
+                                this.props.addDocTab(fullScreenDoc, "inTab");
+                            }, "double tap");
+                            SelectionManager.DeselectAll();
+                        }
                         Doc.UnBrushDoc(this.props.Document);
                     }
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                const shiftKey = e.shiftKey;
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this,
-                    shiftKey: e.shiftKey
+                    shiftKey
                 }, console.log);
-                if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
-                    UndoManager.RunInBatch(func, "on click");
-                } else func();
+                const clickFunc = () => {
+                    if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
+                        UndoManager.RunInBatch(func, "on click");
+                    } else func();
+                };
+                if (this.onDoubleClickHandler) {
+                    this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 500);
+                } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "onRight");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
@@ -720,7 +735,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
             cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
-            cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         const appearance = cm.findByDescription("UI Controls...");
@@ -731,21 +746,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
-
-        const existingOnClick = cm.findByDescription("OnClick...");
-        const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-        onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
-        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
-        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
+        if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
+            const existingOnClick = cm.findByDescription("OnClick...");
+            const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+            onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
+            onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+            onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
+            !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
+            onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
+            onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
+            onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
+        }
 
         const funcs: ContextMenuProps[] = [];
         if (this.layoutDoc.onDragStart) {
@@ -771,7 +787,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
             }
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-            Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc()["sidebar-userDoc"], Doc, null)) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
+            Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc().myUserDoc, Doc, null)) && moreItems.push({ description: "Toggle Alternate Button Bar", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);

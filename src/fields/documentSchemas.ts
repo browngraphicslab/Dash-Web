@@ -13,10 +13,11 @@ export const documentSchema = createSchema({
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
 
     // "Location" properties in a very general sense
-    currentFrame: "number",     // current frame of a frame based collection (e.g., a progressive slide)
+    _curPage: "number",         // current page of a page based document
+    _currentFrame: "number",    // current frame of a frame based collection (e.g., a progressive slide)
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
-    currentTimecode: "number",  // current play back time of a temporal document (video / audio)
+    _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
@@ -86,6 +87,7 @@ export const documentSchema = createSchema({
     treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
     treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
+    treeViewOutlineMode: "boolean", // whether tree view is an outline and clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 

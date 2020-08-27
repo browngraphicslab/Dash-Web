@@ -26,6 +26,8 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
                 NativeWidth={returnZero}
                 ignoreFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
                 annotationsKey={""}
+                dontRegisterView={true}
+                renderDepth={this.props.renderDepth + 1}
                 CollectionView={undefined}
                 addDocument={returnFalse}
                 removeDocument={returnFalse}

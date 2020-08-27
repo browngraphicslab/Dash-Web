@@ -156,14 +156,17 @@ export enum SharingPermissions {
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
+
+    // all changes received fromt the server must be processed as Admin
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
+
+    // if the current user is the author of the document / the current user is a member of the admin group
+    const userChecked = user || Doc.CurrentUserEmail;
+    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        const userChecked = user || Doc.CurrentUserEmail;
-
-        // if the current user is the author of the document / the current user is a member of the admin group
-        if (userChecked === (target.__fields?.author || target.author) || currentUserGroups.includes("admin")) return AclAdmin;
+        if (currentUserGroups.includes("admin")) return AclAdmin;
 
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;

@@ -70,7 +70,6 @@ import "./MainView.scss";
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _buttonBarHeight = 36;
-    private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
 
@@ -83,7 +82,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeDashboard, Doc)) : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
+    @computed public get searchDoc() { return Cast(this.userDoc.mySearchPanelDoc, Doc) as Doc; }
 
     @observable public sidebarContent: any = this.userDoc?.sidebar;
     @observable public panelContent: string = "none";
@@ -145,7 +144,7 @@ export class MainView extends React.Component {
         super(props);
         MainView.Instance = this;
         this.sidebarContent.proto = undefined;
-        this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
+        CurrentUserUtils._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
 
         CurrentUserUtils.propertiesWidth = 0;
@@ -167,7 +166,7 @@ export class MainView extends React.Component {
         }
 
         library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
-            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
+            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faMapMarker, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointLeft, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleLeft, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
             fa.faCaretSquareDown, fa.faCaretSquareRight, fa.faArrowsAltH, fa.faPlus, fa.faMinus, fa.faTerminal, fa.faToggleOn, fa.faFile, fa.faLocationArrow,
@@ -186,7 +185,7 @@ export class MainView extends React.Component {
             fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faTextHeight, fa.faClosedCaptioning, fa.faInfoCircle, fa.faTag, fa.faSyncAlt, fa.faPhotoVideo,
             fa.faArrowAltCircleDown, fa.faArrowAltCircleUp, fa.faArrowAltCircleLeft, fa.faArrowAltCircleRight, fa.faStopCircle, fa.faCheckCircle, fa.faGripVertical,
             fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload,
-            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash);
+            fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -233,11 +232,11 @@ export class MainView extends React.Component {
         if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
-                target => target && this.createNewDashboard(),
+                target => target && CurrentUserUtils.createNewDashboard(Doc.UserDoc()),
                 { fireImmediately: true }
             );
         } else {
-            if (received && this._urlState.sharing) {
+            if (received && CurrentUserUtils._urlState.sharing) {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
                     initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
                         if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
@@ -248,9 +247,9 @@ export class MainView extends React.Component {
             }
             const doc = this.userDoc && await Cast(this.userDoc.activeDashboard, Doc);
             if (doc) {
-                this.openDashboard(doc);
+                CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
             } else {
-                this.createNewDashboard();
+                CurrentUserUtils.createNewDashboard(Doc.UserDoc());
             }
         }
     }
@@ -271,73 +270,6 @@ export class MainView extends React.Component {
         Doc.AddDocToList(myPresentations, "data", pres);
     }
 
-    @action
-    createNewDashboard = async (id?: string) => {
-        const myCatalog = Doc.UserDoc().myCatalog as Doc;
-        const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
-        const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
-        const dashboardCount = DocListCast(dashboards.data).length + 1;
-        const emptyPane = Cast(this.userDoc.emptyPane, Doc, null);
-        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-        const freeformOptions: DocumentOptions = {
-            x: 0,
-            y: 400,
-            _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
-            _height: this._panelHeight,
-            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
-        };
-        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");
-        Doc.AddDocToList(myCatalog, "data", freeformDoc);
-        Doc.AddDocToList(myCatalog, "data", presentation);
-        Doc.UserDoc().activePresentation = presentation;
-        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
-        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const copyDashboard = ScriptField.MakeScript(`copyDashboard()`);
-        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyDashboard!]);
-        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard"]);
-
-        Doc.AddDocToList(dashboards, "data", dashboardDoc);
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openDashboard(dashboardDoc), 0);
-    }
-
-    @action
-    openDashboard = (doc: Doc, fromHistory = false) => {
-        CurrentUserUtils.MainDocId = doc[Id];
-
-        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest dashboard
-            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
-            this.userDoc ? (this.userDoc.activeDashboard = doc) : (CurrentUserUtils.GuestDashboard = doc);
-        }
-        const state = this._urlState;
-        if (state.sharing === true && !this.userDoc) {
-            DocServer.Control.makeReadOnly();
-        } else {
-            fromHistory || HistoryUtil.pushState({
-                type: "doc",
-                docId: doc[Id],
-                readonly: state.readonly,
-                nro: state.nro,
-                sharing: false,
-            });
-            if (state.readonly === true || state.readonly === null) {
-                DocServer.Control.makeReadOnly();
-            } else if (state.safe) {
-                if (!state.nro) {
-                    DocServer.Control.makeReadOnly();
-                }
-                CollectionView.SetSafeMode(true);
-            } else if (state.nro || state.nro === null || state.readonly === false) {
-            } else if (doc.readOnly) {
-                DocServer.Control.makeReadOnly();
-            } else {
-                DocServer.Control.makeEditable();
-            }
-        }
-
-        return true;
-    }
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -357,16 +289,9 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (this.panelContent === doc?.title) return "lightgrey";
-
         if (doc?.type === DocumentType.COL) {
-            if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
-                || doc.title === "sidebar-inactiveDocs" || doc.title === "sidebar-catalog"
-                || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
-                || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
-                return "lightgrey";
-            }
-            return StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+            const system = Doc.IsSystem(doc);
+            return system ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {
@@ -461,7 +386,7 @@ export class MainView extends React.Component {
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
-            doc.dockingConfig ? this.openDashboard(doc) :
+            doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
@@ -571,7 +496,6 @@ export class MainView extends React.Component {
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
-                // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 default:
                     panelDoc = button.target as any; break;
             }
@@ -930,7 +854,7 @@ export class MainView extends React.Component {
     }
 
     importDocument = () => {
-        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null);
+        const sidebar = Cast(Doc.UserDoc().myImportDocs, Doc, null);
         const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
         const input = document.createElement("input");
         input.type = "file";
@@ -1006,13 +930,5 @@ export class MainView extends React.Component {
 }
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
-Scripting.addGlobal(function copyDashboard() {
-    const activeDashboard = Cast(Doc.UserDoc().activeDashboard, Doc, null);
-    CollectionDockingView.Copy(activeDashboard).then(copy => {
-        Doc.AddDocToList(Cast(Doc.UserDoc().myDashboards, Doc, null), "data", copy);
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => MainView.Instance.openDashboard(copy), 0);
-    });
-});
 Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
     "imports files from device directly into the import sidebar");

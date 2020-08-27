@@ -5,14 +5,15 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
-import { Id, Copy } from '../../../fields/FieldSymbols';
+import { Copy, Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { returnFalse, returnZero } from '../../../Utils';
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
 import { Transform } from '../../util/Transform';
@@ -22,6 +23,7 @@ import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
+import { undoBatch } from "../../util/UndoManager";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -443,7 +445,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight();
     selectElement = (doc: Doc) => { /* this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex)); */ };
-    returnHeight = () => 31 + 31 * 6;
+    returnHeight = () => NumCast(this.layoutDoc._height);
     returnLength = () => Math.min(window.innerWidth, 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length);
 
     @action
@@ -486,10 +488,36 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
     }
+    showLogout = () => {
+
+    }
     render() {
+        const myDashboards = DocListCast(Cast(Doc.UserDoc().myDashboards, Doc, null).data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{`${Doc.CurrentUserEmail}/${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.title}`}</div>
+                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>
+                    <div className="searchBox-lozenge-user">
+                        {`${Doc.CurrentUserEmail}`}
+                        <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                            Logoff
+                        </div>
+                    </div>
+                    <div className="searchBox-lozenge">
+                        {`UI project`}
+                    </div>
+                    <div className="searchBox-lozenge-dashboard"  >
+                        <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
+                            value={myDashboards.indexOf(Cast(Doc.UserDoc().activeDashboard, Doc, null)!)}>
+                            {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                        </select>
+                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                            New
+                        </div>
+                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
+                            Snapshot
+                        </div>
+                    </div>
+                </div>
                 <div className="searchBox-bar">
                     <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
@@ -522,7 +550,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 {!this._searchbarOpen ? (null) :
                     <div style={{ zIndex: 20000, color: "black" }} ref={(r) => r?.focus()}>
                         <div style={{ display: "flex", justifyContent: "center", }}>
-                            <div style={{ display: this.open ? "flex" : "none", overflow: "auto", }}>
+                            <div style={{ display: this.open ? "flex" : "none", overflow: "auto", position: "absolute" }}>
                                 <CollectionSchemaView {...this.props}
                                     CollectionView={undefined}
                                     annotationsKey={""}
@@ -536,6 +564,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />
+                                <div style={{ position: "absolute", right: 5, bottom: 7, width: 15, height: 15, }}
+                                    onPointerDown={e => setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
+                                        this.props.Document._height = NumCast(this.props.Document._height) + delta[1];
+                                        return false;
+                                    }, returnFalse, emptyFunction)}
+                                >
+                                    <FontAwesomeIcon icon="grip-lines" size="lg" />
+                                </div>
                             </div>
                         </div>
                     </div>

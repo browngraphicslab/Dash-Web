@@ -59,6 +59,7 @@
     justify-content: space-between;
     flex-wrap: nowrap;
     touch-action: none;
+    padding: 2px;
 
     div {
         touch-action: none;
@@ -142,6 +143,10 @@
         width: 100%;
         direction: rtl;
         overflow: visible;
+
+        .rt-td {
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+        }
     }
 
     .rt-tr-group {
@@ -161,6 +166,8 @@
         font-size: 13px;
         text-align: center;
         white-space: nowrap;
+        display: flex;
+        align-items: center;
 
         .imageBox-cont {
             position: relative;
@@ -178,6 +185,11 @@
             width: auto;
             height: 100%;
         }
+    }
+    .rt-td.rt-expandable {
+        display: flex;
+        align-items: center;
+        height: inherit;
     }
 
     .rt-resizer {
@@ -420,10 +432,10 @@ button.add-column {
     .row-dragger {
         display: flex;
         justify-content: space-around;
-        flex: 50 0 auto;
+        //flex: 50 0 auto;
         width: 0;
         max-width: 50px;
-        height: 100%;
+        //height: 100%;
         min-height: 30px;
         align-items: center;
         color: lightgray;
@@ -467,7 +479,7 @@ button.add-column {
 
 .collectionSchemaView-cellContainer {
     width: 100%;
-    height: 100%;
+    height: unset;
 }
 
 .collectionSchemaView-cellWrapper {
@@ -604,10 +616,12 @@ button.add-column {
 .collectionSchemaView-table {
     width: 100%;
     height: 100%;
+    overflow: auto;
+    padding: 3px;
 }
 
 .rt-td.rt-expandable {
-    overflow:visible;
+    overflow: visible;
     position: relative;
     height:100%;
     z-index: 1;
@@ -616,16 +630,9 @@ button.add-column {
     background-color: rgb(252, 252, 252);
     width: 100%;
 
-
     .rt-thead {
         display: none;
     }
-
-    .collectionSchemaView-table {
-        border: solid 1px;
-        overflow: hidden;
-    }
-
 
     .row-dragger {
         background-color: rgb(252, 252, 252);
@@ -636,7 +643,10 @@ button.add-column {
     }
 
     .collectionSchemaView-table {
-        width: 100%;
+        width: 100%; 
+        border: solid 1px;
+        overflow: visible;
+        padding: 0px;
     }
 }
 

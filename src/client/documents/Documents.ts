@@ -135,10 +135,10 @@ export interface DocumentOptions {
     _fontSize?: string;
     _fontWeight?: number;
     _fontFamily?: string;
-    curPage?: number;
-    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _curPage?: number;
+    _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -187,7 +187,7 @@ export interface DocumentOptions {
     cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
-    treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
@@ -270,7 +270,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: defaultDataKey },
-                options: { currentTimecode: 0 },
+                options: { _currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: defaultDataKey },
@@ -278,7 +278,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: defaultDataKey },
-                options: { curPage: 1 }
+                options: { _curPage: 1 }
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: defaultDataKey },
@@ -333,7 +333,7 @@ export namespace Docs {
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
-                options: { backgroundColor: "transparent" }
+                options: { _fontFamily: "cursive", backgroundColor: "transparent" }
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
@@ -682,17 +682,19 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
-                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+                dontRegisterChildViews: true,
+                isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
+                treeViewExpandedView: "fields", removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
+            linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
+            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
-                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
@@ -721,6 +723,7 @@ export namespace Docs {
             I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
+            I._fontFamily = "cursive";
             I.author = Doc.CurrentUserEmail;
             I.rotation = 0;
             I.data = new InkField(points);
@@ -823,8 +826,8 @@ export namespace Docs {
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }

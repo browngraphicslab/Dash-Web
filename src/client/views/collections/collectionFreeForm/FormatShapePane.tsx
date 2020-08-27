@@ -118,9 +118,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                 this._lock && (i.rootDoc._height = (i.rootDoc._width / oldWidth * NumCast(i.rootDoc._height)));
                 const doc = Document(i.rootDoc);
                 if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
-                    console.log(doc.x, doc.y, doc._height, doc._width);
                     const ink = Cast(doc.data, InkField)?.inkData;
-                    console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
                         ink.forEach(i => {
@@ -129,7 +127,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                             const newY = ((doc.y || 0) - oldY) + (i.Y * (doc._height || 0)) / oldHeight;
                             newPoints.push({ X: newX, Y: newY });
                         });
-                        doc.data = new InkField(newPoints);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                     }
                 }
             });
@@ -142,9 +140,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                 this._lock && (i.rootDoc._width = (i.rootDoc._height / oldHeight * NumCast(i.rootDoc._width)));
                 const doc = Document(i.rootDoc);
                 if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
-                    console.log(doc.x, doc.y, doc._height, doc._width);
                     const ink = Cast(doc.data, InkField)?.inkData;
-                    console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
                         ink.forEach(i => {
@@ -153,7 +149,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                             const newY = ((doc.y || 0) - oldY) + (i.Y * (doc._height || 0)) / oldHeight;
                             newPoints.push({ X: newX, Y: newY });
                         });
-                        doc.data = new InkField(newPoints);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                     }
                 }
             });
@@ -179,7 +175,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                         const spNum = Math.floor(counter / 2) * 4 + 2;
 
                         for (var i = 0; i < spNum; i++) {
-                            newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+                            ink[i] && newPoints.push({ X: ink[i].X, Y: ink[i].Y });
                         }
                         for (var j = 0; j < 4; j++) {
                             newPoints.push({ X: x, Y: y });
@@ -189,7 +185,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                             newPoints.push({ X: ink[i].X, Y: ink[i].Y });
                         }
                         this._currPoint = -1;
-                        doc.data = new InkField(newPoints);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                     }
                 }
             }
@@ -206,25 +202,21 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                     const ink = Cast(doc.data, InkField)?.inkData;
                     if (ink && ink.length > 4) {
                         const newPoints: { X: number, Y: number }[] = [];
-
-                        console.log(ink.length, this._currPoint, Math.floor((this._currPoint + 2) / 4));
-
                         const toRemove = Math.floor(((this._currPoint + 2) / 4));
                         for (var i = 0; i < ink.length; i++) {
                             if (Math.floor((i + 2) / 4) !== toRemove) {
-                                console.log(i, toRemove);
                                 newPoints.push({ X: ink[i].X, Y: ink[i].Y });
                             }
                         }
                         this._currPoint = -1;
-                        doc.data = new InkField(newPoints);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                         if (newPoints.length === 4) {
                             const newerPoints: { X: number, Y: number }[] = [];
                             newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
                             newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
                             newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
                             newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
-                            doc.data = new InkField(newerPoints);
+                            Doc.GetProto(doc).data = new InkField(newerPoints);
 
                         }
                     }
@@ -267,7 +259,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                         const newY = Math.sin(angle) * (i.X - _centerPoints[index].X) + Math.cos(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
                     });
-                    doc.data = new InkField(newPoints);
+                    Doc.GetProto(doc).data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
                     const left = Math.min(...xs);
@@ -317,7 +309,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                         const ys = ink.map(p => p.Y);
                         const left = Math.min(...xs);
                         const top = Math.min(...ys);
-                        doc.data = new InkField(newPoints);
+                        Doc.GetProto(doc).data = new InkField(newPoints);
                         const xs2 = newPoints.map(p => p.X);
                         const ys2 = newPoints.map(p => p.Y);
                         const left2 = Math.min(...xs2);
@@ -363,7 +355,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
     inputBox = (key: string, value: any, setter: (val: string) => {}) => {
         return <>
             <input style={{ color: "black", width: 40, position: "absolute", right: 20 }}
-                type="text" value={value}
+                type="text" defaultValue={value}
                 onChange={undoBatch(action((e) => setter(e.target.value)))}
                 autoFocus />
             <button className="antiMenu-Buttonup" key="up1" onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))}>
@@ -382,7 +374,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
             <p style={{ marginTop: -20, right: 70, position: "absolute" }}>{title2}</p>
 
             <input style={{ color: "black", width: 40, position: "absolute", right: 130 }}
-                type="text" value={value}
+                type="text" defaultValue={value}
                 onChange={e => setter(e.target.value)}
                 autoFocus />
             <button className="antiMenu-Buttonup" key="up2" onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))} style={{ right: 110 }}>
@@ -393,7 +385,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
         </button>
             {title2 === "" ? "" : <>
                 <input style={{ color: "black", width: 40, position: "absolute", right: 20 }}
-                    type="text" value={value2}
+                    type="text" defaultValue={value2}
                     onChange={e => setter2(e.target.value)}
                     autoFocus />
                 <button className="antiMenu-Buttonup" key="up3" onPointerDown={undoBatch(action(() => this.upDownButtons("up", key2)))}>
@@ -448,7 +440,6 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
             <button className="antimodeMenu-button" key="rot" onPointerDown={action(() => this.rotate(Math.PI / 2))} style={{ position: "absolute", right: 80, }}>
                 {/* <FontAwesomeIcon icon="bezier-curve" size="lg" /> */}
                 ⟲
-
             </button>
             <br /> <br />
         </>;
@@ -488,8 +479,6 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
             {this._fillBtn || this._lineBtn ? "" : <br />}
             {(this.solidStk || this.dashdStk) ? "Width" : ""}
             {(this.solidStk || this.dashdStk) ? this.stkInput : ""}
-
-
             {(this.solidStk || this.dashdStk) ? <input type="range" defaultValue={Number(this.widthStk)} min={1} max={100} onChange={undoBatch(action((e) => this.widthStk = e.target.value))} /> : (null)}
             <br />
             {(this.solidStk || this.dashdStk) ? <>
@@ -499,10 +488,8 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
                 <input key="markTail" className="formatShapePane-inputBtn" type="checkbox" checked={this.markTail !== ""} onChange={undoBatch(action(() => this.markTail = this.markTail ? "" : "arrow"))} style={{ position: "absolute", right: 0, width: 20 }} />
                 <br />
             </> : ""}
-            Dash:                <input key="markHead" className="formatShapePane-inputBtn" type="checkbox" checked={this.dashdStk === "2"} onChange={undoBatch(action(() => this.dashdStk = this.dashdStk === "2" ? "0" : "2"))} style={{ position: "absolute", right: 110, width: 20 }} />
-
-
-
+            Dash:
+            <input key="markHead" className="formatShapePane-inputBtn" type="checkbox" checked={this.dashdStk === "2"} onChange={undoBatch(action(() => this.dashdStk = this.dashdStk === "2" ? "0" : "2"))} style={{ position: "absolute", right: 110, width: 20 }} />
         </div>;
 
 
