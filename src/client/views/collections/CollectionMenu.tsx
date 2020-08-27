@@ -486,7 +486,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             </Tooltip>}
                         {this.aliasButton}
                         {this.pinButton}
-                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : this.pinWithViewButton}
+                        {this.pinWithViewButton}
                     </div>
                     {this.subChrome}
                 </div>
