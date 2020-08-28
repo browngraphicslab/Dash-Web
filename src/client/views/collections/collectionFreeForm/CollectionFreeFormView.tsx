@@ -1636,7 +1636,8 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         return <div className={freeformclass}
             style={{
                 transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
-                transition: this.props.transition
+                transition: this.props.transition,
+                willChange: "transform"
             }}>
             {this.props.children()}
             {this.presPaths}
