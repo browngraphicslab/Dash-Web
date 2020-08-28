@@ -94,7 +94,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _linkTime: number | null = null;
     private _pause: boolean = false;
 
-    @computed get _recording() { return this.dataDoc.audioState === "recording"; }
+    @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
     set _recording(value) {
         this.dataDoc.audioState = value ? "recording" : undefined;
     }
@@ -818,6 +818,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         );
         this._disposers.editorState = reaction(
             () => {
+                if (!this.dataDoc || !this.layoutDoc) return undefined;
                 if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
@@ -853,13 +854,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
         );
         this._disposers.autoHeight = reaction(
-            () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
-            () => setTimeout(() => this.tryUpdateHeight(), 0)
+            () => ({
+                width: NumCast(this.layoutDoc._width),
+                autoHeight: this.layoutDoc?._autoHeight
+            }),
+            ({ width, autoHeight }) => width !== undefined && setTimeout(() => this.tryUpdateHeight(), 0)
         );
         this._disposers.height = reaction(
-            () => this.layoutDoc[HeightSym](),
+            () => NumCast(this.layoutDoc._height),
             action(height => {
-                if (height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
+                if (height !== undefined && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
                     this.layoutDoc._delayAutoHeight = height;
                 }
             })
@@ -1490,7 +1494,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         TraceMobx();
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
+        const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground;
         this.props.isSelected() && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props), 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);

@@ -386,7 +386,7 @@ export class MainView extends React.Component {
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) :
-                CollectionDockingView.AddRightSplit(doc, libraryPath);
+                CollectionDockingView.AddRightSplit(doc);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);

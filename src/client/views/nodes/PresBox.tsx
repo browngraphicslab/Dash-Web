@@ -262,10 +262,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
-                bestTarget!._viewTransition = "all 1s";
-                bestTarget!._panX = activeItem.presPinViewX;
-                bestTarget!._panY = activeItem.presPinViewY;
-                bestTarget!._viewScale = activeItem.presPinViewScale;
+                bestTarget._viewTransition = "all 1s";
+                bestTarget._panX = activeItem.presPinViewX;
+                bestTarget._panY = activeItem.presPinViewY;
+                bestTarget._viewScale = activeItem.presPinViewScale;
             });
             //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         }
@@ -548,7 +548,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     removeDocument = (doc: Doc) => { Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
-    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
+    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     /**
@@ -674,7 +674,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             handled = true;
         }
-    })
+    });
 
     /**
      * 

@@ -26,6 +26,8 @@ import { LinkManager } from "./LinkManager";
 import { Id } from "../../fields/FieldSymbols";
 import { HistoryUtil } from "./History";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { SelectionManager } from "./SelectionManager";
+import { DocumentManager } from "./DocumentManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -1018,12 +1020,9 @@ export class CurrentUserUtils {
     }
 
     public static snapshotDashboard = (userDoc: Doc) => {
-        const activeDashboard = Cast(userDoc.activeDashboard, Doc, null);
-        CollectionDockingView.Copy(activeDashboard).then(copy => {
-            Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => CurrentUserUtils.openDashboard(userDoc, copy), 0);
-        });
+        const copy = CollectionDockingView.Copy(Cast(userDoc.activeDashboard, Doc, null));
+        Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
+        CurrentUserUtils.openDashboard(userDoc, copy);
     }
 
     public static createNewDashboard = async (userDoc: Doc, id?: string) => {
@@ -1059,6 +1058,14 @@ export class CurrentUserUtils {
     }
 }
 
+Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
+    const copy = Doc.copyDragFactory(dragFactory);
+    if (copy) {
+        CollectionDockingView.AddRightSplit(copy);
+        const view = DocumentManager.Instance.getFirstDocumentView(copy);
+        view && SelectionManager.SelectDoc(view, false);
+    }
+});
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
     "creates a snapshot copy of a dashboard");
 Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },

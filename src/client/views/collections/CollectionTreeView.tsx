@@ -39,7 +39,7 @@ export interface TreeViewProps {
     containingCollection: Doc;
     prevSibling?: Doc;
     renderDepth: number;
-    deleteDoc: (doc: Doc | Doc[]) => boolean;
+    removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
@@ -119,14 +119,14 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @undoBatch openRight = () => this.props.addDocTab(this.doc, "onRight");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
-        return this.doc !== target && this.props.deleteDoc(doc) && addDoc(doc);
+        return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
     }
     @undoBatch @action remove = (doc: Doc | Doc[], key: string) => {
         return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
     }
     @undoBatch @action removeDoc = (doc: Doc | Doc[]) => {
         return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-            flg && Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), doc), true);
+            flg && Doc.RemoveDocFromList(this.doc, Doc.LayoutFieldKey(this.doc), doc), true);
     }
 
     constructor(props: any) {
@@ -280,8 +280,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce(
                     (flg, doc) => flg && Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true), true);
-                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
-                    DocListCast(contents), this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
+                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
+                    this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                     [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged);
@@ -458,7 +458,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 onDoubleClick={this.onChildDoubleClick}
                 dropAction={this.props.dropAction}
                 moveDocument={this.move}
-                removeDocument={this.removeDoc}
+                removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
                 ContentScaling={returnOne}
                 PanelWidth={this.truncateTitleWidth}
@@ -612,7 +612,7 @@ class TreeView extends React.Component<TreeViewProps> {
             }
 
             const indent = i === 0 ? undefined : () => {
-                if (StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(docs[i - 1].layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     if (fieldKey && Cast(docs[i - 1][fieldKey], listSpec(Doc)) !== undefined) {
@@ -623,7 +623,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             const outdent = !parentCollectionDoc ? undefined : () => {
-                if (StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(parentCollectionDoc.layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     Doc.AddDocToList(parentCollectionDoc, fieldKey, child, parentPrevSibling, false);
@@ -651,7 +651,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 onCheckedClick={onCheckedClick}
                 onChildClick={onChildClick}
                 renderDepth={renderDepth}
-                deleteDoc={remove}
+                removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
                 backgroundColor={backgroundColor}
                 panelWidth={rowWidth}

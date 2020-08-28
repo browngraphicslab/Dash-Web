@@ -476,7 +476,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {view}
             </div>;
             {!frozen ? (null) :
-                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc.isBackground ? undefined : "all" }}
+                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc._isBackground ? undefined : "all" }}
                     onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
                     <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
                         <div className="indicator" ref={this._iframeIndicatorRef}></div>
@@ -682,7 +682,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     transform: `scale(${this.props.ContentScaling()})`,
                     width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                     height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+                    pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
@@ -690,7 +690,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
                         width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%",
-                        pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none"
+                        pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc._isBackground ? "all" : "none"
                     }}
                     onWheel={e => e.stopPropagation()}
                     onPointerDown={this.onMarqueeDown}
@@ -709,7 +709,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     }}>
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.layoutDoc.scrollHeight),
-                        pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+                        pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}

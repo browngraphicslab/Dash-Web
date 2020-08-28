@@ -185,8 +185,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this._videoRef = vref;
         if (vref) {
             this._videoRef!.ontimeupdate = this.updateTimecode;
+            // @ts-ignore
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
-            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }

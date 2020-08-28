@@ -33,7 +33,6 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -129,7 +128,7 @@ export interface DocumentOptions {
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
-    isBackground?: boolean;
+    _isBackground?: boolean;
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
@@ -186,6 +185,7 @@ export interface DocumentOptions {
     strokeWidth?: number;
     cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -535,7 +535,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -684,7 +684,7 @@ export namespace Docs {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
                 isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
-                treeViewExpandedView: "fields", removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+                treeViewExpandedView: "fields", removeDropProperties: new List(["_isBackground", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
@@ -694,7 +694,7 @@ export namespace Docs {
             linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
-                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
@@ -825,9 +825,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }

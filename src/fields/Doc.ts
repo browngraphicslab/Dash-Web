@@ -939,16 +939,19 @@ export namespace Doc {
     }
 
     export function IsBrushed(doc: Doc) {
+        return false;
         return computedFn(function IsBrushed(doc: Doc) {
             return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
+        return 0;
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
+        return 0;
         return computedFn(function IsBrushDegree(doc: Doc) {
             return Doc.IsBrushedDegreeUnmemoized(doc);
         })(doc);
@@ -977,6 +980,7 @@ export namespace Doc {
 
     let _lastDate = 0;
     export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
+        return;
         linkFollowUnhighlight();
         Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
@@ -1128,6 +1132,15 @@ export namespace Doc {
         return false;
     }
 
+    export function copyDragFactory(dragFactory: Doc) {
+        const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+        }
+        return ndoc;
+    }
+
 
     export namespace Get {
 
@@ -1276,14 +1289,7 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
-Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) {
-    const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
-    if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
-        dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
-        Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
-    }
-    return ndoc;
-});
+Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) { return Doc.copyDragFactory(dragFactory); });
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });

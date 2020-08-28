@@ -292,7 +292,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
+            !this.props.Document._isBackground && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && (this.props.Document.type !== DocumentType.FONTICON || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -694,9 +694,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     toggleBackground = () => {
-        this.Document.isBackground = (this.Document.isBackground ? undefined : true);
-        this.Document._overflow = this.Document.isBackground ? "visible" : undefined;
-        if (this.Document.isBackground) {
+        this.Document._isBackground = (this.Document._isBackground ? undefined : true);
+        this.Document._overflow = this.Document._isBackground ? "visible" : undefined;
+        if (this.Document._isBackground) {
             this.props.bringToFront(this.props.Document, true);
             this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeWidth"] = this.Document[WidthSym]();
             this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeHeight"] = this.Document[HeightSym]();
@@ -795,7 +795,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);
-        if (collectionAcl === AclAdmin || collectionAcl === AclEdit) moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
+        if ((collectionAcl === AclAdmin || collectionAcl === AclEdit) && this.props.removeDocument) {
+            moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
+        }
 
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
@@ -991,7 +993,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
-            (this.Document.isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
+            (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }
     @undoBatch
@@ -1013,11 +1015,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     });
 
     renderLock() {
-        return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
+        return (this.Document._isBackground !== undefined || this.isSelected(false)) &&
             ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
             this.props.renderDepth > 0 && !this.props.treeViewDoc ?
             <div className="documentView-lock" onClick={this.toggleBackground}>
-                <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
+                <FontAwesomeIcon icon={this.Document._isBackground ? "unlock" : "lock"} style={{ color: this.Document._isBackground ? "red" : undefined }} size="lg" />
             </div>
             : (null);
     }

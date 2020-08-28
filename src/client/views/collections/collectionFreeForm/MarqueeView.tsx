@@ -355,7 +355,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, _isBackground?: boolean) => {
         const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
             Doc.GetProto(doc).title = "nested freeform";
@@ -363,8 +363,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
         newCollection.system = undefined;
-        newCollection.isBackground = isBackground;
-        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined;
+        newCollection._isBackground = _isBackground;
+        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : _isBackground ? "cyan" : undefined;
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection.x = this.Bounds.left;
@@ -682,7 +682,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground && !doc.z).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc._isBackground && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);

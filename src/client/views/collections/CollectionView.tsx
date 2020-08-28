@@ -582,10 +582,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document._isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
             `${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
-            style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
+            style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
             <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}

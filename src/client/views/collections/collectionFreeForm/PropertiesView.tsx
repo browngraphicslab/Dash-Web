@@ -148,7 +148,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     &nbsp;
                 </div>);
                 } else {
-                    let contentElement = <EditableView key="editableView"
+                    const contentElement = <EditableView key="editableView"
                         contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
                         height={13}
                         fontSize={10}
