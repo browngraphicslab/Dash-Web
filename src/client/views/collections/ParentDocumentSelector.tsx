@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { computed, IReactionDisposer, observable, reaction, runInAction, action } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../../fields/Doc";
@@ -71,25 +71,6 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         </div>;
     }
 }
-
-@observer
-export class ParentDocSelector extends React.Component<SelectorProps> {
-    render() {
-        const flyout = (
-            <div className="parentDocumentSelector-flyout" title=" ">
-                <SelectorContextMenu {...this.props} />
-            </div>
-        );
-        return <div title="Show Contexts" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                <span className="parentDocumentSelector-button" >
-                    <FontAwesomeIcon icon={"chevron-circle-up"} size={"lg"} />
-                </span>
-            </Flyout>
-        </div>;
-    }
-}
-
 @observer
 export class DockingViewButtonSelector extends React.Component<{ views: () => DocumentView[], Stack: any }> {
     customStylesheet(styles: any) {
@@ -111,18 +92,22 @@ export class DockingViewButtonSelector extends React.Component<{ views: () => Do
         );
     }
 
+    @observable _tooltipOpen: boolean = false;
     render() {
-        return <Tooltip title={<><div className="dash-tooltip">Tap for toolbar, drag to create alias in another pane</div></>} placement="bottom">
-            <span onPointerDown={e => {
-                if (getComputedStyle(this._ref.current!).width !== "100%") {
-                    e.stopPropagation(); e.preventDefault();
-                }
-                this.props.views()[0]?.select(false);
-            }} className="buttonSelector">
+        return <Tooltip open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} title={<><div className="dash-tooltip">Tap for toolbar, drag to create alias in another pane</div></>} placement="bottom">
+            <span className="buttonSelector"
+                onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))}
+                onPointerDown={action(e => {
+                    if (getComputedStyle(this._ref.current!).width !== "100%") {
+                        e.stopPropagation(); e.preventDefault();
+                    }
+                    this.props.views()[0]?.select(false);
+                    this._tooltipOpen = false;
+                })} >
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                     <FontAwesomeIcon icon={"arrows-alt"} size={"sm"} />
                 </Flyout>
             </span>
-        </Tooltip>;
+        </Tooltip >;
     }
 }

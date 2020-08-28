@@ -5,7 +5,7 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
@@ -15,7 +15,6 @@ import { DragManager } from '../util/DragManager';
 import { SelectionManager } from '../util/SelectionManager';
 import { SharingManager } from '../util/SharingManager';
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
@@ -25,6 +24,7 @@ import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { DocumentType } from '../documents/DocumentTypes';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -212,6 +212,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     }
 
     @computed
+    get annotateButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isAnnotating = targetDoc?.isAnnotating;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
+            <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
+                onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
     get moreButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Properties Panel"}</div></>}>
@@ -235,17 +247,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                 </Flyout>
             </div></Tooltip>;
     }
-
-    @computed
-    get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Document={this.view0.props.Document} addDocTab={(doc, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
-                    this.view0?.props.addDocTab(doc, "onRight");
-            return true;
-        }} />;
-    }
-
     @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
@@ -312,6 +313,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div>
             {!Doc.UserDoc()["documentLinksButton-hideEnd"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
+            </div>}
+            {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
+                {this.annotateButton}
             </div>}
             <div className="documentButtonBar-button">
                 {this.moreButton}

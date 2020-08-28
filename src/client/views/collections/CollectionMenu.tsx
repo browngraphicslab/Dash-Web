@@ -868,18 +868,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 </Tooltip> : null}
 
                 {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
-                    <Tooltip key="hypothesis" title={<div className="dash-tooltip">Toggle between native iframe and annotation modes</div>} placement="bottom">
-                        <button className={"antimodeMenu-button"} key="hypothesis"
-                            style={{
-                                backgroundColor: this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
-                                borderRight: "1px solid gray"
-                            }}
-                            onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
-                            <FontAwesomeIcon icon={"edit"} size="lg" />    {/* ["fab", "hire-a-helper"]} size={"lg"} /> */}
-                        </button>
-                    </Tooltip>
-                }
-                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
                     this.urlEditor
                 }
                 {!this.isText ?

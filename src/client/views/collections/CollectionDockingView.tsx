@@ -5,8 +5,7 @@ import { action, computed, IReactionDisposer, Lambda, observable, reaction, runI
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { DateField } from '../../../fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { List } from '../../../fields/List';
@@ -14,9 +13,10 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils, returnEmptyDoclist } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
@@ -29,11 +29,10 @@ import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import "./CollectionDockingView.scss";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { SubCollectionViewProps, CollectionSubView } from "./CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer

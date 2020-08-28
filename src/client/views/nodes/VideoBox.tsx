@@ -275,13 +275,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._youtubeReactionDisposer?.();
             this._reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._youtubeReactionDisposer = reaction(
-                () => Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             events: {
-                'onReady': onYoutubePlayerReady,
-                'onStateChange': onYoutubePlayerStateChange,
+                'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
+                'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
             }
         });
 

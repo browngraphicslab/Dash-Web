@@ -22,11 +22,11 @@ import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentVi
 import { KeyValueBox } from "../../nodes/KeyValueBox";
 import { PresBox } from "../../nodes/PresBox";
 import { PropertiesButtons } from "../../PropertiesButtons";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { SelectorContextMenu } from "../ParentDocumentSelector";
 import { FormatShapePane } from "./FormatShapePane";
 import "./FormatShapePane.scss";
 import "./PropertiesView.scss";
-import { CollectionDockingView } from "../CollectionDockingView";
-import { ParentDocSelector, SelectorContextMenu } from "../ParentDocumentSelector";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
