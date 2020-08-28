@@ -1,5 +1,5 @@
 import React = require("react");
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import "./AntimodeMenu.scss";
 export interface AntimodeMenuProps {
 }

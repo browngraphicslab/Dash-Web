@@ -259,9 +259,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // adjust the pan and scale to that of the pinView when it was added.
         // TODO: Add option to remove presPinView 
         if (activeItem.presPinView) {
-            targetDoc._panX = activeItem.presPinViewX;
-            targetDoc._panY = activeItem.presPinViewY;
-            targetDoc._viewScale = activeItem.presPinViewScale;
+            // if targetDoc has been closed, then we will have created and displayed
+            const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
+            bestTarget && runInAction(() => {
+                bestTarget!._viewTransition = "all 1s";
+                bestTarget!._panX = activeItem.presPinViewX;
+                bestTarget!._panY = activeItem.presPinViewY;
+                bestTarget!._viewScale = activeItem.presPinViewScale;
+            });
+            //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         }
         // If website and has presWebsite data associated then on click it should
         // go back to that specific website
@@ -613,8 +619,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     // Key for when the presentaiton is active
-    @action
-    keyEvents = (e: KeyboardEvent) => {
+    @undoBatch
+    keyEvents = action((e: KeyboardEvent) => {
         if (e.target instanceof HTMLInputElement) return;
         let handled = false;
         const anchorNode = document.activeElement as HTMLDivElement;
@@ -668,7 +674,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             handled = true;
         }
-    }
+    })
 
     /**
      * 
