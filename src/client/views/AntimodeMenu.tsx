@@ -1,5 +1,5 @@
 import React = require("react");
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import "./AntimodeMenu.scss";
 export interface AntimodeMenuProps {
 }
@@ -86,7 +86,7 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
 
     @action
     protected togglePin = (e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
+        runInAction(() => this.Pinned = !this.Pinned);
     }
 
     protected dragStart = (e: React.PointerEvent) => {

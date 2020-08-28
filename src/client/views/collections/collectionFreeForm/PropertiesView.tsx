@@ -58,7 +58,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
         return false;
     }
-    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
+    @computed get dataDoc() { return this.selectedDoc?.[DataSym]; }
 
     @observable layoutFields: boolean = false;
 
@@ -134,24 +134,26 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expandedField() {
         if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
-            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
-            doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
+            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
+                SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? Doc.Layout(dv.layoutDoc) : dv.dataDoc);
+            docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
-                const contents = doc[key];
+                const docvals = new Set<any>();
+                docs.forEach(doc => docvals.add(doc[key]));
+                const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
                     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                     &nbsp;
                 </div>);
                 } else {
-                    let contentElement: (JSX.Element | null)[] | JSX.Element = [];
-                    contentElement = <EditableView key="editableView"
+                    let contentElement = <EditableView key="editableView"
                         contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
                         height={13}
                         fontSize={10}
-                        GetValue={() => Field.toKeyValueString(doc, key)}
-                        SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
+                        GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
+                        SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                     />;
                     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
@@ -174,17 +176,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get noviceFields() {
-        if (this.dataDoc && this.selectedDoc) {
+        if (this.dataDoc) {
             const ids: { [key: string]: string } = {};
-            const doc = this.dataDoc;
-            doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
+            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => dv.dataDoc);
+            docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate"];
             const noviceLayoutFields = ["_curPage"];
             const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
-                const contents = this.selectedDoc[key];
+                const docvals = new Set<any>();
+                docs.forEach(doc => docvals.add(doc[key]));
+                const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
                     rows.push(<div className="uneditable-field" key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
@@ -202,8 +206,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             contents={value}
                             height={13}
                             fontSize={10}
-                            GetValue={() => Field.toKeyValueString(this.selectedDoc!, key)}
-                            SetValue={(value: string) => KeyValueBox.SetField(noviceLayoutFields.includes(key) ? this.selectedDoc! : doc, key, value, true)}
+                            GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
+                            SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                         />;
 
                         rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
@@ -229,8 +233,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch
     setKeyValue = (value: string) => {
-        if (this.selectedDoc && this.dataDoc) {
-            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
+        const docs = SelectionManager.SelectedDocuments().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
@@ -240,7 +244,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
                 return true;
             }
-        }
+        });
         return false;
     }
 
@@ -260,6 +264,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            return "-- multiple selected --";
+        }
         if (this.selectedDoc) {
             const layoutDoc = Doc.Layout(this.selectedDoc);
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
@@ -430,21 +437,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get editableTitle() {
+        const titles = new Set<string>();
+        SelectionManager.SelectedDocuments().forEach(dv => titles.add(StrCast(dv.rootDoc.title)));
+        const title = Array.from(titles.keys()).length > 1 ? "--multiple selected--" : StrCast(this.selectedDoc?.title);
         return <div className="editable-title"><EditableView
             key="editableView"
-            contents={StrCast(this.selectedDoc?.title)}
+            contents={title}
             height={25}
             fontSize={14}
-            GetValue={() => StrCast(this.selectedDoc?.title)}
+            GetValue={() => title}
             SetValue={this.setTitle} /> </div>;
     }
 
     @undoBatch
     @action
     setTitle = (value: string) => {
-        if (this.dataDoc) {
-            this.selectedDoc && Doc.SetInPlace(this.selectedDoc, "title", value, true);
-            KeyValueBox.SetField(this.dataDoc, "title", value, true);
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().map(dv => Doc.SetInPlace(dv.rootDoc, "title", value, true));
+            return true;
+        } else if (this.dataDoc) {
+            if (this.selectedDoc) Doc.SetInPlace(this.selectedDoc, "title", value, true);
+            else KeyValueBox.SetField(this.dataDoc, "title", value, true);
             return true;
         }
         return false;

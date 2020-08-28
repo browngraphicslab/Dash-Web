@@ -2,7 +2,7 @@ import React = require("react");
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { lift, wrapIn } from "prosemirror-commands";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";
@@ -75,7 +75,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         RichTextMenu.Instance = this;
         this._canFade = false;
         //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
-        this.Pinned = true;
+        runInAction(() => this.Pinned = true);
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
