@@ -151,6 +151,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     headerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        console.log('test');
         e.stopPropagation();
         e.preventDefault();
         DragManager.docsBeingDragged = [];
