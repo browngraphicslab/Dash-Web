@@ -20,6 +20,7 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { undoBatch } from "../../util/UndoManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -206,14 +207,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
-    @action
-    removeItem = (e: React.MouseEvent) => {
+    @undoBatch
+    removeItem = action((e: React.MouseEvent) => {
         this.props.removeDocument?.(this.rootDoc);
         if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
             PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
         }
         e.stopPropagation();
-    }
+    })
 
     render() {
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");

@@ -36,7 +36,7 @@ import { PresBox } from "../nodes/PresBox";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
-    static Instance: CollectionMenu;
+    @observable static Instance: CollectionMenu;
 
     @observable SelectedCollection: DocumentView | undefined;
     @observable FieldKey: string;
@@ -44,9 +44,9 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     constructor(props: any) {
         super(props);
         this.FieldKey = "";
-        CollectionMenu.Instance = this;
+        runInAction(() => CollectionMenu.Instance = this);
         this._canFade = false; // don't let the inking menu fade away
-        this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true);
+        runInAction(() => this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true));
         this.jumpTo(300, 300);
     }
 
@@ -486,7 +486,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             </Tooltip>}
                         {this.aliasButton}
                         {this.pinButton}
-                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : this.pinWithViewButton}
+                        {this.pinWithViewButton}
                     </div>
                     {this.subChrome}
                 </div>
