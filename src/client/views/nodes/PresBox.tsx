@@ -259,7 +259,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // adjust the pan and scale to that of the pinView when it was added.
         // TODO: Add option to remove presPinView 
         if (activeItem.presPinView) {
-            // if targetDoc has been closed, then we will have created and displayed
+            // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
                 bestTarget!._viewTransition = "all 1s";

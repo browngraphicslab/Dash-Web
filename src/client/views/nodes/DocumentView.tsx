@@ -335,7 +335,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     shiftKey
                 }, console.log);
                 const clickFunc = () => {
-                    if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
+                    if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) &&
+                        !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc) &&
+                        !this.onClickHandler.script.originalScript.includes("selectMainMenu")) {
                         UndoManager.RunInBatch(func, "on click");
                     } else func();
                 };
