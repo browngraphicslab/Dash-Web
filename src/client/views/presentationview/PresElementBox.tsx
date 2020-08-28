@@ -208,14 +208,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     @undoBatch
-    @action
-    removeItem = (e: React.MouseEvent) => {
+    removeItem = action((e: React.MouseEvent) => {
         this.props.removeDocument?.(this.rootDoc);
         if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
             PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
         }
         e.stopPropagation();
-    }
+    })
 
     render() {
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");

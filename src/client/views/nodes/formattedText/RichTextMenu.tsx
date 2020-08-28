@@ -2,7 +2,7 @@ import React = require("react");
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { lift, wrapIn } from "prosemirror-commands";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";

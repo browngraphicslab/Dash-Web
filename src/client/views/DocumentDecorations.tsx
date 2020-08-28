@@ -185,8 +185,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
-                //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
-                CollectionDockingView.AddRightSplit(Doc.MakeAlias(selectedDocs[0].props.Document), selectedDocs[0].props.LibraryPath);
+                const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
+                alias.context = undefined;
+                //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
+                CollectionDockingView.AddRightSplit(alias);
             }
         }
         SelectionManager.DeselectAll();

@@ -575,7 +575,6 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const height = `calc(100% - ${this.topOffset}px)`;
-        console.log("Height = " + height);
         const pinned = FormatShapePane.Instance?.Pinned;
         const innerContent = this.mainInnerContent;
         return !this.userDoc ? (null) : (
