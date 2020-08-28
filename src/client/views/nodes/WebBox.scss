@@ -89,12 +89,16 @@
         box-shadow: black 0.3em 0.3em 1em;
         border-radius: 5px;
         display: flex;
+        opacity: 0.3;
         width: 25px;
         height: 25px;
         align-items: center;
         > svg {
             margin: auto;
         }
+    }
+    .webBox-annotationToggle:hover {
+        opacity: 1;
     }
 
     .touch-iframe-overlay {

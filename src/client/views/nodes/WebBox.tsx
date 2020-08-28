@@ -241,7 +241,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             <div className="webBox-annotationToggle"
                 style={{ color: this.props.Document.isAnnotating ? "black" : "white", backgroundColor: this.props.Document.isAnnotating ? "white" : "black" }}
                 onClick={action(() => this.layoutDoc.isAnnotating = !this.layoutDoc.isAnnotating)}>
-                <FontAwesomeIcon icon="edit" size="lg" />
+                <FontAwesomeIcon icon="edit" size="sm" />
             </div>
         </Tooltip>;
     }
