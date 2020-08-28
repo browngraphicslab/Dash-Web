@@ -69,7 +69,7 @@
 }
 
 .lm_popout {
-    display: none;
+    display: inline;
 }
 
 .messageCounter {
@@ -117,6 +117,10 @@
     .lm_controls>li {
         opacity: 0.6;
         transform: scale(1.2);
+    }
+
+    .lm_controls .lm_popout {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAUCAAAAABHICnvAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QAAKqNIzIAAAAHdElNRQfkCBsXMgbrEyzaAAAAT0lEQVQY02NgIAcIu8tgEW3/u4IDQ5B14/8LQlhFhckVFfCJjIyIOfP/QWpEZGSQJFS05s9fIPj3/z+YmseCTxS7CZS7DI+PsYcOjpAkDAA6H0KZxzDzlgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMC0wOC0yN1QyMzo1MDowNi0wNDowMDvgVpQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjAtMDgtMjdUMjM6NTA6MDYtMDQ6MDBKve4oAAAAAElFTkSuQmCC)
     }
 
     .lm_maximised .lm_controls .lm_maximise {

@@ -642,7 +642,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         stack.layoutManager.on("activeContentItemChanged", this.stackActiveChanged);
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
-            if (e.target === stack.header.element[0] && e.button === 1) {
+            if (e.target === stack.header.element[0] && e.button === 2) {
                 const emptyPane = Cast(Doc.UserDoc().emptyPane, Doc, null);
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
                 this.AddTab(stack, Docs.Create.FreeformDocument([], {
@@ -674,7 +674,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         // });
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(async function () {
+            .click(action(async () => {
                 //if (confirm('really close this?')) {
 
                 stack.remove();
@@ -692,8 +692,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }));
         stack.header.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(function () {
-                stack.config.fixed = !stack.config.fixed;
+            .click(action(() => {
+                // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size
+
+                const emptyPane = Cast(Doc.UserDoc().emptyPane, Doc, null);
+                emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+                this.AddTab(stack, Docs.Create.FreeformDocument([], {
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                }));
+
                 // const url = Utils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
