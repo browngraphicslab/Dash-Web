@@ -15,7 +15,8 @@ import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DragManager } from '../util/DragManager';
 import { SelectionManager } from '../util/SelectionManager';
 import { SharingManager } from '../util/SharingManager';
-import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { TabDocView } from './collections/TabDocView';
 import './DocumentButtonBar.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
@@ -194,7 +195,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
-                onClick={e => this.props.views().map(view => view && DockedFrameRenderer.PinDoc(view.props.Document, isPinned))}>
+                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, isPinned))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
             </div></Tooltip>;

@@ -20,7 +20,7 @@ import { Scripting } from '../client/util/Scripting';
 import { SettingsManager } from '../client/util/SettingsManager';
 import { Transform } from '../client/util/Transform';
 import { UndoManager } from "../client/util/UndoManager";
-import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
+import { TabDocView } from '../client/views/collections/TabDocView';
 import { CollectionViewType } from "../client/views/collections/CollectionView";
 import { GestureOverlay } from "../client/views/GestureOverlay";
 import { AudioBox } from "../client/views/nodes/AudioBox";
@@ -516,7 +516,7 @@ export class MobileInterface extends React.Component {
             return <div className="docButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Unpin from presentation" : "Pin to presentation"}
                 style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-                onClick={e => DockedFrameRenderer.PinDoc(this._activeDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(this._activeDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div>;
         } else return (null);

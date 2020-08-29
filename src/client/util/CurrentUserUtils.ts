@@ -1031,11 +1031,7 @@ export class CurrentUserUtils {
         const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
         const emptyPane = Cast(userDoc.emptyPane, Doc, null);
-        try {
-            emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-        } catch (e) {
-            console.log(e)
-        }
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,

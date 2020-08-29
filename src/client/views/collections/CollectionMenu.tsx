@@ -5,7 +5,7 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
-import { Doc, DocListCast, Opt, Field } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -29,10 +29,10 @@ import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
+import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { DockedFrameRenderer } from "./CollectionDockingView";
-import { PresBox } from "../nodes/PresBox";
+import { TabDocView } from "./TabDocView";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -379,7 +379,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
             <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderRight: "1px solid gray" }}
-                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
             </button>
         </Tooltip>;
@@ -443,7 +443,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <button className="antidmodeMenu-button" style={{ borderRight: "1px solid gray" }}
                 onClick={e => {
                     if (targetDoc) {
-                        DockedFrameRenderer.PinDoc(targetDoc, false);
+                        TabDocView.PinDoc(targetDoc, false);
                         const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
                         const x = targetDoc._panX;
                         const y = targetDoc._panY;

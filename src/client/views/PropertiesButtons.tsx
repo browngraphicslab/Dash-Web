@@ -160,7 +160,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                                 googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                                 dataDoc.googleDoc = googleDoc;
                             }
-                            CollectionDockingView.AddRight(googleDoc, "right");
+                            CollectionDockingView.AddSplit(googleDoc, "right");
                         } else if (e.altKey) {
                             e.preventDefault();
                             window.open(googleDocUrl);
