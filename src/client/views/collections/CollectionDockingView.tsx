@@ -38,7 +38,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 @observer
 export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @observable public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Doc, width?: number) {
+    public static makeDocumentConfig(document: Doc, isDisplayPanel?: boolean, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -46,6 +46,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             width: width,
             props: {
                 documentId: document[Id],
+                isDisplayPanel   // flag for whether a tab should be considered a placeholder that has its contents replaced with new content
             }
         };
     }
@@ -91,8 +92,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     public static CloseRightSplit(document: Opt<Doc>): boolean {
         const tryClose = (childItem: any) => {
             if (childItem.config?.component === "DocumentFrameRenderer") {
-                const docView = DocumentManager.Instance.getDocumentViewById(childItem.config.props.documentId);
-                if (docView && ((!document && docView.Document.isDisplayPanel) || (document && Doc.AreProtosEqual(docView.props.Document, document)))) {
+                if ((!document && childItem.config.props.isDisplayPanel) || (document && childItem.config.props.documentId === document[Id])) {
                     childItem.remove();
                     return true;
                 }
@@ -115,7 +115,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
         const newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(Doc.MakeAlias(doc), undefined)]
+            content: [CollectionDockingView.makeDocumentConfig(Doc.MakeAlias(doc))]
         };
         const docconfig = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
         instance._goldenLayout.root.contentItems[0].addChild(docconfig);
@@ -133,17 +133,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         const retVal = !instance._goldenLayout.root.contentItems[0].isRow ? false :
             Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanel) {
-                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, undefined);
-                    runInAction(() => document.isDisplayPanel = true);
+                    child.contentItems[0].config.isDisplayPanel) {
+                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, true);
                     child.addChild(newItemStackConfig, undefined);
                     !addToSplit && child.contentItems[0].remove();
                     return true;
                 }
                 return Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                    if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.Document.isDisplayPanel) {
-                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, undefined);
-                        runInAction(() => document.isDisplayPanel = true);
+                    if (tab.config.props.isDisplayPanel) {
+                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, true);
                         child.addChild(newItemStackConfig, undefined);
                         !addToSplit && child.contentItems[j].remove();
                         return true;
@@ -160,7 +158,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     //
     @undoBatch
     @action
-    public static AddRightSplit(document: Doc, dontSelect: boolean = false, isDisplayPanel: Opt<boolean> = undefined) {
+    public static AddRightSplit(document: Doc, isDisplayPanel: Opt<boolean> = undefined) {
         if (!CollectionDockingView.Instance) return false;
 
         const ind = Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === document);
@@ -172,13 +170,11 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
             tab.setActive(true);
         } else {
-            document.isDisplayPanel = isDisplayPanel;
-
             if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
             const instance = CollectionDockingView.Instance;
             const newItemStackConfig = {
                 type: 'stack',
-                content: [CollectionDockingView.makeDocumentConfig(document, undefined)]
+                content: [CollectionDockingView.makeDocumentConfig(document, isDisplayPanel)]
             };
 
             const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
@@ -200,10 +196,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
             newContentItem.callDownwards('_$init');
             instance.layoutChanged();
-        }
-        if (!dontSelect) {
-            const view = DocumentManager.Instance.getFirstDocumentView(document);
-            view && SelectionManager.SelectDoc(view, false);
         }
         return true;
     }
@@ -275,14 +267,13 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         return true;
     }
 
-
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @undoBatch
     public static UseRightSplit(document: Doc, libraryPath?: Doc[], shiftKey?: boolean) {
         if (shiftKey || !CollectionDockingView.ReplaceRightSplit(document, libraryPath, shiftKey)) {
-            return CollectionDockingView.AddRightSplit(document, false, true);
+            return CollectionDockingView.AddRightSplit(document, true);
         }
         return false;
     }
@@ -406,7 +397,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         window.addEventListener("mouseup", this.onPointerUp);
-
         if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
             this._flush = UndoManager.StartBatch("golden layout edit");
         }
@@ -463,7 +453,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
     tabCreated = (tab: any) => {
-        (tab.contentItem.element[0]?.firstChild?.firstChild as any)?.InitTab(tab);
+        (tab.contentItem.element[0]?.firstChild?.firstChild as any)?.InitTab(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
     }
 
     stackCreated = (stack: any) => {
@@ -515,10 +505,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelHeight = 0;
     @observable private _isActive: boolean = false;
     @observable private _document: Doc | undefined;
+    @observable private _view: DocumentView | undefined;
 
     get stack(): any { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
-    get view() { return this._document && DocumentManager.Instance.getDocumentView(this._document); }
+    get view() { return this._view; }
 
     @action
     init = (tab: any, doc: Opt<Doc>) => {
@@ -704,7 +695,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         SelectionManager.DeselectAll();
         if (doc._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
         switch (location) {
-            case "onRight": return CollectionDockingView.AddRightSplit(doc);
+            case "onRight": return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
+                CollectionDockingView.CloseRightSplit(doc) : CollectionDockingView.AddRightSplit(doc);
             case "close": return CollectionDockingView.CloseRightSplit(doc);
             case "replace": return CollectionDockingView.UseRightSplit(doc);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
@@ -790,12 +782,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div>
         </div>;
     }
+    setView = action((view: DocumentView) => this._view = view);
     @computed get docView() {
         TraceMobx();
         return !this._document ? (null) :
             <><DocumentView key={this._document[Id]}
                 LibraryPath={emptyPath}
                 Document={this._document}
+                getView={this.setView}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 bringToFront={emptyFunction}
                 rootSelected={returnTrue}
@@ -839,6 +833,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div >);
     }
 }
-Scripting.addGlobal(function openOnRight(doc: any, dontSelect: boolean = false) { CollectionDockingView.AddRightSplit(doc, dontSelect); },
-    "opens up the inputted document on the right side of the screen", "(doc: any, dontSelect: boolean)");
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc); },
+    "opens up the inputted document on the right side of the screen", "(doc: any)");
 Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.UseRightSplit(doc, undefined, shiftKey); });

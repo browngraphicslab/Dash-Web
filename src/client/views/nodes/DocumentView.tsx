@@ -52,6 +52,7 @@ export interface DocumentViewProps {
     NativeHeight: () => number;
     Document: Doc;
     DataDoc?: Doc;
+    getView?: (view: DocumentView) => any;
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
     LibraryPath: Doc[];
@@ -127,6 +128,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     NativeHeight = () => this.nativeHeight;
     onClickFunc = () => this.onClickHandler;
     onDoubleClickFunc = () => this.onDoubleClickHandler;
+
+    constructor(props: any) {
+        super(props);
+        props.getView?.(this);
+    }
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();

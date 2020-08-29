@@ -101,7 +101,6 @@ export interface DocumentOptions {
     page?: number;
     description?: string; // added for links
     _viewScale?: number;
-    isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
@@ -848,7 +847,7 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, config.initialWidth))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, false, config.initialWidth))
                         ]
                     }
                 ]
