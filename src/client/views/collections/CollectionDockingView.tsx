@@ -73,7 +73,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         const config = dragDocs.length === 1 ? CollectionDockingView.makeDocumentConfig(dragDocs[0]) :
             { type: 'row', content: dragDocs.map((doc, i) => CollectionDockingView.makeDocumentConfig(doc)) };
         const dragSource = this._goldenLayout.createDragSource(document.createElement("div"), config);
-        dragSource._dragListener.on("dragStop", dragSource.destroy);
+        //dragSource._dragListener.on("dragStop", dragSource.destroy);
         dragSource._dragListener.onMouseDown(e);
     }
 
@@ -329,6 +329,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                     return;
                 } else {
                     try {
+                        this._goldenLayout.unbind('tabCreated', this.tabCreated);
                         this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
                         this._goldenLayout.unbind('stackCreated', this.stackCreated);
                     } catch (e) { }
@@ -337,6 +338,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             this.tabMap.clear();
             this._goldenLayout?.destroy();
             runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
+            this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('tabDestroyed', this.tabDestroyed);
             this._goldenLayout.on('stackCreated', this.stackCreated);
             this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
@@ -458,7 +460,10 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     tabDestroyed = (tab: any) => {
         this.tabMap.delete(tab);
         Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
-        tab.reactComponents && Array.from(tab.reactComponents).forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
+        tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
+    }
+    tabCreated = (tab: any) => {
+        (tab.contentItem.element[0]?.firstChild?.firstChild as any)?.InitTab(tab);
     }
 
     stackCreated = (stack: any) => {
@@ -509,25 +514,18 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _isActive: boolean = false;
+    @observable private _document: Doc | undefined;
 
     get stack(): any { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
-    get tabTitle(): any { return (this.tab?.element[0] as HTMLElement).getElementsByClassName("lm_title")?.[0]; }
     get view() { return this._document && DocumentManager.Instance.getDocumentView(this._document); }
-    @observable _document: Doc | undefined;
-
-    constructor(props: any) {
-        super(props);
-        setTimeout(() => DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(doc => this.init(doc as Doc)), 0);
-    }
 
     @action
-    init = (doc: Doc) => {
-        const tab = this.tab;
-        tab._disposers = {} as { [name: string]: IReactionDisposer };
-        tab.DashDoc = this._document = doc;
-        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
+    init = (tab: any, doc: Opt<Doc>) => {
+        if (tab.DashDoc !== doc && doc && tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
+            tab._disposers = {} as { [name: string]: IReactionDisposer };
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
+            tab.DashDoc = doc;
 
             CollectionDockingView.Instance.tabMap.add(tab);
             tab.titleElement[0].onclick = (e: any) => {
@@ -539,8 +537,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 tab.titleElement[0].size = e.currentTarget.value.length + 1;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             };
-            tab.titleElement[0].size = StrCast(this._document.title).length + 1;
-            tab.titleElement[0].value = this._document.title;
+            tab.titleElement[0].size = StrCast(doc.title).length + 1;
+            tab.titleElement[0].value = doc.title;
             tab.titleElement[0].style["max-width"] = "100px";
             const gearSpan = document.createElement("span");
             gearSpan.className = "collectionDockingView-gear";
@@ -588,14 +586,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 tab.titleElement[0].style.padding = degree ? 0 : 2;
                 tab.titleElement[0].style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
             }, { fireImmediately: true });
+            tab.closeElement.off('click') //unbind the current click handler
+                .click(function () {
+                    Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
+                    Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", doc, undefined, true, true);
+                    SelectionManager.DeselectAll();
+                    tab.contentItem.remove();
+                });
         }
-        tab.closeElement.off('click') //unbind the current click handler
-            .click(function () {
-                Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
-                Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", doc, undefined, true, true);
-                SelectionManager.DeselectAll();
-                tab.contentItem.remove();
-            });
     }
     /**
      * Adds a document to the presentation view
@@ -638,7 +636,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     componentDidMount() {
         const color = () => StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white");
         const selected = () => SelectionManager.SelectedDocuments().some(v => v.props.Document === this._document);
-        const updateTabColor = () => this.tabTitle && (this.tabTitle.style.backgroundColor = selected() ? color() : "");
+        const updateTabColor = () => this.tab?.titleElement[0] && (this.tab.titleElement[0].style.backgroundColor = selected() ? color() : "");
         const observer = new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
@@ -672,8 +670,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
         (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
     panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
-    nativeWidth = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         const nativeH = this.nativeHeight();
@@ -681,9 +679,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let scaling = 1;
         if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
             scaling = 1;
-        } else if (NumCast(this.layoutDoc!._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
-            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth))) {
-            scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
+        } else if (NumCast(this.layoutDoc?._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
+            this._panelHeight / NumCast(this.layoutDoc?._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc?._nativeWidth))) {
+            scaling = this._panelWidth / NumCast(this.layoutDoc?._nativeWidth);
         } else if (nativeW && nativeH) {
             const wscale = this.panelWidth() / nativeW;
             scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
@@ -794,13 +792,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     @computed get docView() {
         TraceMobx();
-        if (!this._document) return (null);
-        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined;
-        return <>
-            <DocumentView key={this._document[Id]}
+        return !this._document ? (null) :
+            <><DocumentView key={this._document[Id]}
                 LibraryPath={emptyPath}
                 Document={this._document}
-                DataDoc={resolvedDataDoc}
+                DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 bringToFront={emptyFunction}
                 rootSelected={returnTrue}
                 addDocument={undefined}
@@ -822,16 +818,21 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-            {this._document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
-        </>;
+                {this._document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
+            </>;
     }
 
     render() {
-        return (!this._isActive || !this.layoutDoc) ? (null) :
-            (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
+        return !this._isActive ? (null) :
+            (<div className="collectionDockingView-content" ref={ref => {
+                if (this._mainCont = ref) {
+                    (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
+                    DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.init(this.tab, this._document)));
+                }
+            }}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc && this.layoutDoc._fitWidth ? undefined : "100%",
+                    height: this.layoutDoc?._fitWidth ? undefined : "100%",
                     width: this.widthpercent
                 }}>
                 {this.docView}
