@@ -180,10 +180,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
         RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
-        // RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "map-pin", selected: -1 });
         const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
         (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) && RadialMenu.Instance.addItem({ description: "Delete", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "external-link-square-alt", selected: -1 });
-        // RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "add:right"), icon: "trash", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Pin", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Open", event: () => MobileInterface.Instance.handleClick(this.props.Document), icon: "trash", selected: -1 });
 
@@ -323,7 +323,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                     fullScreenDoc = Doc.MakeAlias(this.props.Document);
                                     fullScreenDoc.layoutKey = "layout_fullScreen";
                                 }
-                                this.props.addDocTab(fullScreenDoc, "inTab");
+                                this.props.addDocTab(fullScreenDoc, "add");
                             }, "double tap");
                             SelectionManager.DeselectAll();
                         }
@@ -351,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 500);
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
-                this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "onRight");
+                this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 this.allLinks.length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
@@ -748,7 +748,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         const appearance = cm.findByDescription("UI Controls...");
         const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
-        templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
+        templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
         //DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
         !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
@@ -766,7 +766,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
             onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
             onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
-            !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
+            !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("add:right", false, false), icon: "link" });
             onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
             onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
             onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
@@ -810,8 +810,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
-        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
         helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 

@@ -238,7 +238,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            this.props.addDocTab(activeItem, "replace");
+            this.props.addDocTab(activeItem, "replace:right");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -443,7 +443,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (this.layoutDoc.inOverlay) {
             this.layoutDoc.presStatus = 'edit';
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
-            CollectionDockingView.AddRightSplit(this.rootDoc);
+            CollectionDockingView.AddSplit(this.rootDoc, "right");
             this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
             this.layoutDoc.presStatus = 'manual';
@@ -1115,7 +1115,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 DockedFrameRenderer.PinDoc(doc, false);
                 this.gotoDocument(this.childDocs.length, this.itemIndex);
             } else {
-                this.props.addDocTab(doc, "onRight");
+                this.props.addDocTab(doc, "add:right");
             }
         }
     }

@@ -323,7 +323,7 @@ export namespace DictationManager {
             ["open fields", {
                 action: (target: DocumentView) => {
                     const kvp = Docs.Create.KVPDocument(target.props.Document, { _width: 300, _height: 300 });
-                    target.props.addDocTab(kvp, "onRight");
+                    target.props.addDocTab(kvp, "add:right");
                 }
             }],
 
@@ -337,7 +337,7 @@ export namespace DictationManager {
                     const proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"ordered_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
                     proto.data = new RichTextField(proseMirrorState);
                     proto.backgroundColor = "#eeffff";
-                    target.props.addDocTab(newBox, "onRight");
+                    target.props.addDocTab(newBox, "add:right");
                 }
             }]
 

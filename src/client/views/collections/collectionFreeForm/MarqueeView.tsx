@@ -76,7 +76,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false, title: "bing", UseCors: true }), "onRight"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false, title: "bing", UseCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -400,7 +400,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                CollectionDockingView.AddRightSplit(curPres);
+                CollectionDockingView.AddSplit(curPres, "right");
             }
             if (e instanceof KeyboardEvent ? e.key === "c" : true) {
                 const x = this.Bounds.left + this.Bounds.width / 2;

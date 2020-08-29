@@ -117,7 +117,7 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.ComputeContentBounds(DocListCast(this.props.document[this.fieldKey]));
     }
 
-    @undoBatch openRight = () => this.props.addDocTab(this.doc, "onRight");
+    @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
     }

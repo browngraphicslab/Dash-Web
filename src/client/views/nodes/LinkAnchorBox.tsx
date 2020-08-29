@@ -73,7 +73,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, e.altKey ? "inTab" : "onRight")), false);
+                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, "add:right")), false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -87,14 +87,14 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     }
 
     openLinkDocOnRight = (e: React.MouseEvent) => {
-        this.props.addDocTab(this.rootDoc, "onRight");
+        this.props.addDocTab(this.rootDoc, "add:right");
     }
     openLinkTargetOnRight = (e: React.MouseEvent) => {
         const alias = Doc.MakeAlias(Cast(this.layoutDoc[this.fieldKey], Doc, null));
         alias.isLinkButton = undefined;
         alias._isBackground = undefined;
         alias.layoutKey = "layout";
-        this.props.addDocTab(alias, "onRight");
+        this.props.addDocTab(alias, "add:right");
     }
     @action
     openLinkEditor = action((e: React.MouseEvent) => {

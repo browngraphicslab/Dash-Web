@@ -210,7 +210,7 @@ export class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddSplit(MainView.Instance.mainFreeform, "right");
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -218,7 +218,7 @@ export class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.CloseSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
                 if (document.activeElement) {

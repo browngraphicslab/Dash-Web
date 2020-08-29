@@ -160,7 +160,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                                 googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                                 dataDoc.googleDoc = googleDoc;
                             }
-                            CollectionDockingView.AddRightSplit(googleDoc);
+                            CollectionDockingView.AddRight(googleDoc, "right");
                         } else if (e.altKey) {
                             e.preventDefault();
                             window.open(googleDocUrl);
@@ -343,7 +343,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 dv.toggleFollowLink("inPlace", true, false);
             } else if (value === "linkOnRight") {
                 dv.noOnClick();
-                dv.toggleFollowLink("onRight", false, false);
+                dv.toggleFollowLink("add:right", false, false);
             }
         });
     }

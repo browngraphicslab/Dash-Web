@@ -44,7 +44,7 @@ export class PropertiesDocContextSelector extends React.Component<PropertiesDocC
             col._panX = NumCast(target.x) + NumCast(target._width) / 2;
             col._panY = NumCast(target.y) + NumCast(target._height) / 2;
         }
-        this.props.addDocTab(col, "inTab");
+        this.props.addDocTab(col, "add:right");
     }
 
     render() {

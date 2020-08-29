@@ -1,6 +1,6 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { clamp } from 'lodash';
+import { clamp, pull } from 'lodash';
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
@@ -38,7 +38,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 @observer
 export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @observable public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Doc, isDisplayPanel?: boolean, width?: number) {
+    public static makeDocumentConfig(document: Doc, panelName?: string, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -46,7 +46,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             width: width,
             props: {
                 documentId: document[Id],
-                isDisplayPanel   // flag for whether a tab should be considered a placeholder that has its contents replaced with new content
+                panelName   // name of tab that can be used to close or replace its contents
             }
         };
     }
@@ -85,26 +85,20 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     @undoBatch
-    @action
-    public static CloseRightSplit(document: Opt<Doc>): boolean {
-        const tryClose = (childItem: any) => {
-            if (childItem.config?.component === "DocumentFrameRenderer") {
-                if ((!document && childItem.config.props.isDisplayPanel) || (document && childItem.config.props.documentId === document[Id])) {
-                    childItem.remove();
-                    return true;
-                }
+    public static CloseSplit(document: Opt<Doc>, panelName?: string): boolean {
+        const tab = Array.from(CollectionDockingView.Instance.tabMap.keys()).find((tab) => panelName ? tab.contentItem.config.props.panelName === panelName : tab.DashDoc === document);
+        if (tab) {
+            const j = tab.header.parent.contentItems.indexOf(tab.contentItem);
+            if (j !== -1) {
+                tab.header.parent.contentItems[j].remove();
+                return CollectionDockingView.Instance.layoutChanged();
             }
-            return false;
-        };
-        const retVal = !CollectionDockingView.Instance?._goldenLayout.root.contentItems[0].isRow ? false :
-            Array.from(CollectionDockingView.Instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => Array.from(child.contentItems).some(tryClose));
+        }
 
-        retVal && document && CollectionDockingView.Instance.layoutChanged();
-        return retVal;
+        return false;
     }
 
     @undoBatch
-    @action
     public static OpenFullScreen(doc: Doc, libraryPath?: Doc[]) {
         const instance = CollectionDockingView.Instance;
         if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
@@ -124,176 +118,94 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         return true;
     }
 
-    public static ReplaceRightSplit(document: Doc, libraryPath?: Doc[], addToSplit?: boolean): boolean {
-        if (!CollectionDockingView.Instance) return false;
-        const instance = CollectionDockingView.Instance;
-        const retVal = !instance._goldenLayout.root.contentItems[0].isRow ? false :
-            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    child.contentItems[0].config.isDisplayPanel) {
-                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, true);
-                    child.addChild(newItemStackConfig, undefined);
-                    !addToSplit && child.contentItems[0].remove();
-                    return true;
-                }
-                return Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                    if (tab.config.props.isDisplayPanel) {
-                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, true);
-                        child.addChild(newItemStackConfig, undefined);
-                        !addToSplit && child.contentItems[j].remove();
-                        return true;
-                    }
-                    return false;
-                });
-            });
-        retVal && instance.layoutChanged();
-        return retVal;
-    }
-
-    //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
-    //
     @undoBatch
-    @action
-    public static AddRightSplit(document: Doc, isDisplayPanel: Opt<boolean> = undefined) {
-        if (!CollectionDockingView.Instance) return false;
-
-        const ind = Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === document);
-        if (ind !== -1) {
-            const tab = Array.from(CollectionDockingView.Instance.tabMap.keys())[ind];
-            const activeContentItem = tab.header.parent.getActiveContentItem();
-            if (tab.contentItem !== activeContentItem) {
-                tab.header.parent.setActiveContentItem(tab.contentItem);
-            }
-            tab.setActive(true);
-        } else {
-            if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
-            const instance = CollectionDockingView.Instance;
-            const newItemStackConfig = {
-                type: 'stack',
-                content: [CollectionDockingView.makeDocumentConfig(document, isDisplayPanel)]
-            };
-
-            const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
-
-            if (instance._goldenLayout.root.contentItems.length === 0) {
-                instance._goldenLayout.root.addChild(newContentItem);
-            } else if (instance._goldenLayout.root.contentItems[0].isRow) {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            } else {
-                const collayout = instance._goldenLayout.root.contentItems[0];
-                const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
-                collayout.parent.replaceChild(collayout, newRow);
-
-                newRow.addChild(newContentItem, undefined, true);
-                newRow.addChild(collayout, 0, true);
-
-                collayout.config.width = 50;
-                newContentItem.config.width = 50;
-            }
-            newContentItem.callDownwards('_$init');
-            instance.layoutChanged();
+    public static ReplaceTab(document: Doc, panelName: string, stack: any, addToSplit?: boolean): boolean {
+        const instance = CollectionDockingView.Instance;
+        if (!instance) return false;
+        const newConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
+        if (!panelName && stack) {
+            const activeContentItemIndex = stack.contentItems.findIndex((item: any) => item.config === stack._activeContentItem.config);
+            const newContentItem = stack.layoutManager.createContentItem(newConfig, instance._goldenLayout);
+            stack.addChild(newContentItem.contentItems[0], undefined);
+            stack.contentItems[activeContentItemIndex].remove();
+            return CollectionDockingView.Instance.layoutChanged();
         }
-        return true;
+        const tab = Array.from(CollectionDockingView.Instance.tabMap.keys()).find((tab) => tab.contentItem.config.props.panelName === panelName);
+        if (tab) {
+            tab.header.parent.addChild(newConfig, undefined);
+            const j = tab.header.parent.contentItems.indexOf(tab.contentItem);
+            !addToSplit && j !== -1 && tab.header.parent.contentItems[j].remove();
+            return CollectionDockingView.Instance.layoutChanged();
+        }
+        return CollectionDockingView.AddSplit(document, panelName, stack, panelName);
     }
-
 
     //
     //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
-    @action
-    public static AddSplit(document: Doc, pullSide: string, libraryPath?: Doc[]) {
-        if (!CollectionDockingView.Instance) return false;
-        const instance = CollectionDockingView.Instance;
-        const newItemStackConfig = {
-            type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, undefined)]
-        };
-
-        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
-
-        if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
-            instance._goldenLayout.root.addChild(newContentItem);
-        } else if (instance._goldenLayout.root.contentItems[0].isRow) { // if row
-            if (pullSide === "left") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
-            } else if (pullSide === "right") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            } else if (pullSide === "top" || pullSide === "bottom") {
-                // if not going in a row layout, must add already existing content into column
-                const rowlayout = instance._goldenLayout.root.contentItems[0];
-                const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
-                rowlayout.parent.replaceChild(rowlayout, newColumn);
-                if (pullSide === "top") {
-                    newColumn.addChild(rowlayout, undefined, true);
-                    newColumn.addChild(newContentItem, 0, true);
-                } else if (pullSide === "bottom") {
-                    newColumn.addChild(newContentItem, undefined, true);
-                    newColumn.addChild(rowlayout, 0, true);
-                }
-
-                rowlayout.config.height = 50;
-                newContentItem.config.height = 50;
-            }
-        } else if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
-            if (pullSide === "top") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
-            } else if (pullSide === "bottom") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            } else if (pullSide === "left" || pullSide === "right") {
-                // if not going in a row layout, must add already existing content into column
-                const collayout = instance._goldenLayout.root.contentItems[0];
-                const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
-                collayout.parent.replaceChild(collayout, newRow);
-
-                if (pullSide === "left") {
-                    newRow.addChild(collayout, undefined, true);
-                    newRow.addChild(newContentItem, 0, true);
-                } else if (pullSide === "right") {
-                    newRow.addChild(newContentItem, undefined, true);
-                    newRow.addChild(collayout, 0, true);
-                }
-
-                collayout.config.width = 50;
-                newContentItem.config.width = 50;
-            }
-        }
-
-        newContentItem.callDownwards('_$init');
-        instance.layoutChanged();
-        return true;
-    }
-
-    //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
-    //
     @undoBatch
-    public static UseRightSplit(document: Doc, libraryPath?: Doc[], shiftKey?: boolean) {
-        if (shiftKey || !CollectionDockingView.ReplaceRightSplit(document, libraryPath, shiftKey)) {
-            return CollectionDockingView.AddRightSplit(document, true);
-        }
-        return false;
-    }
-
-    @undoBatch
-    public static AddTab(stack: any, document: Doc, libraryPath?: Doc[]) {
+    public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
         const instance = CollectionDockingView.Instance;
-        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, undefined);
-        if (stack === undefined) {
-            stack = instance._goldenLayout.root;
-            while (!stack.isStack) {
-                if (stack.contentItems.length) {
-                    stack = stack.contentItems[0];
-                } else {
-                    stack.addChild({ type: 'stack', content: [docContentConfig] });
-                    stack = undefined;
-                    break;
+        if (!instance) return false;
+        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
+
+        if (!pullSide && stack) {
+            stack.addChild(docContentConfig, undefined);
+        } else {
+            const newItemStackConfig = { type: 'stack', content: [docContentConfig] };
+            const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+            if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
+                instance._goldenLayout.root.addChild(newContentItem);
+            } else if (instance._goldenLayout.root.contentItems[0].isRow) { // if row
+                switch (pullSide) {
+                    default:
+                    case "right": instance._goldenLayout.root.contentItems[0].addChild(newContentItem); break;
+                    case "left": instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0); break;
+                    case "top":
+                    case "bottom":
+                        // if not going in a row layout, must add already existing content into column
+                        const rowlayout = instance._goldenLayout.root.contentItems[0];
+                        const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+                        rowlayout.parent.replaceChild(rowlayout, newColumn);
+                        if (pullSide === "top") {
+                            newColumn.addChild(rowlayout, undefined, true);
+                            newColumn.addChild(newContentItem, 0, true);
+                        } else if (pullSide === "bottom") {
+                            newColumn.addChild(newContentItem, undefined, true);
+                            newColumn.addChild(rowlayout, 0, true);
+                        }
+
+                        rowlayout.config.height = 50;
+                        newContentItem.config.height = 50;
+                }
+            } else if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
+                switch (pullSide) {
+                    case "top": instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0); break;
+                    case "bottom": instance._goldenLayout.root.contentItems[0].addChild(newContentItem); break;
+                    case "left":
+                    case "right":
+                    default:
+                        // if not going in a row layout, must add already existing content into column
+                        const collayout = instance._goldenLayout.root.contentItems[0];
+                        const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
+                        collayout.parent.replaceChild(collayout, newRow);
+
+                        if (pullSide === "left") {
+                            newRow.addChild(collayout, undefined, true);
+                            newRow.addChild(newContentItem, 0, true);
+                        } else {
+                            newRow.addChild(newContentItem, undefined, true);
+                            newRow.addChild(collayout, 0, true);
+                        }
+
+                        collayout.config.width = 50;
+                        newContentItem.config.width = 50;
                 }
             }
+            newContentItem.callDownwards('_$init');
         }
-        stack?.addChild(docContentConfig, undefined);
-        instance.layoutChanged();
-        return true;
+
+        return instance.layoutChanged();
     }
 
     @undoBatch
@@ -303,6 +215,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         this._goldenLayout.emit('stateChanged');
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+        return true;
     }
 
     async setupGoldenLayout() {
@@ -450,7 +363,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
     tabCreated = (tab: any) => {
-        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
+        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab?.(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
     }
 
     stackCreated = (stack: any) => {
@@ -458,9 +371,9 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             if (e.target === stack.header.element[0] && e.button === 2) {
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-                CollectionDockingView.AddTab(stack, Docs.Create.FreeformDocument([], {
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
                     _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
-                }));
+                }), "", stack);
             }
         });
 
@@ -477,9 +390,9 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
-                CollectionDockingView.AddTab(stack, Docs.Create.FreeformDocument([], {
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
                     _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
-                }));
+                }), "", stack);
             }));
     }
 
@@ -601,7 +514,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 Doc.AddDocToList(curPres, "data", pinDoc);
                 if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
                 if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                    CollectionDockingView.AddRightSplit(curPres);
+                    CollectionDockingView.AddSplit(curPres, "right");
                 }
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
             }
@@ -688,17 +601,26 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
     get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
 
+    // adds a tab to the layout based on the locaiton parameter which can be:
+    //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
+    //  add[:{left,right,top,bottom}] - e.g., "add" will add a tab to the current stack, "add:right" will add a tab on the right
+    //  replace[:{left,right,top,bottom,<any string>}] - e.g., "replace" will replace the current stack contents, 
+    //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name, 
+    //                                   "replace:monkeys" - will replace any tab that has the label 'monkeys', or a tab with that label will be created by default on the right
+    //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
-        switch (location) {
-            case "onRight": return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
-                CollectionDockingView.CloseRightSplit(doc) : CollectionDockingView.AddRightSplit(doc);
-            case "close": return CollectionDockingView.CloseRightSplit(doc);
-            case "replace": return CollectionDockingView.UseRightSplit(doc);
+        const locationFields = location.split(":");
+        const locationParams = locationFields.length > 1 ? locationFields[1] : "";
+        switch (locationFields[0]) {
+            case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
+            case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
             case "inPlace":
-            default: return CollectionDockingView.AddTab(this.stack, doc);
+            case "add":
+            default: return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
+                CollectionDockingView.CloseSplit(doc) : CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }
 
@@ -830,6 +752,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div >);
     }
 }
-Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc); },
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddSplit(doc, "right"); },
     "opens up the inputted document on the right side of the screen", "(doc: any)");
-Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.UseRightSplit(doc, undefined, shiftKey); });
+Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.ReplaceTab(doc, "right", undefined, shiftKey); });

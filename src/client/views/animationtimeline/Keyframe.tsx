@@ -331,7 +331,7 @@ export class Keyframe extends React.Component<IProps> {
         }),
             TimelineMenu.Instance.addItem("button", "Show Data", action(() => {
                 const kvp = Docs.Create.KVPDocument(kf, { _width: 300, _height: 300 });
-                CollectionDockingView.AddRightSplit(kvp);
+                CollectionDockingView.AddSplit(kvp, "right");
             })),
             TimelineMenu.Instance.addItem("button", "Delete", action(() => {
                 (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);

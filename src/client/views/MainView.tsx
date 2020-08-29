@@ -236,7 +236,7 @@ export class MainView extends React.Component {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
                     initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
                         if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
-                            CollectionDockingView.AddRightSplit(docField);
+                            CollectionDockingView.AddSplit(docField, "right");
                         }
                     }),
                 );
@@ -260,7 +260,7 @@ export class MainView extends React.Component {
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
             { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
-        CollectionDockingView.AddRightSplit(pres);
+        CollectionDockingView.AddSplit(pres, "right");
         Doc.UserDoc().activePresentation = pres;
         const myPresentations = Doc.UserDoc().myPresentations as Doc;
         Doc.AddDocToList(myPresentations, "data", pres);
@@ -382,9 +382,9 @@ export class MainView extends React.Component {
     @computed get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
-        return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
+        return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) :
-                CollectionDockingView.AddRightSplit(doc);
+                CollectionDockingView.AddSplit(doc, "right");
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);

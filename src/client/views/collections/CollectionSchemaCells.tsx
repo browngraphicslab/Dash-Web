@@ -370,7 +370,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
                         })}
                     />
                 </div >
-                <div onClick={() => this._doc && this.props.addDocTab(this._doc, "onRight")} className="collectionSchemaView-cellContents-docButton">
+                <div onClick={() => this._doc && this.props.addDocTab(this._doc, "add:right")} className="collectionSchemaView-cellContents-docButton">
                     <FontAwesomeIcon icon="external-link-alt" size="lg" />
                 </div>
             </div>;

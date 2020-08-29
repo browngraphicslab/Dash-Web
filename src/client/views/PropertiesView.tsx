@@ -258,7 +258,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get contexts() {
-        return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddSplit(doc, "right")} />;
     }
 
     previewBackground = () => "lightgrey";

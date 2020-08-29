@@ -156,7 +156,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
-                        CollectionDockingView.AddRightSplit(googleDoc);
+                        CollectionDockingView.AddSplit(googleDoc, "right");
                     } else if (e.altKey) {
                         e.preventDefault();
                         window.open(googleDocUrl);

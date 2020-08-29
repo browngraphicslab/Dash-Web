@@ -278,7 +278,7 @@ export namespace RichTextUtils {
             } else {
                 docid = backingDocId;
             }
-            return schema.node("image", { src, agnostic, width, docid, float: null, location: "onRight" });
+            return schema.node("image", { src, agnostic, width, docid, float: null, location: "add:right" });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {

@@ -188,7 +188,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
                 alias.context = undefined;
                 //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
-                CollectionDockingView.AddRightSplit(alias);
+                CollectionDockingView.AddSplit(alias, "right");
             }
         }
         SelectionManager.DeselectAll();

@@ -39,7 +39,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     showTemplate = (): void => {
         const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
-        dragFactory && this.props.addDocTab(dragFactory, "onRight");
+        dragFactory && this.props.addDocTab(dragFactory, "add:right");
     }
     dragAsTemplate = (): void => {
         this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');

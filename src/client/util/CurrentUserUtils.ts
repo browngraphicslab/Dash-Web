@@ -1063,7 +1063,7 @@ export class CurrentUserUtils {
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
     const copy = Doc.copyDragFactory(dragFactory);
     if (copy) {
-        CollectionDockingView.AddRightSplit(copy);
+        CollectionDockingView.AddSplit(copy, "right");
         const view = DocumentManager.Instance.getFirstDocumentView(copy);
         view && SelectionManager.SelectDoc(view, false);
     }
