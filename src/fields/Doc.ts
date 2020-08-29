@@ -939,19 +939,16 @@ export namespace Doc {
     }
 
     export function IsBrushed(doc: Doc) {
-        return false;
         return computedFn(function IsBrushed(doc: Doc) {
             return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        return 0;
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
-        return 0;
         return computedFn(function IsBrushDegree(doc: Doc) {
             return Doc.IsBrushedDegreeUnmemoized(doc);
         })(doc);
@@ -980,7 +977,6 @@ export namespace Doc {
 
     let _lastDate = 0;
     export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
-        return;
         linkFollowUnhighlight();
         Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);

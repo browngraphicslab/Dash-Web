@@ -738,7 +738,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myDashboards) {
+        if (!e.isPropagationStopped() && this.doc === CurrentUserUtils.MyDashboards) {
             ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => CurrentUserUtils.createNewDashboard(Doc.UserDoc()), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
             e.stopPropagation();

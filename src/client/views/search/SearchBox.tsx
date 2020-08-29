@@ -492,7 +492,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     }
     render() {
-        const myDashboards = DocListCast(Cast(Doc.UserDoc().myDashboards, Doc, null).data);
+        const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>

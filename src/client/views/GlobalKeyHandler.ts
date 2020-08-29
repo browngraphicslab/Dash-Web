@@ -99,7 +99,7 @@ export class KeyManager {
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
-                    if (CollectionDockingView.Instance.HasFullScreen()) {
+                    if (CollectionDockingView.Instance.HasFullScreen) {
                         CollectionDockingView.Instance.CloseFullScreen();
                     } else {
                         doDeselect = !ContextMenu.Instance.closeMenu();
@@ -253,7 +253,7 @@ export class KeyManager {
                 break;
             case "o":
                 const target = SelectionManager.SelectedDocuments()[0];
-                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
+                target && CollectionDockingView.OpenFullScreen(target.props.Document);
                 break;
             case "r":
                 preventDefault = false;

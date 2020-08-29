@@ -380,6 +380,14 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         Always open in a new pane
                         </div>
                     <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("replace")}>
+                        Always replace right tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("fullScreen")}>
+                        Always open full screen
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("inTab")}>
                         Always open in a new tab
                         </div>

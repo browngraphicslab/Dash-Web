@@ -1025,7 +1025,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, copy);
     }
 
-    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+    public static createNewDashboard = (userDoc: Doc, id?: string) => {
         const myPresentations = userDoc.myPresentations as Doc;
         const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
         const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
@@ -1051,11 +1051,13 @@ export class CurrentUserUtils {
         dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => {
-            CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
-        }, 0);
+        CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
+
+    public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
+    public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
+    public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
+    public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
 }
 
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {

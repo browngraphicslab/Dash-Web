@@ -324,7 +324,7 @@ export class MobileInterface extends React.Component {
             );
         }
         // stores dashboards documents as 'dashboards' variable
-        let dashboards = Cast(Doc.UserDoc().myDashboards, Doc) as Doc;
+        let dashboards = CurrentUserUtils.MyDashboards;
         if (this.dashboards) {
             dashboards = this.dashboards;
         }
@@ -394,7 +394,7 @@ export class MobileInterface extends React.Component {
      */
     @action
     createNewDashboard = async (id?: string) => {
-        const scens = Cast(Doc.UserDoc().myDashboards, Doc) as Doc;
+        const scens = CurrentUserUtils.MyDashboards;
         const dashboardCount = DocListCast(scens.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
