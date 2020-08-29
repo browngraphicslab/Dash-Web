@@ -10,17 +10,15 @@ import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as rp from 'request-promise';
 import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
-import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { listSpec } from '../../fields/Schema';
-import { ScriptField } from '../../fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
-import { Docs, DocumentOptions } from '../documents/Documents';
+import { Docs } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { Networking } from '../Network';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -38,19 +36,19 @@ import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { FormatShapePane } from "./collections/collectionFreeForm/FormatShapePane";
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionMenu } from './collections/CollectionMenu';
-import { CollectionView, CollectionViewType } from './collections/CollectionView';
+import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
+import { FormatShapePane } from "./FormatShapePane";
 import { GestureOverlay } from './GestureOverlay';
-import { ANTIMODEMENU_HEIGHT, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
+import { SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
+import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
@@ -63,8 +61,8 @@ import { WebBox } from './nodes/WebBox';
 import { OverlayView } from './OverlayView';
 import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import "./MainView.scss";
 
 @observer
 export class MainView extends React.Component {
@@ -521,7 +519,7 @@ export class MainView extends React.Component {
         }}>
             <PropertiesView
                 width={this.propertiesWidth()}
-                height={this._panelHeight}
+                height={this.getContentsHeight()}
                 renderDepth={1}
                 ScreenToLocalTransform={Transform.Identity}
                 onDown={this.closeProperties}
@@ -567,8 +565,7 @@ export class MainView extends React.Component {
                             <FontAwesomeIcon icon={this.propertiesIcon} color="black" size="sm" /> </div>
                     </div>
                 }
-                {this.propertiesWidth() < 10 ? (null) :
-                    <div style={{ width: this.propertiesWidth(), height: "calc(100% - 35px)" }}> {this.propertiesView} </div>}
+                {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
             </div>
         </>;
     }

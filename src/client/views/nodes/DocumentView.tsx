@@ -30,6 +30,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
+import { FormatShapePane } from '../FormatShapePane';
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
@@ -38,7 +39,6 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
-import { FormatShapePane } from '../collections/collectionFreeForm/FormatShapePane';
 
 export type DocFocusFunc = () => boolean;
 

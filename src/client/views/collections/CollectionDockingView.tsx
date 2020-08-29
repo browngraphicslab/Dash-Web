@@ -31,7 +31,7 @@ import "./CollectionDockingView.scss";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
-import { DockingViewButtonSelector } from './ParentDocumentSelector';
+import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import React = require("react");
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -80,11 +80,8 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
     @undoBatch
     public CloseFullScreen = () => {
-        const target = this._goldenLayout._maximisedItem;
-        if (target) {
-            target.remove();
-            this.stateChanged();
-        }
+        this._goldenLayout._maximisedItem?.toggleMaximise();
+        this.stateChanged();
     }
 
     @undoBatch
@@ -453,7 +450,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
     tabCreated = (tab: any) => {
-        (tab.contentItem.element[0]?.firstChild?.firstChild as any)?.InitTab(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
+        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
     }
 
     stackCreated = (stack: any) => {
@@ -563,7 +560,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 (view) => {
                     if (view) {
                         ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
-                            <DockingViewButtonSelector views={() => [view]} Stack={stack} />
+                            <CollectionDockingViewMenu views={() => [view]} Stack={stack} />
                         </span>,
                             gearSpan);
                         tab._disposers.buttonDisposer?.();

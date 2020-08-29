@@ -148,7 +148,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             }} >
             {!this._editing && !this._forceOpen ? (null) :
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} open={this._forceOpen ? true : undefined} onOpen={() => this._isOpen = true} onClose={action(() => this._isOpen = this._forceOpen = this._editing = false)}>
-                    <span className="parentDocumentSelector-button" >
+                    <span className="linkAnchorBox-button" >
                         <FontAwesomeIcon icon={"eye"} size={"lg"} />
                     </span>
                 </Flyout>}

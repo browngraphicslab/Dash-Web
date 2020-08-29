@@ -4,28 +4,27 @@ import { Checkbox, Tooltip } from "@material-ui/core";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
-import { Id } from "../../../../fields/FieldSymbols";
-import { InkField } from "../../../../fields/InkField";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { GetEffectiveAcl, SharingPermissions } from "../../../../fields/util";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../../Utils";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { SelectionManager } from "../../../util/SelectionManager";
-import { SharingManager } from "../../../util/SharingManager";
-import { Transform } from "../../../util/Transform";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
-import { EditableView } from "../../EditableView";
-import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
-import { KeyValueBox } from "../../nodes/KeyValueBox";
-import { PresBox } from "../../nodes/PresBox";
-import { PropertiesButtons } from "../../PropertiesButtons";
-import { CollectionDockingView } from "../CollectionDockingView";
-import { SelectorContextMenu } from "../ParentDocumentSelector";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { InkField } from "../../fields/InkField";
+import { ComputedField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../Utils";
+import { DocumentType } from "../documents/DocumentTypes";
+import { DocumentManager } from "../util/DocumentManager";
+import { SelectionManager } from "../util/SelectionManager";
+import { SharingManager } from "../util/SharingManager";
+import { Transform } from "../util/Transform";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CollectionDockingView } from "./collections/CollectionDockingView";
+import { EditableView } from "./EditableView";
 import { FormatShapePane } from "./FormatShapePane";
-import "./FormatShapePane.scss";
+import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { KeyValueBox } from "./nodes/KeyValueBox";
+import { PresBox } from "./nodes/PresBox";
+import { PropertiesButtons } from "./PropertiesButtons";
+import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -259,7 +258,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get contexts() {
-        return !this.selectedDoc ? (null) : <SelectorContextMenu Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     previewBackground = () => "lightgrey";

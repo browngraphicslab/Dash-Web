@@ -16,7 +16,6 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { SelectionManager } from '../util/SelectionManager';
 import { undoBatch } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import './collections/ParentDocumentSelector.scss';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import './PropertiesButtons.scss';
 import React = require("react");
