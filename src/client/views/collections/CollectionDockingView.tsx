@@ -140,6 +140,13 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         return CollectionDockingView.AddSplit(document, panelName, stack, panelName);
     }
 
+
+    @undoBatch
+    public static ToggleSplit(doc: Doc, location: string, stack?: any, panelName?: string) {
+        return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
+            CollectionDockingView.CloseSplit(doc) : CollectionDockingView.AddSplit(doc, location, stack, panelName);
+    }
+
     //
     //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
@@ -262,8 +269,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 config => {
                     if (!this._goldenLayout || this._ignoreStateChange !== config) {
                         this.setupGoldenLayout();
-                        DocListCast(CurrentUserUtils.MyDashboards.data).map(d => d.dashboardBrush = false);
-                        this.props.Document.dashboardBrush = true;
                     }
                     this._ignoreStateChange = "";
                 });
@@ -274,7 +279,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
     componentWillUnmount: () => void = () => {
         try {
-            this.props.Document.dashboardBrush = false;
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
             this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
         } catch (e) { }
@@ -619,8 +623,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
             case "inPlace":
             case "add":
-            default: return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
-                CollectionDockingView.CloseSplit(doc) : CollectionDockingView.AddSplit(doc, locationParams, this.stack);
+            default: return CollectionDockingView.ToggleSplit(doc, locationParams, this.stack);
         }
     }
 

@@ -583,7 +583,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutString: this.childLayoutString,
         };
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document._isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            `${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+            `${CurrentUserUtils.ActiveDashboard?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}

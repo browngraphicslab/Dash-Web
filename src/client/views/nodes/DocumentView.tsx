@@ -39,6 +39,7 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 
 export type DocFocusFunc = () => boolean;
 
@@ -588,7 +589,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     deleteClicked = (): void => {
-        if (Doc.UserDoc().activeDashboard === this.props.Document) {
+        if (CurrentUserUtils.ActiveDashboard === this.props.Document) {
             alert("Can't delete the active dashboard");
         } else {
             const selected = SelectionManager.SelectedDocuments().slice();
@@ -625,7 +626,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.Document === Doc.UserDoc().activeDashboard) {
+        if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
@@ -1041,7 +1042,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
-        const highlightColors = Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ?
+        const highlightColors = CurrentUserUtils.ActiveDashboard?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];

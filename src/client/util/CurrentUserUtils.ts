@@ -1020,7 +1020,7 @@ export class CurrentUserUtils {
     }
 
     public static snapshotDashboard = (userDoc: Doc) => {
-        const copy = CollectionDockingView.Copy(Cast(userDoc.activeDashboard, Doc, null));
+        const copy = CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
         Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
         CurrentUserUtils.openDashboard(userDoc, copy);
     }
@@ -1031,7 +1031,11 @@ export class CurrentUserUtils {
         const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
         const emptyPane = Cast(userDoc.emptyPane, Doc, null);
-        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+        try {
+            emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+        } catch (e) {
+            console.log(e)
+        }
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
@@ -1054,6 +1058,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
 
+    public static get ActiveDashboard() { return Cast(Doc.UserDoc().activeDashboard, Doc, null); }
     public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
     public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
     public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }

@@ -13,7 +13,7 @@ import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { listSpec } from '../../fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, PromiseValue } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
@@ -75,10 +75,10 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = false;
     @observable public flyoutWidth: number = 0;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeDashboard, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeDashboard, Doc)) : CurrentUserUtils.GuestDashboard; }
+    @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc.mySearchPanelDoc, Doc) as Doc; }
 
@@ -226,8 +226,7 @@ export class MainView extends React.Component {
         // Load the user's active dashboard, or create a new one if initial session after signup
         const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
-            reaction(
-                () => CurrentUserUtils.GuestTarget,
+            reaction(() => CurrentUserUtils.GuestTarget,
                 target => target && CurrentUserUtils.createNewDashboard(Doc.UserDoc()),
                 { fireImmediately: true }
             );
@@ -241,11 +240,11 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            const doc = this.userDoc && await Cast(this.userDoc.activeDashboard, Doc);
-            if (doc) {
-                CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
+            const activeDash = PromiseValue(this.userDoc.activeDashboard);
+            if (activeDash) {
+                activeDash.then(dash => dash instanceof Doc && CurrentUserUtils.openDashboard(this.userDoc, dash));
             } else {
-                CurrentUserUtils.createNewDashboard(Doc.UserDoc());
+                CurrentUserUtils.createNewDashboard(this.userDoc);
             }
         }
     }

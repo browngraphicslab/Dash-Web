@@ -483,7 +483,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
-                    outline: BoolCast(this.doc.dashboardBrush) ? "dashed 1px #06123232" : undefined,
+                    outline: this.doc === CurrentUserUtils.ActiveDashboard ? "dashed 1px #06123232" : undefined,
                     pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }} >
                 {view}
