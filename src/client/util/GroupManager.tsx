@@ -159,7 +159,7 @@ export class GroupManager extends React.Component<{}> {
      * @returns the members of the admin group.
      */
     get adminGroupMembers(): string[] {
-        return this.getGroup("admin") ? JSON.parse(StrCast(this.getGroup("admin")!.members)) : "";
+        return this.getGroup("Admin") ? JSON.parse(StrCast(this.getGroup("Admin")!.members)) : "";
     }
 
     /**
@@ -179,7 +179,7 @@ export class GroupManager extends React.Component<{}> {
      */
     createGroupDoc(groupName: string, memberEmails: string[] = []) {
         const groupDoc = new Doc;
-        groupDoc.groupName = groupName;
+        groupDoc.groupName = groupName.toLowerCase() === "admin" ? "Admin" : groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
         if (memberEmails.includes(Doc.CurrentUserEmail)) {

@@ -166,7 +166,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        if (currentUserGroups.includes("admin")) return AclAdmin;
+        if (currentUserGroups.includes("Admin")) return AclAdmin;
 
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
