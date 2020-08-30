@@ -36,9 +36,6 @@ export class CollectionDockingViewMenu extends React.Component<{ views: () => Do
             <span className="dockingViewButtonSelector"
                 onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))}
                 onPointerDown={action(e => {
-                    if (getComputedStyle(this._ref.current!).width !== "100%") {
-                        e.stopPropagation(); e.preventDefault();
-                    }
                     this.props.views()[0]?.select(false);
                     this._tooltipOpen = false;
                 })} >

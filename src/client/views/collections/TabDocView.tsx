@@ -361,19 +361,18 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     render() {
-        return !this._isActive ? (null) :
-            (<div className="collectionDockingView-content" ref={ref => {
-                if (this._mainCont = ref) {
-                    (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
-                    DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.init(this.tab, this._document)));
-                }
-            }}
-                style={{
-                    transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc?._fitWidth ? undefined : "100%",
-                    width: this.widthpercent
-                }}>
-                {this.docView}
-            </div >);
+        return (<div className="collectionDockingView-content" ref={ref => {
+            if (this._mainCont = ref) {
+                (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
+                this.tab && DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.init(this.tab, this._document)));
+            }
+        }}
+            style={{
+                transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
+                height: this.layoutDoc?._fitWidth ? undefined : "100%",
+                width: this.widthpercent
+            }}>
+            {this.docView}
+        </div >);
     }
 }
