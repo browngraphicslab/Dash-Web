@@ -87,6 +87,7 @@ export class GroupManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
             });
+            this.currentUserGroups.push("Public");
             setGroups(this.currentUserGroups);
         });
     }
@@ -116,6 +117,7 @@ export class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
+        this.selectedUsers = null;
         // this.users = [];
         this.createGroupModalOpen = false;
         TaskCompletionBox.taskCompleted = false;

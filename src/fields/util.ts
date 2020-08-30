@@ -183,7 +183,8 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
         for (const [key, value] of Object.entries(target[AclSym])) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
-            if (currentUserGroups.includes(key.substring(4).replace("_", ".")) || userChecked === key.substring(4).replace("_", ".")) {
+            const entity = key.substring(4).replace('_', '.'); // an individual or a group
+            if (currentUserGroups.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) break;

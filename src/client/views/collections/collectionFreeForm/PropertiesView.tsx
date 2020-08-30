@@ -27,6 +27,7 @@ import "./FormatShapePane.scss";
 import "./PropertiesView.scss";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { ParentDocSelector, SelectorContextMenu } from "../ParentDocumentSelector";
+import { intersection } from "lodash";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -317,17 +318,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     @undoBatch
     changePermissions = (e: any, user: string) => {
-        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
+        const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.selectedDoc!] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, docs);
     }
 
     /**
      * @returns the options for the permissions dropdown.
      */
     getPermissionsSelect(user: string, permission: string) {
+        const dropdownValues: string[] = Object.values(SharingPermissions);
+        if (permission === "-multiple-") dropdownValues.unshift(permission);
         return <select className="permissions-select"
             value={permission}
             onChange={e => this.changePermissions(e, user)}>
-            {Object.values(SharingPermissions).map(permission => {
+            {dropdownValues.map(permission => {
                 return (
                     <option key={permission} value={permission}>
                         {permission}
@@ -365,7 +369,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     /**
      * @returns a row of the permissions panel
      */
-    sharingItem(name: string, effectiveAcl: symbol, permission: string) {
+    sharingItem(name: string, admin: boolean, permission: string) {
         return <div className="propertiesView-sharingTable-item" key={name + permission}
         // style={{ backgroundColor: this.selectedUser === name ? "#bcecfc" : "" }}
         // onPointerDown={action(() => this.selectedUser = this.selectedUser === name ? "" : name)}
@@ -373,7 +377,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
             {/* {name !== "Me" ? this.notifyIcon : null} */}
             <div className="propertiesView-sharingTable-item-permission">
-                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
+                {admin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}
             </div>
         </div>;
@@ -391,17 +395,29 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             [AclAdmin, SharingPermissions.Admin]
         ]);
 
-        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
+        // all selected docs
+        const docs = SelectionManager.SelectedDocuments().length < 2 ?
+            [this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym]]
+            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
 
-        const effectiveAcl = GetEffectiveAcl(target);
+        const target = docs[0];
+
+        // tslint:disable-next-line: no-unnecessary-callback-wrapper
+        const effectiveAcls = docs.map(doc => GetEffectiveAcl(doc));
+        const showAdmin = effectiveAcls.every(acl => acl === AclAdmin);
+
+        // users in common between all docs
+        const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
+
         const tableEntries = [];
 
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
-        if (target[AclSym]) {
-            for (const [key, value] of Object.entries(target[AclSym])) {
+        if (commonKeys.length) {
+            for (const key of commonKeys) {
                 const name = key.substring(4).replace("_", ".");
+                const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[key] === docs[0]?.[AclSym]?.[key] : doc?.[DataSym]?.[AclSym]?.[key] === docs[0]?.[DataSym]?.[AclSym]?.[key]);
                 if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public"/* && sidebarUsersDisplayed![name] !== false*/) {
-                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value as symbol)!));
+                    tableEntries.push(this.sharingItem(name, showAdmin, uniform ? AclMap.get(this.layoutDocAcls ? target[AclSym][key] : target[DataSym][AclSym][key])! : "-multiple-"));
                 }
             }
         }
@@ -414,9 +430,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         // })
 
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Public", effectiveAcl, (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None)));
-        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === target.author ? "Owner" : AclMap.get(effectiveAcl)!));
-        if (Doc.CurrentUserEmail !== target.author) tableEntries.unshift(this.sharingItem(StrCast(target.author), effectiveAcl, "Owner"));
+        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.every(doc => doc["ACL-Public"] === docs[0]["ACL-Public"]) ? (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None) : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-"));
+        if (Doc.CurrentUserEmail !== target.author && docs.every(doc => doc.author === docs[0].author)) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
