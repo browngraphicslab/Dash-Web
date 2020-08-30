@@ -904,10 +904,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
-            // if (!willZoom && DocumentView._focusHack.length) {
-            //     Doc.BrushDoc(this.props.Document);
-            //     !doc.z && NumCast(this.layoutDoc.scale) < 1 && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
-            // } else {
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
                 if (!doc.z) this.setPan(newPanX, newPanY, doc.presTransition || doc.presTransition === 0 ? `transform ${doc.presTransition}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
@@ -916,7 +912,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             this.props.focus(this.props.Document);
             willZoom && this.setScaleToZoom(layoutdoc, scale);
             Doc.linkFollowHighlight(doc);
-            //}
 
             afterFocus && setTimeout(() => {
                 if (afterFocus?.()) {

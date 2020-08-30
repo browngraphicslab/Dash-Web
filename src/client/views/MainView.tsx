@@ -241,11 +241,10 @@ export class MainView extends React.Component {
                 );
             }
             const activeDash = PromiseValue(this.userDoc.activeDashboard);
-            if (activeDash) {
-                activeDash.then(dash => dash instanceof Doc && CurrentUserUtils.openDashboard(this.userDoc, dash));
-            } else {
-                CurrentUserUtils.createNewDashboard(this.userDoc);
-            }
+            activeDash.then(dash => {
+                if (dash instanceof Doc) CurrentUserUtils.openDashboard(this.userDoc, dash);
+                else CurrentUserUtils.createNewDashboard(this.userDoc);
+            });
         }
     }
 
