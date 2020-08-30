@@ -160,6 +160,7 @@ export class DocumentManager {
                 docView.props.Document.hidden = !docView.props.Document.hidden;
             }
             else {
+                docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
                 highlight();
