@@ -282,7 +282,11 @@ export class GroupManager extends React.Component<{}> {
             alert("Please enter a group name");
             return;
         }
-        if (this.getAllGroups().find(group => group.groupName === this.inputRef.current!.value)) { // why do I need a null check here?
+        if (this.inputRef.current.value.toLowerCase() === "admin" && this.getGroup("Admin")) {
+            alert("You cannot override the Admin group");
+            return;
+        }
+        if (this.getGroup(this.inputRef.current.value)) {
             alert("Please select a unique group name");
             return;
         }
