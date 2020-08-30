@@ -1,5 +1,5 @@
-import { runInAction, action } from "mobx";
-import { extname, basename } from "path";
+import { runInAction } from "mobx";
+import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
@@ -12,21 +12,22 @@ import { ComputedField, ScriptField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
 import { MessageStore } from "../../server/Message";
+import { Upload } from "../../server/SharedMediaTypes";
 import { OmitKeys, Utils } from "../../Utils";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { DocServer } from "../DocServer";
+import { Networking } from "../Network";
 import { DocumentManager } from "../util/DocumentManager";
 import { dropActionType } from "../util/DragManager";
 import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
-import { UndoManager, undoBatch } from "../util/UndoManager";
-import { DocumentType } from "./DocumentTypes";
-import { SearchBox } from "../views/search/SearchBox";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
 import { ContextMenuProps } from "../views/ContextMenuItem";
+import { DFLT_IMAGE_NATIVE_DIM } from "../views/globalCssVariables.scss";
 import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
@@ -46,11 +47,12 @@ import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { Networking } from "../Network";
-import { Upload } from "../../server/SharedMediaTypes";
+import { DocumentType } from "./DocumentTypes";
 const path = require('path');
 
+const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 export interface DocumentOptions {
     system?: boolean;
     _autoHeight?: boolean;
@@ -146,6 +148,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
+    dontRegisterView?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
@@ -1210,8 +1213,10 @@ export namespace DocUtils {
             proto.text = result.rawText;
             proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
             if (Upload.isImageInformation(result)) {
-                proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
-                proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
+                const maxNativeDim = Math.min(Math.max(result.nativeHeight, result.nativeWidth), defaultNativeImageDim);
+                proto["data-nativeOrientation"] = result.exifData?.data?.image?.Orientation;
+                proto["data-nativeWidth"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim * result.nativeWidth / result.nativeHeight : maxNativeDim;
+                proto["data-nativeHeight"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim : maxNativeDim / (result.nativeWidth / result.nativeHeight);
                 proto.contentSize = result.contentSize;
             }
             generatedDocuments.push(doc);

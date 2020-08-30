@@ -55,7 +55,7 @@ export default class UploadManager extends ApiManager {
                         const results: Upload.FileResponse[] = [];
                         for (const key in files) {
                             const result = await DashUploadUtils.upload(files[key]);
-                            result && results.push(result);
+                            result && !(result.result instanceof Error) && results.push(result);
                         }
                         _success(res, results);
                         resolve();

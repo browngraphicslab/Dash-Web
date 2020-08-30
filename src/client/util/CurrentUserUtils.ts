@@ -864,7 +864,6 @@ export class CurrentUserUtils {
         }
     }
 
-
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
             // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target

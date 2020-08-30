@@ -475,10 +475,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     doc[DataSym][fieldKey + "-nativeHeight"] = doc._nativeHeight = nheight = doc._height || 0;
                 }
                 const anno = Cast(doc.annotationOn, Doc, null);
-                if (e.ctrlKey && anno) {
+                if (e.ctrlKey && (anno || doc.type === DocumentType.IMG)) {
                     dW !== 0 && runInAction(() => {
-                        const dataDoc = anno[DataSym];
-                        const annoFieldKey = Doc.LayoutFieldKey(anno);
+                        const dataDoc = (anno ?? doc)[DataSym];
+                        const annoFieldKey = Doc.LayoutFieldKey(anno ?? doc);
                         const nw = NumCast(dataDoc[annoFieldKey + "-nativeWidth"]);
                         const nh = NumCast(dataDoc[annoFieldKey + "-nativeHeight"]);
                         dataDoc[annoFieldKey + "-nativeWidth"] = nw + (dW > 0 ? 10 : -10);

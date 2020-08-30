@@ -217,8 +217,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     ScreenToLocalTransform = () => {
-        if (this._mainCont && this._mainCont.children) {
-            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
+        if (this._mainCont?.children) {
+            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0]?.firstChild as HTMLElement);
             const scale = Utils.GetScreenTransform(this._mainCont).scale;
             return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }

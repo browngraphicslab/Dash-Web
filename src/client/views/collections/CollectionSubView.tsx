@@ -228,7 +228,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
                     } else added = res;
-                    e.stopPropagation();
+                    added && e.stopPropagation();
+                    return added;
                 } else {
                     ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);

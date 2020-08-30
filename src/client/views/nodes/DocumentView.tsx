@@ -198,7 +198,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._mainCont.current && (this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
-        if (!this.props.dontRegisterView) {
+        if (!BoolCast(this.rootDoc.dontRegisterView, this.props.dontRegisterView)) {
             DocumentManager.Instance.DocumentViews.push(this);
         }
     }
@@ -627,7 +627,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
-            alert("linking to document tabs not yet supported.  Drop link on document content.");
+            if ((e.target as any)?.closest?.("*.lm_content")) {
+                alert("You can't perform this move most likely because you don't have permission to modify the destination.");
+            }
+            else alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
         const makeLink = action((linkDoc: Doc) => {

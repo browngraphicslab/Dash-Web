@@ -38,6 +38,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
     _pivotFieldDisposer?: IReactionDisposer;
+    _autoHeightDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
     @observable _heightMap = new Map<string, number>();
@@ -148,10 +149,12 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             () => this.pivotField,
             () => this.layoutDoc._columnHeaders = new List()
         );
+        this._autoHeightDisposer = reaction(() => this.layoutDoc._autoHeight, this.forceAutoHeight);
     }
     componentWillUnmount() {
         super.componentWillUnmount();
         this._pivotFieldDisposer?.();
+        this._autoHeightDisposer?.();
     }
 
     @action
@@ -384,6 +387,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
     }
 
+    forceAutoHeight = () => {
+        const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
+        Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+    }
+
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
@@ -450,6 +458,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.layoutDoc._columnsFill ? "Variable Size" : "Autosize"} Column`, event: () => this.layoutDoc._columnsFill = !this.layoutDoc._columnsFill, icon: "plus" });
             subItems.push({ description: `${this.layoutDoc._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+            subItems.push({ description: "Clear All", event: () => this.dataDoc.data = new List([]), icon: "times" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }

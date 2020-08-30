@@ -5,6 +5,7 @@ import * as rp from 'request-promise';
 import { DocServer } from '../client/DocServer';
 import { Docs } from '../client/documents/Documents';
 import { Networking } from '../client/Network';
+import { DFLT_IMAGE_NATIVE_DIM } from '../client/views/globalCssVariables.scss';
 import { MainViewModal } from '../client/views/MainViewModal';
 import { Doc, Opt } from '../fields/Doc';
 import { List } from '../fields/List';
@@ -20,6 +21,7 @@ export interface ImageUploadProps {
 }
 
 const inputRef = React.createRef<HTMLInputElement>();
+const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 
 @observer
 export class Uploader extends React.Component<ImageUploadProps> {
@@ -52,13 +54,13 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             let doc = null;
                             // Case 1: File is a video
                             if (file.type === "video/mp4") {
-                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
                                 // Case 2: File is a PDF document
                             } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, _fitWidth: true, title: name });
+                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, _fitWidth: true, title: name });
                                 // Case 3: File is another document type (most likely Image)
                             } else {
-                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
                             }
                             this.setOpacity(4, "1"); // Slab 4
                             const res = await rp.get(Utils.prepend("/getUserDocumentId"));

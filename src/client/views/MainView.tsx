@@ -9,7 +9,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as rp from 'request-promise';
-import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
+import { Doc, DocListCast, Field, Opt, DocListCastAsync } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { listSpec } from '../../fields/Schema';
@@ -18,7 +18,7 @@ import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
-import { Docs } from '../documents/Documents';
+import { Docs, DocUtils } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { Networking } from '../Network';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -63,6 +63,8 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
+import { CollectionSubView, CollectionSubViewLoader } from './collections/CollectionSubView';
+import ReactLoading from 'react-loading';
 
 @observer
 export class MainView extends React.Component {
@@ -847,8 +849,6 @@ export class MainView extends React.Component {
     }
 
     importDocument = () => {
-        const sidebar = Cast(Doc.UserDoc().myImportDocs, Doc, null);
-        const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
         const input = document.createElement("input");
         input.type = "file";
         input.multiple = true;
@@ -864,55 +864,21 @@ export class MainView extends React.Component {
                 const json = await response.json();
                 if (json !== "error") {
                     const doc = await DocServer.GetRefField(json);
-                    if (doc instanceof Doc && sidebarDocView) {
-                        sidebarDocView.props.addDocument?.(doc);
+                    if (doc instanceof Doc) {
                         setTimeout(() => {
                             SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
                                 docs.docs.forEach(d => LinkManager.Instance.addLink(d));
                             });
                         }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
-
                     }
                 }
             } else if (input.files && input.files.length !== 0) {
-                const files = input.files || [];
-                Array.from(files).forEach(async file => {
-                    const res = await Networking.UploadFilesToServer(file);
-                    res.map(async ({ result }) => {
-                        const name = file.name;
-                        if (result instanceof Error) {
-                            return;
-                        }
-                        const path = Utils.prepend(result.accessPaths.agnostic.client);
-                        let doc: Doc;
-                        // Case 1: File is a video
-                        if (file.type.includes("video")) {
-                            doc = Docs.Create.VideoDocument(path, { _height: 100, title: name });
-                            // Case 2: File is a PDF document
-                        } else if (file.type === "application/pdf") {
-                            doc = Docs.Create.PdfDocument(path, { _height: 100, _fitWidth: true, title: name });
-                            // Case 3: File is an image
-                        } else if (file.type.includes("image")) {
-                            doc = Docs.Create.ImageDocument(path, { _height: 100, title: name });
-                            // Case 4: File is an audio document
-                        } else {
-                            doc = Docs.Create.AudioDocument(path, { title: name });
-                        }
-                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-                        if (!res) {
-                            throw new Error("No user id returned");
-                        }
-                        const field = await DocServer.GetRefField(res);
-                        let pending: Opt<Doc>;
-                        if (field instanceof Doc) {
-                            pending = sidebar;
-                        }
-                        if (pending) {
-                            const data = await Cast(pending.data, listSpec(Doc));
-                            if (data) data.push(doc);
-                            else pending.data = new List([doc]);
-                        }
-                    });
+                const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
+                const disposer = OverlayView.Instance.addElement(<ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: 300, y: 200 });
+
+                DocListCastAsync(importDocs.data).then(async list => {
+                    list?.push(... await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {}));
+                    disposer();
                 });
             } else {
                 console.log("No file selected");

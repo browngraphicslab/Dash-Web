@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction } from 'mobx';
+import { action, computed, observable, runInAction, reaction, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
@@ -26,7 +26,6 @@ import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
 
@@ -63,6 +62,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _pathDisposer?: IReactionDisposer;
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
@@ -70,6 +70,15 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer?.();
         ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
+    }
+
+    componentDidMount() {
+        this._pathDisposer = reaction(() => this.paths.length && this.resize(this.paths[0]),
+            () => true,
+            { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        this._pathDisposer?.();
     }
 
     @undoBatch
@@ -242,29 +251,29 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     resize = (imgPath: string) => {
         const basePath = imgPath.replace(/_[oms]./, "");
+        const curPath = this.dataDoc[this.fieldKey + "-path"];
         const cachedNativeSize = {
-            width: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
-            height: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
+            width: basePath === curPath || !curPath ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: basePath === curPath || !curPath ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
         if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05) {
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
-                requestImageSize(imgPath).then(action((inquiredSize: any) => {
-                    const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
-                    const rotatedNativeSize = { width: inquiredSize.width, height: inquiredSize.height };
-                    if (inquiredSize.orientation === 6 || rotation === 90 || rotation === 270) {
-                        rotatedNativeSize.width = inquiredSize.height;
-                        rotatedNativeSize.height = inquiredSize.width;
-                    }
-                    const rotatedAspect = rotatedNativeSize.height / rotatedNativeSize.width;
-                    if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
-                        this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
-                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
-                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
-                        this.dataDoc[this.fieldKey + "-path"] = basePath;
-                    }
-                })).catch(console.log);
+                const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
+                const orientation = NumCast(this.dataDoc[this.fieldKey + "-nativeOrientation"]);
+                if (orientation === 6 || rotation === 90 || rotation === 270) {
+                    this.layoutDoc._nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
+                    this.layoutDoc._nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
+                } else {
+                    this.layoutDoc._nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
+                    this.layoutDoc._nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
+                }
+                const rotatedAspect = NumCast(this.layoutDoc._nativeHeight) / NumCast(this.layoutDoc._nativeWidth);
+                if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
+                    this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
+                    this.dataDoc[this.fieldKey + "-path"] = basePath;
+                }
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
                 this.layoutDoc._width = this.layoutDoc[WidthSym]() || cachedNativeSize.width;
                 this.layoutDoc._height = this.layoutDoc[WidthSym]() * cachedAspect;
@@ -385,8 +394,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
         const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
-        const shift = (rotation % 180) ? (nativeHeight - nativeWidth) * (1 - 1 / aspect) : 0;
-        this.resize(srcpath);
         let transformOrigin = "center center";
         let transform = `translate(0%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         if (rotation === 90 || rotation === -270) {
