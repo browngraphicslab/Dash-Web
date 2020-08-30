@@ -143,11 +143,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-linker"
                     style={{ backgroundColor: this.pullColor }}
                     onPointerEnter={action(e => {
-                        if (e.altKey) {
-                            this.openHover = UtilityButtonState.OpenExternally;
-                        } else if (e.shiftKey) {
-                            this.openHover = UtilityButtonState.OpenRight;
-                        }
+                        e.altKey && (this.openHover = UtilityButtonState.OpenExternally);
+                        e.shiftKey && (this.openHover = UtilityButtonState.OpenRight);
                     })}
                     onPointerLeave={action(() => this.openHover = UtilityButtonState.Default)}
                     onClick={async e => {
@@ -171,8 +168,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                         }
                     }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg"
-                        color="black"
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" color="black"
                         style={{ WebkitAnimation: animation, MozAnimation: animation }}
                         icon={(() => {
                             switch (this.openHover) {
