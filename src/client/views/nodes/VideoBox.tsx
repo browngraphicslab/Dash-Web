@@ -82,7 +82,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.rootDoc, "inTab");
+        this._youtubePlayer && this.props.addDocTab(this.rootDoc, "add");
     }
 
     choosePath(url: string) {
@@ -185,8 +185,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this._videoRef = vref;
         if (vref) {
             this._videoRef!.ontimeupdate = this.updateTimecode;
+            // @ts-ignore
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
-            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }
@@ -274,13 +275,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._youtubeReactionDisposer?.();
             this._reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._youtubeReactionDisposer = reaction(
-                () => Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             events: {
-                'onReady': onYoutubePlayerReady,
-                'onStateChange': onYoutubePlayerStateChange,
+                'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
+                'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
             }
         });
 

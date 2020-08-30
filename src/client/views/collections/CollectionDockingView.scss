@@ -1,24 +1,5 @@
 @import "../../views/globalCssVariables.scss";
 
-.miniMap {
-    position: absolute;
-    overflow: hidden;
-    right: 10;
-    bottom: 10;
-    border: solid 1px;
-    box-shadow: black 0.4vw 0.4vw 0.8vw;
-
-    .miniOverlay {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-
-        .miniThumb {
-            background: #25252525;
-            position: absolute;
-        }
-    }
-}
 
 .lm_title {
     margin-top: 3px;
@@ -70,18 +51,6 @@
 
 .lm_popout {
     display: inline;
-}
-
-.messageCounter {
-    width: 18px;
-    height: 20px;
-    text-align: center;
-    border-radius: 20px;
-    margin-left: 5px;
-    transform: translate(0px, -8px);
-    display: inline-block;
-    background: transparent;
-    border: 1px #999999 solid;
 }
 
 .collectiondockingview-container {

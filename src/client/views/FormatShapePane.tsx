@@ -3,16 +3,16 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Field, Opt } from "../../../../fields/Doc";
-import { Document } from "../../../../fields/documentSchemas";
-import { InkField } from "../../../../fields/InkField";
-import { BoolCast, Cast, NumCast } from "../../../../fields/Types";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { SelectionManager } from "../../../util/SelectionManager";
-import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
-import "./FormatShapePane.scss";
-import { undoBatch } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from 'react-color';
+import { Doc, Field, Opt } from "../../fields/Doc";
+import { Document } from "../../fields/documentSchemas";
+import { InkField } from "../../fields/InkField";
+import { BoolCast, Cast, NumCast } from "../../fields/Types";
+import { DocumentType } from "../documents/DocumentTypes";
+import { SelectionManager } from "../util/SelectionManager";
+import { undoBatch } from "../util/UndoManager";
+import { AntimodeMenu, AntimodeMenuProps } from "./AntimodeMenu";
+import "./FormatShapePane.scss";
 
 @observer
 export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {

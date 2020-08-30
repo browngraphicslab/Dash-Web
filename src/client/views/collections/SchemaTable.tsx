@@ -545,7 +545,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     onOpenClick = () => {
-        this._showDoc && this.props.addDocTab(this._showDoc, "onRight");
+        this._showDoc && this.props.addDocTab(this._showDoc, "add:right");
     }
 
     getPreviewTransform = (): Transform => {

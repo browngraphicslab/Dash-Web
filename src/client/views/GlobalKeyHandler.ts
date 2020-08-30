@@ -11,19 +11,19 @@ import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DictationManager } from "../util/DictationManager";
 import { DragManager } from "../util/DragManager";
+import { GroupManager } from "../util/GroupManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { SharingManager } from "../util/SharingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
-import { DocumentDecorations } from "./DocumentDecorations";
-import { MainView } from "./MainView";
-import { DocumentView } from "./nodes/DocumentView";
-import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { PDFMenu } from "./pdf/PDFMenu";
-import { ContextMenu } from "./ContextMenu";
-import { GroupManager } from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
-import { FormatShapePane } from "./collections/collectionFreeForm/FormatShapePane";
+import { ContextMenu } from "./ContextMenu";
+import { DocumentDecorations } from "./DocumentDecorations";
+import { FormatShapePane } from "./FormatShapePane";
+import { MainView } from "./MainView";
+import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
+import { DocumentView } from "./nodes/DocumentView";
+import { PDFMenu } from "./pdf/PDFMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -99,7 +99,7 @@ export class KeyManager {
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
-                    if (CollectionDockingView.Instance.HasFullScreen()) {
+                    if (CollectionDockingView.Instance.HasFullScreen) {
                         CollectionDockingView.Instance.CloseFullScreen();
                     } else {
                         doDeselect = !ContextMenu.Instance.closeMenu();
@@ -210,7 +210,7 @@ export class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddSplit(MainView.Instance.mainFreeform, "right");
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -218,7 +218,7 @@ export class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.CloseSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
                 if (document.activeElement) {
@@ -253,7 +253,7 @@ export class KeyManager {
                 break;
             case "o":
                 const target = SelectionManager.SelectedDocuments()[0];
-                target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
+                target && CollectionDockingView.OpenFullScreen(target.props.Document);
                 break;
             case "r":
                 preventDefault = false;

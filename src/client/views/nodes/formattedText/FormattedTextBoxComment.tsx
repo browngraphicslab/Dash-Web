@@ -103,7 +103,7 @@ export class FormattedTextBoxComment {
                             this.deleteLink();
                         } else if (FormattedTextBoxComment._followRef && FormattedTextBoxComment._followRef.contains(e.target as any)) {
                             if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc)), textBox.dataDoc) ?
                                     Cast(FormattedTextBoxComment.linkDoc.anchor2, Doc) : (Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc))
@@ -112,28 +112,28 @@ export class FormattedTextBoxComment {
 
                                 if (FormattedTextBoxComment.linkDoc.follow) {
                                     if (FormattedTextBoxComment.linkDoc.follow === "Default") {
-                                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "onRight"), false);
+                                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
                                     } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in right tab") {
-                                        if (target) { textBox.props.addDocTab(target, "onRight"); }
+                                        if (target) { textBox.props.addDocTab(target, "add:right"); }
                                     } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in new tab") {
-                                        if (target) { textBox.props.addDocTab(target, "inTab"); }
+                                        if (target) { textBox.props.addDocTab(target, "add"); }
                                     }
                                 } else {
-                                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "onRight"), false);
+                                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
                                 }
                             }
                         } else {
                             if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
-                                    (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                                    (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
                             }
                         }
 
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "add:right");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);

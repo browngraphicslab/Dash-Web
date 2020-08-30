@@ -76,7 +76,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false, title: "bing", UseCors: true }), "onRight"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false, title: "bing", UseCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -355,7 +355,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, _isBackground?: boolean) => {
         const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
             Doc.GetProto(doc).title = "nested freeform";
@@ -363,8 +363,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
         newCollection.system = undefined;
-        newCollection.isBackground = isBackground;
-        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined;
+        newCollection._isBackground = _isBackground;
+        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : _isBackground ? "cyan" : undefined;
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection.x = this.Bounds.left;
@@ -400,7 +400,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                CollectionDockingView.AddRightSplit(curPres);
+                CollectionDockingView.AddSplit(curPres, "right");
             }
             if (e instanceof KeyboardEvent ? e.key === "c" : true) {
                 const x = this.Bounds.left + this.Bounds.width / 2;
@@ -682,7 +682,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground && !doc.z).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc._isBackground && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);

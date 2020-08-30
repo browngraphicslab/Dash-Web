@@ -492,7 +492,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     }
     render() {
-        const myDashboards = DocListCast(Cast(Doc.UserDoc().myDashboards, Doc, null).data);
+        const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>
@@ -507,7 +507,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     </div>
                     <div className="searchBox-lozenge-dashboard"  >
                         <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
-                            value={myDashboards.indexOf(Cast(Doc.UserDoc().activeDashboard, Doc, null)!)}>
+                            value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
                             {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
                         </select>
                         <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>

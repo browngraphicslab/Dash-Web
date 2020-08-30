@@ -305,7 +305,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             this.setupViewTypes("UI Controls...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
-                this.props.addDocTab(newRendition, "onRight");
+                this.props.addDocTab(newRendition, "add:right");
                 return newRendition;
             }, false);
 
@@ -313,10 +313,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             const optionItems = options && "subitems" in options ? options.subitems : [];
             !Doc.UserDoc().noviceMode ? optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" }) : null;
             if (this.props.Document.childLayout instanceof Doc) {
-                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "add:right"), icon: "project-diagram" });
             }
             if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
-                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "add:right"), icon: "project-diagram" });
             }
             !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
@@ -331,7 +331,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
                     const alias = Doc.MakeAlias(this.props.Document);
                     DocUtils.makeCustomViewClicked(alias, undefined, func.key);
-                    this.props.addDocTab(alias, "onRight");
+                    this.props.addDocTab(alias, "add:right");
                 }
             }));
             DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
@@ -582,10 +582,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            `${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document._isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+            `${CurrentUserUtils.ActiveDashboard?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
-            style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
+            style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
             <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}

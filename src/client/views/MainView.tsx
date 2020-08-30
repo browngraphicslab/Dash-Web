@@ -10,17 +10,15 @@ import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
 import * as rp from 'request-promise';
 import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
-import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { listSpec } from '../../fields/Schema';
-import { ScriptField } from '../../fields/ScriptField';
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, PromiseValue } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
-import { Docs, DocumentOptions } from '../documents/Documents';
+import { Docs } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { Networking } from '../Network';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -38,19 +36,19 @@ import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { FormatShapePane } from "./collections/collectionFreeForm/FormatShapePane";
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionMenu } from './collections/CollectionMenu';
-import { CollectionView, CollectionViewType } from './collections/CollectionView';
+import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
+import { FormatShapePane } from "./FormatShapePane";
 import { GestureOverlay } from './GestureOverlay';
-import { ANTIMODEMENU_HEIGHT, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
+import { SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
+import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
@@ -63,8 +61,8 @@ import { WebBox } from './nodes/WebBox';
 import { OverlayView } from './OverlayView';
 import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import "./MainView.scss";
 
 @observer
 export class MainView extends React.Component {
@@ -77,10 +75,10 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = false;
     @observable public flyoutWidth: number = 0;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeDashboard, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeDashboard, Doc)) : CurrentUserUtils.GuestDashboard; }
+    @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc.mySearchPanelDoc, Doc) as Doc; }
 
@@ -228,8 +226,7 @@ export class MainView extends React.Component {
         // Load the user's active dashboard, or create a new one if initial session after signup
         const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
-            reaction(
-                () => CurrentUserUtils.GuestTarget,
+            reaction(() => CurrentUserUtils.GuestTarget,
                 target => target && CurrentUserUtils.createNewDashboard(Doc.UserDoc()),
                 { fireImmediately: true }
             );
@@ -238,17 +235,16 @@ export class MainView extends React.Component {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
                     initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
                         if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
-                            CollectionDockingView.AddRightSplit(docField);
+                            CollectionDockingView.AddSplit(docField, "right");
                         }
                     }),
                 );
             }
-            const doc = this.userDoc && await Cast(this.userDoc.activeDashboard, Doc);
-            if (doc) {
-                CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
-            } else {
-                CurrentUserUtils.createNewDashboard(Doc.UserDoc());
-            }
+            const activeDash = PromiseValue(this.userDoc.activeDashboard);
+            activeDash.then(dash => {
+                if (dash instanceof Doc) CurrentUserUtils.openDashboard(this.userDoc, dash);
+                else CurrentUserUtils.createNewDashboard(this.userDoc);
+            });
         }
     }
 
@@ -262,7 +258,7 @@ export class MainView extends React.Component {
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
             { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
-        CollectionDockingView.AddRightSplit(pres);
+        CollectionDockingView.AddSplit(pres, "right");
         Doc.UserDoc().activePresentation = pres;
         const myPresentations = Doc.UserDoc().myPresentations as Doc;
         Doc.AddDocToList(myPresentations, "data", pres);
@@ -384,9 +380,9 @@ export class MainView extends React.Component {
     @computed get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
-        return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
+        return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) :
-                CollectionDockingView.AddRightSplit(doc, libraryPath);
+                CollectionDockingView.AddSplit(doc, "right");
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
@@ -521,7 +517,7 @@ export class MainView extends React.Component {
         }}>
             <PropertiesView
                 width={this.propertiesWidth()}
-                height={this._panelHeight}
+                height={this.getContentsHeight()}
                 renderDepth={1}
                 ScreenToLocalTransform={Transform.Identity}
                 onDown={this.closeProperties}
@@ -567,8 +563,7 @@ export class MainView extends React.Component {
                             <FontAwesomeIcon icon={this.propertiesIcon} color="black" size="sm" /> </div>
                     </div>
                 }
-                {this.propertiesWidth() < 10 ? (null) :
-                    <div style={{ width: this.propertiesWidth(), height: "calc(100% - 35px)" }}> {this.propertiesView} </div>}
+                {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
             </div>
         </>;
     }

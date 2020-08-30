@@ -604,7 +604,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
-                        if (link) link.followLinkLocation = "onRight";
+                        if (link) link.followLinkLocation = "add:right";
                     }
                 }
             });

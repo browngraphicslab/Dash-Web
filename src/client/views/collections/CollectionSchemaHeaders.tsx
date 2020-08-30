@@ -260,6 +260,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters?.includes(this._key)) {
+            runInAction(() => this.closeResultsVisibility = "contents");
+        }
     }
 
     @action
@@ -268,14 +272,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         } else {
             this._isOpen = false;
             this.props.setIsEditing(false);
-        }
-    }
-
-    componentWillMount() {
-        document.removeEventListener("pointerdown", this.detectClick);
-        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
-        if (filters?.includes(this._key)) {
-            runInAction(() => this.closeResultsVisibility = "contents");
         }
     }
 

@@ -167,7 +167,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 });
             }
         } else {
-            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "add:right"), false);
         }
 
         linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId), this.props.destinationDoc);

@@ -376,12 +376,32 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         Default
                         </div>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("onRight")}>
-                        Always open in a new pane
+                        onPointerDown={() => this.changeFollowBehavior("add:left")}>
+                        Always open in new left pane
                         </div>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("inTab")}>
+                        onPointerDown={() => this.changeFollowBehavior("add:right")}>
+                        Always open in new right pane
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("replace:right")}>
+                        Always replace right tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("replace:left")}>
+                        Always replace left tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("fullScreen")}>
+                        Always open full screen
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("add")}>
                         Always open in a new tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("replace")}>
+                        Replace Tab
                         </div>
                     {this.props.linkDoc.linksToAnnotation ?
                         <div className="linkEditor-followingDropdown-option"

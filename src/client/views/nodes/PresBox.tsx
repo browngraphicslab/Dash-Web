@@ -1,34 +1,33 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
-import { InkTool } from "../../../fields/InkField";
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { returnFalse, returnOne, numberRange, returnTrue } from "../../../Utils";
+import { ColorState, SketchPicker } from "react-color";
+import { Doc, DocCastAsync, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
-import { CollectionDockingView, DockedFrameRenderer } from "../collections/CollectionDockingView";
-import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { FieldView, FieldViewProps } from './FieldView';
-import { DocumentType } from "../../documents/DocumentTypes";
-import "./PresBox.scss";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface, listSpec } from "../../../fields/Schema";
-import { Docs, DocUtils } from "../../documents/Documents";
-import { PrefetchProxy } from "../../../fields/Proxy";
-import { ScriptField } from "../../../fields/ScriptField";
-import { Scripting } from "../../util/Scripting";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { Tooltip } from "@material-ui/core";
-import { actionAsync } from "mobx-utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { AudioBox } from "./AudioBox";
-import { DocumentView } from "./DocumentView";
-import { SketchPicker, ColorState } from "react-color";
+import { PrefetchProxy } from "../../../fields/Proxy";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { returnFalse, returnOne } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { Scripting } from "../../util/Scripting";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { TabDocView } from "../collections/TabDocView";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { AudioBox } from "./AudioBox";
+import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import "./PresBox.scss";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -238,7 +237,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            this.props.addDocTab(activeItem, "replace");
+            this.props.addDocTab(activeItem, "replace:right");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -262,10 +261,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
-                bestTarget!._viewTransition = "all 1s";
-                bestTarget!._panX = activeItem.presPinViewX;
-                bestTarget!._panY = activeItem.presPinViewY;
-                bestTarget!._viewScale = activeItem.presPinViewScale;
+                bestTarget._viewTransition = "all 1s";
+                bestTarget._panX = activeItem.presPinViewX;
+                bestTarget._panY = activeItem.presPinViewY;
+                bestTarget._viewScale = activeItem.presPinViewScale;
             });
             //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         }
@@ -443,7 +442,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (this.layoutDoc.inOverlay) {
             this.layoutDoc.presStatus = 'edit';
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
-            CollectionDockingView.AddRightSplit(this.rootDoc);
+            CollectionDockingView.AddSplit(this.rootDoc, "right");
             this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
             this.layoutDoc.presStatus = 'manual';
@@ -548,7 +547,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     removeDocument = (doc: Doc) => { Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
-    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
+    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     /**
@@ -674,7 +673,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             handled = true;
         }
-    })
+    });
 
     /**
      * 
@@ -1112,10 +1111,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const presData = Cast(this.rootDoc.data, listSpec(Doc));
             if (data && presData) {
                 data.push(doc);
-                DockedFrameRenderer.PinDoc(doc, false);
+                TabDocView.PinDoc(doc, false);
                 this.gotoDocument(this.childDocs.length, this.itemIndex);
             } else {
-                this.props.addDocTab(doc, "onRight");
+                this.props.addDocTab(doc, "add:right");
             }
         }
     }

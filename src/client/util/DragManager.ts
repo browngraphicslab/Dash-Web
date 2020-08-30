@@ -117,10 +117,11 @@ export namespace DragManager {
     }
 
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dropAction?: dropActionType) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = [];
             this.offset = [0, 0];
+            this.dropAction = dropAction;
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
