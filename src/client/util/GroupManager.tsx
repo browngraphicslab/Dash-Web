@@ -87,6 +87,7 @@ export class GroupManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
             });
+            this.currentUserGroups.push("Public");
             setGroups(this.currentUserGroups);
         });
     }
@@ -116,6 +117,7 @@ export class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
+        this.selectedUsers = null;
         // this.users = [];
         this.createGroupModalOpen = false;
         TaskCompletionBox.taskCompleted = false;
@@ -157,7 +159,7 @@ export class GroupManager extends React.Component<{}> {
      * @returns the members of the admin group.
      */
     get adminGroupMembers(): string[] {
-        return this.getGroup("admin") ? JSON.parse(StrCast(this.getGroup("admin")!.members)) : "";
+        return this.getGroup("Admin") ? JSON.parse(StrCast(this.getGroup("Admin")!.members)) : "";
     }
 
     /**
@@ -177,7 +179,7 @@ export class GroupManager extends React.Component<{}> {
      */
     createGroupDoc(groupName: string, memberEmails: string[] = []) {
         const groupDoc = new Doc;
-        groupDoc.groupName = groupName;
+        groupDoc.groupName = groupName.toLowerCase() === "admin" ? "Admin" : groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
         if (memberEmails.includes(Doc.CurrentUserEmail)) {
@@ -280,7 +282,11 @@ export class GroupManager extends React.Component<{}> {
             alert("Please enter a group name");
             return;
         }
-        if (this.getAllGroups().find(group => group.groupName === this.inputRef.current!.value)) { // why do I need a null check here?
+        if (this.inputRef.current.value.toLowerCase() === "admin" && this.getGroup("Admin")) {
+            alert("You cannot override the Admin group");
+            return;
+        }
+        if (this.getGroup(this.inputRef.current.value)) {
             alert("Please select a unique group name");
             return;
         }
