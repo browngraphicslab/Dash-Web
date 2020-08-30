@@ -326,6 +326,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </div>
         </div>;
     }
+    focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => afterFocus?.();
     setView = action((view: DocumentView) => this._view = view);
     @computed get docView() {
         TraceMobx();
@@ -348,7 +349,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 renderDepth={0}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
-                focus={(doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => afterFocus?.()}
+                focus={this.focusFunc}
                 backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
                 addDocTab={this.addDocTab}
                 pinToPres={TabDocView.PinDoc}
