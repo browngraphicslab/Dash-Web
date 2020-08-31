@@ -80,6 +80,7 @@ export class MainView extends React.Component {
     propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth || 0));
 
     componentDidMount() {
+        new InkStrokeProperties();
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
@@ -107,7 +108,6 @@ export class MainView extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        new InkStrokeProperties();
         MainView.Instance = this;
         CurrentUserUtils._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
 
@@ -299,7 +299,7 @@ export class MainView extends React.Component {
     @computed get flyout() {
         return !this._sidebarContent || !this._flyoutWidth ? (null) :
             <div className={`mainView-libraryFlyout${this._flyoutWidth ? "" : "-out"}`} style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
-                <div className="mainView-contentArea">
+                <div className="mainView-contentArea" >
                     <DocumentView
                         Document={this._sidebarContent}
                         DataDoc={undefined}
@@ -584,7 +584,7 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => document.getElementById("root")!.scrollTop = 0} ref={this._mainViewRef}>
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />

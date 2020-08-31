@@ -176,9 +176,6 @@
 .mainView-menuPanel {
     min-width: var(--menuPanelWidth);
     background-color: #121721;
-    height: calc(100% - $searchpanel-height);
-    //overflow-y: scroll;
-    //overflow-x: hidden;
 
     .collectionStackingView {
         scrollbar-width: none;

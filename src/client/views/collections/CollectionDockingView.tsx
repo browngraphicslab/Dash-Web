@@ -261,7 +261,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                     this._ignoreStateChange = "";
                 });
             setTimeout(() => this.setupGoldenLayout(), 0);
-            window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
+            //window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
     }
 

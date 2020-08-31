@@ -69,7 +69,6 @@ export class MobileInterface extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        new InkStrokeProperties();
         this._library = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
         MobileInterface.Instance = this;
     }
