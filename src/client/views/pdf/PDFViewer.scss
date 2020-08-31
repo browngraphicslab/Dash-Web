@@ -1,5 +1,5 @@
  
-.pdfViewer, .pdfViewer-interactive {
+.pdfViewerDash, .pdfViewerDash-interactive {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -12,14 +12,14 @@
     //     transform-origin: top left;
     // }
     .textLayer {
-        
+        opacity: unset;
         mix-blend-mode: multiply;// bcz: makes text fuzzy!
         span {
             padding-right: 5px;
             padding-bottom: 4px;
         }
     }
-    .textLayer ::selection { background: yellow; } // should match the backgroundColor in createAnnotation()
+    .textLayer ::selection { background: #ACCEF7; } // should match the backgroundColor in createAnnotation()
     .textLayer .highlight {
         background-color: yellow;
     }
@@ -31,26 +31,26 @@
         position: relative;
         border: unset;
     }
-    .pdfViewer-text-selected {
+    .pdfViewerDash-text-selected {
         .textLayer{
            pointer-events: all;
            user-select: text;
         }
     }
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         transform-origin: top left;
         .textLayer {
             will-change: transform;
         }
     }
 
-    .pdfViewer-dragAnnotationBox {
+    .pdfViewerDash-dragAnnotationBox {
         position:absolute;
         background-color: transparent;
         opacity: 0.1;
     }
 
-    .pdfViewer-overlay, .pdfViewer-overlay-inking {
+    .pdfViewerDash-overlay, .pdfViewerDash-overlay-inking {
         transform-origin: left top;
         position: absolute;
         top: 0px;
@@ -58,11 +58,11 @@
         display: inline-block;
         width:100%;
     }
-    .pdfViewer-overlay {
+    .pdfViewerDash-overlay {
         pointer-events: none;
     }
     
-    .pdfViewer-annotationLayer {
+    .pdfViewerDash-annotationLayer {
         position: absolute;
         transform-origin: left top;
         top: 0;
@@ -70,12 +70,12 @@
         pointer-events: none;
         mix-blend-mode: multiply; // bcz: makes text fuzzy!
 
-        .pdfViewer-annotationBox {
+        .pdfViewerDash-annotationBox {
             position: absolute;
             background-color: rgba(245, 230, 95, 0.616);
         }
     }
-    .pdfViewer-waiting {
+    .pdfViewerDash-waiting {
         width: 70%;
         height: 70%;
         margin : 15%;
@@ -86,7 +86,7 @@
     }
 }
 
-.pdfViewer-interactive {
+.pdfViewerDash-interactive {
     pointer-events: all;
 }
    

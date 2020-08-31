@@ -17,6 +17,8 @@ import { LinkEditor } from "../linking/LinkEditor";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
+import { Id } from "../../../fields/FieldSymbols";
+import { LinkDocPreview } from "./LinkDocPreview";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -47,16 +49,15 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             const bounds = cdiv.getBoundingClientRect();
             const pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
             const separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
-            const dragdist = Math.sqrt((pt[0] - down[0]) * (pt[0] - down[0]) + (pt[1] - down[1]) * (pt[1] - down[1]));
             if (separation > 100) {
                 const dragData = new DragManager.DocumentDragData([this.rootDoc]);
                 dragData.dropAction = "alias";
                 dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isLinkButton"];
-                DragManager.StartDocumentDrag([this._ref.current!], dragData, down[0], down[1]);
+                DragManager.StartDocumentDrag([this._ref.current!], dragData, pt[0], pt[1]);
                 return true;
-            } else if (dragdist > separation) {
-                this.layoutDoc[this.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
-                this.layoutDoc[this.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
+            } else {
+                this.rootDoc[this.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
+                this.rootDoc[this.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
             }
         }
         return false;
@@ -72,7 +73,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, e.altKey ? "inTab" : "onRight")), false);
+                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, "add:right")), false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -86,14 +87,14 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     }
 
     openLinkDocOnRight = (e: React.MouseEvent) => {
-        this.props.addDocTab(this.rootDoc, "onRight");
+        this.props.addDocTab(this.rootDoc, "add:right");
     }
     openLinkTargetOnRight = (e: React.MouseEvent) => {
         const alias = Doc.MakeAlias(Cast(this.layoutDoc[this.fieldKey], Doc, null));
         alias.isLinkButton = undefined;
-        alias.isBackground = undefined;
+        alias._isBackground = undefined;
         alias.layoutKey = "layout";
-        this.props.addDocTab(alias, "onRight");
+        this.props.addDocTab(alias, "add:right");
     }
     @action
     openLinkEditor = action((e: React.MouseEvent) => {
@@ -113,11 +114,12 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
 
     render() {
         TraceMobx();
-        const x = this.props.PanelWidth() > 1 ? NumCast(this.layoutDoc[this.fieldKey + "_x"], 100) : 0;
-        const y = this.props.PanelWidth() > 1 ? NumCast(this.layoutDoc[this.fieldKey + "_y"], 100) : 0;
-        const c = StrCast(this.layoutDoc.backgroundColor, "lightblue");
+        const small = this.props.PanelWidth() <= 1; // this happens when rendered in a treeView
+        const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
+        const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
+        const c = StrCast(this.layoutDoc._backgroundColor, StrCast(this.layoutDoc.backgroundColor, StrCast(this.dataDoc.backgroundColor, "lightBlue"))); // note this is not where the typical lightBlue default color comes from.  See Documents.Create.LinkDocument()
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
-        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
+        const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
         const timecode = this.dataDoc[anchor + "_timecode"];
         const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title) + (timecode !== undefined ? ":" + timecode : "");
@@ -129,17 +131,24 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 </div>}
             </div>
         );
-        const small = this.props.PanelWidth() <= 1;
-        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
+            onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+            onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
+                addDocTab: this.props.addDocTab,
+                linkSrc: this.props.ContainingCollectionDoc!,
+                linkDoc: this.rootDoc,
+                Location: [e.clientX, e.clientY + 20]
+            })}
+            onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
-                left: !small ? `calc(${x}% - 7.5px)` : undefined,
-                top: !small ? `calc(${y}% - 7.5px)` : undefined,
+                left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
+                top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} open={this._forceOpen ? true : undefined} onOpen={() => this._isOpen = true} onClose={action(() => this._isOpen = this._forceOpen = this._editing = false)}>
-                    <span className="parentDocumentSelector-button" >
+                    <span className="linkAnchorBox-button" >
                         <FontAwesomeIcon icon={"eye"} size={"lg"} />
                     </span>
                 </Flyout>}

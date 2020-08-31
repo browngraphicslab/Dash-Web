@@ -13,6 +13,7 @@ import { Transform } from "../../../util/Transform";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 
 export class DashDocView {
@@ -43,7 +44,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
-        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
@@ -54,6 +55,8 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
+        this._dashSpan.style.left = "0";
+        this._dashSpan.style.top = "0";
         this._dashSpan.style.whiteSpace = "normal";
 
         this._dashSpan.onpointerleave = () => {
@@ -124,7 +127,7 @@ export class DashDocView {
             this._reactionDisposer = reaction(() => ({ dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()], color: finalLayout.color }), ({ dim, color }) => {
                 this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
-                this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+                this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
 
             const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
@@ -152,6 +155,8 @@ export class DashDocView {
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
                     dontRegisterView={false}
+                    docFilters={this._textBox.props.docFilters}
+                    searchFilterDocs={this._textBox.props.searchFilterDocs}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                     ContentScaling={this.contentScaling}
@@ -159,9 +164,15 @@ export class DashDocView {
 
                 if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
                     try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+                        if (getPos() !== undefined) {
+                            const node = view.state.tr.doc.nodeAt(getPos());
+                            if (node.attrs.width !== dashDoc._width + "px" ||
+                                node.attrs.height !== dashDoc._height + "px") {
+                                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+                            }
+                        }
                     } catch (e) {
-                        console.log(e);
+                        console.log("RichTextSchema: " + e);
                     }
                 }
             };

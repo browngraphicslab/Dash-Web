@@ -16,19 +16,9 @@ $linkGap : 3px;
     grid-template-columns: 8px 16px 1fr 8px 8px;
     pointer-events: none;
 
-    #documentDecorations-centerCont {
+    .documentDecorations-centerCont {
         grid-column: 3;
         background: none;
-    }
-
-
-    .documentDecorations-resizer {
-        pointer-events: auto;
-        background: $alt-accent;
-        opacity: 0.1;
-    }
-    .documentDecorations-resizer:hover {
-        opacity: 1;
     }
 
     .documentDecorations-selector {
@@ -49,30 +39,53 @@ $linkGap : 3px;
         grid-row: 4;
     }
 
-    #documentDecorations-topLeftResizer,
-    #documentDecorations-leftResizer,
-    #documentDecorations-bottomLeftResizer {
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-topRightResizer,
+    .documentDecorations-bottomLeftResizer,
+    .documentDecorations-bottomRightResizer,
+    .documentDecorations-leftResizer,
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer,
+    .documentDecorations-rightResizer {
+        pointer-events: auto;
+        background: $alt-accent;
+        opacity: 0.1;
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-leftResizer,
+    .documentDecorations-bottomLeftResizer {
         grid-column: 1
     }
 
-    #documentDecorations-topResizer,
-    #documentDecorations-bottomResizer {
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer {
         grid-column-start: 2;
         grid-column-end: 5;
     }
 
-    #documentDecorations-bottomRightResizer,
-    #documentDecorations-topRightResizer,
-    #documentDecorations-rightResizer {
+    .documentDecorations-bottomRightResizer,
+    .documentDecorations-topRightResizer,
+    .documentDecorations-rightResizer {
         grid-column-start: 5;
         grid-column-end: 7;
     }
 
-    #documentDecorations-borderRadius {
-        grid-column-start: 5;
-        grid-column-end: 7;
+    .documentDecorations-rotation,
+    .documentDecorations-borderRadius {
+        grid-column: 5;
+        grid-row: 4;
         border-radius: 100%;
         background: dimgray;
+        height: 8;
+        right: -12;
+        top: 12;
+        position: relative;
+        pointer-events: all;
+        cursor: grab;
 
         .borderRadiusTooltip {
             width: 10px;
@@ -80,58 +93,69 @@ $linkGap : 3px;
             position: absolute;
         }
     }
+    .documentDecorations-rotation {
+        background: transparent;
+        right: -15;
+    }
 
-    #documentDecorations-topLeftResizer,
-    #documentDecorations-bottomRightResizer {
+
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
         background: unset;
         opacity: 1;
     }
-    #documentDecorations-topLeftResizer {
-        border-left:  2px solid;
-        border-top:  solid 2px;
+
+    .documentDecorations-topLeftResizer {
+        border-left: 2px solid;
+        border-top: solid 2px;
     }
-    #documentDecorations-bottomRightResizer {
-        border-right:  2px solid;
-        border-bottom:  solid 2px;
+
+    .documentDecorations-bottomRightResizer {
+        border-right: 2px solid;
+        border-bottom: solid 2px;
     }
-    #documentDecorations-topLeftResizer:hover,
-    #documentDecorations-bottomRightResizer:hover {
+
+    .documentDecorations-topLeftResizer:hover,
+    .documentDecorations-bottomRightResizer:hover {
         opacity: 1;
     }
 
-    #documentDecorations-bottomRightResizer {
+    .documentDecorations-bottomRightResizer {
         grid-row: 4;
     }
 
-    #documentDecorations-topRightResizer,
-    #documentDecorations-bottomLeftResizer {
+    .documentDecorations-topRightResizer,
+    .documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
         background: unset;
         opacity: 1;
     }
-    #documentDecorations-topRightResizer {
-        border-right:  2px solid;
-        border-top:  2px solid;
+
+    .documentDecorations-topRightResizer {
+        border-right: 2px solid;
+        border-top: 2px solid;
     }
-    #documentDecorations-bottomLeftResizer {
-        border-left:  2px solid;
-        border-bottom:  2px solid;
+
+    .documentDecorations-bottomLeftResizer {
+        border-left: 2px solid;
+        border-bottom: 2px solid;
     }
-    #documentDecorations-topRightResizer:hover,
-    #documentDecorations-bottomLeftResizer:hover {
+
+    .documentDecorations-topRightResizer:hover,
+    .documentDecorations-bottomLeftResizer:hover {
         cursor: nesw-resize;
         background: dimGray;
         opacity: 1;
     }
 
-    #documentDecorations-topResizer,
-    #documentDecorations-bottomResizer {
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer {
         cursor: ns-resize;
     }
 
-    #documentDecorations-leftResizer,
-    #documentDecorations-rightResizer {
+    .documentDecorations-leftResizer,
+    .documentDecorations-rightResizer {
         cursor: ew-resize;
     }
 
@@ -139,10 +163,12 @@ $linkGap : 3px;
         width: 25px;
         height: calc(100% + 8px); // 8px for the height of the top resizer bar
         grid-column-start: 2;
-        grid-column-end : 2;
+        grid-column-end: 2;
         pointer-events: all;
         padding-left: 5px;
+        cursor: pointer;
     }
+
     .documentDecorations-title {
         opacity: 1;
         grid-column-start: 3;
@@ -150,14 +176,16 @@ $linkGap : 3px;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
-        display: flex;    
+        display: flex;
         border-bottom: solid 1px;
-        margin-left:10px;
+        margin-left: 10px;
         width: calc(100% - 10px);
     }
+
     .focus-visible {
-        margin-left:0px;
+        margin-left: 0px;
     }
+
     .publishBox {
         width: 20px;
         height: 22px;
@@ -172,16 +200,30 @@ $linkGap : 3px;
 }
 
 
-.documentDecorations-closeButton {
+.documentDecorations-iconifyButton {
     opacity: 1;
     grid-column-start: 4;
-    grid-column-end: 6;
+    grid-column-end: 4;
+    pointer-events: all;
+    text-align: center;
+    right: 0;
+    top: 0;
+    cursor: pointer;
+    position: absolute;
+    background: transparent;
+    width: 20px;
+}
+
+.documentDecorations-openInTab {
+    opacity: 1;
+    grid-column-start: 5;
+    grid-column-end: 5;
     pointer-events: all;
     text-align: center;
     cursor: pointer;
 }
 
-.documentDecorations-minimizeButton {
+.documentDecorations-closeButton {
     opacity: 1;
     grid-column-start: 1;
     grid-column-end: 3;
@@ -194,8 +236,9 @@ $linkGap : 3px;
     width: 8px;
     height: $MINIMIZED_ICON_SIZE;
     max-height: 20px;
-    > svg {
-        margin:0;
+
+    >svg {
+        margin: 0;
     }
 }
 
@@ -222,13 +265,15 @@ $linkGap : 3px;
 }
 
 .link-button-container {
-    margin-top: $linkGap;
+    padding: $linkGap;
+    border-radius: 10px;
     width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
     z-index: 998;
     position: absolute;
+    background: $alt-accent;
 }
 
 .linkButtonWrapper {
@@ -332,7 +377,8 @@ $linkGap : 3px;
     padding: 2px 12px;
     list-style: none;
 
-    .templateToggle, .chromeToggle {
+    .templateToggle,
+    .chromeToggle {
         text-align: left;
     }
 

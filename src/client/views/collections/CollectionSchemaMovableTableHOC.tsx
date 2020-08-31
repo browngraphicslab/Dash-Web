@@ -1,21 +1,17 @@
 import React = require("react");
-import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
-import "./CollectionSchemaView.scss";
-import { Transform } from "../../util/Transform";
-import { Doc } from "../../../fields/Doc";
-import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
-import { Cast, FieldValue, StrCast } from "../../../fields/Types";
-import { ContextMenu } from "../ContextMenu";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action } from "mobx";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DocumentManager } from "../../util/DocumentManager";
+import { ReactTableDefaults, RowInfo, TableCellRenderer } from "react-table";
+import { Doc } from "../../../fields/Doc";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { undoBatch } from "../../util/UndoManager";
+import { Cast, FieldValue, StrCast } from "../../../fields/Types";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
-
-library.add(faGripVertical, faTrash);
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { ContextMenu } from "../ContextMenu";
+import "./CollectionSchemaView.scss";
 
 export interface MovableColumnProps {
     columnRenderer: TableCellRenderer;
@@ -40,7 +36,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     onPointerLeave = (e: React.PointerEvent): void => {
         this._header!.current!.className = "collectionSchema-col-wrapper";
         document.removeEventListener("pointermove", this.onDragMove, true);
-        document.removeEventListener("pointermove", this.onPointerMove);
+        !e.buttons && document.removeEventListener("pointermove", this.onPointerMove);
     }
     onDragMove = (e: PointerEvent): void => {
         const x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
@@ -68,6 +64,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         const before = x[0] < bounds[0];
         const colDragData = de.complete.columnDragData;
         if (colDragData) {
+            e.stopPropagation();
             this.props.reorderColumns(colDragData.colKey, this.props.columnValue, before, this.props.allColumns);
             return true;
         }
@@ -108,8 +105,10 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     onPointerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         this._dragRef = ref;
         const [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX, e.clientY);
-        this._startDragPosition = { x: dx, y: dy };
-        document.addEventListener("pointermove", this.onPointerMove);
+        if (!(e.target as any)?.tagName.includes("INPUT")) {
+            this._startDragPosition = { x: dx, y: dy };
+            document.addEventListener("pointermove", this.onPointerMove);
+        }
     }
 
 
@@ -137,6 +136,7 @@ export interface MovableRowProps {
     textWrapRow: (doc: Doc) => void;
     rowWrapped: boolean;
     dropAction: string;
+    addDocTab: any;
 }
 
 export class MovableRow extends React.Component<MovableRowProps> {
@@ -162,6 +162,10 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (before) this._header!.current!.className += " row-above";
         if (!before) this._header!.current!.className += " row-below";
         e.stopPropagation();
+    }
+    componentWillUnmount() {
+
+        this._rowDropDisposer?.();
     }
 
     createRowDropTarget = (ele: HTMLDivElement) => {
@@ -208,15 +212,25 @@ export class MovableRow extends React.Component<MovableRowProps> {
         return doc !== targetCollection && doc !== targetView?.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
     }
 
+    @action
+    onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        console.log("yes");
+        if (e.key === "Backspace" || e.key === "Delete") {
+            undoBatch(() => this.props.removeDoc(this.props.rowInfo.original));
+        }
+    }
+
     render() {
         const { children = null, rowInfo } = this.props;
+
         if (!rowInfo) {
             return <ReactTableDefaults.TrComponent>{children}</ReactTableDefaults.TrComponent>;
         }
 
         const { original } = rowInfo;
         const doc = FieldValue(Cast(original, Doc));
-        if (!doc) return <></>;
+
+        if (!doc) return (null);
 
         const reference = React.createRef<HTMLDivElement>();
         const onItemDown = SetupDrag(reference, () => doc, this.move, StrCast(this.props.dropAction) as dropActionType);
@@ -226,12 +240,13 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (this.props.rowWrapped) className += " row-wrapped";
 
         return (
-            <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
-                <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    <ReactTableDefaults.TrComponent>
+            <div className={className} onKeyPress={this.onKeyDown} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
+                <div className="collectionSchema-row-wrapper" onKeyPress={this.onKeyDown} ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                    <ReactTableDefaults.TrComponent onKeyPress={this.onKeyDown} >
                         <div className="row-dragger">
-                            <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
-                            <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
+                            <div className="row-option" style={{ left: 5 }} onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
+                            <div className="row-option" style={{ cursor: "grab", left: 25 }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
+                            <div className="row-option" style={{ left: 40 }} onClick={() => this.props.addDocTab(this.props.rowInfo.original, "add:right")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
                         </div>
                         {children}
                     </ReactTableDefaults.TrComponent>

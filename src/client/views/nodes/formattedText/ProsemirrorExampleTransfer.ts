@@ -1,37 +1,39 @@
-import { chainCommands, exitCode, joinDown, joinUp, lift, selectParentNode, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn } from "prosemirror-commands";
+import { chainCommands, exitCode, joinDown, joinUp, lift, deleteSelection, joinBackward, selectNodeBackward, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn, newlineInCode } from "prosemirror-commands";
+import { liftTarget } from "prosemirror-transform";
 import { redo, undo } from "prosemirror-history";
-import { undoInputRule } from "prosemirror-inputrules";
 import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
-import { Doc } from "../../../../fields/Doc";
+import { Doc, DataSym } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Docs } from "../../../documents/Documents";
+import { Utils } from "../../../../Utils";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
 export type KeyMap = { [key: string]: any };
 
-export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string) => {
-    let fontSize: number | undefined = undefined;
+export let updateBullets = (tx2: Transaction, schema: Schema, assignedMapStyle?: string, from?: number, to?: number) => {
+    let mapStyle = assignedMapStyle;
     tx2.doc.descendants((node: any, offset: any, index: any) => {
-        if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
+        if ((from === undefined || to === undefined || (from <= offset + node.nodeSize && to >= offset)) && (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item)) {
             const path = (tx2.doc.resolve(offset) as any).path;
             let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
-            if (node.type === schema.nodes.ordered_list) depth++;
-            fontSize = depth === 1 && node.attrs.setFontSize ? Number(node.attrs.setFontSize) : fontSize;
-            const fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
-            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle ? mapStyle : node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
+            if (node.type === schema.nodes.ordered_list) {
+                if (depth === 0 && !assignedMapStyle) mapStyle = node.attrs.mapStyle;
+                depth++;
+            }
+            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle, bulletStyle: depth, }, node.marks);
         }
     });
     return tx2;
 };
 
-export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
+export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
@@ -45,7 +47,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
 
     //History commands
     bind("Mod-z", undo);
-    bind("Backspace", undoInputRule);
     bind("Shift-Mod-z", redo);
     !mac && bind("Mod-y", redo);
 
@@ -62,7 +63,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     bind("Mod-U", toggleMark(schema.marks.underline));
 
     //Commands for lists
-    bind("Ctrl-.", wrapInList(schema.nodes.bullet_list));
     bind("Ctrl-i", wrapInList(schema.nodes.ordered_list));
 
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
@@ -103,8 +103,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
 
     //Command to create a new Tab with a PDF of all the command shortcuts
     bind("Mod-/", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        const newDoc = Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 });
-        props.addDocTab(newDoc, "onRight");
+        const newDoc = Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _fitWidth: true, _width: 300, _height: 300 });
+        props.addDocTab(newDoc, "add:right");
     });
 
     //Commands to modify BlockType
@@ -142,7 +142,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         if (force || props.Document._singleLine) {
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
-            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
+            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
@@ -166,7 +167,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         if (originalDoc instanceof Doc) {
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
-            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
+            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
@@ -176,18 +178,57 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         }
     });
 
+    // backspace = chainCommands(deleteSelection, joinBackward, selectNodeBackward);
+    bind("Backspace", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        if (!deleteSelection(state, (tx: Transaction<Schema<any, any>>) => {
+            dispatch(updateBullets(tx, schema));
+        })) {
+            if (!joinBackward(state, (tx: Transaction<Schema<any, any>>) => {
+                dispatch(updateBullets(tx, schema));
+            })) {
+                if (!selectNodeBackward(state, (tx: Transaction<Schema<any, any>>) => {
+                    dispatch(updateBullets(tx, schema));
+                })) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    });
+
+    //newlineInCode, createParagraphNear, liftEmptyBlock, splitBlock
     //command to break line
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
         if (addTextOnRight(false)) return true;
+        const trange = state.selection.$from.blockRange(state.selection.$to);
+        const path = (state.selection.$from as any).path;
+        const depth = trange ? liftTarget(trange) : undefined;
+        const split = path.length > 5 && !path[path.length - 3].textContent && path[path.length - 6].type !== schema.nodes.list_item;
+        if (split && trange && depth !== undefined && depth !== null) {
+            dispatch(state.tr.lift(trange, depth));
+            return true;
+        }
+
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
-            if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
-                splitMetadata(marks, tx3);
-                if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
-                    dispatch(tx3);
-                }
+        const cr = state.selection.$from.node().textContent.endsWith("\n");
+        if (cr || !newlineInCode(state, dispatch)) {
+            if (!splitListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
+                const tx3 = updateBullets(tx2, schema);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
+                dispatch(tx3);
             })) {
-                return false;
+                const fromattrs = state.selection.$from.node().attrs;
+                if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
+                    const tonode = tx3.selection.$to.node();
+                    const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
+                    splitMetadata(marks, tx4);
+                    if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
+                        dispatch(tx4);
+                    }
+                })) {
+                    return false;
+                }
             }
         }
         return true;
@@ -245,19 +286,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
 
         return false;
     });
-
-    // bind("^", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-    //     let newNode = schema.nodes.footnote.create({});
-    //     if (dispatch && state.selection.from === state.selection.to) {
-    //         let tr = state.tr;
-    //         tr.replaceSelectionWith(newNode); // replace insertion with a footnote.
-    //         dispatch(tr.setSelection(new NodeSelection( // select the footnote node to open its display
-    //             tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
-    //                 tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize))));
-    //         return true;
-    //     }
-    //     return false;
-    // });
 
     return keys;
 }

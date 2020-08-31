@@ -3,38 +3,189 @@
 .linkEditor {
     width: 100%;
     height: auto;
-    font-size: 12px; // TODO
+    font-size: 13px; // TODO
     user-select: none;
 }
 
-.linkEditor-back {
-    margin-bottom: 6px;
-}
+.linkEditor-button-back {
+    //margin-bottom: 6px;
+    border-radius: 10px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
 
-.linkEditor-info {
-    border-bottom: 0.5px solid $light-color-secondary; 
-    padding-bottom: 6px;
-    margin-bottom: 6px;
-    display: flex;
-    justify-content: space-between;
-
-    .linkEditor-linkedTo {
-        width: calc(100% - 26px);
+    &:hover {
+        cursor: pointer;
     }
 }
 
-.linkEditor-button, .linkEditor-addbutton {
+.linkEditor-info {
+    //border-bottom: 0.5px solid $light-color-secondary;
+    //padding-bottom: 1px;
+    padding-top: 5px;
+    padding-left: 5px;
+    //margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    color: black;
+
+    .linkEditor-linkedTo {
+        width: calc(100% - 26px);
+        padding-left: 5px;
+        padding-right: 5px;
+
+        .linkEditor-downArrow {
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.linkEditor-moreInfo {
+    margin-left: 12px;
+    padding-left: 13px;
+    padding-right: 6.5px;
+    padding-bottom: 4px;
+    font-size: 9px;
+    //font-style: italic;
+    text-decoration-color: grey;
+
+    .button {
+        color: black;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+}
+
+.linkEditor-description {
+    padding-left: 6.5px;
+    padding-right: 6.5px;
+    padding-bottom: 3.5px;
+
+    .linkEditor-description-label {
+        text-decoration-color: black;
+        color: black;
+    }
+
+    .linkEditor-description-input {
+        display: flex;
+
+        .linkEditor-description-editing {
+            min-width: 85%;
+            //border: 1px solid grey;
+            //border-radius: 4px;
+            padding-left: 2px;
+            padding-right: 2px;
+            //margin-right: 4px;
+            color: black;
+            text-decoration-color: grey;
+        }
+
+        .linkEditor-description-add-button {
+            display: inline;
+            /* float: right; */
+            border-radius: 7px;
+            font-size: 9px;
+            background: black;
+            /* padding: 3px; */
+            padding-top: 4px;
+            padding-left: 7px;
+            padding-bottom: 4px;
+            padding-right: 8px;
+            height: 80%;
+            color: white;
+
+            &:hover {
+                cursor: pointer;
+                background: grey;
+            }
+        }
+    }
+}
+
+.linkEditor-followingDropdown {
+    padding-left: 6.5px;
+    padding-right: 6.5px;
+    padding-bottom: 6px;
+
+    &:hover {
+        cursor: pointer;
+    }
+
+    .linkEditor-followingDropdown-label {
+        color: black;
+    }
+
+    .linkEditor-followingDropdown-dropdown {
+
+        .linkEditor-followingDropdown-header {
+
+            border: 1px solid grey;
+            border-radius: 4px;
+            //background-color: rgb(236, 236, 236);
+            padding-left: 2px;
+            padding-right: 2px;
+            text-decoration-color: black;
+            color: rgb(94, 94, 94);
+
+            .linkEditor-followingDropdown-icon {
+                float: right;
+                color: black;
+            }
+        }
+
+        .linkEditor-followingDropdown-optionsList {
+            padding-left: 3px;
+            padding-right: 3px;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .linkEditor-followingDropdown-option {
+                border: 0.25px solid grey;
+                //background-color: rgb(236, 236, 236);
+                padding-left: 2px;
+                padding-right: 2px;
+                color: grey;
+                text-decoration-color: grey;
+                font-size: 9px;
+                border-top: none;
+
+                &:hover {
+                    background-color: rgb(187, 220, 231);
+                }
+            }
+
+        }
+    }
+
+
+}
+
+
+
+
+
+
+.linkEditor-button,
+.linkEditor-addbutton {
     width: 18px;
     height: 18px;
     padding: 0;
     // font-size: 12px;
     border-radius: 10px;
 
+
     &:disabled {
         background-color: gray;
     }
 }
-.linkEditor-addbutton{
+
+.linkEditor-addbutton {
     margin-left: 0px;
 }
 
@@ -44,7 +195,7 @@
 }
 
 .linkEditor-group {
-    background-color: $light-color-secondary; 
+    background-color: $light-color-secondary;
     padding: 6px;
     margin: 3px 0;
     border-radius: 3px;
@@ -56,7 +207,7 @@
 
     .linkEditor-group-row-label {
         margin-right: 6px;
-        display:inline-block;
+        display: inline-block;
     }
 
     .linkEditor-metadata-row {

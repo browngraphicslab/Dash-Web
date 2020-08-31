@@ -1,22 +1,43 @@
 import React = require("react");
-import "./PDFMenu.scss";
-import { observable, action, } from "mobx";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction, returnFalse } from "../../../Utils";
-import AntimodeMenu from "../AntimodeMenu";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
+import { ColorState } from "react-color";
 import { Doc, Opt } from "../../../fields/Doc";
+import { returnFalse, unimplementedFunction, Utils } from "../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
+import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
+import "./PDFMenu.scss";
+
 
 @observer
-export default class PDFMenu extends AntimodeMenu {
+export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
+    private _palette = [
+        "rgba(208, 2, 27, 0.8)",
+        "rgba(238, 0, 0, 0.8)",
+        "rgba(245, 166, 35, 0.8)",
+        "rgba(248, 231, 28, 0.8)",
+        "rgba(245, 230, 95, 0.616)",
+        "rgba(139, 87, 42, 0.8)",
+        "rgba(126, 211, 33, 0.8)",
+        "rgba(65, 117, 5, 0.8)",
+        "rgba(144, 19, 254, 0.8)",
+        "rgba(238, 169, 184, 0.8)",
+        "rgba(224, 187, 228, 0.8)",
+        "rgba(225, 223, 211, 0.8)",
+        "rgba(255, 255, 255, 0.8)",
+        "rgba(155, 155, 155, 0.8)",
+        "rgba(0, 0, 0, 0.8)"];
 
     @observable private _keyValue: string = "";
     @observable private _valueValue: string = "";
     @observable private _added: boolean = false;
+    @observable private highlightColor: string = "rgba(245, 230, 95, 0.616)";
 
+    @observable public _colorBtn = false;
     @observable public Highlighting: boolean = false;
     @observable public Status: "pdf" | "annotation" | "" = "";
 
@@ -26,11 +47,13 @@ export default class PDFMenu extends AntimodeMenu {
     public AddTag: (key: string, value: string) => boolean = returnFalse;
     public PinToPres: () => void = unimplementedFunction;
     public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
+    public get Active() { return this._left > 0; }
 
     constructor(props: Readonly<{}>) {
         super(props);
 
         PDFMenu.Instance = this;
+        PDFMenu.Instance._canFade = false;
     }
 
     pointerDown = (e: React.PointerEvent) => {
@@ -61,16 +84,47 @@ export default class PDFMenu extends AntimodeMenu {
         e.preventDefault();
     }
 
-    togglePin = action((e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
-        !this.Pinned && (this.Highlighting = false);
-    });
-
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this.Highlight("rgba(245, 230, 95, 0.616)") && this.Pinned) { // yellowish highlight color for a marker type highlight
+        if (!this.Highlight(this.highlightColor) && this.Pinned) {
             this.Highlighting = !this.Highlighting;
         }
+    }
+
+    @computed get highlighter() {
+        const button =
+            <button className="antimodeMenu-button color-preview-button" title="" key="highlighter-button" onPointerDown={this.highlightClicked}>
+                <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
+                <div className="color-preview" style={{ backgroundColor: this.highlightColor }}></div>
+            </button>;
+
+        const dropdownContent =
+            <div className="dropdown">
+                <p>Change highlighter color:</p>
+                <div className="color-wrapper">
+                    {this._palette.map(color => {
+                        if (color) {
+                            return this.highlightColor === color ?
+                                <button className="color-button active" key={`active ${color}`} style={{ backgroundColor: color }} onPointerDown={e => this.changeHighlightColor(color, e)}></button> :
+                                <button className="color-button" key={`inactive ${color}`} style={{ backgroundColor: color }} onPointerDown={e => this.changeHighlightColor(color, e)}></button>;
+                        }
+                    })}
+                </div>
+            </div>;
+        return (
+            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} pdf={true} />
+        );
+    }
+
+    @action
+    changeHighlightColor = (color: string, e: React.PointerEvent) => {
+        const col: ColorState = {
+            hex: color, hsl: { a: 0, h: 0, s: 0, l: 0, source: "" }, hsv: { a: 0, h: 0, s: 0, v: 0, source: "" },
+            rgb: { a: 0, r: 0, b: 0, g: 0, source: "" }, oldHue: 0, source: "",
+        };
+        e.preventDefault();
+        e.stopPropagation();
+        this.highlightColor = Utils.colorString(col);
     }
 
     deleteClicked = (e: React.PointerEvent) => {
@@ -99,12 +153,9 @@ export default class PDFMenu extends AntimodeMenu {
     render() {
         const buttons = this.Status === "pdf" ?
             [
-                <button key="1" className="antimodeMenu-button" title="Click to Highlight" onClick={this.highlightClicked} style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
-                    <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} /></button>,
-                <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
+                this.highlighter,
+                <button key="2" className="antimodeMenu-button annotate" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown} style={{ cursor: "grab" }}>
                     <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
-                <button key="4" className="antimodeMenu-button" title="Pin Menu" onClick={this.togglePin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
-                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} /> </button>
             ] : [
                 <button key="5" className="antimodeMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>
                     <FontAwesomeIcon icon="trash-alt" size="lg" /></button>,

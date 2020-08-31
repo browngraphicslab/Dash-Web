@@ -8,7 +8,6 @@
     .collectionGridView-gridContainer {
         height: 100%;
         overflow-y: auto;
-        background-color: white;
         overflow-x: hidden;
 
         display: flex;
@@ -22,7 +21,7 @@
         }
 
         .react-grid-layout {
-            width : 100%;
+            width: 100%;
         }
 
         .react-grid-item>.react-resizable-handle {
@@ -134,17 +133,6 @@
     }
 
 }
-
-// .documentDecorations-container .documentDecorations-resizer {
-//     pointer-events: none;
-// }
-
-// #documentDecorations-bottomRightResizer,
-// #documentDecorations-bottomLeftResizer,
-// #documentDecorations-topRightResizer,
-// #documentDecorations-topLeftResizer {
-//     visibility: collapse;
-// }
 
 
 /* Chrome, Safari, Edge, Opera */

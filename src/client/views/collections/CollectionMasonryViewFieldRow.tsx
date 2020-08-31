@@ -43,6 +43,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @observable private heading: string = "";
     @observable private color: string = "#f1efeb";
     @observable private collapsed: boolean = false;
+    @observable private _paletteOn = false;
     private set _heading(value: string) { runInAction(() => this.props.headingObject && (this.props.headingObject.heading = this.heading = value)); }
     private set _color(value: string) { runInAction(() => this.props.headingObject && (this.props.headingObject.color = this.color = value)); }
     private set _collapsed(value: boolean) { runInAction(() => this.props.headingObject && (this.props.headingObject.collapsed = this.collapsed = value)); }
@@ -83,7 +84,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @undoBatch
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
-        console.log("masronry row drop");
         this._createAliasSelected = false;
         if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&
@@ -110,8 +110,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
-            if (this.props.parent.sectionHeaders) {
-                if (this.props.parent.sectionHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
+            if (this.props.parent.columnHeaders) {
+                if (this.props.parent.columnHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
                     return false;
                 }
             }
@@ -140,7 +140,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
         const docs = this.props.parent.childDocList;
         return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
@@ -150,9 +150,9 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
-        if (this.props.parent.sectionHeaders && this.props.headingObject) {
-            const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
-            this.props.parent.sectionHeaders.splice(index, 1);
+        if (this.props.parent.columnHeaders && this.props.headingObject) {
+            const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
+            this.props.parent.columnHeaders.splice(index, 1);
         }
     }));
 
@@ -238,7 +238,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this.color
         };
         const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
@@ -278,7 +277,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             oneLine: true,
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this.color
         };
         return this.props.parent.props.Document.miniHeaders ?
             <div className="collectionStackingView-miniHeader">
@@ -293,11 +291,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         {noChrome ? evContents : <EditableView {...headerEditableViewProps} />}
                         {noChrome || evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
-                                <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                    <button className="collectionStackingView-sectionColorButton">
-                                        <FontAwesomeIcon icon="palette" size="lg" />
-                                    </button>
-                                </ Flyout >
+                                <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>
+                                    <FontAwesomeIcon icon="palette" size="lg" />
+                                </button>
+                                {this._paletteOn ? this.renderColorPicker() : (null)}
                             </div>
                         }
                         {noChrome ? (null) : <button className="collectionStackingView-sectionDelete" onClick={noChrome ? undefined : this.collapseSection}>
@@ -305,7 +302,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         </button>}
                         {noChrome || evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionOptions">
-                                <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
+                                <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderMenu()}>
                                     <button className="collectionStackingView-sectionOptionButton">
                                         <FontAwesomeIcon icon="ellipsis-v" size="lg" />
                                     </button>

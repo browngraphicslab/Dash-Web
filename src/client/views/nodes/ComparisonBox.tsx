@@ -24,7 +24,7 @@ const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
-    protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
+    protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     private _disposers: (DragManager.DragDropDisposer | undefined)[] = [undefined, undefined];
 
     @observable _animating = "";
@@ -39,10 +39,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     @undoBatch
     private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
-        event.stopPropagation(); // prevent parent Doc from registering new position so that it snaps back into place
-        const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
-        if (droppedDocs?.length) {
-            this.dataDoc[fieldKey] = droppedDocs[0];
+        if (dropEvent.complete.docDragData) {
+            event.stopPropagation(); // prevent parent Doc from registering new position so that it snaps back into place
+            const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
+            if (droppedDocs?.length) {
+                this.dataDoc[fieldKey] = droppedDocs[0];
+            }
         }
     }
 

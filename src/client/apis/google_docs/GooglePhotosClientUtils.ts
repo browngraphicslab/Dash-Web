@@ -11,7 +11,7 @@ import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
-import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
+import { GoogleAuthenticationManager } from "../GoogleAuthenticationManager";
 import Photos = require('googlephotos');
 
 export namespace GooglePhotos {
@@ -130,7 +130,6 @@ export namespace GooglePhotos {
             const uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
                 const document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
-                document.fillColumn = true;
                 document.contentSize = upload.contentSize;
                 return document;
             });
@@ -157,8 +156,6 @@ export namespace GooglePhotos {
             const values = Object.values(ContentCategories).filter(value => value !== ContentCategories.NONE);
             for (const value of values) {
                 const searched = (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id);
-                console.log("Searching " + value);
-                console.log(searched);
                 searched?.forEach(async id => {
                     const image = await Cast(idMapping[id], Doc);
                     if (image) {

@@ -3,14 +3,14 @@ import "./MetadataEntryMenu.scss";
 import { observer } from 'mobx-react';
 import { observable, action, runInAction, trace, computed, IReactionDisposer, reaction } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
-import { Doc, Field, DocListCastAsync } from '../../fields/Doc';
+import { Doc, Field, DocListCastAsync, DocListCast } from '../../fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
-import { undoBatch } from '../util/UndoManager';
+import { undoBatch, UndoManager } from '../util/UndoManager';
 import { emptyFunction, emptyPath } from '../../Utils';
 
 export type DocLike = Doc | Doc[] | Promise<Doc> | Promise<Doc[]>;
 export interface MetadataEntryProps {
-    docs: DocLike | (() => DocLike);
+    docs: Doc[];
     onError?: () => boolean;
     suggestWithFunction?: boolean;
 }
@@ -38,27 +38,14 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         let field: Field | undefined | null = null;
         let onProto: boolean = false;
         let value: string | undefined = undefined;
-        let docs = this.props.docs;
-        if (typeof docs === "function") {
-            if (this.props.suggestWithFunction) {
-                docs = docs();
-            } else {
-                return;
-            }
-        }
-        docs = await docs;
-        if (docs instanceof Doc) {
-            await docs[this._currentKey];
-            value = Field.toKeyValueString(docs, this._currentKey);
-        } else {
-            for (const doc of docs) {
-                const v = await doc[this._currentKey];
-                onProto = onProto || !Object.keys(doc).includes(this._currentKey);
-                if (field === null) {
-                    field = v;
-                } else if (v !== field) {
-                    value = "multiple values";
-                }
+        const docs = this.props.docs;
+        for (const doc of docs) {
+            const v = await doc[this._currentKey];
+            onProto = onProto || !Object.keys(doc).includes(this._currentKey);
+            if (field === null) {
+                field = v;
+            } else if (v !== field) {
+                value = "multiple values";
             }
         }
         if (value === undefined) {
@@ -86,27 +73,16 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
 
-            let doc = this.props.docs;
-            if (typeof doc === "function") {
-                doc = doc();
-            }
-            doc = await doc;
-
-            let success: boolean;
-            if (doc instanceof Doc) {
-                success = KeyValueBox.ApplyKVPScript(doc, this._currentKey, script);
-            } else {
-                let childSuccess = true;
-                if (this._addChildren) {
-                    for (const document of doc) {
-                        const collectionChildren = await DocListCastAsync(document.data);
-                        if (collectionChildren) {
-                            childSuccess = collectionChildren.every(c => KeyValueBox.ApplyKVPScript(c, this._currentKey, script));
-                        }
+            let childSuccess = true;
+            if (this._addChildren) {
+                for (const document of this.props.docs) {
+                    const collectionChildren = DocListCast(document.data);
+                    if (collectionChildren) {
+                        childSuccess = collectionChildren.every(c => KeyValueBox.ApplyKVPScript(c, this._currentKey, script));
                     }
                 }
-                success = doc.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script)) && childSuccess;
             }
+            const success = this.props.docs.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script)) && childSuccess;
             if (!success) {
                 if (this.props.onError) {
                     if (this.props.onError()) {
@@ -132,24 +108,12 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         }
     }
 
-    getKeySuggestions = async (value: string): Promise<string[]> => {
+    getKeySuggestions = (value: string) => {
         value = value.toLowerCase();
-        let docs = this.props.docs;
-        if (typeof docs === "function") {
-            if (this.props.suggestWithFunction) {
-                docs = docs();
-            } else {
-                return [];
-            }
-        }
-        docs = await docs;
-        if (docs instanceof Doc) {
-            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
-        } else {
-            const keys = new Set<string>();
-            docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
-        }
+        const docs = this.props.docs;
+        const keys = new Set<string>();
+        docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+        return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
     }
     getSuggestionValue = (suggestion: string) => suggestion;
 
@@ -157,9 +121,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         return (null);
     }
     componentDidMount() {
-
         this._suggestionDispser = reaction(() => this._currentKey,
-            () => this.getKeySuggestions(this._currentKey).then(action((s: string[]) => this._allSuggestions = s)),
+            () => this._allSuggestions = this.getKeySuggestions(this._currentKey),
             { fireImmediately: true });
     }
     componentWillUnmount() {
@@ -171,19 +134,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     }
 
     private get considerChildOptions() {
-        let docSource = this.props.docs;
-        if (typeof docSource === "function") {
-            docSource = docSource();
-        }
-        docSource = docSource as Doc[] | Doc;
-        if (docSource instanceof Doc) {
-            if (docSource._viewType === undefined) {
-                return (null);
-            }
-        } else if (Array.isArray(docSource)) {
-            if (!docSource.every(doc => doc._viewType !== undefined)) {
-                return null;
-            }
+        if (!this.props.docs.every(doc => doc._viewType !== undefined)) {
+            return null;
         }
         return (
             <div style={{ display: "flex" }}>
@@ -197,19 +149,23 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     render() {
         return (<div className="metadataEntry-outerDiv" id="metadataEntry-outer" onPointerDown={e => e.stopPropagation()}>
             <div className="metadataEntry-inputArea">
-                Key:
-                <div className="metadataEntry-autoSuggester" onClick={e => this.autosuggestRef.current!.input?.focus()}  >
-                    <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
-                        getSuggestionValue={this.getSuggestionValue}
-                        suggestions={emptyPath}
-                        alwaysRenderSuggestions={false}
-                        renderSuggestion={this.renderSuggestion}
-                        onSuggestionsFetchRequested={emptyFunction}
-                        onSuggestionsClearRequested={emptyFunction}
-                        ref={this.autosuggestRef} />
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <span>Key:</span>
+                    <div className="metadataEntry-autoSuggester" onClick={e => this.autosuggestRef.current!.input?.focus()}  >
+                        <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
+                            getSuggestionValue={this.getSuggestionValue}
+                            suggestions={emptyPath}
+                            alwaysRenderSuggestions={false}
+                            renderSuggestion={this.renderSuggestion}
+                            onSuggestionsFetchRequested={emptyFunction}
+                            onSuggestionsClearRequested={emptyFunction}
+                            ref={this.autosuggestRef} />
+                    </div>
                 </div>
-                Value:
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <span>Value:</span>
                     <input className="metadataEntry-input" ref={this._ref} value={this._currentValue} onClick={e => this._ref.current!.focus()} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                </div>
                 {this.considerChildOptions}
             </div>
             <div className="metadataEntry-keys" >

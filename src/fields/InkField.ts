@@ -1,7 +1,8 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { Copy, ToScriptString, ToString } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { Scripting } from "../client/util/Scripting";
 
 export enum InkTool {
     None = "none",
@@ -31,6 +32,8 @@ const strokeDataSchema = createSimpleSchema({
 export class InkField extends ObjectField {
     @serializable(list(object(strokeDataSchema)))
     readonly inkData: InkData;
+    // inkData: InkData;
+
 
     constructor(data: InkData) {
         super();
@@ -42,9 +45,11 @@ export class InkField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return "invalid";
+        return "new InkField([" + this.inkData.map(i => `{X: ${i.X}, Y: ${i.Y}} `) + "])";
     }
     [ToString]() {
         return "InkField";
     }
 }
+
+Scripting.addGlobal("InkField", InkField);

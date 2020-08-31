@@ -1,0 +1,145 @@
+.group-interface {
+    width: 380px;
+    height: 300px;
+
+    .dialogue-box {
+        .group-create {
+            display: flex;
+            flex-direction: column;
+            height: 90%;
+            justify-content: space-between;
+            margin-left: 5px;
+
+            input {
+                border-radius: 5px;
+                padding: 8px;
+                min-width: 100%;
+                border: 1px solid hsl(0, 0%, 80%);
+                outline: none;
+                height: 30;
+
+                &:focus {
+                    border: 2.5px solid #2684FF;
+                }
+            }
+
+            p {
+                font-size: 20px;
+                text-align: left;
+                color: black;
+            }
+
+            button {
+                align-self: flex-end;
+            }
+        }
+    }
+
+
+    button {
+        align-self: center;
+        outline: none;
+        border-radius: 5px;
+        border: 0px;
+        text-transform: none;
+        letter-spacing: 2px;
+        font-size: 75%;
+        padding: 10px;
+        margin: 10px;
+        transition: transform 0.2s;
+        margin: 2px;
+    }
+}
+
+.group-interface {
+    display: flex;
+    flex-direction: column;
+
+    .overlay {
+        transform: translate(-20px, -20px);
+        border-radius: 10px;
+    }
+
+    .delete-button {
+        background: rgb(227, 86, 86);
+    }
+
+    .close-button {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+        cursor: pointer;
+        z-index: 999;
+    }
+
+    .group-heading {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+
+        p {
+            font-size: 20px;
+            text-align: left;
+            margin-right: 15px;
+            color: black;
+        }
+    }
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+
+        .sort-groups {
+            text-align: left;
+            margin-left: 5;
+            width: 50px;
+            cursor: pointer;
+        }
+
+        .group-body {
+            justify-content: space-between;
+            height: 220;
+            background-color: #e8e8e8;
+
+            padding-right: 1em;
+            justify-content: space-around;
+            text-align: left;
+
+            overflow-y: auto;
+            width: 100%;
+
+            .group-row {
+                display: flex;
+                margin-bottom: 5px;
+                min-height: 30px;
+                align-items: center;
+
+                .group-name {
+                    max-width: 65%;
+                    margin: 0 10;
+                    color: black;
+                }
+
+                .group-info {
+                    cursor: pointer;
+                }
+
+                button {
+                    position: absolute;
+                    width: 30%;
+                    right: 2;
+                    margin-top: 0;
+                }
+            }
+
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 2px 0;
+            }
+
+        }
+    }
+}

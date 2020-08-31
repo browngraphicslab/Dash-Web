@@ -1,19 +1,18 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
+import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, DocListCastOrNull } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { PrefetchProxy } from '../../../fields/Proxy';
 import { Document, listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils, returnEmptyFilter, returnEmptyDoclist } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
-import { DocumentManager } from '../../util/DocumentManager';
 import { SnappingManager } from '../../util/SnappingManager';
-import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
@@ -21,7 +20,6 @@ import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
-import { MainView } from '../MainView';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentView } from '../nodes/DocumentView';
 import { ImageBox } from '../nodes/ImageBox';
@@ -33,15 +31,15 @@ import { CollectionViewType } from './CollectionView';
 import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../fields/util';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 
 export interface TreeViewProps {
     document: Doc;
     dataDoc?: Doc;
-    libraryPath: Doc[] | undefined;
     containingCollection: Doc;
     prevSibling?: Doc;
     renderDepth: number;
-    deleteDoc: (doc: Doc | Doc[]) => boolean;
+    removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
@@ -53,17 +51,19 @@ export interface TreeViewProps {
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
-    backgroundColor?: (doc: Doc) => string | undefined;
+    backgroundColor?: (doc: Doc, renderDepth: number) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
-    treeViewId: Doc;
+    treeView: CollectionTreeView;
     parentKey: string;
     active: (outsideReaction?: boolean) => boolean;
     treeViewHideHeaderFields: () => boolean;
     treeViewPreventOpen: boolean;
     renderedIds: string[]; // list of document ids rendered used to avoid unending expansion of items in a cycle
-    onCheckedClick?: ScriptField;
-    onChildClick?: ScriptField;
+    onCheckedClick?: () => ScriptField;
+    onChildClick?: () => ScriptField;
     ignoreFields?: string[];
+    firstLevel: boolean;
+    whenActiveChanged: (isActive: boolean) => void;
 }
 
 @observer
@@ -76,54 +76,72 @@ export interface TreeViewProps {
  * treeViewExpandedView : name of field whose contents are being displayed as the document's subtree
  */
 class TreeView extends React.Component<TreeViewProps> {
-    static _editTitleScript: ScriptField | undefined;
+    private _editTitleScript: (() => ScriptField) | undefined;
+    private _openScript: (() => ScriptField) | undefined;
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef = React.createRef<DocumentView>();
+    private _uniqueId = Utils.GenerateGuid();
+    private _editMaxWidth: number | string = 0;
 
-    get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, "fields"); }
+    get doc() { return this.props.document; }
+    get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
+    get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
+    get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
+    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.noviceMode ? "layout" : "fields"); }
+    get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs ? this.fieldKey : this.defaultExpandedView); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
-    set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = this._overrideTreeViewOpen = c; }
-    @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.props.document.treeViewPreventOpen && BoolCast(this.props.document.treeViewOpen)) || this._overrideTreeViewOpen; }
-    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, this.defaultExpandedView); }
-    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
-    @computed get dataDoc() { return this.props.document[DataSym]; }
-    @computed get fieldKey() {
-        const splits = StrCast(Doc.LayoutField(this.props.document)).split("fieldKey={\'");
-        return splits.length > 1 ? splits[1].split("\'")[0] : "data";
+    set treeViewOpen(c: boolean) {
+        if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
+        else this.doc.treeViewOpen = this._overrideTreeViewOpen = c;
     }
+    @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
+    @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.treeViewDefaultExpandedView); }
+    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
+    @computed get dataDoc() { return this.doc[DataSym]; }
+    @computed get layoutDoc() { return Doc.Layout(this.doc); }
+    @computed get fieldKey() { const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
     childDocList(field: string) {
-        const layout = Doc.LayoutField(this.props.document) instanceof Doc ? Doc.LayoutField(this.props.document) as Doc : undefined;
-        return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
-            (layout ? Cast(layout[field], listSpec(Doc)) : undefined) || // else if there's a layout doc, display it's fields
-            Cast(this.props.document[field], listSpec(Doc))) as Doc[]; // otherwise use the document's data field
+        const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
+        return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
+            (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
+            DocListCastOrNull(this.doc[field])); // otherwise use the document's data field
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
+    @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
     @computed get boundsOfCollectionDocument() {
         return StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1 || !DocListCast(this.props.document[this.fieldKey]).length ? undefined :
             Doc.ComputeContentBounds(DocListCast(this.props.document[this.fieldKey]));
     }
 
-    @undoBatch openRight = () => this.props.addDocTab(this.props.document, "onRight", this.props.libraryPath);
+    @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
-        return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
+        return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
     }
     @undoBatch @action remove = (doc: Doc | Doc[], key: string) => {
-        return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-            flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
+        return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
     }
     @undoBatch @action removeDoc = (doc: Doc | Doc[]) => {
         return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-            flg && Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), doc), true);
+            flg && Doc.RemoveDocFromList(this.doc, Doc.LayoutFieldKey(this.doc), doc), true);
+    }
+
+    constructor(props: any) {
+        super(props);
+        const titleScript = ScriptField.MakeScript(`{setInPlace(self, 'editTitle', '${this._uniqueId}'); documentView.select();} `, { documentView: "any" });
+        const openScript = ScriptField.MakeScript(`openOnRight(self)`);
+        const treeOpenScript = ScriptField.MakeScript(`self.treeViewOpen = !self.treeViewOpen`);
+        this._editTitleScript = !Doc.IsSystem(this.props.document) ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
+        this._openScript = !Doc.IsSystem(this.props.document) ? openScript && (() => openScript) : undefined;
+        if (Doc.GetT(this.doc, "editTitle", "string", true) === "*") Doc.SetInPlace(this.doc, "editTitle", this._uniqueId, false);
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer?.();
-        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this), undefined, this.preTreeDrop.bind(this)), this.props.document);
+        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this), undefined, this.preTreeDrop.bind(this)), this.doc);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -135,7 +153,9 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     onPointerLeave = (e: React.PointerEvent): void => {
         Doc.UnBrushDoc(this.dataDoc);
-        this._header!.current!.className = "treeViewItem-header";
+        if (this._header?.current?.className !== "treeViewItem-header-editing") {
+            this._header!.current!.className = "treeViewItem-header";
+        }
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
@@ -143,7 +163,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const pt = [e.clientX, e.clientY];
         const rect = this._header!.current!.getBoundingClientRect();
         const before = pt[1] < rect.top + rect.height / 2;
-        const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && DocListCast(this.dataDoc[this.fieldKey]).length);
+        const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && this.childDocList.length);
         this._header!.current!.className = "treeViewItem-header";
         if (inside) this._header!.current!.className += " treeViewItem-header-inside";
         else if (before) this._header!.current!.className += " treeViewItem-header-above";
@@ -154,42 +174,38 @@ class TreeView extends React.Component<TreeViewProps> {
     editableView = (key: string, style?: string) => (<EditableView
         oneLine={true}
         display={"inline-block"}
-        editing={true /*this.dataDoc[Id] === EditableView.loadId*/}
-        contents={StrCast(this.props.document[key])}
+        editing={true}
+        contents={StrCast(this.doc[key])}
         height={12}
+        sizeToContent={true}
         fontStyle={style}
         fontSize={12}
-        GetValue={() => StrCast(this.props.document[key])}
+        GetValue={() => StrCast(this.doc[key])}
         SetValue={undoBatch((value: string) => {
-            Doc.SetInPlace(this.props.document, key, value, false) || true;
-            Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
+            Doc.SetInPlace(this.doc, key, value, false) || true;
+            Doc.SetInPlace(this.doc, "editTitle", undefined, false);
         })}
         OnFillDown={undoBatch((value: string) => {
-            Doc.SetInPlace(this.props.document, key, value, false);
-            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
-            Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
-            Doc.SetInPlace(doc, "editTitle", true, false);
+            Doc.SetInPlace(this.doc, key, value, false);
+            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            Doc.SetInPlace(this.doc, "editTitle", undefined, false);
+            Doc.SetInPlace(doc, "editTitle", "*", false);
             return this.props.addDocument(doc);
         })}
         onClick={() => {
             SelectionManager.DeselectAll();
-            Doc.UserDoc().activeSelection = new List([this.props.document]);
+            Doc.UserDoc().activeSelection = new List([this.doc]);
             return false;
         }}
         OnTab={undoBatch((shift?: boolean) => {
-            EditableView.loadId = this.dataDoc[Id];
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
-            setTimeout(() => {  // unsetting/setting brushing for this doc will recreate & refocus this editableView after all other treeview changes have been made to the Dom (which may remove focus from this document).
-                Doc.UnBrushDoc(this.props.document);
-                Doc.BrushDoc(this.props.document);
-                EditableView.loadId = "";
-            }, 0);
+            setTimeout(() => Doc.SetInPlace(this.doc, "editTitle", `${this.props.treeView._uniqueId}`, false), 0);
         })}
     />)
 
     preTreeDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
         const dragData = de.complete.docDragData;
-        dragData && (dragData.dropAction = this.props.treeViewId[Id] === dragData.treeViewId ? "same" : dragData.dropAction);
+        dragData && (dragData.dropAction = this.props.treeView.props.Document === dragData.treeViewDoc ? "same" : dragData.dropAction);
     }
 
     @undoBatch
@@ -197,18 +213,18 @@ class TreeView extends React.Component<TreeViewProps> {
         const pt = [de.x, de.y];
         const rect = this._header!.current!.getBoundingClientRect();
         const before = pt[1] < rect.top + rect.height / 2;
-        const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && DocListCast(this.dataDoc[this.fieldKey]).length);
+        const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && this.childDocList.length);
         const complete = de.complete;
         if (complete.linkDragData) {
             const sourceDoc = complete.linkDragData.linkSourceDocument;
-            const destDoc = this.props.document;
-            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link");
+            const destDoc = this.doc;
+            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link", "");
             e.stopPropagation();
         }
         const docDragData = complete.docDragData;
         if (docDragData) {
             e.stopPropagation();
-            if (docDragData.draggedDocuments[0] === this.props.document) return true;
+            if (docDragData.draggedDocuments[0] === this.doc) return true;
             const parentAddDoc = (doc: Doc | Doc[]) => this.props.addDocument(doc, undefined, before);
             let addDoc = parentAddDoc;
             if (inside) {
@@ -221,35 +237,28 @@ class TreeView extends React.Component<TreeViewProps> {
         return false;
     }
 
-    docTransform = () => {
-        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._dref.current!);
-        const outerXf = this.props.outerXf();
-        const offset = this.props.ScreenToLocalTransform().transformDirection((outerXf.translateX - translateX), outerXf.translateY - translateY);
-        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
-
-        return finalXf;
-    }
-    getTransform = () => {
-        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._tref.current!);
+    refTransform = (ref: HTMLDivElement) => {
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(ref);
         const outerXf = this.props.outerXf();
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
-        return finalXf;
+        return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
     }
+    docTransform = () => this.refTransform(this._dref.current!);
+    getTransform = () => this.refTransform(this._tref.current!);
     docWidth = () => {
-        const layoutDoc = Doc.Layout(this.props.document);
+        const layoutDoc = this.layoutDoc;
         const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
         if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
         return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
     }
     docHeight = () => {
-        const layoutDoc = Doc.Layout(this.props.document);
+        const layoutDoc = this.layoutDoc;
         const bounds = this.boundsOfCollectionDocument;
         return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
             const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return layoutDoc._fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection._height) :
+            return layoutDoc._fitWidth ? (!this.doc._nativeHeight ? NumCast(this.props.containingCollection._height) :
                 Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
                     NumCast(this.props.containingCollection._height)))) :
                 NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
@@ -258,7 +267,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed get expandedField() {
         const ids: { [key: string]: string } = {};
-        const doc = this.props.document;
+        const doc = this.doc;
         doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
         const rows: JSX.Element[] = [];
@@ -271,14 +280,13 @@ class TreeView extends React.Component<TreeViewProps> {
                 const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce(
                     (flg, doc) => flg && Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true), true);
-                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
-                    DocListCast(contents), this.props.treeViewId, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
+                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
+                    this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                    [...this.props.renderedIds, doc[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields);
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged);
             } else {
-                contentElement = <EditableView
-                    key="editableView"
+                contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
                     height={13}
                     fontSize={12}
@@ -306,44 +314,45 @@ class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
-    rtfWidth = () => Math.min(Doc.Layout(this.props.document)?.[WidthSym](), this.props.panelWidth() - 20);
-    rtfHeight = () => this.rtfWidth() < Doc.Layout(this.props.document)?.[WidthSym]() ? Math.min(Doc.Layout(this.props.document)?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
+    rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
+    rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
 
     @computed get renderContent() {
         TraceMobx();
-        const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
-        if (expandKey !== undefined) {
+        const expandKey = this.treeViewExpandedView;
+        if (["links", "annotations", this.fieldKey].includes(expandKey)) {
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) =>
                 (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true), true);
-            const docs = expandKey === "links" ? this.childLinks : this.childDocs;
+            const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
-            return <ul key={expandKey + "more"} onClick={(e) => {
-                this.props.document[sortKey] = (this.props.document[sortKey] ? false : (this.props.document[sortKey] === false ? undefined : true));
+            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""} onClick={(e) => {
+                this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true));
                 e.stopPropagation();
             }}>
                 {!docs ? (null) :
-                    TreeView.GetChildElements(docs, this.props.treeViewId, Doc.Layout(this.props.document),
+                    TreeView.GetChildElements(docs, this.props.treeView, this.layoutDoc,
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                        StrCast(this.props.document.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+                        StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                        [...this.props.renderedIds, this.props.document[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields)}
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.props.document[Id] + this.props.document.title}>
+            return <ul key={this.doc[Id] + this.doc.title}><div ref={this._dref} style={{ display: "inline-block" }} >
                 {this.expandedField}
             </div></ul>;
         } else {
-            const layoutDoc = Doc.Layout(this.props.document);
-            const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
-            const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
-            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id] + this.props.document.title}>
+            const layoutDoc = this.layoutDoc;
+            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
+            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
+            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
+                    treeViewDoc={undefined}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
@@ -353,6 +362,8 @@ class TreeView extends React.Component<TreeViewProps> {
                     PanelHeight={panelHeight}
                     focus={returnFalse}
                     ScreenToLocalTransform={this.docTransform}
+                    docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
@@ -369,17 +380,17 @@ class TreeView extends React.Component<TreeViewProps> {
         }
     }
 
-    get onCheckedClick() { return this.props.onCheckedClick || ScriptCast(this.props.document.onCheckedClick); }
+    get onCheckedClick() { return this.props.onCheckedClick?.() ?? ScriptCast(this.doc.onCheckedClick); }
 
     @action
     bulletClick = (e: React.MouseEvent) => {
-        if (this.onCheckedClick && this.props.document.type !== DocumentType.COL) {
+        if (this.onCheckedClick && this.doc.type !== DocumentType.COL) {
             // this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
-            this.onCheckedClick.script.run({
-                this: this.props.document.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
+            this.onCheckedClick?.script.run({
+                this: this.doc.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.doc,
                 heading: this.props.containingCollection.title,
-                checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
-                containingTreeView: this.props.treeViewId,
+                checked: this.doc.treeViewChecked === "check" ? "x" : this.doc.treeViewChecked === "x" ? undefined : "check",
+                containingTreeView: this.props.treeView,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
@@ -387,129 +398,143 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
-    @computed
-    get renderBullet() {
-        const checked = this.props.document.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.props.document.treeViewChecked ? this.props.document.treeViewChecked : "unchecked") : undefined;
+    @computed get renderBullet() {
+        TraceMobx();
+        const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
-            style={{ color: StrCast(this.props.document.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
-            {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down"))} />}
+            style={{ color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
+            {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs?.length ? "caret-square-right" : "caret-right") : (this.childDocs?.length ? "caret-square-down" : "caret-down"))} />}
         </div>;
     }
 
     showContextMenu = (e: React.MouseEvent) => {
         this._docRef.current?.ContentDiv && simulateMouseClick(this._docRef.current.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-        e.stopPropagation();
     }
-    focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
-    contextMenuItems = () => {
-        const focusScript = ScriptField.MakeFunction(`DocFocus(self)`);
-        return [{ script: focusScript!, label: "Focus" }];
+    contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
+    truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, 0);
+    @computed get showTitleEdit() {
+        return ["*", this._uniqueId, this.props.treeView._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "");
     }
+    onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
+    onChildDoubleClick = () => (!this.props.treeView.props.Document.treeViewOutlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
     /**
      * Renders the EditableView title element for placement into the tree.
      */
     @computed
     get renderTitle() {
         TraceMobx();
-        (!TreeView._editTitleScript) && (TreeView._editTitleScript = ScriptField.MakeFunction("setInPlace(self, 'editTitle', true)"));
-        const headerElements = (
+        const headerElements = this.props.treeViewHideHeaderFields() ? (null) :
             <>
-                <FontAwesomeIcon icon="cog" size="sm" onClick={e => this.showContextMenu(e)}></FontAwesomeIcon>
+                <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.treeViewOpen) {
-                            this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
-                                this.treeViewExpandedView === "fields" && Doc.Layout(this.props.document) ? "layout" :
-                                    this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
-                                        this.childDocs ? this.fieldKey : "fields";
+                            this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
+                                this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode ? "layout" : "fields") :
+                                    this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
+                                        this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
+                                            (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
+                                                this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
                         }
                         this.treeViewOpen = true;
                     })}>
                     {this.treeViewExpandedView}
                 </span>
-            </>);
-        const openRight = (<div className="treeViewItem-openRight" onClick={this.openRight}>
-            <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
-        </div>);
+            </>;
+        const view = this.showTitleEdit ? this.editableView("title") :
+            <DocumentView
+                ref={this._docRef}
+                Document={this.doc}
+                DataDoc={undefined}
+                treeViewDoc={this.props.treeView.props.Document}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={this.props.addDocTab}
+                rootSelected={returnTrue}
+                pinToPres={emptyFunction}
+                onClick={this.onChildClick}
+                onDoubleClick={this.onChildDoubleClick}
+                dropAction={this.props.dropAction}
+                moveDocument={this.move}
+                removeDocument={this.props.removeDoc}
+                ScreenToLocalTransform={this.getTransform}
+                ContentScaling={returnOne}
+                PanelWidth={this.truncateTitleWidth}
+                PanelHeight={returnZero}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                contextMenuItems={this.contextMenuItems}
+                opacity={returnOne}
+                renderDepth={1}
+                focus={returnTrue}
+                parentActive={returnTrue}
+                whenActiveChanged={this.props.whenActiveChanged}
+                bringToFront={emptyFunction}
+                dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
+                docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={this.props.containingCollection}
+            />;
         return <>
-            <div className="docContainer" ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
+            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
                 style={{
-                    fontWeight: this.props.document.searchMatch ? "bold" : undefined,
-                    textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,
-                    outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
-                    pointerEvents: this.props.active() || SnappingManager.GetIsDragging() ? undefined : "none"
+                    fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
+                    textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
+                    outline: this.doc === CurrentUserUtils.ActiveDashboard ? "dashed 1px #06123232" : undefined,
+                    pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }} >
-                {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
-                    this.editableView("title") :
-                    <DocumentView
-                        ref={this._docRef}
-                        Document={this.props.document}
-                        DataDoc={undefined}
-                        treeViewId={this.props.treeViewId[Id]}
-                        LibraryPath={this.props.libraryPath || emptyPath}
-                        addDocument={undefined}
-                        addDocTab={this.props.addDocTab}
-                        rootSelected={returnTrue}
-                        pinToPres={emptyFunction}
-                        onClick={this.props.onChildClick || TreeView._editTitleScript}
-                        dropAction={this.props.dropAction}
-                        moveDocument={this.move}
-                        removeDocument={this.removeDoc}
-                        ScreenToLocalTransform={this.getTransform}
-                        ContentScaling={returnOne}
-                        PanelWidth={returnZero}
-                        PanelHeight={returnZero}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        contextMenuItems={this.contextMenuItems}
-                        renderDepth={1}
-                        focus={returnTrue}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildViews)}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={this.props.containingCollection}
-                    />}
+                {view}
             </div >
-            {this.props.treeViewHideHeaderFields() ? (null) : headerElements}
-            {openRight}
+            {Doc.IsSystem(this.doc) ? (null) : headerElements}
         </>;
     }
 
     render() {
         TraceMobx();
-        const sorting = this.props.document[`${this.fieldKey}-sortAscending`];
-        //setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
-        return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
-            <li className="collection-child">
-                <div className="treeViewItem-header" ref={this._header} onClick={e => {
-                    if (this.props.active(true)) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                }}
-                    onPointerDown={e => {
+        const sorting = this.doc[`${this.fieldKey}-sortAscending`];
+        if (this.showTitleEdit) { // find  containing CollectionTreeView and set our maximum width so  the containing tree view won't have to scroll
+            let par: any = this._header?.current;
+            if (par) {
+                while (par && par.className !== "collectionTreeView-dropTarget") par = par.parentNode;
+                if (par) {
+                    const par_rect = (par as HTMLElement).getBoundingClientRect();
+                    const my_recct = this._docRef.current?.ContentDiv?.getBoundingClientRect();
+                    this._editMaxWidth = Math.max(100, par_rect.right - (my_recct?.left || 0));
+                }
+            }
+        } else this._editMaxWidth = "";
+        return this.doc.treeViewHideTitle && this.props.firstLevel ? this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent :
+            <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}>
+                <li className="collection-child">
+                    <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
                         if (this.props.active(true)) {
                             e.stopPropagation();
                             e.preventDefault();
+                            SelectionManager.DeselectAll();
                         }
                     }}
-                    onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    {this.renderBullet}
-                    {this.renderTitle}
-                </div>
-                <div className="treeViewItem-border" style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
-                    {!this.treeViewOpen || this.props.renderedIds.indexOf(this.props.document[Id]) !== -1 ? (null) : this.renderContent}
-                </div>
-            </li>
-        </div>;
+                        onPointerDown={e => {
+                            if (this.props.active(true)) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            }
+                        }}
+                        onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                        {this.renderBullet}
+                        {this.renderTitle}
+                    </div>
+                    <div className="treeViewItem-border" style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
+                        {!this.treeViewOpen || this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent}
+                    </div>
+                </li>
+            </div>;
     }
     public static GetChildElements(
         childDocs: Doc[],
-        treeViewId: Doc,
+        treeView: CollectionTreeView,
         containingCollection: Doc,
         dataDoc: Doc | undefined,
         key: string,
@@ -521,7 +546,7 @@ class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Doc) => string | undefined),
+        backgroundColor: undefined | ((document: Doc, renderDepth: number) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
@@ -531,10 +556,11 @@ class TreeView extends React.Component<TreeViewProps> {
         treeViewHideHeaderFields: () => boolean,
         treeViewPreventOpen: boolean,
         renderedIds: string[],
-        libraryPath: Doc[] | undefined,
-        onCheckedClick: ScriptField | undefined,
-        onChildClick: ScriptField | undefined,
-        ignoreFields: string[] | undefined
+        onCheckedClick: undefined | (() => ScriptField),
+        onChildClick: undefined | (() => ScriptField),
+        ignoreFields: string[] | undefined,
+        firstLevel: boolean,
+        whenActiveChanged: (isActive: boolean) => void
     ) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
@@ -586,7 +612,7 @@ class TreeView extends React.Component<TreeViewProps> {
             }
 
             const indent = i === 0 ? undefined : () => {
-                if (StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(docs[i - 1].layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     if (fieldKey && Cast(docs[i - 1][fieldKey], listSpec(Doc)) !== undefined) {
@@ -597,7 +623,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             const outdent = !parentCollectionDoc ? undefined : () => {
-                if (StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(parentCollectionDoc.layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     Doc.AddDocToList(parentCollectionDoc, fieldKey, child, parentPrevSibling, false);
@@ -616,17 +642,16 @@ class TreeView extends React.Component<TreeViewProps> {
             return !(child instanceof Doc) ? (null) : <TreeView
                 document={pair.layout}
                 dataDoc={pair.data}
-                libraryPath={libraryPath ? [...libraryPath, containingCollection] : undefined}
                 containingCollection={containingCollection}
                 prevSibling={docs[i]}
-                treeViewId={treeViewId}
+                treeView={treeView}
                 key={child[Id]}
                 indentDocument={indent}
                 outdentDocument={outdent}
                 onCheckedClick={onCheckedClick}
                 onChildClick={onChildClick}
                 renderDepth={renderDepth}
-                deleteDoc={remove}
+                removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
                 backgroundColor={backgroundColor}
                 panelWidth={rowWidth}
@@ -643,7 +668,9 @@ class TreeView extends React.Component<TreeViewProps> {
                 treeViewHideHeaderFields={treeViewHideHeaderFields}
                 treeViewPreventOpen={treeViewPreventOpen}
                 renderedIds={renderedIds}
-                ignoreFields={ignoreFields} />;
+                ignoreFields={ignoreFields}
+                firstLevel={firstLevel}
+                whenActiveChanged={whenActiveChanged} />;
         });
     }
 }
@@ -651,8 +678,8 @@ class TreeView extends React.Component<TreeViewProps> {
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
     treeViewHideHeaderFields?: boolean;
-    onCheckedClick?: ScriptField;
-    onChildClick?: ScriptField;
+    onCheckedClick?: () => ScriptField;
+    onChildClick?: () => ScriptField;
 };
 
 @observer
@@ -660,21 +687,23 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
-    @computed get dataDoc() { return this.props.DataDoc || this.props.Document; }
+    public _uniqueId = Utils.GenerateGuid();
+    @computed get doc() { return this.props.Document; }
+    @computed get dataDoc() { return this.props.DataDoc || this.doc; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer?.();
         if (this._mainEle = ele) {
-            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.props.Document, this.onInternalPreDrop.bind(this));
+            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.doc, this.onInternalPreDrop.bind(this));
         }
     }
 
     protected onInternalPreDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
         const dragData = de.complete.docDragData;
         if (dragData) {
-            if (targetAction && !dragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+            if (targetAction && !dragData.draggedDocuments.some(d => d.context === this.doc && this.childDocs.includes(d))) {
                 dragData.dropAction = targetAction;
-            } else dragData.dropAction = this.props.Document[Id] === dragData?.treeViewId ? "same" : dragData.dropAction;
+            } else dragData.dropAction = this.doc === dragData?.treeViewDoc ? "same" : dragData.dropAction;
         }
     }
 
@@ -686,7 +715,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @action
     remove = (doc: Doc | Doc[]): boolean => {
         const docs = doc instanceof Doc ? [doc] : doc;
-        const targetDataDoc = this.props.Document[DataSym];
+        const targetDataDoc = this.doc[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         const result = value.filter(v => !docs.includes(v));
         if (result.length !== value.length) {
@@ -699,9 +728,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>
             (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-                flg && Doc.AddDocToList(this.props.Document[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false), true);
-        if (this.props.Document.resolvedDataDoc instanceof Promise) {
-            this.props.Document.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
+                flg && Doc.AddDocToList(this.doc[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false), true);
+        if (this.doc.resolvedDataDoc instanceof Promise) {
+            this.doc.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
         } else {
             doAddDoc(doc);
         }
@@ -709,25 +738,26 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.props.Document === Doc.UserDoc().myWorkspaces) {
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
+        if (!e.isPropagationStopped() && this.doc === CurrentUserUtils.MyDashboards) {
+            ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => CurrentUserUtils.createNewDashboard(Doc.UserDoc()), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else if (!e.isPropagationStopped() && this.props.Document === Doc.UserDoc().myRecentlyClosed) {
-            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosed = new List<Doc>(), icon: "plus" });
+        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myRecentlyClosedDocs) {
+            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosedDocs = new List<Doc>(), icon: "plus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         } else {
             const layoutItems: ContextMenuProps[] = [];
-            layoutItems.push({ description: (this.props.Document.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.props.Document.treeViewPreventOpen = !this.props.Document.treeViewPreventOpen, icon: "paint-brush" });
-            layoutItems.push({ description: (this.props.Document.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.treeViewHideHeaderFields = !this.props.Document.treeViewHideHeaderFields, icon: "paint-brush" });
-            layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
+            layoutItems.push({ description: (this.doc.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.doc.treeViewPreventOpen = !this.doc.treeViewPreventOpen, icon: "paint-brush" });
+            layoutItems.push({ description: (this.doc.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.doc.treeViewHideHeaderFields = !this.doc.treeViewHideHeaderFields, icon: "paint-brush" });
+            layoutItems.push({ description: (this.doc.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTitle = !this.doc.treeViewHideTitle, icon: "paint-brush" });
+            layoutItems.push({ description: (this.doc.treeViewHideLinkLines ? "Show" : "Hide") + " Link Lines", event: () => this.doc.treeViewHideLinkLines = !this.doc.treeViewHideLinkLines, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
         }
-        ContextMenu.Instance.addItem({
+        !Doc.UserDoc().noviceMode && ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
                 const { ImageDocument, PdfDocument } = Docs.Create;
                 const { Document } = this.props;
@@ -740,7 +770,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
                 const fallback = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
                 let pdfContent: string;
-                DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
+                this.childDocs?.map(d => {
                     DocListCast(d.data).map((img, i) => {
                         const caption = (d.captions as any)[i];
                         if (caption) {
@@ -769,9 +799,12 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
-            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
+            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.doc, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
-        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+        onClicks.push({
+            description: `${this.props.Document.treeViewOutlineMode ? "Delay " : "Immediate "} Title Editing`, event: () => UndoManager.RunInBatch(() => this.props.Document.treeViewOutlineMode = !this.props.Document.treeViewOutlineMode, "edit onCheckedClick"), icon: "edit"
+        });
+        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
@@ -779,61 +812,65 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get renderClearButton() {
         return <div id="toolbar" key="toolbar">
             <button className="toolbar-button round-button" title="Empty"
-                onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
+                onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
                 <FontAwesomeIcon icon={"trash"} size="sm" />
             </button>
         </div >;
     }
 
-    onKeyPress = (e: React.KeyboardEvent) => {
-        console.log(e);
+    onChildClick = () => {
+        return this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     }
+    _isChildActive = false;
+    whenActiveChanged = (isActive: boolean) => {
+        this.props.whenActiveChanged(this._isChildActive = isActive);
+    }
+    active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
     render() {
-        if (!(this.props.Document instanceof Doc)) return (null);
-        const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
+        TraceMobx();
+        if (!(this.doc instanceof Doc)) return (null);
+        const dropAction = StrCast(this.doc.childDropAction) as dropActionType;
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(d, target, addDoc);
         const childDocs = this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
+        const childElements = childDocs && TreeView.GetChildElements(childDocs, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
+            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+            this.outerXf, this.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
+            BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
+            this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged);
+        const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
+
         return !childDocs ? (null) : (
-            <div className="collectionTreeView-dropTarget" id="body"
-                style={{
-                    background: this.props.backgroundColor?.(this.props.Document),
-                    paddingLeft: `${NumCast(this.props.Document._xPadding, 10)}px`,
-                    paddingRight: `${NumCast(this.props.Document._xPadding, 10)}px`,
-                    paddingTop: `${NumCast(this.props.Document._yPadding, 20)}px`,
-                    pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
-                }}
-                onKeyPress={this.onKeyPress}
-                onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
-                onDrop={this.onTreeDrop}
-                ref={this.createTreeDropTarget}>
-                {(this.props.treeViewHideTitle || this.props.Document.treeViewHideTitle ? (null) : <EditableView
-                    contents={this.dataDoc.title}
-                    editing={false}
-                    display={"block"}
-                    maxHeight={72}
-                    height={"auto"}
-                    GetValue={() => StrCast(this.dataDoc.title)}
-                    SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
-                    OnFillDown={undoBatch((value: string) => {
-                        Doc.SetInPlace(this.dataDoc, "title", value, false);
-                        const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
-                        EditableView.loadId = doc[Id];
-                        Doc.SetInPlace(doc, "editTitle", true, false);
-                        this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
-                    })} />)}
-                {this.props.Document.allowClear ? this.renderClearButton : (null)}
-                <ul className="no-indent" style={{ width: "max-content" }} >
-                    {
-                        TreeView.GetChildElements(childDocs, this.props.Document, this.props.Document, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
-                            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
-                            this.outerXf, this.props.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.props.Document.treeViewHideHeaderFields),
-                            BoolCast(this.props.Document.treeViewPreventOpen), [], this.props.LibraryPath, this.props.onCheckedClick,
-                            this.props.onChildClick || ScriptCast(this.props.Document.onChildClick), this.props.ignoreFields)
-                    }
-                </ul>
-            </div >
+            <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
+                <div className="collectionTreeView-dropTarget" id="body"
+                    style={{
+                        background: this.props.backgroundColor?.(this.doc, this.props.renderDepth),
+                        paddingLeft: `${NumCast(this.doc._xPadding, 10)}px`,
+                        paddingRight: `${NumCast(this.doc._xPadding, 10)}px`,
+                        paddingTop: `${NumCast(this.doc._yPadding, 20)}px`,
+                        pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined,
+                    }}
+                    onWheel={(e) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
+                    onDrop={this.onTreeDrop}
+                    ref={this.createTreeDropTarget}>
+                    {hideTitle ? (null) : <EditableView
+                        contents={this.dataDoc.title}
+                        editing={false}
+                        display={"block"}
+                        maxHeight={72}
+                        height={"auto"}
+                        GetValue={() => StrCast(this.dataDoc.title)}
+                        SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
+                        OnFillDown={undoBatch((value: string) => {
+                            Doc.SetInPlace(this.dataDoc, "title", value, false);
+                            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                            Doc.SetInPlace(doc, "editTitle", "*", false);
+                            this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
+                        })} />}
+                    {this.doc.allowClear ? this.renderClearButton : (null)}
+                    <ul className="no-indent" style={{ width: "max-content" }} > {childElements} </ul>
+                </div >
+            </div>
         );
     }
 }
@@ -852,6 +889,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
     });
     const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue => {
         const doc = new Doc();
+        doc.system = true;
         doc.title = facetValue.toString();
         doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
         return doc;

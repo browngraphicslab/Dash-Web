@@ -6,67 +6,132 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    position: absolute;
+    position: relative;
     font-size: 10px;
     line-height: 1;
     overflow-y: auto;
     overflow-x: visible;
-    background: lightgrey,
-}
+    background: lightgrey;
+    overflow: visible;
+    z-index: 10000;
 
-.searchBox-bar {
-    height: 32px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding-left: 2px;
+    .searchBox-bar {
+        height: $searchpanel-height;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: black;
 
-    .searchBox-barChild {
+        .searchBox-lozenges {
+            position: absolute;
+            left: 15;
+            display: flex;
 
-        &.searchBox-collection {
-            flex: 0 1 auto;
-            margin-left: 2px;
-            margin-right: 2px
-        }
+            .searchBox-lozenge-user,
+            .searchBox-lozenge-dashboard,
+            .searchBox-lozenge {
+                background-color: #313131;
+                border-radius: 5px;
+                height: 18px;
+                padding: 4px;
+                box-shadow: lightgrey 0.15em 0.15em 0.1em;
+                margin: 2px;
+                margin-bottom: 4px;
+                border-top: dimgrey 1px solid;
+                border-left: dimgrey 1px solid;
+                display: flex;
+                .searchBox-logoff,
+                .searchBox-dashboards {
+                    border-radius: 3px;
+                    background: olivedrab;
+                    color: white;
+                    position: relative;
+                    display: none;
+                    margin-left: 3px;
+                    padding-left: 2px;
+                    padding-right: 2px;
+                    padding-bottom: 11px;
+                    cursor: default;
+                }
+                .searchBox-logoff {
+                    background: red;
+                }
 
-        &.searchBox-input {
-            display: block;
-            width: 130px;
-            -webkit-transition: width 0.4s;
-            transition: width 0.4s;
-            align-self: stretch;
+                .searchBox-dashSelect{
+                    background-color: black;
+                    color: white;
+                    font-size: 9;
+                    margin-right: 6;
+                    border-radius: 5px;
+                    position: relative;
+                    height: 15px;
+                    transform: translate(0,-3px);
 
-        }
-
-        .searchBox-input:focus {
-            width: 500px;
-            outline: 3px solid lightblue;
-        }
-
-        &.searchBox-filter {
-            align-self: stretch;
-            button:hover{
-                transform:scale(1.0);
-                background:"#121721";
+                    &:hover {
+                        cursor: pointer;
+                    }
+                }
+            }
+            .searchBox-lozenge-user:hover {
+                .searchBox-logoff {
+                    display:inline-block;
+                }
+            }
+            .searchBox-lozenge-dashboard:hover {
+                .searchBox-dashboards {
+                    display:inline-block;
+                }
             }
         }
-
-        &.searchBox-submit {
-            margin-left: 2px;
-            margin-right: 2px
+        .searchBox-query {
+            position: relative;
+            display: flex;
+            width: 450;
         }
+        .searchBox-barChild {
 
-        &.searchBox-close {
-            color: $light-color;
-            max-height: 32px;
+            &.searchBox-collection {
+                flex: 0 1 auto;
+                margin-left: 2px;
+                margin-right: 2px
+            }
+
+            &.searchBox-input {
+                margin:5px;
+                border-radius:20px;
+                border:black;    
+                display: block;
+                width: 130px;
+                -webkit-transition: width 0.4s;
+                transition: width 0.4s;
+                align-self: stretch;
+                outline:none;
+                &:focus {
+                    width: 500px;
+                    outline:none;
+                }
+            }
+            &.searchBox-filter {
+                align-self: stretch;
+                button{
+                    transform:none;
+                    &:hover {
+                        transform: none;
+                    }
+                }
+            }
+
+            &.searchBox-submit {
+                margin-left: 2px;
+                margin-right: 2px
+            }
+
+            &.searchBox-close {
+                color: $light-color;
+                max-height: $searchpanel-height;
+            }
         }
-    }
-}
-
-.searchBox-quickFilter {
-    width: 100%;
-    height: 40px;
-    margin-top: 10px;
+    }   
 }
 
 .searchBox-results {
@@ -81,256 +146,10 @@
     .no-result {
         width: 500px;
         background: $light-color-secondary;
-        border-color: $intermediate-color;
-        border-bottom-style: solid;
         padding: 10px;
         height: 50px;
         text-transform: uppercase;
         text-align: left;
         font-weight: bold;
-    }
-}
-
-.filter-form {
-    position: relative;
-    background: #121721;
-    flex-direction: column;
-    transform-origin: top;
-    transition: height 0.3s ease, display 0.6s ease;
-    height:0px;
-    overflow:hidden;
-
-
-    .filter-header {
-        display: flex;
-        position: relative;
-        flex-wrap:wrap;
-        right: 1px;
-        color: grey;
-        flex-direction: row-reverse;
-        transform-origin: top;
-        justify-content: space-evenly;
-        margin-bottom: 5px;
-        overflow:hidden;
-        transition:height 0.3s ease-out;
-
-
-
-        .filter-item {
-            position: relative;
-            border:1px solid grey;
-            border-radius: 16px;
-
-        }
-    }
-
-    .filter-body {
-        position: relative;
-        right: 1px;
-        color: grey;
-        transform-origin: top;
-        border-top: 0px;
-        //padding-top: 5px;
-        margin-left: 10px;
-        margin-right: 10px;
-        overflow:hidden;
-        transition:height 0.3s ease-out;
-        height:0px;
-
-    }
-    .filter-key {
-        position: relative;
-        right: 1px;
-        color: grey;
-        transform-origin: top;
-        border-top: 0px;
-        //padding-top: 5px;
-        margin-left: 10px;
-        margin-right: 10px;
-        overflow:hidden;
-        transition:height 0.3s ease-out;
-        height:0px;
-        .filter-keybar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-evenly;
-            height: auto;
-            width: 100%;
-            flex-direction: row-reverse;
-            margin-top:5px;
-            
-            .filter-item {
-                position: relative;
-                border:1px solid grey;
-                border-radius: 16px;
-    
-            }
-        }
-
-
-    }
-}
-
-// .top-filter-header {
-
-//     #header {
-//         text-transform: uppercase;
-//         letter-spacing: 2px;
-//         font-size: 13;
-//         width: 80%;
-//     }
-
-//     .close-icon {
-//         width: 20%;
-//         opacity: .6;
-//         position: relative;
-//         display: block;
-
-//         .line {
-//             display: block;
-//             background: $alt-accent;
-//             width: 20;
-//             height: 3;
-//             position: absolute;
-//             right: 0;
-//             border-radius: ($height-line / 2);
-
-//             &.line-1 {
-//                 transform: rotate(45deg);
-//                 top: 45%;
-//             }
-
-//             &.line-2 {
-//                 transform: rotate(-45deg);
-//                 top: 45%;
-//             }
-//         }
-//     }
-
-//     .close-icon:hover {
-//         opacity: 1;
-//     }
-
-// }
-
-// .filter-options {
-
-//     .filter-div {
-//         margin-top: 10px;
-//         margin-bottom: 10px;
-//         display: inline-block;
-//         width: 100%;
-//         border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
-//         border-top-style: solid;
-
-//         .filter-header {
-//             display: flex;
-//             align-items: center;
-//             margin-bottom: 10px;
-//             letter-spacing: 2px;
-
-//             .filter-title {
-//                 font-size: 13;
-//                 text-transform: uppercase;
-//                 margin-top: 10px;
-//                 margin-bottom: 10px;
-//                 -webkit-transition: all 0.2s ease-in-out;
-//                 -moz-transition: all 0.2s ease-in-out;
-//                 -o-transition: all 0.2s ease-in-out;
-//                 transition: all 0.2s ease-in-out;
-//             }
-//         }
-
-//         .filter-header:hover .filter-title {
-//             transform: scale(1.05);
-//         }
-
-//         .filter-panel {
-//             max-height: 0px;
-//             width: 100%;
-//             overflow: hidden;
-//             opacity: 0;
-//             transform-origin: top;
-//             -webkit-transition: all 0.2s ease-in-out;
-//             -moz-transition: all 0.2s ease-in-out;
-//             -o-transition: all 0.2s ease-in-out;
-//             transition: all 0.2s ease-in-out;
-//             text-align: center;
-//         }
-//     }
-// }
-
-// .filter-buttons {
-//     border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
-//     border-top-style: solid;
-//     padding-top: 10px;
-// }
-
-
-.active-filters {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    width: 100%;
-    margin-right: 30px;
-    position: relative;
-
-    .active-icon {
-        max-width: 40px;
-        flex: initial;
-
-        &.icon {
-            width: 40px;
-            text-align: center;
-            margin-bottom: 5px;
-            position: absolute;
-        }
-
-        &.container {
-            display: flex;
-            flex-direction: column;
-            width: 40px;
-        }
-
-        &.description {
-            text-align: center;
-            top: 40px;
-            position: absolute;
-            width: 40px;
-            font-size: 9px;
-            opacity: 0;
-            -webkit-transition: all 0.2s ease-in-out;
-            -moz-transition: all 0.2s ease-in-out;
-            -o-transition: all 0.2s ease-in-out;
-            transition: all 0.2s ease-in-out;
-        }
-
-        &.icon:hover+.description {
-            opacity: 1;
-        }
-    }
-
-    .col-icon {
-        height: 35px;
-        margin-left: 5px;
-        width: 35px;
-        background-color: black;
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .save-filter,
-        .reset-filter,
-        .all-filter {
-            background-color: gray;
-        }
-
-        .save-filter:hover,
-        .reset-filter:hover,
-        .all-filter:hover {
-            background-color: $darker-alt-accent;
-        }
     }
 }

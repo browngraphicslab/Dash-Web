@@ -1,34 +1,48 @@
 @import "../globalCssVariables";
-@import '~js-datepicker/dist/datepicker.min.css';
 
-.collectionViewChrome-cont {
-    position: absolute;
+
+.collectionMenu-cont {
+    position: relative;
+    display: inline-flex;
     width: 100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: lightgrey;
+    background: #323232;
+    color: white;
     transform-origin: top left;
+    top: 0;
+    width: 100%;
 
-    .collectionViewChrome {
+    .antimodeMenu-button {
+        padding: 0;
+        width: 30px;
+        display: flex;
+
+        svg {
+            margin: auto;
+        }
+    }
+
+    .collectionMenu {
         display: flex;
         padding-bottom: 1px;
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
-        overflow: hidden;
+        overflow: visible;
+        z-index: 9001;
+        border: unset;
 
         .collectionViewBaseChrome {
             display: flex;
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                //text-transform: uppercase;
-                //letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
+                background: #323232;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -51,21 +65,22 @@
                 margin-left: 3px;
                 margin-right: 0px;
                 font-size: 75%;
-                background: rgb(238, 238, 238);
+                background: #323232;
+                color: white;
                 border: none;
-                color: grey;
+                border-right: solid gray 1px;
             }
 
             .commandEntry-outerDiv {
                 pointer-events: all;
-                background-color: gray;
+                background-color: #323232;
                 display: flex;
                 flex-direction: row;
                 height: 30px;
 
                 .commandEntry-drop {
                     color: white;
-                    width: 25px;
+                    width: 30px;
                     margin-top: auto;
                     margin-bottom: auto;
                 }
@@ -74,10 +89,16 @@
             .collectionViewBaseChrome-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
-                width: 40px;
+                width: 30px;
                 transform-origin: top left;
                 pointer-events: all;
                 // margin-top: 10px;
+            }
+
+            @media only screen and (max-device-width: 480px) {
+                .collectionViewBaseChrome-collapse {
+                    display: none;
+                }
             }
 
             .collectionViewBaseChrome-template,
@@ -87,27 +108,26 @@
                 color: grey;
                 margin-top: auto;
                 margin-bottom: auto;
-                margin-left: 5px;
-            }
-
-            .collectionViewBaseChrome-viewModes {
-                margin-left: 25px;
             }
 
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
+                border: none;
+                border-right: solid gray 1px;
 
                 .collectionViewBaseChrome-filterIcon {
                     position: relative;
                     display: flex;
                     margin: auto;
-                    background: gray;
+                    background: #323232;
                     color: white;
                     width: 30px;
                     height: 30px;
                     align-items: center;
                     justify-content: center;
+                    border: none;
+                    border-right: solid gray 1px;
                 }
 
                 .collectionViewBaseChrome-viewSpecsInput {
@@ -169,7 +189,8 @@
         }
 
         .collectionStackingViewChrome-cont,
-        .collectionTreeViewChrome-cont {
+        .collectionTreeViewChrome-cont,
+        .collection3DCarouselViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
@@ -182,11 +203,12 @@
                 font-size: 75%;
                 //text-transform: uppercase;
                 //letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
+                background: #121721;
+                color: white;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionGridViewChrome-viewPicker:active {
@@ -207,13 +229,17 @@
                 .flexLabel {
                     margin-bottom: 0;
                 }
-            }
 
-            .collectionGridViewChrome-entryBox {
-                width: 50%;
+                .collectionGridViewChrome-entryBox {
+                    width: 50%;
+                    color: black;
+                }
+
+                .collectionGridViewChrome-columnButton {
+                    color: black;
+                }
             }
         }
-
 
         .collectionStackingViewChrome-sort,
         .collectionTreeViewChrome-sort {
@@ -234,21 +260,24 @@
 
 
         .collectionStackingViewChrome-pivotField-cont,
-        .collectionTreeViewChrome-pivotField-cont {
+        .collectionTreeViewChrome-pivotField-cont,
+        .collection3DCarouselViewChrome-scrollSpeed-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
             .collectionStackingViewChrome-pivotField-label,
-            .collectionTreeViewChrome-pivotField-label {
+            .collectionTreeViewChrome-pivotField-label,
+            .collection3DCarouselViewChrome-scrollSpeed-label {
                 vertical-align: center;
                 padding-left: 10px;
                 margin: auto;
             }
 
             .collectionStackingViewChrome-pivotField,
-            .collectionTreeViewChrome-pivotField {
+            .collectionTreeViewChrome-pivotField,
+            .collection3DCarouselViewChrome-scrollSpeed {
                 color: white;
                 width: 100%;
                 min-width: 100px;
@@ -262,7 +291,7 @@
                 .editableView-container-editing {
                     margin: auto;
                     border: 0px;
-                    color: grey;
+                    color: grey !important;
                     text-align: center;
                     letter-spacing: 2px;
                     outline-color: black;
@@ -278,56 +307,138 @@
         }
 
         .collectionStackingViewChrome-pivotField:hover,
-        .collectionTreeViewChrome-pivotField:hover {
+        .collectionTreeViewChrome-pivotField:hover,
+        .collection3DCarouselViewChrome-scrollSpeed:hover {
             cursor: text;
         }
 
     }
 }
 
-.collectionFreeFormViewChrome-cont {
-    width: 60px;
-    display: flex;
+.webBox-urlEditor {
+    position: relative;
+    opacity: 0.9;
+    z-index: 9001;
+    transition: top .5s;
+
+    .urlEditor {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        padding-bottom: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+        height: 35px;
+
+        .editorBase {
+            display: flex;
+
+            .editor-collapse {
+                transition: all .5s, opacity 0.3s;
+                position: absolute;
+                width: 40px;
+                transform-origin: top left;
+            }
+
+            .switchToText {
+                color: $main-accent;
+            }
+
+            .switchToText:hover {
+                color: $dark-color;
+            }
+        }
+
+        button:hover {
+            transform: scale(1);
+        }
+    }
+}
+
+.webpage-urlInput {
+    padding: 12px 10px 11px 10px;
+    border: 0px;
+    color: black;
+    font-size: 10px;
+    letter-spacing: 2px;
+    outline-color: black;
+    background: rgb(238, 238, 238);
+    width: 100%;
+    min-width: 350px;
+    margin-right: 10px;
+    height: 100%;
+}
+
+.collectionFreeFormMenu-cont {
+    display: inline-flex;
     position: relative;
     align-items: center;
+    margin-left: 10px;
+
+    .antimodeMenu-button {
+        text-align: center;
+        display: block;
+    }
+
+    .color-previewI {
+        width: 80%;
+        height: 20%;
+        bottom: 0;
+        position: absolute;
+    }
+
+    .color-previewII {
+        width: 80%;
+        height: 80%;
+        margin-left: 10%;
+    }
+
+    .btn-group {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
+
+    .btn-draw {
+        display: inline-flex;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
 
     .fwdKeyframe,
     .numKeyframe,
     .backKeyframe {
         cursor: pointer;
-        position: absolute;
+        position: relative;
         width: 20;
         height: 30;
         bottom: 0;
-        background: gray;
-        display: flex;
+        background: #323232;
+        display: inline-flex;
         align-items: center;
         color: white;
     }
 
     .backKeyframe {
-        left: 0;
-
         svg {
             display: block;
             margin: auto;
         }
     }
 
+
     .numKeyframe {
-        left: 20;
-        display: flex;
         flex-direction: column;
-        padding: 5px;
+        padding-top: 5px;
     }
 
     .fwdKeyframe {
-        left: 40;
-
         svg {
             display: block;
             margin: auto;
         }
+
+        border-right: solid gray 1px;
     }
 }
 
@@ -351,14 +462,14 @@
 
     .collectionSchemaViewChrome-toggler {
         width: 100px;
-        height: 41px;
+        height: 35px;
         background-color: black;
         position: relative;
     }
 
     .collectionSchemaViewChrome-togglerButton {
         width: 47px;
-        height: 35px;
+        height: 30px;
         background-color: $light-color-secondary;
         // position: absolute;
         transition: all 0.5s ease;

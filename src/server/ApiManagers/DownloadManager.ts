@@ -80,20 +80,14 @@ async function getDocs(id: string) {
         }
         const ids: string[] = [];
         for (const key in doc.fields) {
-            if (!doc.fields.hasOwnProperty(key)) {
-                continue;
-            }
+            if (!doc.fields.hasOwnProperty(key)) { continue; }
             const field = doc.fields[key];
-            if (field === undefined || field === null) {
-                continue;
-            }
+            if (field === undefined || field === null) { continue; }
 
             if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                 ids.push(field.fieldId);
             } else if (field.__type === "script" || field.__type === "computed") {
-                if (field.captures) {
-                    ids.push(field.captures.fieldId);
-                }
+                field.captures && ids.push(field.captures.fieldId);
             } else if (field.__type === "list") {
                 ids.push(...fn(field));
             } else if (typeof field === "string") {

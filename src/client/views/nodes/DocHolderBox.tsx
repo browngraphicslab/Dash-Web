@@ -119,6 +119,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     Document={containedDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
+                    docFilters={this.props.docFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -147,6 +149,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     Document={containedDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
+                    docFilters={this.props.docFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -178,11 +182,11 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     render() {
         const containedDoc = Cast(this.dataDoc[this.fieldKey], Doc, null);
         TraceMobx();
-        return <div className="documentBox-container" ref={this._contRef}
+        return !containedDoc ? (null) : <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: this.props.backgroundColor?.(containedDoc),
+                background: this.props.backgroundColor?.(containedDoc, this.props.renderDepth),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,

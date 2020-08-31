@@ -7,7 +7,7 @@ import { listSpec } from "../../fields/Schema";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, NumCast, ScriptCast, StrCast } from "../../fields/Types";
-import { emptyFunction } from "../../Utils";
+import { emptyFunction, returnTrue } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
@@ -19,8 +19,6 @@ export function SetupDrag(
     docFunc: () => Doc | Promise<Doc> | undefined,
     moveFunc?: DragManager.MoveFunction,
     dropAction?: dropActionType,
-    treeViewId?: string,
-    dontHideOnDrop?: boolean,
     dragStarted?: () => void
 ) {
     const onRowMove = async (e: PointerEvent) => {
@@ -34,8 +32,6 @@ export function SetupDrag(
             const dragData = new DragManager.DocumentDragData([doc]);
             dragData.dropAction = dropAction;
             dragData.moveDocument = moveFunc;
-            dragData.treeViewId = treeViewId;
-            dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
             dragStarted?.();
         }
@@ -87,6 +83,7 @@ export namespace DragManager {
         hideSource?: boolean;  // hide source document during drag
         offsetX?: number;      // offset of top left of source drag visual from cursor
         offsetY?: number;
+        noAutoscroll?: boolean;
     }
 
     // event called when the drag operation results in a drop action
@@ -120,21 +117,21 @@ export namespace DragManager {
     }
 
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dropAction?: dropActionType) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = [];
             this.offset = [0, 0];
+            this.dropAction = dropAction;
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
         dragDivName?: string;
-        treeViewId?: string;
+        treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
         dropAction: dropActionType;
         removeDropProperties?: string[];
         userDropAction: dropActionType;
-        embedDoc?: boolean;
         moveDocument?: MoveFunction;
         removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
@@ -207,7 +204,6 @@ export namespace DragManager {
             dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
             return dropDoc;
         };
-        const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
             if (docDragData && !docDragData.droppedDocuments.length) {
@@ -215,11 +211,12 @@ export namespace DragManager {
                 docDragData.droppedDocuments =
                     dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                         docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
-                            docDragData.dropAction === "copy" ? Doc.MakeDelegate(d) : d);
-                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) =>
-                    (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
-                );
-                batch.end();
+                            docDragData.dropAction === "copy" ? Doc.MakeClone(d) : d);
+                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
+                    const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
+                    const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
+                    remProps.map(prop => drop[prop] = undefined);
+                });
             }
             return e;
         };
@@ -228,15 +225,18 @@ export namespace DragManager {
     }
 
     // drag a button template and drop a new button 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+    export function
+        StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         const finishDrag = (e: DragCompleteEvent) => {
-            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
+            const bd = Docs.Create.ButtonDocument({ toolTip: title, z: 1, _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
             params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc))); // copy all "captured" arguments into document parameterfields
             initialize?.(bd);
             Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
             return e;
         };
+        options = options ?? {};
+        options.noAutoscroll = true;  // these buttons are being dragged on the overlay layer, so scrollin the underlay is not appropriate
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
     }
 
@@ -318,6 +318,7 @@ export namespace DragManager {
     export let docsBeingDragged: Doc[] = [];
     export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+        const batch = UndoManager.StartBatch("dragging");
         eles = eles.filter(e => e);
         CanEmbed = false;
         if (!dragDiv) {
@@ -327,9 +328,9 @@ export namespace DragManager {
             dragLabel = document.createElement("div");
             dragLabel.className = "dragManager-dragLabel";
             dragLabel.style.zIndex = "100001";
-            dragLabel.style.fontSize = "10";
+            dragLabel.style.fontSize = "10pt";
             dragLabel.style.position = "absolute";
-            dragLabel.innerText = "press 'a' to embed on drop";
+            // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
@@ -352,7 +353,7 @@ export namespace DragManager {
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
-                scaleY = rect.height / ele.offsetHeight;
+                scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
             elesCont.left = Math.min(rect.left, elesCont.left);
             elesCont.top = Math.min(rect.top, elesCont.top);
             elesCont.right = Math.max(rect.right, elesCont.right);
@@ -411,6 +412,7 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
+        let scrollAwaiter: Opt<NodeJS.Timeout>;
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
@@ -429,6 +431,59 @@ export namespace DragManager {
                     preventDefault: emptyFunction,
                     button: 0
                 }, dragData.droppedDocuments);
+            }
+
+            const target = document.elementFromPoint(e.x, e.y);
+
+            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
+                const autoScrollHandler = () => {
+                    target.dispatchEvent(
+                        new CustomEvent<React.DragEvent>("dashDragAutoScroll", {
+                            bubbles: true,
+                            detail: {
+                                shiftKey: e.shiftKey,
+                                altKey: e.altKey,
+                                metaKey: e.metaKey,
+                                ctrlKey: e.ctrlKey,
+                                clientX: e.clientX,
+                                clientY: e.clientY,
+                                dataTransfer: new DataTransfer,
+                                button: e.button,
+                                buttons: e.buttons,
+                                getModifierState: e.getModifierState,
+                                movementX: e.movementX,
+                                movementY: e.movementY,
+                                pageX: e.pageX,
+                                pageY: e.pageY,
+                                relatedTarget: e.relatedTarget,
+                                screenX: e.screenX,
+                                screenY: e.screenY,
+                                detail: e.detail,
+                                view: e.view ? e.view : new Window,
+                                nativeEvent: new DragEvent("dashDragAutoScroll"),
+                                currentTarget: target,
+                                target: target,
+                                bubbles: true,
+                                cancelable: true,
+                                defaultPrevented: true,
+                                eventPhase: e.eventPhase,
+                                isTrusted: true,
+                                preventDefault: () => "not implemented for this event" ? false : false,
+                                isDefaultPrevented: () => "not implemented for this event" ? false : false,
+                                stopPropagation: () => "not implemented for this event" ? false : false,
+                                isPropagationStopped: () => "not implemented for this event" ? false : false,
+                                persist: emptyFunction,
+                                timeStamp: e.timeStamp,
+                                type: "dashDragAutoScroll"
+                            }
+                        })
+                    );
+
+                    scrollAwaiter && clearTimeout(scrollAwaiter);
+                    SnappingManager.GetIsDragging() && (scrollAwaiter = setTimeout(autoScrollHandler, 25));
+                };
+                scrollAwaiter && clearTimeout(scrollAwaiter);
+                scrollAwaiter = setTimeout(autoScrollHandler, 250);
             }
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
@@ -452,6 +507,7 @@ export namespace DragManager {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             SnappingManager.clearSnapLines();
+            batch.end();
         });
 
         AbortDrag = () => {

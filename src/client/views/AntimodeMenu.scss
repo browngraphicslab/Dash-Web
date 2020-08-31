@@ -1,7 +1,10 @@
+@import "./globalCssVariables";
+
+
 .antimodeMenu-cont {
     position: absolute;
     z-index: 10000;
-    height: 35px;
+    height: $antimodemenu-height;
     background: #323232;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
     border-radius: 0px 6px 6px 6px;
@@ -38,5 +41,36 @@
         background-size: 90% 100%;
         background-repeat: no-repeat;
         background-position: left center;
+    }
+}
+
+@media only screen and (max-device-width: 480px) {
+    .antimodeMenu-cont {
+        height: 100px;
+        width: 100vw;
+
+        &.with-rows {
+            flex-direction: column-reverse;
+        }
+
+        .antimodeMenu-row {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        .antimodeMenu-button {
+            background-color: transparent;
+            width: 100px;
+            height: 100px;
+
+            &.active {
+                background-color: #121212;
+            }
+        }
+
+        .antimodeMenu-button:hover {
+            background-color: #121212;
+        }
     }
 }

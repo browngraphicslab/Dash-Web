@@ -1,13 +1,14 @@
 import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc, fetchProto } from '../fields/Doc';
+import { Opt, Doc, fetchProto, FieldsSym, UpdatingFromServer } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
-import { Id, HandleUpdate } from '../fields/FieldSymbols';
-import GestureOverlay from './views/GestureOverlay';
+import { Id, HandleUpdate, Parent } from '../fields/FieldSymbols';
+import { GestureOverlay } from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
+import { ObjectField } from '../fields/ObjectField';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -31,15 +32,18 @@ export namespace DocServer {
 
     export enum WriteMode {
         Default = 0, //Anything goes
-        Playground = 1,
-        LiveReadonly = 2,
-        LivePlayground = 3,
+        Playground = 1, //Playground (write own/no read other updates)
+        LiveReadonly = 2,//Live Readonly (no write/read others)
+        LivePlayground = 3,//Live Playground (write own/read others)
     }
-
-    export let AclsMode = WriteMode.Default;
-
     const fieldWriteModes: { [field: string]: WriteMode } = {};
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};
+
+    export var PlaygroundFields: string[];
+    export function setPlaygroundFields(livePlaygroundFields: string[]) {
+        DocServer.PlaygroundFields = livePlaygroundFields;
+        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+    }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {
         fieldWriteModes[field] = writeMode;
@@ -152,23 +156,23 @@ export namespace DocServer {
 
         let _isReadOnly = false;
         export function makeReadOnly() {
-            if (_isReadOnly) return;
-            _isReadOnly = true;
-            _CreateField = field => {
-                _cache[field[Id]] = field;
-            };
-            _UpdateField = emptyFunction;
-            _RespondToUpdate = emptyFunction;
+            if (!_isReadOnly) {
+                _isReadOnly = true;
+                _CreateField = field => _cache[field[Id]] = field;
+                _UpdateField = emptyFunction;
+                _RespondToUpdate = emptyFunction;
+            }
         }
 
         export function makeEditable() {
-            if (!_isReadOnly) return;
-            location.reload();
-            // _isReadOnly = false;
-            // _CreateField = _CreateFieldImpl;
-            // _UpdateField = _UpdateFieldImpl;
-            // _respondToUpdate = _respondToUpdateImpl;
-            // _cache = {};
+            if (_isReadOnly) {
+                location.reload();
+                // _isReadOnly = false;
+                // _CreateField = _CreateFieldImpl;
+                // _UpdateField = _UpdateFieldImpl;
+                // _respondToUpdate = _respondToUpdateImpl;
+                // _cache = {};
+            }
         }
 
         export function isReadOnly() { return _isReadOnly; }
@@ -204,12 +208,12 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param id the id of the requested document
      */
-    const _GetRefFieldImpl = (id: string): Promise<Opt<RefField>> => {
+    const _GetRefFieldImpl = (id: string, force: boolean = false): Promise<Opt<RefField>> => {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
         const cached = _cache[id];
-        if (cached === undefined) {
+        if (cached === undefined || force) {
             // NOT CACHED => we'll have to send a request to the server
 
             // synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
@@ -223,7 +227,19 @@ export namespace DocServer {
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
                 const field = await SerializationHelper.Deserialize(fieldJson);
-                if (field !== undefined) {
+                if (force && field instanceof Doc && cached instanceof Doc) {
+                    cached[UpdatingFromServer] = true;
+                    Array.from(Object.keys(field)).forEach(key => {
+                        const fieldval = field[key];
+                        if (fieldval instanceof ObjectField) {
+                            fieldval[Parent] = undefined;
+                        }
+                        cached[key] = field[key];
+                    });
+                    cached[UpdatingFromServer] = false;
+                    return cached;
+                }
+                else if (field !== undefined) {
                     _cache[id] = field;
                 } else {
                     delete _cache[id];
@@ -235,8 +251,8 @@ export namespace DocServer {
             });
             // here, indicate that the document associated with this id is currently
             // being retrieved and cached
-            _cache[id] = deserializeField;
-            return deserializeField;
+            !force && (_cache[id] = deserializeField);
+            return force ? cached as any : deserializeField;
         } else if (cached instanceof Promise) {
             // BEING RETRIEVED AND CACHED => some other caller previously (likely recently) called GetRefField(s),
             // and requested the document I'm looking for. Shouldn't fetch again, just
@@ -245,7 +261,7 @@ export namespace DocServer {
         } else {
             // CACHED => great, let's just return the cached field we have
             return Promise.resolve(cached).then(field => {
-                (field instanceof Doc) && fetchProto(field);
+                //(field instanceof Doc) && fetchProto(field);
                 return field;
             });
         }
@@ -257,11 +273,11 @@ export namespace DocServer {
         }
     };
 
-    let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
+    let _GetRefField: (id: string, force: boolean) => Promise<Opt<RefField>> = errorFunc;
     let _GetCachedRefField: (id: string) => Opt<RefField> = errorFunc;
 
-    export function GetRefField(id: string): Promise<Opt<RefField>> {
-        return _GetRefField(id);
+    export function GetRefField(id: string, force = false): Promise<Opt<RefField>> {
+        return _GetRefField(id, force);
     }
     export function GetCachedRefField(id: string): Opt<RefField> {
         return _GetCachedRefField(id);
@@ -314,60 +330,76 @@ export namespace DocServer {
             }
         }
 
-        // 2) synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
-        // fields for the given ids. This returns a promise, which, when resolved, indicates that all the JSON serialized versions of
-        // the fields have been returned from the server
-        const getSerializedFields: Promise<any> = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds);
+        if (requestedIds.length) {
 
-        // 3) when the serialized RefFields have been received, go head and begin deserializing them into objects.
-        // Here, once deserialized, we also invoke .proto to 'load' the documents' prototypes, which ensures that all
-        // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
-        const deserializeFields = getSerializedFields.then(async fields => {
-            const fieldMap: { [id: string]: RefField } = {};
-            const proms: Promise<void>[] = [];
-            runInAction(() => {
-                for (const field of fields) {
-                    if (field !== undefined && field !== null) {
-                        // deserialize
-                        const prom = SerializationHelper.Deserialize(field).then(deserialized => {
-                            fieldMap[field.id] = deserialized;
+            // 2) synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
+            // fields for the given ids. This returns a promise, which, when resolved, indicates that all the JSON serialized versions of
+            // the fields have been returned from the server
+            const getSerializedFields: Promise<any> = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds);
 
-                            //overwrite or delete any promises (that we inserted as flags
-                            // to indicate that the field was in the process of being fetched). Now everything
-                            // should be an actual value within or entirely absent from the cache.
-                            if (deserialized !== undefined) {
-                                _cache[field.id] = deserialized;
-                            } else {
-                                delete _cache[field.id];
+            // 3) when the serialized RefFields have been received, go head and begin deserializing them into objects.
+            // Here, once deserialized, we also invoke .proto to 'load' the documents' prototypes, which ensures that all
+            // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
+            const deserializeFields = getSerializedFields.then(async fields => {
+                const fieldMap: { [id: string]: RefField } = {};
+                const proms: Promise<void>[] = [];
+                runInAction(() => {
+                    for (const field of fields) {
+                        if (field !== undefined && field !== null && !_cache[field.id]) {
+                            // deserialize
+                            const cached = _cache[field.id];
+                            if (!cached) {
+                                const prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                                    fieldMap[field.id] = deserialized;
+
+                                    //overwrite or delete any promises (that we inserted as flags
+                                    // to indicate that the field was in the process of being fetched). Now everything
+                                    // should be an actual value within or entirely absent from the cache.
+                                    if (deserialized !== undefined) {
+                                        _cache[field.id] = deserialized;
+                                    } else {
+                                        delete _cache[field.id];
+                                    }
+                                    return deserialized;
+                                });
+                                // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
+                                // we set the value at the field's id to a promise that will resolve to the field. 
+                                // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
+                                // The mapping in the .then call ensures that when other callers await these promises, they'll
+                                // get the resolved field
+                                _cache[field.id] = prom;
+
+                                // adds to a list of promises that will be awaited asynchronously
+                                proms.push(prom);
+                            } else if (cached instanceof Promise) {
+                                proms.push(cached as any);
                             }
-                            return deserialized;
-                        });
-                        // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
-                        // we set the value at the field's id to a promise that will resolve to the field. 
-                        // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
-                        // The mapping in the .then call ensures that when other callers await these promises, they'll
-                        // get the resolved field
-                        _cache[field.id] = prom;
-                        // adds to a list of promises that will be awaited asynchronously
-                        proms.push(prom);
+                        } else if (_cache[field.id] instanceof Promise) {
+                            proms.push(_cache[field.id] as any);
+                            (_cache[field.id] as any).then((f: any) => fieldMap[field.id] = f);
+                        } else if (field) {
+                            proms.push(_cache[field.id] as any);
+                            fieldMap[field.id] = field;
+                        }
                     }
-                }
+                });
+                await Promise.all(proms);
+                return fieldMap;
             });
-            await Promise.all(proms);
-            return fieldMap;
-        });
 
-        // 5) at this point, all fields have a) been returned from the server and b) been deserialized into actual Field objects whose
-        // prototype documents, if any, have also been fetched and cached.
-        const fields = await deserializeFields;
+            // 5) at this point, all fields have a) been returned from the server and b) been deserialized into actual Field objects whose
+            // prototype documents, if any, have also been fetched and cached.
+            const fields = await deserializeFields;
 
-        // 6) with this confidence, we can now go through and update the cache at the ids of the fields that
-        // we explicitly had to fetch. To finish it off, we add whatever value we've come up with for a given
-        // id to the soon-to-be-returned field mapping.
-        requestedIds.forEach(id => {
-            const field = fields[id];
-            map[id] = field;
-        });
+            // 6) with this confidence, we can now go through and update the cache at the ids of the fields that
+            // we explicitly had to fetch. To finish it off, we add whatever value we've come up with for a given
+            // id to the soon-to-be-returned field mapping.
+            requestedIds.forEach(id => {
+                const field = fields[id];
+                map[id] = field;
+            });
+
+        }
 
         // 7) those promises we encountered in the else if of 1), which represent
         // other callers having already submitted a request to the server for (a) document(s)
@@ -429,7 +461,7 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+        (!DocServer.Control.isReadOnly()) && Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
     let _UpdateField: (id: string, diff: any) => void = errorFunc;

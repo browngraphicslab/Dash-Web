@@ -1,11 +1,11 @@
-import { readFile, writeFile, exists, mkdir, unlink, createWriteStream } from 'fs';
-import { ExecOptions } from 'shelljs';
 import { exec } from 'child_process';
-import * as path from 'path';
-import * as rimraf from "rimraf";
-import { yellow, Color } from 'colors';
+import { Color, yellow } from 'colors';
+import { createWriteStream, exists, mkdir, readFile, unlink, writeFile } from 'fs';
 import * as nodemailer from "nodemailer";
 import { MailOptions } from "nodemailer/lib/json-transport";
+import * as path from 'path';
+import * as rimraf from "rimraf";
+import { ExecOptions } from 'shelljs';
 import Mail = require('nodemailer/lib/mailer');
 
 const projectRoot = path.resolve(__dirname, "../../");

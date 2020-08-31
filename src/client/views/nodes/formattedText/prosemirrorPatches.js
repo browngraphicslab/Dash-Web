@@ -9,6 +9,7 @@ var prosemirrorModel = require('prosemirror-model');
 exports.liftListItem = liftListItem;
 exports.sinkListItem = sinkListItem;
 exports.wrappingInputRule = wrappingInputRule;
+exports.removeMarkWithAttrs = removeMarkWithAttrs;
 // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
 // Create a command to lift the list item around the selection up into
 // a wrapping list.
@@ -137,3 +138,59 @@ function wrappingInputRule(regexp, nodeType, getAttrs, joinPredicate, customWith
         return tr
     })
 }
+
+
+// :: ([Mark]) → ?Mark
+// Tests whether there is a mark of this type in the given set.
+function isInSetWithAttrs(mark, set, attrs) {
+    for (var i = 0; i < set.length; i++) {
+        if (set[i].type == mark) {
+            if (Array.from(Object.keys(attrs)).reduce((p, akey) => {
+                return p && JSON.stringify(set[i].attrs[akey]) === JSON.stringify(attrs[akey]);
+            }, true)) {
+                return set[i];
+            }
+        }
+    }
+};
+
+// :: (number, number, ?union<Mark, MarkType>) → this
+// Remove marks from inline nodes between `from` and `to`. When `mark`
+// is a single mark, remove precisely that mark. When it is a mark type,
+// remove all marks of that type. When it is null, remove all marks of
+// any type.
+function removeMarkWithAttrs(tr, from, to, mark, attrs) {
+    if (mark === void 0) mark = null;
+
+    var matched = [], step = 0;
+    tr.doc.nodesBetween(from, to, function (node, pos) {
+        if (!node.isInline) { return }
+        step++;
+        var toRemove = null;
+        if (mark) {
+            if (isInSetWithAttrs(mark, node.marks, attrs)) { toRemove = [mark]; }
+        } else {
+            toRemove = node.marks;
+        }
+        if (toRemove && toRemove.length) {
+            var end = Math.min(pos + node.nodeSize, to);
+            for (var i = 0; i < toRemove.length; i++) {
+                var style = toRemove[i], found$1 = (void 0);
+                for (var j = 0; j < matched.length; j++) {
+                    var m = matched[j];
+                    if (m.step == step - 1 && style.eq(matched[j].style)) { found$1 = m; }
+                }
+                if (found$1) {
+                    found$1.to = end;
+                    found$1.step = step;
+                } else {
+                    matched.push({ style: style, from: Math.max(pos, from), to: end, step: step });
+                }
+            }
+        }
+    });
+    matched.forEach(function (m) { return tr.step(new prosemirrorTransform.RemoveMarkStep(m.from, m.to, m.style)); });
+    return tr
+};
+
+

@@ -17,12 +17,12 @@ export const marks: { [index: string]: MarkSpec } = {
             return ["div", { className: "dummy" }, 0];
         }
     },
-    // :: MarkSpec A link. Has `href` and `title` attributes. `title`
+    // :: MarkSpec A linkAnchor. The anchor can have multiple links, where each link has an href URL and a title for use in menus and hover (Dash links have linkIDs & targetIDs). `title`
     // defaults to the empty string. Rendered and parsed as an `<a>`
     // element.
-    link: {
+    linkAnchor: {
         attrs: {
-            allHrefs: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
+            allLinks: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -31,43 +31,67 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { allHrefs: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
+                return { allLinks: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.dataset.targetids }], location: dom.getAttribute("location"), };
             }
         }],
         toDOM(node: any) {
-            const targetids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
-            const linkids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
+            const targetids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
+            const linkids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                node.attrs.allHrefs.length === 1 ?
-                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allLinks[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+                node.attrs.allLinks.length === 1 ?
+                    ["a", { ...node.attrs, class: linkids, dataTargetids: targetids, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href, style: `text-decoration: ${linkids === " " ? "underline" : undefined}` }, 0] :
                     ["div", { class: "prosemirror-anchor" },
                         ["span", { class: "prosemirror-linkBtn" },
-                            ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
+                            ["a", { ...node.attrs, class: linkids, dataTargetids: targetids, title: `${node.attrs.title}` }, 0],
                             ["input", { class: "prosemirror-hrefoptions" }],
                         ],
-                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) =>
+                        ["div", { class: "prosemirror-links" }, ...node.attrs.allLinks.map((item: { href: string, title: string }) =>
                             ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title]
                         )]
                     ];
         }
     },
 
+    /** FONT SIZES */
+    pFontSize: {
+        attrs: { fontSize: { default: 10 } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { fontSize: dom.style.fontSize ? Number(dom.style.fontSize.replace("px", "")) : "" };
+            }
+        }],
+        toDOM: (node) => node.attrs.fontSize ? ['span', { style: `font-size: ${node.attrs.fontSize}px;` }] : ['span', 0]
+    },
 
+    /* FONTS */
+    pFontFamily: {
+        attrs: { family: { default: "" } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                const cstyle = getComputedStyle(dom);
+                if (cstyle.font) {
+                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
+                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
+                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
+                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
+                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
+                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
+                }
+            }
+        }],
+        toDOM: (node) => node.attrs.family ? ['span', { style: `font-family: "${node.attrs.family}";` }] : ['span', 0]
+    },
     // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
     pFontColor: {
-        attrs: {
-            color: { default: "#000" }
-        },
+        attrs: { color: { default: "" } },
         inclusive: true,
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
                 return { color: dom.getAttribute("color") };
             }
         }],
-        toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
-        }
+        toDOM: (node) => node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0]
     },
 
     marker: {
@@ -234,9 +258,7 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         parseDOM: [{ style: 'background: yellow' }],
         toDOM(node: any) {
-            return ['span', {
-                style: `background: ${node.attrs.selected ? "orange" : "yellow"}`
-            }];
+            return ['span', { style: `background: ${node.attrs.selected ? "orange" : "yellow"}` }];
         }
     },
 
@@ -246,14 +268,15 @@ export const marks: { [index: string]: MarkSpec } = {
             userid: { default: "" },
             modified: { default: "when?" }, // 1 second intervals since 1970
         },
+        excludes: "user_mark",
         group: "inline",
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
             const min = Math.round(node.attrs.modified / 12);
             const hr = Math.round(min / 60);
             const day = Math.round(hr / 60 / 24);
-            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
+            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " UM-remote" : "";
+            return ['span', { class: "UM-" + uid + remote + " UM-min-" + min + " UM-hr-" + hr + " UM-day-" + day }, 0];
         }
     },
     // the id of the user who entered the text
@@ -267,7 +290,7 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            return ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0];
+            return ['span', { class: "UT-" + uid + " UT-" + node.attrs.tag }, 0];
         }
     },
 
@@ -276,39 +299,5 @@ export const marks: { [index: string]: MarkSpec } = {
     code: {
         parseDOM: [{ tag: "code" }],
         toDOM() { return codeDOM; }
-    },
-
-    /* FONTS */
-    pFontFamily: {
-        attrs: {
-            family: { default: "Crimson Text" },
-        },
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                const cstyle = getComputedStyle(dom);
-                if (cstyle.font) {
-                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
-                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
-                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
-                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
-                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
-                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
-                }
-            }
-        }],
-        toDOM: (node) => ['span', {
-            style: `font-family: "${node.attrs.family}";`
-        }]
-    },
-
-    /** FONT SIZES */
-    pFontSize: {
-        attrs: {
-            fontSize: { default: 10 }
-        },
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: (node) => ['span', {
-            style: `font-size: ${node.attrs.fontSize}px;`
-        }]
     },
 };

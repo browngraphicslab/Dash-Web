@@ -1,128 +1,182 @@
-import * as ReactDOM from 'react-dom';
-import * as rp from 'request-promise';
-import { Docs } from '../client/documents/Documents';
-import "./ImageUpload.scss";
-import React = require('react');
-import { DocServer } from '../client/DocServer';
-import { Opt, Doc } from '../fields/Doc';
-import { Cast } from '../fields/Types';
-import { listSpec } from '../fields/Schema';
-import { List } from '../fields/List';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
-import { observable } from 'mobx';
+import * as rp from 'request-promise';
+import { DocServer } from '../client/DocServer';
+import { Docs } from '../client/documents/Documents';
+import { Networking } from '../client/Network';
+import { DFLT_IMAGE_NATIVE_DIM } from '../client/views/globalCssVariables.scss';
+import { MainViewModal } from '../client/views/MainViewModal';
+import { Doc, Opt } from '../fields/Doc';
+import { List } from '../fields/List';
+import { listSpec } from '../fields/Schema';
+import { Cast } from '../fields/Types';
 import { Utils } from '../Utils';
-import MobileInterface from './MobileInterface';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { resolvedPorts } from '../client/views/Main';
+import "./ImageUpload.scss";
+import { MobileInterface } from './MobileInterface';
+import React = require('react');
 
-// const onPointerDown = (e: React.TouchEvent) => {
-//     let imgInput = document.getElementById("input_image_file");
-//     if (imgInput) {
-//         imgInput.click();
-//     }
-// }
+export interface ImageUploadProps {
+    Document: Doc; // Target document for upload (upload location)
+}
+
 const inputRef = React.createRef<HTMLInputElement>();
+const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 
 @observer
-class Uploader extends React.Component {
+export class Uploader extends React.Component<ImageUploadProps> {
     @observable error: string = "";
-    @observable status: string = "";
+    @observable nm: string = "Choose files"; // Text of 'Choose Files' button
+    @observable process: string = ""; // Current status of upload
 
     onClick = async () => {
-        console.log("uploader click");
         try {
-            this.status = "initializing protos";
+            const col = this.props.Document;
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
+            this.setOpacity(1, "1"); // Slab 1
             if (imgPrev) {
                 const files: FileList | null = inputRef.current!.files;
+                this.setOpacity(2, "1"); // Slab 2
                 if (files && files.length !== 0) {
-                    console.log(files[0]);
-                    const name = files[0].name;
-                    const formData = new FormData();
-                    formData.append("file", files[0]);
-
-                    const upload = window.location.origin + "/uploadFormData";
-                    this.status = "uploading image";
-                    console.log("uploading image", formData);
-                    const res = await fetch(upload, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    this.status = "upload image, getting json";
-                    const json = await res.json();
-                    json.map(async (file: any) => {
-                        const path = window.location.origin + file;
-                        const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
-
-                        this.status = "getting user document";
-
-                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-                        if (!res) {
-                            throw new Error("No user id returned");
-                        }
-                        const field = await DocServer.GetRefField(res);
-                        let pending: Opt<Doc>;
-                        if (field instanceof Doc) {
-                            pending = await Cast(field.rightSidebarCollection, Doc);
-                        }
-                        if (pending) {
-                            this.status = "has pending docs";
-                            const data = await Cast(pending.data, listSpec(Doc));
-                            if (data) {
-                                data.push(doc);
-                            } else {
-                                pending.data = new List([doc]);
+                    this.process = "Uploading Files";
+                    for (let index = 0; index < files.length; ++index) {
+                        const file = files[index];
+                        const res = await Networking.UploadFilesToServer(file);
+                        this.setOpacity(3, "1"); // Slab 3
+                        // For each item that the user has selected
+                        res.map(async ({ result }) => {
+                            const name = file.name;
+                            if (result instanceof Error) {
+                                return;
                             }
-                            this.status = "finished";
-                        }
-                    });
-
-                    // console.log(window.location.origin + file[0])
-
-                    //imgPrev.setAttribute("src", window.location.origin + files[0].name)
+                            const path = Utils.prepend(result.accessPaths.agnostic.client);
+                            let doc = null;
+                            // Case 1: File is a video
+                            if (file.type === "video/mp4") {
+                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
+                                // Case 2: File is a PDF document
+                            } else if (file.type === "application/pdf") {
+                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, _fitWidth: true, title: name });
+                                // Case 3: File is another document type (most likely Image)
+                            } else {
+                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
+                            }
+                            this.setOpacity(4, "1"); // Slab 4
+                            const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                            if (!res) {
+                                throw new Error("No user id returned");
+                            }
+                            const field = await DocServer.GetRefField(res);
+                            let pending: Opt<Doc>;
+                            if (field instanceof Doc) {
+                                pending = col;
+                            }
+                            if (pending) {
+                                const data = await Cast(pending.data, listSpec(Doc));
+                                if (data) data.push(doc);
+                                else pending.data = new List([doc]);
+                                this.setOpacity(5, "1"); // Slab 5
+                                this.process = "File " + (index + 1).toString() + " Uploaded";
+                                this.setOpacity(6, "1"); // Slab 6
+                            }
+                            if ((index + 1) === files.length) {
+                                this.process = "Uploads Completed";
+                                this.setOpacity(7, "1"); // Slab 7
+                            }
+                        });
+                    }
+                    // Case in which the user pressed upload and no files were selected
+                } else {
+                    this.process = "No file selected";
                 }
+                // Three seconds after upload the menu will reset
+                setTimeout(this.clearUpload, 3000);
             }
         } catch (error) {
             this.error = JSON.stringify(error);
         }
     }
 
-    render() {
+    // Updates label after a files is selected (so user knows a file is uploaded)
+    inputLabel = async () => {
+        const files: FileList | null = inputRef.current!.files;
+        await files;
+        if (files && files.length === 1) {
+            this.nm = files[0].name;
+        } else if (files && files.length > 1) {
+            this.nm = files.length.toString() + " files selected";
+        }
+    }
+
+    // Loops through load icons, and resets buttons
+    @action
+    clearUpload = () => {
+        for (let i = 1; i < 8; i++) {
+            this.setOpacity(i, "0.2");
+        }
+        this.nm = "Choose files";
+
+        if (inputRef.current) {
+            inputRef.current.value = "";
+        }
+        this.process = "";
+    }
+
+    // Clears the upload and closes the upload menu
+    closeUpload = () => {
+        this.clearUpload();
+        MobileInterface.Instance.toggleUpload();
+    }
+
+    // Handles the setting of the loading bar
+    setOpacity = (index: number, opacity: string) => {
+        const slab = document.getElementById("slab" + index);
+        if (slab) slab.style.opacity = opacity;
+    }
+
+    // Returns the upload interface for mobile
+    private get uploadInterface() {
         return (
             <div className="imgupload_cont">
-                <label htmlFor="input_image_file" className="upload_label">Choose an Image</label>
-                <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
-                <button onClick={this.onClick} className="upload_button">Upload</button>
+                <div className="closeUpload" onClick={() => this.closeUpload()}>
+                    <FontAwesomeIcon icon="window-close" size={"lg"} />
+                </div>
+                <FontAwesomeIcon icon="upload" size="lg" style={{ fontSize: "130" }} />
+                <input type="file" accept="application/pdf, video/*,image/*" className={`inputFile ${this.nm !== "Choose files" ? "active" : ""}`} id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
+                <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
+                <div className="upload_label" onClick={this.onClick}>
+                    Upload
+                </div>
                 <img id="img_preview" src=""></img>
-                <p>{this.status}</p>
-                <p>{this.error}</p>
+                <div className="loadingImage">
+                    <div className="loadingSlab" id="slab1" />
+                    <div className="loadingSlab" id="slab2" />
+                    <div className="loadingSlab" id="slab3" />
+                    <div className="loadingSlab" id="slab4" />
+                    <div className="loadingSlab" id="slab5" />
+                    <div className="loadingSlab" id="slab6" />
+                    <div className="loadingSlab" id="slab7" />
+                </div>
+                <p className="status">{this.process}</p>
             </div>
         );
     }
 
-}
+    @observable private dialogueBoxOpacity = 1;
+    @observable private overlayOpacity = 0.4;
 
-
-// DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "image upload");
-(async () => {
-    const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, info.email + "mobile");
-    await Docs.Prototypes.initialize();
-    if (info.id !== "__guest__") {
-        // a guest will not have an id registered
-        await CurrentUserUtils.loadUserDocument(info);
+    render() {
+        return (
+            <MainViewModal
+                contents={this.uploadInterface}
+                isDisplayed={true}
+                interactive={true}
+                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
+                overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.closeUpload}
+            />
+        );
     }
-    document.getElementById('root')!.addEventListener('wheel', event => {
-        if (event.ctrlKey) {
-            event.preventDefault();
-        }
-    }, true);
-    ReactDOM.render((
-        // <Uploader />
-        <MobileInterface />
-    ),
-        document.getElementById('root')
-    );
+
 }
-)();

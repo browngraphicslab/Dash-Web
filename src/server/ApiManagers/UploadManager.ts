@@ -14,8 +14,8 @@ import { normalize } from "path";
 import RouteSubscriber from "../RouteSubscriber";
 const imageDataUri = require('image-data-uri');
 import { isWebUri } from "valid-url";
-import { launch } from "puppeteer";
 import { Opt } from "../../fields/Doc";
+import { SolrManager } from "./SearchManager";
 
 export enum Directory {
     parsed_files = "parsed_files",
@@ -24,7 +24,7 @@ export enum Directory {
     pdfs = "pdfs",
     text = "text",
     pdf_thumbnails = "pdf_thumbnails",
-    audio = "audio"
+    audio = "audio",
 }
 
 export function serverPathToFile(directory: Directory, filename: string) {
@@ -55,7 +55,7 @@ export default class UploadManager extends ApiManager {
                         const results: Upload.FileResponse[] = [];
                         for (const key in files) {
                             const result = await DashUploadUtils.upload(files[key]);
-                            result && results.push(result);
+                            result && !(result.result instanceof Error) && results.push(result);
                         }
                         _success(res, results);
                         resolve();
@@ -138,13 +138,9 @@ export default class UploadManager extends ApiManager {
                         doc.id = getId(doc.id);
                     }
                     for (const key in doc.fields) {
-                        if (!doc.fields.hasOwnProperty(key)) {
-                            continue;
-                        }
+                        if (!doc.fields.hasOwnProperty(key)) { continue; }
                         const field = doc.fields[key];
-                        if (field === undefined || field === null) {
-                            continue;
-                        }
+                        if (field === undefined || field === null) { continue; }
 
                         if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                             field.fieldId = getId(field.fieldId);
@@ -207,11 +203,8 @@ export default class UploadManager extends ApiManager {
                                 } catch (e) { console.log(e); }
                                 unlink(path_2, () => { });
                             }
-                            if (id) {
-                                res.send(JSON.stringify(getId(id)));
-                            } else {
-                                res.send(JSON.stringify("error"));
-                            }
+                            SolrManager.update();
+                            res.send(JSON.stringify(id ? getId(id) : "error"));
                         } catch (e) { console.log(e); }
                         resolve();
                     });
@@ -286,25 +279,26 @@ function delay(ms: number) {
  * 
  * On failure, returns undefined.
  */
-async function captureYoutubeScreenshot(targetUrl: string): Promise<Opt<Buffer>> {
-    const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
+async function captureYoutubeScreenshot(targetUrl: string) {
+    // const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    // const page = await browser.newPage();
+    // // await page.setViewport({ width: 1920, height: 1080 });
 
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
+    // // await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
 
-    const videoPlayer = await page.$('.html5-video-player');
-    videoPlayer && await page.focus("video");
-    await delay(7000);
-    const ad = await page.$('.ytp-ad-skip-button-text');
-    await ad?.click();
-    await videoPlayer?.click();
-    await delay(1000);
-    // hide youtube player controls.
-    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
+    // const videoPlayer = await page.$('.html5-video-player');
+    // videoPlayer && await page.focus("video");
+    // await delay(7000);
+    // const ad = await page.$('.ytp-ad-skip-button-text');
+    // await ad?.click();
+    // await videoPlayer?.click();
+    // await delay(1000);
+    // // hide youtube player controls.
+    // await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
 
-    const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
-    await browser.close();
+    // const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
+    // await browser.close();
 
-    return buffer;
+    // return buffer;
+    return null;
 }

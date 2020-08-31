@@ -50,7 +50,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     @observable private corr_matrix = [[0, 0], [0, 0]]; // for testing
 
     constructor(props: RecommenderProps) {
-        //console.log("creating client recommender...");
         super(props);
         if (!ClientRecommender.Instance) ClientRecommender.Instance = this;
         ClientRecommender.Instance.docVectors = new Set();
@@ -383,7 +382,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                         case 200:
                             const title_vals: string[] = [];
                             const url_vals: string[] = [];
-                            //console.log(result);
                             if (xml) {
                                 const titles = xml.getElementsByTagName("title");
                                 let counter = 1;

@@ -1,12 +1,9 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UndoManager } from "../util/UndoManager";
-
-library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
@@ -19,6 +16,8 @@ export interface OriginalMenuProps {
 export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
+    noexpand?: boolean;
+    addDivider?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -78,7 +77,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     render() {
         if ("event" in this.props) {
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onClick={this.handleEvent}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onPointerDown={this.handleEvent}>
                     {this.props.icon ? (
                         <span className="icon-background">
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
@@ -93,11 +92,17 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             const where = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "flex-start" : this._overPosY > window.innerHeight * 2 / 3 ? "flex-end" : "center";
             const marginTop = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "20px" : this._overPosY > window.innerHeight * 2 / 3 ? "-20px" : "";
             const submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px", marginTop }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "90%", left: "0px", marginTop }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
+            if (!("noexpand" in this.props)) {
+                return <div className="contextMenu-inlineMenu">
+                    {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
+                </div>;
+            }
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} style={{ alignItems: where }}
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")}
+                    style={{ alignItems: where, borderTop: this.props.addDivider ? "solid 1px" : undefined }}
                     onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
                     {this.props.icon ? (
                         <span className="icon-background" onMouseEnter={this.onPointerLeave} style={{ alignItems: "center" }}>
@@ -107,7 +112,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     <div className="contextMenu-description" onMouseEnter={this.onPointerEnter}
                         style={{ alignItems: "center" }} >
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
+                        <FontAwesomeIcon icon={"angle-right"} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
                     {submenu}
                 </div>

@@ -1,10 +1,11 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
+import ReactLoading from 'react-loading';
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { NumCast, Cast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
@@ -12,7 +13,6 @@ import './OverlayView.scss';
 import { Scripting } from "../util/Scripting";
 import { ScriptingRepl } from './ScriptingRepl';
 import { DragManager } from "../util/DragManager";
-import { listSpec } from "../../fields/Schema";
 import { List } from "../../fields/List";
 
 export type OverlayDisposer = () => void;
@@ -125,7 +125,9 @@ export class OverlayView extends React.Component {
         ele = <div key={Utils.GenerateGuid()} className="overlayView-wrapperDiv" style={{
             transform: `translate(${options.x}px, ${options.y}px)`,
             width: options.width,
-            height: options.height
+            height: options.height,
+            top: 0,
+            left: 0
         }}>{ele}</div>;
         this._elements.push(ele);
         return remove;
@@ -144,7 +146,7 @@ export class OverlayView extends React.Component {
 
 
     @computed get overlayDocs() {
-        const userDocOverlays = Doc.UserDoc().myOverlayDocuments;
+        const userDocOverlays = Doc.UserDoc().myOverlayDocs;
         if (!userDocOverlays) {
             return null;
         }
@@ -164,7 +166,7 @@ export class OverlayView extends React.Component {
                     dragData.dropAction = "move";
                     dragData.removeDocument = (doc: Doc | Doc[]) => {
                         const docs = (doc instanceof Doc) ? [doc] : doc;
-                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null), "data", d));
+                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocs, Doc, null), "data", d));
                         return true;
                     };
                     dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
@@ -181,7 +183,7 @@ export class OverlayView extends React.Component {
                 offsetx = NumCast(d.x) - e.clientX;
                 offsety = NumCast(d.y) - e.clientY;
             };
-            return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
+            return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ top: d.type === 'presentation' ? 0 : undefined, width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
                     LibraryPath={emptyPath}
@@ -203,11 +205,18 @@ export class OverlayView extends React.Component {
                     backgroundColor={returnEmptyString}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
+                    docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;
         });
     }
+
+    public static ShowSpinner() {
+        return OverlayView.Instance.addElement(<ReactLoading type="spinningBubbles" color="green" height={250} width={250} />, { x: 300, y: 200 });
+    }
+
 
     render() {
         return (

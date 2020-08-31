@@ -1,12 +1,11 @@
 import * as mongodb from 'mongodb';
-import { Transferable } from './Message';
-import { Opt } from '../fields/Doc';
-import { Utils, emptyFunction } from '../Utils';
-import { Credentials } from 'google-auth-library';
-import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
-import { IDatabase, DocumentsCollection } from './IDatabase';
-import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
+import { Opt } from '../fields/Doc';
+import { emptyFunction, Utils } from '../Utils';
+import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
+import { DocumentsCollection, IDatabase } from './IDatabase';
+import { MemoryDatabase } from './MemoryDatabase';
+import { Transferable } from './Message';
 import { Upload } from './SharedMediaTypes';
 
 export namespace Database {
@@ -305,7 +304,7 @@ export namespace Database {
          */
         export enum AuxiliaryCollections {
             GooglePhotosUploadHistory = "uploadedFromGooglePhotos",
-            GoogleAccess = "googleAuthentication"
+            GoogleAccess = "googleAuthentication",
         }
 
         /**

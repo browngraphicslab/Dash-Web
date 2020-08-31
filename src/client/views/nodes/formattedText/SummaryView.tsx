@@ -14,7 +14,7 @@ export class SummaryView {
         const self = this;
         this._fieldWrapper = document.createElement("span");
         this._fieldWrapper.className = this.className(node.attrs.visibility);
-        this._fieldWrapper.onpointerdown = function (e: any) { self.onPointerDown(e, node, view, getPos); }
+        this._fieldWrapper.onpointerdown = function (e: any) { self.onPointerDown(e, node, view, getPos); };
         this._fieldWrapper.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldWrapper.onkeydown = function (e: any) { e.stopPropagation(); };
         this._fieldWrapper.onkeyup = function (e: any) { e.stopPropagation(); };

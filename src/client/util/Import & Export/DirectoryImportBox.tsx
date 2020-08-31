@@ -1,33 +1,31 @@
-import "fs";
-import React = require("react");
-import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
-import { action, observable, runInAction, computed, reaction, IReactionDisposer } from "mobx";
-import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
-import Measure, { ContentRect } from "react-measure";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
-import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
+import { BatchedArray } from "array-batcher";
+import "fs";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
-import { Utils } from "../../../Utils";
-import { DocumentManager } from "../DocumentManager";
+import * as path from 'path';
+import Measure, { ContentRect } from "react-measure";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { Cast, BoolCast, NumCast } from "../../../fields/Types";
 import { listSpec } from "../../../fields/Schema";
-import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import "./DirectoryImportBox.scss";
-import { Networking } from "../../Network";
-import { BatchedArray } from "array-batcher";
-import * as path from 'path';
+import { BoolCast, Cast, NumCast } from "../../../fields/Types";
 import { AcceptibleMedia, Upload } from "../../../server/SharedMediaTypes";
+import { Utils } from "../../../Utils";
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
+import { Networking } from "../../Network";
+import { FieldView, FieldViewProps } from "../../views/nodes/FieldView";
+import { DocumentManager } from "../DocumentManager";
+import "./DirectoryImportBox.scss";
+import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
+import React = require("react");
 
 const unsupported = ["text/html", "text/plain"];
 
 @observer
-export default class DirectoryImportBox extends React.Component<FieldViewProps> {
+export class DirectoryImportBox extends React.Component<FieldViewProps> {
     private selector = React.createRef<HTMLInputElement>();
     @observable private top = 0;
     @observable private left = 0;
@@ -47,7 +45,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faTag, faPlus);
         const doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
@@ -161,7 +158,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 importContainer = Docs.Create.SchemaDocument(headers, docs, options);
             }
             runInAction(() => this.phase = 'External: uploading files to Google Photos...');
-            importContainer.singleColumn = false;
+            importContainer._columnsStack = false;
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
@@ -301,7 +298,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
-                                <FontAwesomeIcon icon={faCloudUploadAlt} color="#FFFFFF" size={"2x"} />
+                                <FontAwesomeIcon icon={"cloud-upload-alt"} color="#FFFFFF" size={"2x"} />
                             </div>
                             <img
                                 style={{
@@ -366,7 +363,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}
-                            icon={isEditing ? faCloudUploadAlt : faTag}
+                            icon={isEditing ? "cloud-upload-alt" : "tag"}
                             color="#FFFFFF"
                             size={"1x"}
                         />
@@ -399,7 +396,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                         marginLeft: 6.4,
                                         marginTop: 5.2
                                     }}
-                                    icon={faPlus}
+                                    icon={"plus"}
                                     size={"1x"}
                                 />
                             </div>

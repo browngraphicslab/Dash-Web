@@ -1,6 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye } from '@fortawesome/free-regular-svg-icons';
-import { faColumns, faCopy, faEllipsisV, faFingerprint, faGlobeAmericas, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
@@ -8,29 +5,31 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate, AclAdmin } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
+import { RichTextField } from '../../../fields/RichTextField';
 import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../../fields/util';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyDoclist } from '../../../Utils';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
-import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
+import { CollectionCarousel3DView } from './CollectionCarousel3DView';
 import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionDockingView } from "./CollectionDockingView";
-import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import { CollectionLinearView } from './CollectionLinearView';
 import CollectionMapView from './CollectionMapView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
@@ -42,16 +41,14 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { table } from 'console';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
-
-library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faGlobeAmericas, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
     Invalid = "invalid",
@@ -65,17 +62,19 @@ export enum CollectionViewType {
     Multirow = "multirow",
     Time = "time",
     Carousel = "carousel",
+    Carousel3D = "3D Carousel",
     Linear = "linear",
-    Staff = "staff",
+    //Staff = "staff",
     Map = "map",
     Grid = "grid",
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
+    hideFilter?: true;
 }
 
 export interface CollectionRenderProps {
@@ -85,6 +84,7 @@ export interface CollectionRenderProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
+    PanelHeight: () => number;
     ChildLayoutTemplate?: () => Doc;
     ChildLayoutString?: string;
 }
@@ -100,12 +100,20 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
+    ]);
 
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
-            if (viewField === CollectionViewType.Freeform) {
+            if (viewField === CollectionViewType.Freeform || viewField === CollectionViewType.Schema) {
                 return CollectionViewType.Tree;
             }
             if (viewField === CollectionViewType.Invalid) {
@@ -124,20 +132,58 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (this.props.filterAddDocument?.(doc) === false) {
             return false;
         }
+
         const docs = doc instanceof Doc ? [doc] : doc;
+
+
+        if (docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) return false;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
+
         if (added.length) {
-            if (this.dataDoc[AclSym] === AclReadonly) {
+            if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
                 return false;
-            } else if (this.dataDoc[AclSym] === AclAddonly) {
-                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
-            } else {
-                added.map(doc => doc.context = this.props.Document);
-                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            else {
+                if (this.props.Document[AclSym]) {
+                    added.forEach(d => {
+                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                            if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                            else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                        }
+                    });
+                }
+
+                if (effectiveAcl === AclAddonly) {
+                    added.map(doc => {
+                        Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+                        doc.context = this.props.Document;
+                    });
+                }
+                else {
+                    added.map(doc => {
+                        const context = Cast(doc.context, Doc, null);
+                        if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                            const pushpin = Docs.Create.FontIconDocument({
+                                title: "pushpin", label: "",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                            });
+                            pushpin.isPushpin = true;
+                            Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
+                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
+                            doc.displayTimecode = undefined;
+                        }
+                        doc._stayInCollection = undefined;
+                        doc.context = this.props.Document;
+                    });
+                    (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
+                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
         }
         return true;
@@ -145,13 +191,20 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
-        const targetDataDoc = this.props.Document[DataSym];
-        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        const result = value.filter(v => !docs.includes(v));
-        if (result.length !== value.length) {
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
-            return true;
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
+            const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+            const targetDataDoc = this.props.Document[DataSym];
+            const value = DocListCast(targetDataDoc[this.props.fieldKey]);
+            const toRemove = value.filter(v => docs.includes(v));
+            if (toRemove.length !== 0) {
+                const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
+                toRemove.forEach(doc => {
+                    Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
+                    recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                });
+                return true;
+            }
         }
         return false;
     }
@@ -159,19 +212,29 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // this is called with the document that was dragged and the collection to move it into.
     // if the target collection is the same as this collection, then the move will be allowed.
     // otherwise, the document being moved must be able to be removed from its container before
-    // moving it into the target.  
+    // moving it into the target.
     @action.bound
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
         const first = doc instanceof Doc ? doc : doc[0];
-        return !first?.stayInCollection && addDocument !== returnFalse && this.removeDocument(doc) ? addDocument(doc) : false;
+        if (!first?._stayInCollection && addDocument !== returnFalse) {
+            if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
+                const added = addDocument(doc);
+                if (!added) UndoManager.UndoTempBatch();
+                else UndoManager.ClearTempBatch();
+
+                return added;
+            }
+            UndoManager.ClearTempBatch();
+        }
+        return false;
     }
 
     showIsTagged = () => {
         return (null);
-        // this section would display an icon in the bototm right of a collection to indicate that all 
+        // this section would display an icon in the bototm right of a collection to indicate that all
         // photos had been processed through Google's content analysis API and Google's tags had been
         // assigned to the documents googlePhotosTags field.
         // const children = DocListCast(this.props.Document[this.props.fieldKey]);
@@ -180,20 +243,22 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
+    screenToLocalTransform = () => this.props.renderDepth ? this.props.ScreenToLocalTransform() : this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props: SubCollectionViewProps = { ...this.props, ...renderProps, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Carousel3D: { return (<CollectionCarousel3DView key="collview" {...props} />); }
+            case CollectionViewType.Stacking: { this.props.Document._columnsStack = true; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Masonry: { this.props.Document._columnsStack = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
             case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
@@ -202,23 +267,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
     }
 
-    @action
-    private collapse = (value: boolean) => {
-        this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
-    }
-
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
+        return this.SubViewHelper(type, renderProps);
     }
 
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-        const existingVm = ContextMenu.Instance.findByDescription(category);
-        const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
 
+        const subItems: ContextMenuProps[] = [];
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {
             ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
@@ -227,65 +283,71 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
         subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
         subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
-        subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
         subItems.push({ description: "Multicolumn", event: () => func(CollectionViewType.Multicolumn), icon: "columns" });
         subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
         subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });
         subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
+        subItems.push({ description: "3D Carousel", event: () => func(CollectionViewType.Carousel3D), icon: "columns" });
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
-        if (addExtras && this.props.Document._viewType === CollectionViewType.Freeform) {
-            subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
-        }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: subItems, icon: "eye" });
+
+        const existingVm = ContextMenu.Instance.findByDescription(category);
+        const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+        catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            this.setupViewTypes("Add a Perspective...", vtype => {
+        const cm = ContextMenu.Instance;
+        if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+            this.setupViewTypes("UI Controls...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
-                this.props.addDocTab(newRendition, "onRight");
+                this.props.addDocTab(newRendition, "add:right");
                 return newRendition;
             }, false);
 
-            const existing = ContextMenu.Instance.findByDescription("Options...");
-            const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
-            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            const options = cm.findByDescription("Options...");
+            const optionItems = options && "subitems" in options ? options.subitems : [];
+            !Doc.UserDoc().noviceMode ? optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" }) : null;
             if (this.props.Document.childLayout instanceof Doc) {
-                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "add:right"), icon: "project-diagram" });
             }
             if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "add:right"), icon: "project-diagram" });
             }
-            layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 
-            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
             const funcs = [
                 { key: "onChildClick", name: "On Child Clicked" },
                 { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
             funcs.map(func => onClicks.push({
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
+                    const alias = Doc.MakeAlias(this.props.Document);
+                    DocUtils.makeCustomViewClicked(alias, undefined, func.key);
+                    this.props.addDocTab(alias, "add:right");
                 }
             }));
             DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
                 onClicks.push({
                     description: `Set child ${childClick.title}`,
                     icon: "edit",
-                    event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                    event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
 
-            const more = ContextMenu.Instance.findByDescription("More...");
-            const moreItems = more && "subitems" in more ? more.subitems : [];
-            moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-            !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            if (!Doc.UserDoc().noviceMode) {
+                const more = cm.findByDescription("More...");
+                const moreItems = more && "subitems" in more ? more.subitems : [];
+                moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
+                !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            }
         }
     }
 
@@ -308,7 +370,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
-    bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
+    bodyPanelWidth = () => this.props.PanelWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
 
     @computed get dataDoc() {
@@ -339,10 +401,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
     }
     @computed get _allFacets() {
-        const facets = new Set<string>();
-        this.childDocs.filter(child => child).forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        TraceMobx();
+        const facets = new Set<string>(["type", "text", "data", "author", "ACL"]);
+        this.childDocs.filter(child => child).forEach(child => child && Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-        return Array.from(facets);
+        return Array.from(facets).filter(f => !f.startsWith("_") && !["proto", "zIndex", "isPrototype", "context", "text-noTemplate"].includes(f)).sort();
     }
 
     /**
@@ -369,8 +432,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }
         } else {
             const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
-            const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
-                set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+            var rtfields = 0;
+            const facetValues = Array.from(allCollectionDocs.reduce((set, child) => {
+                const field = child[facetHeader] as Field;
+                const fieldStr = Field.toString(field);
+                if (field instanceof RichTextField || (typeof (field) === "string" && fieldStr.split(" ").length > 2)) rtfields++;
+                return set.add(fieldStr);
+            }, new Set<string>()));
 
             let nonNumbers = 0;
             let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
@@ -384,13 +452,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }
             });
             let newFacet: Opt<Doc>;
-            if (nonNumbers / allCollectionDocs.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+            if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+                Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                newFacet.target = this.props.Document;
+                newFacet._textBoxPadding = 4;
+                const scriptText = `setDocFilter(this.target, "${facetHeader}", text, "match")`;
+                newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
+            } else if (nonNumbers / facetValues.length < .1) {
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
-                newFacet.treeViewExpandedView = "layout";
-                newFacet.treeViewOpen = true;
                 const extendedMinVal = minVal - Math.min(1, Math.abs(maxVal - minVal) * .05);
                 const extendedMaxVal = maxVal + Math.min(1, Math.abs(maxVal - minVal) * .05);
                 newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
@@ -400,10 +473,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 newFacet.target = this.props.Document;
                 const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
-
                 Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
             } else {
                 newFacet = new Doc();
+                newFacet.sytem = true;
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
@@ -418,15 +491,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._facetWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
             return false;
-        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0));
+        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
     }
+
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
-        return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        return script ? () => script : undefined;
     }
     @computed get filterView() {
+        TraceMobx();
         const facetCollection = this.props.Document;
         const flyout = (
             <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
@@ -437,55 +513,59 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </label>)}
             </div>
         );
-        return !this._facetWidth || this.props.dontRegisterView ? (null) :
-            <div className="collectionTimeView-treeView" style={{ width: `${this.facetWidth()}px`, overflow: this.facetWidth() < 15 ? "hidden" : undefined }}>
-                <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                        <div className="collectionTimeView-button">
-                            <FontAwesomeIcon icon={faEdit} size={"lg"} />
-                            <span className="collectionTimeView-span">Facet Filters</span>
-                        </div>
-                    </Flyout>
-                </div>
-                <div className="collectionTimeView-tree" key="tree">
-                    <CollectionTreeView
-                        Document={facetCollection}
-                        DataDoc={facetCollection}
-                        fieldKey={`${this.props.fieldKey}-filter`}
-                        CollectionView={this}
-                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                        ContainingCollectionView={this.props.ContainingCollectionView}
-                        PanelWidth={this.facetWidth}
-                        PanelHeight={this.props.PanelHeight}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        LibraryPath={emptyPath}
-                        rootSelected={this.props.rootSelected}
-                        renderDepth={1}
-                        dropAction={this.props.dropAction}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                        addDocTab={returnFalse}
-                        pinToPres={returnFalse}
-                        isSelected={returnFalse}
-                        select={returnFalse}
-                        bringToFront={emptyFunction}
-                        active={this.props.active}
-                        whenActiveChanged={returnFalse}
-                        treeViewHideTitle={true}
-                        ContentScaling={returnOne}
-                        focus={returnFalse}
-                        treeViewHideHeaderFields={true}
-                        onCheckedClick={this.scriptField!}
-                        ignoreFields={this.ignoreFields}
-                        annotationsKey={""}
-                        dontRegisterView={true}
-                        backgroundColor={this.filterBackground}
-                        moveDocument={returnFalse}
-                        removeDocument={returnFalse}
-                        addDocument={returnFalse} />
-                </div>
-            </div>;
+
+        return !this._facetWidth || this.props.dontRegisterView ? (null) : <div className="collectionTimeView-treeView" style={{ width: `${this.facetWidth()}px`, overflow: this.facetWidth() < 15 ? "hidden" : undefined }}>
+            <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+                    <div className="collectionTimeView-button">
+                        <FontAwesomeIcon icon={"edit"} size={"lg"} />
+                        <span className="collectionTimeView-span">Facet Filters</span>
+                    </div>
+                </Flyout>
+            </div>
+            <div className="collectionTimeView-tree" key="tree">
+                <CollectionTreeView
+                    PanelPosition={""}
+                    Document={facetCollection}
+                    DataDoc={facetCollection}
+                    fieldKey={`${this.props.fieldKey}-filter`}
+                    CollectionView={this}
+                    docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
+                    PanelWidth={this.facetWidth}
+                    PanelHeight={this.props.PanelHeight}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    LibraryPath={emptyPath}
+                    rootSelected={this.props.rootSelected}
+                    renderDepth={1}
+                    dropAction={this.props.dropAction}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    addDocTab={returnFalse}
+                    pinToPres={returnFalse}
+                    isSelected={returnFalse}
+                    select={returnFalse}
+                    bringToFront={emptyFunction}
+                    active={this.props.active}
+                    whenActiveChanged={returnFalse}
+                    treeViewHideTitle={true}
+                    ContentScaling={returnOne}
+                    focus={returnFalse}
+                    treeViewHideHeaderFields={true}
+                    onCheckedClick={this.scriptField}
+                    ignoreFields={this.ignoreFields}
+                    annotationsKey={""}
+                    dontRegisterView={true}
+                    backgroundColor={this.filterBackground}
+                    moveDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    addDocument={returnFalse} />
+            </div>
+        </div>;
     }
+
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
@@ -498,18 +578,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
             PanelWidth: this.bodyPanelWidth,
+            PanelHeight: this.props.PanelHeight,
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        return (<div className={"collectionView"}
-            style={{
-                pointerEvents: this.props.Document.isBackground ? "none" : undefined,
-                boxShadow: Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-                    `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31)" : "#9c9396"} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
-            }}
-            onContextMenu={this.onContextMenu}>
+        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document._isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+            `${CurrentUserUtils.ActiveDashboard?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+        return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
+            style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
@@ -518,12 +596,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
-                <div className="collectionTimeView-dragger" title="library View Dragger" onPointerDown={this.onPointerDown} style={{ right: this.facetWidth() - 10 }} />
+            {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
+                <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
+                    style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "60%" }} />
             }
-            {this.facetWidth() < 10 ? (null) : this.filterView}
+            {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }
-
-

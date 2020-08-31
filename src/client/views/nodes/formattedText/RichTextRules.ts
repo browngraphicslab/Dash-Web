@@ -9,7 +9,7 @@ import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
-import RichTextMenu from "./RichTextMenu";
+import { RichTextMenu } from "./RichTextMenu";
 import { schema } from "./schema_rts";
 import { List } from "../../../../fields/List";
 
@@ -59,7 +59,16 @@ export class RichTextRules {
             ),
 
             // * + - create bullet list
-            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.bullet_list),
+            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.ordered_list,
+                // match => {
+                () => {
+                    return ({ mapStyle: "bullet" });
+                    // return ({ order: +match[1] })
+                },
+                (match: any, node: any) => {
+                    return node.childCount + node.attrs.order === +match[1];
+                },
+                (type: any) => ({ type: type, attrs: { mapStyle: "bullet" } })),
 
             // ``` create code block
             textblockTypeInputRule(/^```$/, schema.nodes.code_block),
@@ -81,9 +90,9 @@ export class RichTextRules {
                     textDoc.inlineTextCount = numInlines + 1;
                     const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
-                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: 9, title: "inline comment" });
+                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9pt", title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
-                    textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
+                    textDocInline["title-custom"] = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
                     textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
                     textDocInline._textContext = ComputedField.MakeFunction(`copyField(self.${inlineFieldKey})`);
@@ -266,11 +275,11 @@ export class RichTextRules {
                     if (!fieldKey) {
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
-                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, }, docid);
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
                                 DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
-                            const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "add:right", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
@@ -296,7 +305,7 @@ export class RichTextRules {
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
-                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
+                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500 }, docid);
                             DocUtils.Publish(docx, docid, returnFalse, returnFalse);
                         }
                     });
@@ -306,17 +315,14 @@ export class RichTextRules {
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),
 
-
-
             // create an inline view of a tag stored under the '#' field
             new InputRule(
-                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
+                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_\-0-9]*)\s$/),
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    const multiple = tag.split(";");
-                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
-                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
+                    this.Document[DataSym]["#" + tag] = ".";
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" + tag });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
 
@@ -365,7 +371,6 @@ export class RichTextRules {
             new InputRule(
                 new RegExp(/%\)/),
                 (state, match, start, end) => {
-
                     return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
                 }),
 

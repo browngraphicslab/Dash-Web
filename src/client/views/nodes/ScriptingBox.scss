@@ -5,31 +5,220 @@
     flex-direction: column;
     background-color: rgb(241, 239, 235);
     padding: 10px;
+
+    .boxed {
+        border: 1px solid black;
+        background-color: rgb(212, 198, 179);
+        width: auto;
+        height: auto;
+        font-size: 12px;
+        position: absolute;
+        z-index: 100;
+        padding: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
     .scriptingBox-inputDiv {
         display: flex;
         flex-direction: column;
-        height: calc(100% - 30px);
-        .scriptingBox-errorMessage {
-            overflow: auto;
-        }
-        .scripting-params {
-            background: "beige";
-        }
-        .scriptingBox-textArea {
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+        table-layout: fixed;
+
+        white-space: nowrap;
+
+        .scriptingBox-wrapper {
             width: 100%;
             height: 100%;
-            box-sizing: border-box;
-            resize: none;
-            padding: 7px;
+            max-height: calc(100%-30px);
+            display: flex;
+            flex-direction: row;
+            overflow: auto;
+            justify-content: center;
+
+            .descriptor {
+                overflow: hidden;
+            }
+
+            .scriptingBox-textArea, .scriptingBox-textArea-inputs {
+                flex: 70;
+                height: 100%;
+                max-width: 95%;
+                min-width: none;
+                box-sizing: border-box;
+                resize: none;
+                padding: 7px;
+                overflow-y: auto;
+                overflow-x: hidden;
+
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    border: 1px solid red;
+                }
+
+                .rta {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    margin-bottom: 60px !important;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    overflow: hidden;
+                }
+
+                .rta__textarea {
+                    width: 100%;
+                    height: 100%;
+                    font-size: 10px;
+                }
+
+                .rta__autocomplete {
+                    position: absolute;
+                    display: block;
+                    margin-top: 1em;
+                }
+
+                .rta__autocomplete--top {
+                    margin-top: 0;
+                    margin-bottom: 1em;
+                    max-height: 100px;
+                }
+
+                .rta__list {
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    border: 1px solid #dfe2e5;
+                    border-radius: 3px;
+                    box-shadow: 0 0 5px rgba(27, 31, 35, 0.1);
+                    list-style: none;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                }
+
+                .rta__entity {
+                    background: white;
+                    width: 100%;
+                    text-align: left;
+                    outline: none;
+                    overflow-y: auto;
+                }
+
+                .rta__entity:hover {
+                    cursor: pointer;
+                }
+
+                .rta__entity>* {
+                    padding-left: 4px;
+                    padding-right: 4px;
+                }
+
+                .rta__entity--selected {
+                    color: #fff;
+                    text-decoration: none;
+                    background: #0366d6;
+                }
+            }
+
+            .scriptingBox-textArea-inputs {
+                max-width: 100%;
+                height: 40%;
+                width: 100%; 
+                resize: none;
+            }
+            .scriptingBox-textArea-script {
+                resize: none;
+                height: 100%;
+            }
+
+            .scriptingBox-plist {
+                flex: 30;
+                width: 30%;
+                height: 100%;
+                box-sizing: border-box;
+                resize: none;
+                padding: 2px;
+                overflow-y: auto;
+
+                .scriptingBox-pborder {
+                    background-color: rgb(241, 239, 235);
+                }
+
+                .scriptingBox-viewBase {
+                    display: flex;
+
+                    .scriptingBox-viewPicker {
+                        font-size: 75%;
+                        //text-transform: uppercase;
+                        letter-spacing: 2px;
+                        background: rgb(238, 238, 238);
+                        color: grey;
+                        outline-color: black;
+                        border: none;
+                        padding: 12px 10px 11px 10px;
+                    }
+
+                    .scriptingBox-viewPicker:active {
+                        outline-color: black;
+                    }
+
+                    .commandEntry-outerDiv {
+                        pointer-events: all;
+                        background-color: gray;
+                        display: flex;
+                        flex-direction: row;
+                    }
+                }
+            }
+
+            .scriptingBox-paramNames {
+                flex: 60;
+                width: 60%;
+                box-sizing: border-box;
+                resize: none;
+                padding: 7px;
+                overflow-y: clip;
+            }
+
+            .scriptingBox-paramInputs {
+                flex: 40;
+                width: 40%;
+                box-sizing: border-box;
+                resize: none;
+                padding: 2px;
+                overflow-y: hidden;
+            }
+        }
+
+        .scriptingBox-errorMessage {
+            overflow: auto;
+            background: "red";
+            background-color: "red";
+            height: 45px;
+        }
+
+        .scripting-params {
+            background: rgb(241, 239, 235);
+            outline-style: solid;
+            outline-color: black;
         }
     }
 
     .scriptingBox-toolbar {
         width: 100%;
         height: 30px;
+        overflow: hidden;
+
         .scriptingBox-button {
-            width: 50%
+            font-size: xx-small;
+            width: 50%;
+            resize: auto;
+        }
+
+        .scriptingBox-button-third {
+            width: 33%;
         }
     }
 }
-

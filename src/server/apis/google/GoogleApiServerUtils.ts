@@ -39,7 +39,7 @@ export namespace GoogleApiServerUtils {
      */
     export enum Service {
         Documents = "Documents",
-        Slides = "Slides"
+        Slides = "Slides",
     }
 
     /**

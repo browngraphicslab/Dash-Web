@@ -2,22 +2,33 @@
 @import "nodeModuleOverrides";
 
 
+.dash-tooltip {
+    font-size: 11px;
+    padding: 2px;
+    max-width: 150;
+    line-height: 150%;
+}
+
 .mainView-tabButtons {
     position: relative;
     width: 100%;
     margin-top: 10px;
 }
 
+.mainContent-div-flyout,
 .mainContent-div {
     position: relative;
     width: 100%;
     height: 100%;
 }
+.mainContent-div-flyout {
+    left: calc(-1 * var(--flyoutHandleWidth));
+}
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
     position: absolute;
-    bottom: 20px;
+    bottom: 10px;
     left: calc(100% + 5px);
     z-index: 1;
 }
@@ -28,13 +39,11 @@
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events:none;
+    pointer-events: none;
 }
 
-.mainView-container, .mainView-container-dark {
-    input {
-        color: unset !important;
-    }
+.mainView-container,
+.mainView-container-dark {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -43,32 +52,50 @@
     left: 0;
     z-index: 1;
     touch-action: none;
+
     .searchBox-container {
         background: lightgray;
     }
 }
 
 .mainView-container {
-    color:dimgray;
+    color: dimgray;
+
+    .lm_title {
+        background: #cacaca;
+        color: black;
+    }
 }
 
 .mainView-container-dark {
     color: lightgray;
+
     .lm_goldenlayout {
         background: dimgray;
     }
+
+    .lm_title {
+        background: black;
+        color: unset;
+    }
+
     .marquee {
         border-color: white;
     }
+
     #search-input {
         background: lightgray;
     }
-    .searchBox-container  {
-        background: rgb(45,45,45);
+
+    .searchBox-container {
+        background: rgb(45, 45, 45);
     }
-    .contextMenu-cont, .contextMenu-item {
+
+    .contextMenu-cont,
+    .contextMenu-item {
         background: dimGray;
     }
+
     .contextMenu-item:hover {
         background: gray;
     }
@@ -79,18 +106,142 @@
     height: 100%;
     position: absolute;
     display: flex;
+    user-select: none;
 }
 
-.mainView-flyoutContainer {
+.mainView-propertiesDragger {
+    //background-color: rgb(140, 139, 139);
+    background-color: lightgrey;
+    height: 55px;
+    width: 17px;
+    position: absolute;
+    top: 50%;
+    border: 1px black solid;
+    border-radius: 0;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-right: unset;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+
+    .mainView-propertiesDragger-icon {
+        width: 10px;
+        height: 10px;
+        float: left;
+        margin-left: 5.5px;
+        padding-top: 19px;
+    }
+
+    &:hover {
+        cursor: grab;
+    }
+}
+
+.mainiView-propertiesView {
     display: flex;
     flex-direction: column;
-    position: relative;
     height: 100%;
-    background: dimgray;
+    position: absolute;
+    right: 0;
+    top: 0;
+    border-left: solid 1px;
+    z-index: 100000;
+    cursor: auto;
+}
 
-    .documentView-node-topmost {
-        background: lightgrey;
+.mainView-innerContent {
+    display: contents;
+    flex-direction: row;
+    position: relative;
+    .mainView-flyoutContainer {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+        background: dimgray;
+
+        .documentView-node-topmost {
+            background: lightgrey;
+        }
     }
+    .propertiesView {
+        right: 0;
+        position: absolute;
+        z-index: 2;
+    }
+}
+
+.mainView-menuPanel {
+    min-width: var(--menuPanelWidth);
+    background-color: #121721;
+
+    .collectionStackingView {
+        scrollbar-width: none;
+    }
+    ::-webkit-scrollbar {
+        width:0;
+    }
+
+    .mainView-menuPanel-button {
+        padding: 7px;
+        padding-left: 7px;
+        width: 100%;
+        background: black;
+
+        .mainView-menuPanel-button-wrap {
+            width: 45px;
+            /* padding: 5px; */
+            touch-action: none;
+            background: black;
+            transform-origin: top left;
+            /* margin-bottom: 5px; */
+            margin-top: 5px;
+            margin-right: 25px;
+            border-radius: 8px;
+
+            &:hover {
+                background: rgb(61, 61, 61);
+                cursor: pointer;
+            }
+        }
+    }
+
+    .mainView-menuPanel-button-label {
+        color: white;
+        margin-left: px;
+        margin-right: 4px;
+        border-radius: 8px;
+        width: 42px;
+        position: relative;
+        text-align: center;
+        font-size: 8px;
+        margin-top: 1px;
+        letter-spacing: normal;
+        padding: 3px;
+        background-color: inherit;
+    }
+
+    .mainView-menuPanel-button-icon {
+        width: auto;
+        height: 35px;
+        padding: 5px;
+    }
+
+    svg {
+        width: 95% !important;
+        height: 95%;
+    }
+}
+
+.mainView-searchPanel {
+    width: 100%;
+    height: $searchpanel-height;
+    background-color: black;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .mainView-mainDiv {
@@ -102,19 +253,26 @@
     overflow: hidden;
 }
 
+.buttonContainer {
 
-.mainView-settings {
     position: absolute;
-    left: 0;
     bottom: 0;
-    border-radius: 25%;
-    margin-left: -5px;
-    background: darkblue;
+
+    .mainView-settings {
+        // position: absolute;
+        // left: 0;
+        // bottom: 0;
+        border-radius: 25%;
+        margin-left: -5px;
+        background: darkblue;
+    }
+
+    .mainView-settings:hover {
+        transform: none !important;
+    }
 }
 
-.mainView-settings:hover {
-    transform: none !important;
-}
+
 
 .mainView-logout {
     position: absolute;
@@ -127,36 +285,64 @@
     transform: none !important;
 }
 
+.mainView-libraryFlyout-out,
 .mainView-libraryFlyout {
     height: 100%;
     width: 100%;
-    position: absolute;
+    position: relative;
     display: flex;
     flex-direction: column;
     z-index: 2;
+
+    .mainView-contentArea {
+        position: relative;
+        height: 100%; 
+        width: 100%;
+        overflow: visible;
+    }
+
+    .mainView-libraryFlyout-close {
+        right: 6;
+        top: 5;
+        position: absolute;
+        margin-right: 6px;
+        z-index: 10;
+        margin-bottom: 10;
+    }
+}
+.mainView-libraryFlyout-out {
+    transition: width .25s;
+    box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
 }
 
-.mainView-expandFlyoutButton {
-    position: absolute;
-    top: 100px;
-    right: 30px;
-    cursor: pointer;
-}
 
 .mainView-libraryHandle {
-    width: 20px;
-    left: calc(100% - 10px);
-    height: 40px;
+    width: var(--flyoutHandleWidth);
+    height: 55px;
     top: 50%;
+    left: -10px;
     border: 1px solid black;
-    border-radius: 5px;
-    position: absolute;
-    z-index: 2;
+    border-radius: 8px;
+    position: relative;
+    z-index: 1;
     touch-action: none;
-    cursor: ew-resize;
+    background-color: lightgrey;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+
+    .mainView-libraryHandle-icon {
+        width: 10px;
+        height: 10px;
+        float: right;
+        margin-right: 3px;
+        padding-top: 19px;
+    }
+
 }
 
-.mainView-workspace {
+.mainView-dashboard {
     height: 200px;
     position: relative;
     display: flex;
@@ -168,8 +354,25 @@
     display: flex;
 }
 
-.mainView-recentlyClosed {
+.mainView-inactiveDocs {
     height: 25%;
     position: relative;
     display: flex;
+}
+
+.mainVew-webRef {
+    position: absolute;
+    left: -1000;
+    top: -1000;
+    display: block;
+    width: 200px;
+    height: 800px;
+}
+.mainVew-invisibleWebRef {
+    position: absolute;
+    left: 50;
+    top: 50;
+    display: block;
+    width: 500px;
+    height: 1000px;
 }

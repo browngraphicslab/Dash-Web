@@ -1,33 +1,30 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
-import { NumCast, StrCast, Cast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
-import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
-import { listSpec } from "../../../fields/Schema";
-import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPalette);
 
 interface CSVFieldColumnProps {
     cols: () => number;
@@ -50,6 +47,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     private dropDisposer?: DragManager.DragDropDisposer;
     private _headerRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+    @observable _paletteOn = false;
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
     _ele: HTMLElement | null = null;
@@ -95,8 +93,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
-            if (this.props.parent.sectionHeaders) {
-                if (this.props.parent.sectionHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
+            if (this.props.parent.columnHeaders) {
+                if (this.props.parent.columnHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
                     return false;
                 }
             }
@@ -134,7 +132,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     addDocument = (value: string, shiftDown?: boolean) => {
         if (!value) return false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
+        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
@@ -147,9 +145,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     deleteColumn = () => {
         const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
-        if (this.props.parent.sectionHeaders && this.props.headingObject) {
-            const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
-            this.props.parent.sectionHeaders.splice(index, 1);
+        if (this.props.parent.columnHeaders && this.props.headingObject) {
+            const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
+            this.props.parent.columnHeaders.splice(index, 1);
         }
     }
 
@@ -167,7 +165,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         const alias = Doc.MakeAlias(this.props.parent.props.Document);
-        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.props.Document.sectionHeaders, listSpec(SchemaHeaderField))?.length || 1);
+        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.columnHeaders, listSpec(SchemaHeaderField))?.length || 1);
         alias._pivotField = undefined;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         let value = this.getValue(this._heading);
@@ -258,8 +256,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     }
                 }, icon: "compress-arrows-alt"
             }));
-        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
-        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200 })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":image", event: () => this.props.parent.props.addDocument(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
 
@@ -267,7 +265,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
         ContextMenu.Instance.setDefaultItem("::", (name: string): void => {
             Doc.GetProto(this.props.parent.props.Document)[name] = "";
-            const created = Docs.Create.TextDocument("", { title: name, _width: 250, _autoHeight: true });
+            const created = Docs.Create.TextDocument("", { title: name, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 250, _autoHeight: true });
             if (created) {
                 if (this.props.parent.Document.isTemplateDoc) {
                     Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
@@ -278,8 +276,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y);
     }
-
-    render() {
+    @computed get innards() {
         TraceMobx();
         const cols = this.props.cols();
         const key = StrCast(this.props.parent.props.Document._pivotField);
@@ -288,7 +285,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const heading = this._heading;
         const style = this.props.parent;
         const singleColumn = style.isStackingView;
-        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.props.Document._yMargin);
+        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.props.Document._yMargin, 5);
         const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const headerEditableViewProps = {
@@ -298,7 +295,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             oneLine: true,
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const newEditableViewProps = {
             GetValue: () => "",
@@ -306,12 +302,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{
-                    marginTop: NumCast(this.props.parent.props.Document._yMargin),
+                    marginTop: NumCast(this.props.parent.props.Document._yMargin, 5),
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
                             ((this.props.parent.props.Document._chromeStatus !== 'view-mode' && this.props.parent.props.Document._chromeStatus !== 'disabled') ? 1 : 0)) || 1)
@@ -326,18 +321,15 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     <EditableView {...headerEditableViewProps} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">
-                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="lg" />
-                                </button>
-                            </ Flyout >
+                            <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>
+                                <FontAwesomeIcon icon="palette" size="lg" />
+                            </button>
+                            {this._paletteOn ? this.renderColorPicker() : (null)}
                         </div>
                     }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
-                            <FontAwesomeIcon icon="trash" size="lg" />
-                        </button>}
+                    {<button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
+                        <FontAwesomeIcon icon="trash" size="lg" />
+                    </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
                             <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
@@ -351,6 +343,43 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
+        const type = this.props.parent.props.Document.type;
+        return <>
+            {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
+            {
+                this.collapsed ? (null) :
+                    <div>
+                        <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
+                            style={{
+                                padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
+                                margin: "auto",
+                                width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
+                                height: 'max-content',
+                                position: "relative",
+                                gridGap: style.gridGap,
+                                gridTemplateColumns: singleColumn ? undefined : templatecols,
+                                gridAutoRows: singleColumn ? undefined : "0px"
+                            }}>
+                            {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
+                            {singleColumn ? (null) : this.props.parent.columnDragger}
+                        </div>
+                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
+                            <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                                style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 70 }}>
+                                <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
+                            </div> : null}
+                    </div>
+            }
+        </>;
+    }
+
+
+    render() {
+        TraceMobx();
+        const headings = this.props.headings();
+        const heading = this._heading;
+        const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
+        const chromeStatus = this.props.parent.props.Document._chromeStatus;
         return (
             <div className={"collectionStackingViewFieldColumn" + (SnappingManager.GetIsDragging() ? "Dragging" : "")} key={heading}
                 style={{
@@ -359,31 +388,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
-                {this.props.parent.Document.hideHeadings ? (null) : headingView}
-                {
-                    this.collapsed ? (null) :
-                        <div>
-                            <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
-                                style={{
-                                    padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
-                                    margin: "auto",
-                                    width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
-                                    height: 'max-content',
-                                    position: "relative",
-                                    gridGap: style.gridGap,
-                                    gridTemplateColumns: singleColumn ? undefined : templatecols,
-                                    gridAutoRows: singleColumn ? undefined : "0px"
-                                }}>
-                                {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
-                                {singleColumn ? (null) : this.props.parent.columnDragger}
-                            </div>
-                            {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
-                                <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                    style={{ width: style.columnWidth / style.numGroupColumns }}>
-                                    <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
-                                </div> : null}
-                        </div>
-                }
+                {this.innards}
             </div >
         );
     }

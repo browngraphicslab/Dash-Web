@@ -1,46 +1,56 @@
 @import "../../views/globalCssVariables.scss";
 
+
 .lm_title {
     margin-top: 3px;
-    background: black;
     border-radius: 5px;
     border: solid 1px dimgray;
     border-width: 2px 2px 0px;
     height: 20px;
     transform: translate(0px, -3px);
+    cursor: grab;
 }
+
+.lm_title.focus-visible {
+    cursor: text;
+}
+
 .lm_title_wrap {
     overflow: hidden;
     height: 19px;
-    margin-top: -3px;
-    display:inline-block;
+    margin-top: -2px;
+    display: inline-block;
 }
+
 .lm_active .lm_title {
     border: solid 1px lightgray;
 }
+
 .lm_header .lm_tab .lm_close_tab {
     position: absolute;
     text-align: center;
 }
 
 .lm_header .lm_tab {
-    padding-right : 20px;
+    padding-right: 20px;
+    margin-top: -1px;
+    border-bottom: 1px black;
+    .collectionDockingView-gear {
+        display: none;
+    }
+}
+
+.lm_header .lm_tab.lm_active {
+    padding-right: 20px;
+    margin-top: 1px;
+    border-bottom: unset;
+    .collectionDockingView-gear {
+        display: inline-block;
+    }
 }
 
 .lm_popout {
-    display:none;
-}
-
-.messageCounter {
-    width: 18px;
-    height: 20px;
-    text-align: center;
-    border-radius: 20px;
-    margin-left: 5px;
-    transform: translate(0px, -8px);
-    display: inline-block;
-    background: transparent;
-    border: 1px #999999 solid;
+    display: inline;
 }
 
 .collectiondockingview-container {
@@ -51,14 +61,15 @@
     position: absolute;
     top: 0;
     left: 0;
+
     // overflow: hidden;  // bcz: menus don't show up when this is on (e.g., the parentSelectorMenu)
     .collectionDockingView-gear {
         padding-left: 5px;
         height: 15px;
         width: 18px;
-        display: inline-block;
         margin: auto;
     }
+
     .collectionDockingView-dragAsDocument {
         touch-action: none;
         position: absolute;
@@ -75,6 +86,10 @@
     .lm_controls>li {
         opacity: 0.6;
         transform: scale(1.2);
+    }
+
+    .lm_controls .lm_popout {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAUCAAAAABHICnvAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QAAKqNIzIAAAAHdElNRQfkCBsXMgbrEyzaAAAAT0lEQVQY02NgIAcIu8tgEW3/u4IDQ5B14/8LQlhFhckVFfCJjIyIOfP/QWpEZGSQJFS05s9fIPj3/z+YmseCTxS7CZS7DI+PsYcOjpAkDAA6H0KZxzDzlgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMC0wOC0yN1QyMzo1MDowNi0wNDowMDvgVpQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjAtMDgtMjdUMjM6NTA6MDYtMDQ6MDBKve4oAAAAAElFTkSuQmCC)
     }
 
     .lm_maximised .lm_controls .lm_maximise {

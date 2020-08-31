@@ -31,7 +31,7 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
     }
     const proto = new Proxy({}, {
         get(target: any, prop, receiver) {
-            const field = receiver.doc[prop];
+            const field = receiver.doc?.[prop];
             if (prop in schema) {
                 const desc = prop === "proto" ? Doc : (schema as any)[prop]; // bcz: proto doesn't appear in schemas ... maybe it should?
                 if (typeof desc === "object" && "defaultVal" in desc && "type" in desc) {//defaultSpec
@@ -52,7 +52,7 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
             return field;
         },
         set(target: any, prop, value, receiver) {
-            receiver.doc[prop] = value;
+            receiver.doc && (receiver.doc[prop] = value);  // receiver.doc may be undefined as the result of a change in ACLs
             return true;
         }
     });
@@ -65,9 +65,8 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
         return obj;
     };
     return function (doc?: Doc | Doc[]) {
-        doc = doc || new Doc;
-        if (doc instanceof Doc) {
-            return fn(doc);
+        if (doc instanceof Doc || doc === undefined) {
+            return fn(doc || new Doc);
         } else {
             return doc.map(fn);
         }

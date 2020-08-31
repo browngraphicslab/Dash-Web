@@ -377,7 +377,6 @@ export namespace CognitiveServices {
                         console.log("successful vectorization!");
                         const vectorValues = new List<number>();
                         indices.forEach((ind: any) => {
-                            //console.log(wordvec.word);
                             vectorValues.push(wordvecs[ind]);
                         });
                         ClientRecommender.Instance.processVector(vectorValues, dataDoc, mainDoc);
@@ -385,7 +384,6 @@ export namespace CognitiveServices {
                     else {
                         console.log("unsuccessful :( word(s) not in vocabulary");
                     }
-                    //console.log(vectorValues.size);
                 }
                 );
             }

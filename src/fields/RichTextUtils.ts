@@ -256,7 +256,7 @@ export namespace RichTextUtils {
         };
 
         const list = (schema: any, items: Node[]): Node => {
-            return schema.node("bullet_list", null, items);
+            return schema.node("ordered_list", { mapStyle: "bullet" }, items);
         };
 
         const paragraphNode = (schema: any, runs: docs_v1.Schema$TextRun[]): Node => {
@@ -278,7 +278,7 @@ export namespace RichTextUtils {
             } else {
                 docid = backingDocId;
             }
-            return schema.node("image", { src, agnostic, width, docid, float: null, location: "onRight" });
+            return schema.node("image", { src, agnostic, width, docid, float: null, location: "add:right" });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
@@ -392,7 +392,7 @@ export namespace RichTextUtils {
                     const { attrs } = mark;
                     switch (converted) {
                         case "link":
-                            let url = attrs.allHrefs.length ? attrs.allHrefs[0].href : "";
+                            let url = attrs.allLinks.length ? attrs.allLinks[0].href : "";
                             const delimiter = "/doc/";
                             const alreadyShared = "?sharing=true";
                             if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {

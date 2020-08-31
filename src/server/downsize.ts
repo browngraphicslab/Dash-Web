@@ -1,5 +1,5 @@
-import * as sharp from 'sharp';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
 
 const folder = "./src/server/public/files/";
 const pngTypes = ["png", "PNG"];
@@ -7,7 +7,7 @@ const jpgTypes = ["jpg", "JPG", "jpeg", "JPEG"];
 const smallResizer = sharp().resize(100);
 fs.readdir(folder, async (err, files) => {
     if (err) {
-        console.log(err);
+        console.log("readdir:" + err);
         return;
     }
     // files.forEach(file => {

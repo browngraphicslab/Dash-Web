@@ -9,9 +9,11 @@ $main-accent: #aaaaa3;
 //$alt-accent: #59dff7;
 $alt-accent: #c2c2c5;
 $lighter-alt-accent: rgb(207, 220, 240);
-$darker-alt-accent: rgb(178, 206, 248);
+$darker-alt-accent: #b2cef8;
 $intermediate-color: #9c9396;
 $dark-color: #121721;
+$link-color: #add8e6;
+$antimodemenu-height: 35px;
 // fonts
 $sans-serif: "Noto Sans",
 sans-serif;
@@ -27,12 +29,19 @@ $search-thumnail-size: 130;
 $contextMenu-zindex: 100000; // context menu shows up over everything
 $radialMenu-zindex: 100000; // context menu shows up over everything
 
+$searchpanel-height: 32px;
 $mainTextInput-zindex: 999; // then text input overlay so that it's context menu will appear over decorations, etc
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
 $COLLECTION_BORDER_WIDTH: 1;
 $MINIMIZED_ICON_SIZE:25;
 $MAX_ROW_HEIGHT: 44px;
+$DFLT_IMAGE_NATIVE_DIM: 900px;
+$MENU_PANEL_WIDTH: 60px;
+:root {
+    --flyoutHandleWidth: 28px;
+    --menuPanelWidth: 60px;
+}
 
 :export {
     contextMenuZindex: $contextMenu-zindex;
@@ -40,4 +49,8 @@ $MAX_ROW_HEIGHT: 44px;
     MINIMIZED_ICON_SIZE: $MINIMIZED_ICON_SIZE;
     MAX_ROW_HEIGHT: $MAX_ROW_HEIGHT;
     SEARCH_THUMBNAIL_SIZE: $search-thumnail-size;
+    ANTIMODEMENU_HEIGHT: $antimodemenu-height;
+    SEARCH_PANEL_HEIGHT: $searchpanel-height;
+    DFLT_IMAGE_NATIVE_DIM: $DFLT_IMAGE_NATIVE_DIM;
+    MENU_PANEL_WIDTH: $MENU_PANEL_WIDTH;
 }

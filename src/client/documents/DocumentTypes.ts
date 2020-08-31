@@ -10,10 +10,10 @@ export enum DocumentType {
     VID = "video",      // video
     AUDIO = "audio",    // audio
     PDF = "pdf",        // pdf
-    INK = "ink",        // ink stroke
+    INK = "inks",        // ink stroke
     SCREENSHOT = "screenshot",  // view of a desktop application
     FONTICON = "fonticonbox",   // font icon
-    QUERY = "query",            // search query
+    SEARCH = "search",            // search query
     LABEL = "label",            // simple text label
     BUTTON = "button",          // onClick button
     WEBCAM = "webcam",          // webcam
@@ -31,8 +31,11 @@ export enum DocumentType {
     COLOR = "color",            // color picker (view of a color picker for a color string)
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
     DOCHOLDER = "docholder",    // nested document (view of a document)
+    SEARCHITEM = "searchitem",
     COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
+    GROUP = "group",            // group of users
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
-    RECOMMENDATION = "recommendation", // view of a recommendation
+    SCRIPTDB = "scriptdb",          // database of scripts
+    GROUPDB = "groupdb"         // database of groups
 }

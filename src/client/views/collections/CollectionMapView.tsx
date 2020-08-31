@@ -69,7 +69,7 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
                 if (!this._initialLookupPending.get(id)) {
                     this._initialLookupPending.set(id, true);
                     setTimeout(() => {
-                        titleLoc && Doc.SetInPlace(doc, "title", titleLoc, true);
+                        titleLoc && Doc.SetInPlace(doc, `${fieldKey}-address`, titleLoc, true);
                         this.respondToAddressChange(doc, fieldKey, address).then(() => this._initialLookupPending.delete(id));
                     });
                 }
@@ -114,12 +114,12 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
         }
     }
 
-    private renderMarker = (layout: Doc) => {
-        const location = this.getLocation(layout, Doc.LayoutFieldKey(layout));
+    private renderMarker = (layout: Doc, fieldKey?: string) => {
+        const location = this.getLocation(layout, fieldKey || Doc.LayoutFieldKey(layout));
         return !location ? (null) :
             <Marker
                 key={layout[Id]}
-                label={StrCast(layout.title)}
+                label={StrCast(layout[`${this.props.fieldKey}-address`])}
                 position={location}
                 onClick={() => this.markerClick(layout, location)}
                 icon={this.renderMarkerIcon(layout)}
@@ -250,7 +250,7 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
                     }}
                 >
                     {this.reactiveContents}
-                    {mapLoc ? this.renderMarker(this.rootDoc) : undefined}
+                    {mapLoc && StrCast(this.rootDoc[`${fieldKey}-mapCenter-address`]) ? this.renderMarker(this.rootDoc, `${fieldKey}-mapCenter`) : undefined}
                 </GeoMap>
             </div>
         </div>;
@@ -260,9 +260,10 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
 
 export default GoogleApiWrapper({
     apiKey: process.env.GOOGLE_MAPS!,
-    LoadingContainer: () => (
-        <div className={"loadingWrapper"}>
+    LoadingContainer: () => {
+        console.log(process.env.GOOGLE_MAPS);
+        return <div className={"loadingWrapper"}>
             <img className={"loadingGif"} src={"/assets/loading.gif"} />
-        </div>
-    )
+        </div>;
+    }
 })(CollectionMapView) as any;

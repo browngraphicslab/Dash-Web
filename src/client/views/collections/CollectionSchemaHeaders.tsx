@@ -1,62 +1,22 @@
 import React = require("react");
-import { action, observable } from "mobx";
-import { observer } from "mobx-react";
-import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
+import { IconProp, library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ColumnType } from "./CollectionSchemaView";
-import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { listSpec } from "../../../fields/Schema";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
 import { undoBatch } from "../../util/UndoManager";
+import { SearchBox } from "../search/SearchBox";
+import { ColumnType } from "./CollectionSchemaView";
+import "./CollectionSchemaView.scss";
+import { CollectionView } from "./CollectionView";
+
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
-
-export interface HeaderProps {
-    keyValue: SchemaHeaderField;
-    possibleKeys: string[];
-    existingKeys: string[];
-    keyType: ColumnType;
-    typeConst: boolean;
-    onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
-    setIsEditing: (isEditing: boolean) => void;
-    deleteColumn: (column: string) => void;
-    setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
-    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
-    setColumnColor: (column: SchemaHeaderField, color: string) => void;
-
-}
-
-export class CollectionSchemaHeader extends React.Component<HeaderProps> {
-    render() {
-        const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
-        return (
-            <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
-                <CollectionSchemaColumnMenu
-                    columnField={this.props.keyValue}
-                    // keyValue={this.props.keyValue.heading}
-                    possibleKeys={this.props.possibleKeys}
-                    existingKeys={this.props.existingKeys}
-                    // keyType={this.props.keyType}
-                    typeConst={this.props.typeConst}
-                    menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue.heading}</div>}
-                    addNew={false}
-                    onSelect={this.props.onSelect}
-                    setIsEditing={this.props.setIsEditing}
-                    deleteColumn={this.props.deleteColumn}
-                    onlyShowOptions={false}
-                    setColumnType={this.props.setColumnType}
-                    setColumnSort={this.props.setColumnSort}
-                    setColumnColor={this.props.setColumnColor}
-                />
-            </div>
-        );
-    }
-}
 
 
 export interface AddColumnHeaderProps {
@@ -71,6 +31,7 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
         );
     }
 }
+
 
 export interface ColumnMenuProps {
     columnField: SchemaHeaderField;
@@ -95,37 +56,29 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     @observable private _isOpen: boolean = false;
     @observable private _node: HTMLDivElement | null = null;
 
-    componentDidMount() {
-        document.addEventListener("pointerdown", this.detectClick);
-    }
+    componentDidMount() { document.addEventListener("pointerdown", this.detectClick); }
 
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.detectClick);
-    }
+    componentWillUnmount() { document.removeEventListener("pointerdown", this.detectClick); }
 
-    detectClick = (e: PointerEvent): void => {
-        if (this._node && this._node.contains(e.target as Node)) {
-        } else {
-            this._isOpen = false;
-            this.props.setIsEditing(false);
-        }
+    @action
+    detectClick = (e: PointerEvent) => {
+        !this._node?.contains(e.target as Node) && this.props.setIsEditing(this._isOpen = false);
     }
 
     @action
     toggleIsOpen = (): void => {
-        this._isOpen = !this._isOpen;
-        this.props.setIsEditing(this._isOpen);
+        this.props.setIsEditing(this._isOpen = !this._isOpen);
     }
 
-    changeColumnType = (type: ColumnType): void => {
+    changeColumnType = (type: ColumnType) => {
         this.props.setColumnType(this.props.columnField, type);
     }
 
-    changeColumnSort = (desc: boolean | undefined): void => {
+    changeColumnSort = (desc: boolean | undefined) => {
         this.props.setColumnSort(this.props.columnField, desc);
     }
 
-    changeColumnColor = (color: string): void => {
+    changeColumnColor = (color: string) => {
         this.props.setColumnColor(this.props.columnField, color);
     }
 
@@ -137,7 +90,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderTypes = () => {
-        if (this.props.typeConst) return <></>;
+        if (this.props.typeConst) return (null);
 
         const type = this.props.columnField.type;
         return (
@@ -160,9 +113,21 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         Checkbox
                     </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List)}>
+                        <FontAwesomeIcon icon={"list-ul"} size="sm" />
+                        List
+                    </div>
                     <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc)}>
                         <FontAwesomeIcon icon={"file"} size="sm" />
                         Document
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image)}>
+                        <FontAwesomeIcon icon={"image"} size="sm" />
+                        Image
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Date)}>
+                        <FontAwesomeIcon icon={"calendar"} size="sm" />
+                        Date
                     </div>
                 </div>
             </div >
@@ -220,18 +185,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     renderContent = () => {
         return (
             <div className="collectionSchema-header-menuOptions">
-                <div className="collectionSchema-headerMenu-group">
-                    <label>Key:</label>
-                    <KeysDropdown
-                        keyValue={this.props.columnField.heading}
-                        possibleKeys={this.props.possibleKeys}
-                        existingKeys={this.props.existingKeys}
-                        canAddNew={true}
-                        addNew={this.props.addNew}
-                        onSelect={this.props.onSelect}
-                        setIsEditing={this.props.setIsEditing}
-                    />
-                </div>
                 {this.props.onlyShowOptions ? <></> :
                     <>
                         {this.renderTypes()}
@@ -258,21 +211,32 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 }
 
 
-interface KeysDropdownProps {
+export interface KeysDropdownProps {
     keyValue: string;
     possibleKeys: string[];
     existingKeys: string[];
     canAddNew: boolean;
     addNew: boolean;
-    onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
+    onSelect: (oldKey: string, newKey: string, addnew: boolean, filter?: string) => void;
     setIsEditing: (isEditing: boolean) => void;
+    width?: string;
+    docs?: Doc[];
+    Document: Doc;
+    dataDoc: Doc | undefined;
+    fieldKey: string;
+    ContainingCollectionDoc: Doc | undefined;
+    ContainingCollectionView: Opt<CollectionView>;
+    active?: (outsideReaction?: boolean) => boolean;
+    openHeader: (column: any, screenx: number, screeny: number) => void;
+    col: SchemaHeaderField;
+    icon: IconProp;
 }
 @observer
-class KeysDropdown extends React.Component<KeysDropdownProps> {
+export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
     @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;
-    @observable private _canClose: boolean = true;
+    @observable private _node: HTMLDivElement | null = null;
     @observable private _inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
@@ -287,15 +251,61 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.setIsEditing(false);
     }
 
+    @action
+    setNode = (node: HTMLDivElement): void => {
+        if (node) {
+            this._node = node;
+        }
+    }
+
+    componentDidMount() {
+        document.addEventListener("pointerdown", this.detectClick);
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters?.includes(this._key)) {
+            runInAction(() => this.closeResultsVisibility = "contents");
+        }
+    }
+
+    @action
+    detectClick = (e: PointerEvent): void => {
+        if (this._node && this._node.contains(e.target as Node)) {
+        } else {
+            this._isOpen = false;
+            this.props.setIsEditing(false);
+        }
+    }
+
+    private tempfilter: string = "";
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
-            const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            if (keyOptions.length) {
-                this.onSelect(keyOptions[0]);
-            } else if (this._searchTerm !== "" && this.props.canAddNew) {
-                this.setSearchTerm(this._searchTerm || this._key);
-                this.onSelect(this._searchTerm);
+            if (this._searchTerm.includes(":")) {
+                const colpos = this._searchTerm.indexOf(":");
+                const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
+                if (temp === "") {
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    this.updateFilter();
+                }
+                else {
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    this.tempfilter = temp;
+                    Doc.setDocFilter(this.props.Document, this._key, temp, "check");
+                    this.props.col.setColor("green");
+                    this.closeResultsVisibility = "contents";
+                }
+            }
+            else {
+                Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                this.updateFilter();
+                let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+                const blockedkeys = ["system", "title-custom", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
+                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
+                if (keyOptions.length) {
+                    this.onSelect(keyOptions[0]);
+                } else if (this._searchTerm !== "" && this.props.canAddNew) {
+                    this.setSearchTerm(this._searchTerm || this._key);
+                    this.onSelect(this._searchTerm);
+                }
             }
         }
     }
@@ -311,53 +321,204 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
 
     @action
-    onBlur = (e: React.FocusEvent): void => {
-        if (this._canClose) {
-            this._isOpen = false;
-            this.props.setIsEditing(false);
-        }
-    }
-
-    @action
-    onPointerEnter = (e: React.PointerEvent): void => {
-        this._canClose = false;
-    }
-
-    @action
-    onPointerOut = (e: React.PointerEvent): void => {
-        this._canClose = true;
-    }
-
     renderOptions = (): JSX.Element[] | JSX.Element => {
-        if (!this._isOpen) return <></>;
+        if (!this._isOpen) {
+            this.defaultMenuHeight = 0;
+            return <></>;
+        }
+        const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
 
-        const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        let keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
+        const blockedkeys = ["proto", "x", "y", "zIndex", "_timeStampOnEnter", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
+        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
+
         const options = keyOptions.map(key => {
-            return <div key={key} className="key-option" onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
+            return <div key={key} className="key-option" style={{
+                border: "1px solid lightgray",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
+            }}
+                onPointerDown={e => {
+                    e.stopPropagation();
+                }}
+                onClick={() => {
+                    this.onSelect(key);
+                    this.setSearchTerm("");
+                }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
-        if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
-            options.push(<div key={""} className="key-option"
-                onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
-                Create "{this._searchTerm}" key</div>);
+
+        if (this._key !== this._searchTerm.slice(0, this._key.length)) {
+            console.log("little further");
+            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+                options.push(<div key={""} className="key-option" style={{
+                    border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
+                }}
+                    onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
+                    Create "{this._searchTerm}" key</div>);
+            }
         }
 
+        if (options.length === 0) {
+            this.defaultMenuHeight = 0;
+        }
+        else {
+            if (this.props.docs) {
+                const panesize = this.props.docs.length * 30;
+                options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+            else {
+                options.length > 5 ? this.defaultMenuHeight = 108 : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+        }
         return options;
     }
 
+    docSafe: Doc[] = [];
+
+    @action
+    renderFilterOptions = (): JSX.Element[] | JSX.Element => {
+        if (!this._isOpen) {
+            this.defaultMenuHeight = 0;
+            return <></>;
+        }
+        const keyOptions: string[] = [];
+        const colpos = this._searchTerm.indexOf(":");
+        const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
+        if (this.docSafe.length === 0) {
+            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+        }
+        const docs = this.docSafe;
+        docs.forEach((doc) => {
+            const key = StrCast(doc[this._key]);
+            if (keyOptions.includes(key) === false && key.includes(temp) && key !== "") {
+                keyOptions.push(key);
+            }
+        });
+
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            this.props.col.setColor("rgb(241, 239, 235)");
+            this.closeResultsVisibility = "none";
+        }
+        for (let i = 0; i < (filters?.length ?? 0) - 1; i += 3) {
+            if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
+                keyOptions.push(filters![i + 1]);
+            }
+        }
+        const options = keyOptions.map(key => {
+            let bool = false;
+            if (filters !== undefined) {
+                bool = filters.includes(key) && filters[filters.indexOf(key) + 1] === "check";
+            }
+            return <div key={key} className="key-option" style={{
+                border: "1px solid lightgray", paddingLeft: 5, textAlign: "left",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
+            }}
+            >
+                <input type="checkbox"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    onChange={(e) => {
+                        e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+                        e.target.checked === true ? this.closeResultsVisibility = "contents" : console.log("");
+                        e.target.checked === true ? this.props.col.setColor("green") : this.updateFilter();
+                        e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
+                    }}
+                    checked={bool}
+                />
+                <span style={{ paddingLeft: 4 }}>
+                    {key}
+                </span>
+
+            </div>;
+        });
+        if (options.length === 0) {
+            this.defaultMenuHeight = 0;
+        }
+        else {
+            if (this.props.docs) {
+                const panesize = this.props.docs.length * 30;
+                options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+            else {
+                options.length > 5 ? this.defaultMenuHeight = 108 : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+
+        }
+        return options;
+    }
+
+    @observable defaultMenuHeight = 0;
+
+
+    updateFilter() {
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            console.log("PLEASE");
+            this.props.col.setColor("rgb(241, 239, 235)");
+            this.closeResultsVisibility = "none";
+        }
+    }
+
+
+    get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; }
+
+    @computed get scriptField() {
+        const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
+        const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        return script ? () => script : undefined;
+    }
+    filterBackground = () => "rgba(105, 105, 105, 0.432)";
+    @observable filterOpen: boolean | undefined = undefined;
+    closeResultsVisibility: string = "none";
+
+    removeFilters = (e: React.PointerEvent): void => {
+        const keyOptions: string[] = [];
+        if (this.docSafe.length === 0) {
+            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+        }
+        const docs = this.docSafe;
+        docs.forEach((doc) => {
+            const key = StrCast(doc[this._key]);
+            if (keyOptions.includes(key) === false) {
+                keyOptions.push(key);
+            }
+        });
+
+        Doc.setDocFilter(this.props.Document, this._key, "", "remove");
+        this.props.col.setColor("rgb(241, 239, 235)");
+        this.closeResultsVisibility = "none";
+    }
     render() {
         return (
-            <div className="keys-dropdown">
-                <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
-                    onChange={e => this.onChange(e.target.value)} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                    {this.renderOptions()}
-                </div>
-            </div >
+            <div style={{ display: "flex" }} ref={this.setNode}>
+                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); e.stopPropagation(); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+
+                {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
+                    runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
+                }} /> */}
+
+                <div className="keys-dropdown" style={{ zIndex: 1, width: this.props.width, maxWidth: this.props.width }}>
+                    <input className="keys-search" style={{ width: "100%" }}
+                        ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
+                        onChange={e => this.onChange(e.target.value)}
+                        onClick={(e) => { e.stopPropagation(); this._inputRef.current?.focus(); }}
+                        onFocus={this.onFocus} ></input>
+                    <div style={{ display: this.closeResultsVisibility }}>
+                        <FontAwesomeIcon onPointerDown={this.removeFilters} icon={"times-circle"} size="lg"
+                            style={{ cursor: "hand", color: "grey", padding: 2, left: -20, top: -1, height: 15, position: "relative" }} />
+                    </div>
+                    {!this._isOpen ? (null) : <div className="keys-options-wrapper" style={{
+                        width: this.props.width, maxWidth: this.props.width, height: "auto",
+                    }}>
+                        {this._searchTerm.includes(":") ? this.renderFilterOptions() : this.renderOptions()}
+                    </div>}
+                </div >
+            </div>
         );
     }
 }

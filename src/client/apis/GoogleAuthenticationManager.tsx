@@ -1,17 +1,17 @@
-import { observable, action, reaction, runInAction, IReactionDisposer } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import MainViewModal from "../views/MainViewModal";
 import { Opt } from "../../fields/Doc";
 import { Networking } from "../Network";
-import "./GoogleAuthenticationManager.scss";
 import { Scripting } from "../util/Scripting";
+import { MainViewModal } from "../views/MainViewModal";
+import "./GoogleAuthenticationManager.scss";
 
 const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 const prompt = "Paste authorization code here...";
 
 @observer
-export default class GoogleAuthenticationManager extends React.Component<{}> {
+export class GoogleAuthenticationManager extends React.Component<{}> {
     public static Instance: GoogleAuthenticationManager;
     private authenticationLink: Opt<string> = undefined;
     @observable private openState = false;
@@ -146,7 +146,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
 
     private get dialogueBoxStyle() {
         const borderColor = this.success === undefined ? "black" : this.success ? "green" : "red";
-        return { borderColor, transition: "0.2s borderColor ease" };
+        return { borderColor, transition: "0.2s borderColor ease", zIndex: 1002 };
     }
 
     render() {
@@ -155,8 +155,10 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                 isDisplayed={this.openState}
                 interactive={true}
                 contents={this.renderPrompt}
-                overlayDisplayedOpacity={0.9}
+                // overlayDisplayedOpacity={0.9}
                 dialogueBoxStyle={this.dialogueBoxStyle}
+                overlayStyle={{ zIndex: 1001 }}
+                closeOnExternalClick={action(() => this.isOpen = false)}
             />
         );
     }

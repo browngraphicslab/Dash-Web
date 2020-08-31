@@ -1,6 +1,156 @@
 .sharing-interface {
-    display: flex;
-    flex-direction: column;
+    width: 600px;
+    // height: 360px;
+
+    .overlay {
+        transform: translate(-20px, -20px);
+    }
+
+    select {
+        text-align: justify;
+        text-align-last: end
+    }
+
+    .sharing-contents {
+        display: flex;
+        flex-direction: column;
+
+        .close-button {
+            position: absolute;
+            right: 1em;
+            top: 1em;
+            cursor: pointer;
+            z-index: 999;
+        }
+
+        .share-container {
+            .share-setup {
+                display: flex;
+                margin-bottom: 20px;
+                align-items: center;
+                height: 36;
+
+                .user-search {
+                    width: 90%;
+
+                    input {
+                        height: 30;
+                    }
+                }
+
+                .permissions-select {
+                    z-index: 1;
+                    margin-left: -100;
+                    border: none;
+                    outline: none;
+                    text-align: justify; // for Edge
+                    text-align-last: end;
+                }
+
+                .share-button {
+                    height: 105%;
+                    margin-left: 2%;
+                    background-color: black;
+                }
+            }
+
+            .sort-checkboxes {
+                float: left;
+                margin-top: -17px;
+                margin-bottom: 10px;
+                font-size: 10px;
+
+                input {
+                    height: 10px;
+                    cursor: pointer;
+                }
+
+                label {
+                    font-weight: normal;
+                    font-style: italic;
+                }
+            }
+
+            .layoutDoc-acls {
+                display: flex;
+                flex-direction: column;
+                float: right;
+                margin-right: 12;
+                margin-top: -15;
+                align-items: center;
+
+                label {
+                    font-weight: normal;
+                    font-style: italic;
+                }
+
+                input {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .main-container {
+            display: flex;
+            margin-top: -25px;
+
+            .individual-container,
+            .group-container {
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+
+                .user-sort {
+                    text-align: left;
+                    margin-left: 10;
+                    width: 100px;
+                    cursor: pointer;
+                }
+
+                .share-title {
+                    margin-top: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .groups-list,
+                .users-list {
+                    font-style: italic;
+                    background: #e8e8e8;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    overflow-y: scroll;
+                    overflow-x: hidden;
+                    text-align: left;
+                    display: block;
+                    align-content: center;
+                    align-items: center;
+                    text-align: center;
+                    justify-content: center;
+                    color: black;
+                    height: 250px;
+                    margin: 0 2;
+
+                    .none {
+                        font-style: italic;
+                    }
+                }
+            }
+        }
+
+        button {
+            outline: none;
+            border-radius: 5px;
+            border: 0px;
+            color: #fcfbf7;
+            text-transform: none;
+            letter-spacing: 2px;
+            font-size: 75%;
+            padding: 0 10;
+            margin: 0 5;
+            transition: transform 0.2s;
+            height: 25;
+        }
+    }
 
     .focus-span {
         text-decoration: underline;
@@ -9,9 +159,8 @@
     p {
         font-size: 20px;
         text-align: left;
-        font-style: italic;
-        padding: 0;
         margin: 0 0 20px 0;
+        color: black;
     }
 
     .hr-substitute {
@@ -36,56 +185,53 @@
         }
     }
 
-    .share-individual {
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-
-    .users-list {
-        font-style: italic;
-        background: white;
-        border: 1px solid black;
-        padding-left: 10px;
-        padding-right: 10px;
-        max-height: 200px;
-        overflow: scroll;
-        height: -webkit-fill-available;
-        text-align: left;
-        display: flex;
-        align-content: center;
-        align-items: center;
-        text-align: center;
-        justify-content: center;
-        color: red;
-    }
-
     .container {
-        display: block;
+        display: flex;
         position: relative;
-        margin-top: 10px;
+        margin-top: 5px;
         margin-bottom: 10px;
         font-size: 22px;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        width: 700px;
-        min-width: 700px;
-        max-width: 700px;
+        width: 100%;
         text-align: left;
         font-style: normal;
-        font-size: 15;
+        font-size: 14;
         font-weight: normal;
         padding: 0;
+        align-items: center;
+
+        .group-info {
+            cursor: pointer;
+        }
+
+        &:hover .padding {
+            white-space: unset;
+        }
 
         .padding {
-            padding: 0 0 0 20px;
+            padding: 0 10px 0 0;
             color: black;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 40%;
         }
 
         .permissions-dropdown {
-            outline: none;
+            border: none;
+            height: 25;
+            background-color: #e8e8e8;
         }
+
+        .edit-actions {
+            display: flex;
+            position: absolute;
+            right: -10;
+        }
+
     }
 
     .no-users {
@@ -122,19 +268,5 @@
             transition: 1.5s all ease;
             padding-top: 12px;
         }
-    }
-
-    .close-button {
-        border-radius: 5px;
-        margin-top: 20px;
-        padding: 10px 0;
-        background: aliceblue;
-        transition: 0.5s ease all;
-        border: 1px solid;
-        border-color: aliceblue;
-    }
-
-    .close-button:hover {
-        border-color: black;
     }
 }

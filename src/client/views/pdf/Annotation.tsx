@@ -6,9 +6,8 @@ import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
-import PDFMenu from "./PDFMenu";
+import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
-import { DocumentView } from "../nodes/DocumentView";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -19,7 +18,9 @@ interface IAnnotationProps {
     fieldKey: string;
 }
 
-export default class Annotation extends React.Component<IAnnotationProps> {
+@observer
+export
+    class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a => (
             <RegionAnnotation {...this.props} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />));
@@ -98,7 +99,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         else if (e.button === 0) {
             const annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
-                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation), false, undefined);
+                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined);
                 e.stopPropagation();
             }
         }

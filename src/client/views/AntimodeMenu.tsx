@@ -1,12 +1,14 @@
 import React = require("react");
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import "./AntimodeMenu.scss";
+export interface AntimodeMenuProps {
+}
 
 /**
  * This is an abstract class that serves as the base for a PDF-style or Marquee-style
  * menu. To use this class, look at PDFMenu.tsx or MarqueeOptionsMenu.tsx for an example.
  */
-export default abstract class AntimodeMenu extends React.Component {
+export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Component<T, {}> {
     protected _offsetY: number = 0;
     protected _offsetX: number = 0;
     protected _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -18,7 +20,7 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable protected _transitionProperty: string = "opacity";
     @observable protected _transitionDuration: string = "0.5s";
     @observable protected _transitionDelay: string = "";
-    @observable protected _canFade: boolean = true;
+    @observable protected _canFade: boolean = false;
 
     @observable public Pinned: boolean = false;
 
@@ -51,18 +53,15 @@ export default abstract class AntimodeMenu extends React.Component {
             if (this._opacity === 0.2) {
                 this._transitionProperty = "opacity";
                 this._transitionDuration = "0.1s";
-                this._transitionDelay = "";
-                this._opacity = 0;
-                this._left = this._top = -300;
             }
 
             if (forceOut) {
                 this._transitionProperty = "";
                 this._transitionDuration = "";
-                this._transitionDelay = "";
-                this._opacity = 0;
-                this._left = this._top = -300;
             }
+            this._transitionDelay = "";
+            this._opacity = 0;
+            this._left = this._top = -300;
         }
     }
 
@@ -87,7 +86,7 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected togglePin = (e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
+        runInAction(() => this.Pinned = !this.Pinned);
     }
 
     protected dragStart = (e: React.PointerEvent) => {
@@ -131,25 +130,51 @@ export default abstract class AntimodeMenu extends React.Component {
     }
 
     protected getDragger = () => {
-        return <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />;
+        return <div className="antimodeMenu-dragger" key="dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
     }
 
     protected getElement(buttons: JSX.Element[]) {
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
-                style={{ left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay }}>
+                style={{
+                    left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
+                    position: this.Pinned ? "unset" : undefined
+                }}>
+                <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />
                 {buttons}
-                <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />
             </div>
         );
     }
 
+    protected getElementVert(buttons: JSX.Element[]) {
+        return (
+            <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
+                style={{
+                    left: this.Pinned ? undefined : this._left,
+                    top: this.Pinned ? 0 : this._top,
+                    right: this.Pinned ? 0 : undefined,
+                    height: "inherit",
+                    width: 200,
+                    opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
+                    position: this.Pinned ? "absolute" : undefined
+                }}>
+                {buttons}
+            </div>
+        );
+    }
+
+
+
     protected getElementWithRows(rows: JSX.Element[], numRows: number, hasDragger: boolean = true) {
         return (
             <div className="antimodeMenu-cont with-rows" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
-                style={{ left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay, height: "auto" }}>
+                style={{
+                    left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty,
+                    transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay, height: "auto",
+                    flexDirection: this.Pinned ? "row" : undefined, position: this.Pinned ? "unset" : undefined
+                }}>
+                {hasDragger ? <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} /> : (null)}
                 {rows}
-                {hasDragger ? <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} /> : <></>}
             </div>
         );
     }

@@ -4,7 +4,7 @@ import "normalize.css";
 import * as React from 'react';
 import { DictationManager } from '../util/DictationManager';
 import "./Main.scss";
-import MainViewModal from './MainViewModal';
+import { MainViewModal } from './MainViewModal';
 
 @observer
 export class DictationOverlay extends React.Component {
@@ -66,6 +66,7 @@ export class DictationOverlay extends React.Component {
             interactive={false}
             dialogueBoxStyle={dialogueBoxStyle}
             overlayStyle={overlayStyle}
+            closeOnExternalClick={this.initiateDictationFade}
         />);
     }
 }

@@ -28,14 +28,22 @@ export namespace SearchUtil {
         start?: number;
         rows?: number;
         fq?: string;
+        sort?: string;
         allowAliases?: boolean;
+        onlyAliases?: boolean;
+        "facet"?: string;
+        "facet.field"?: string;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        if (options.onlyAliases) {
+            replacedQuery = `{!join from=id to=proto_i}DEFAULT:${replacedQuery}`;
+        }
+        const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
@@ -74,13 +82,15 @@ export namespace SearchUtil {
         const docs = ids.map((id: string) => docMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < ids.length; i++) {
             const testDoc = docs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || testDoc.proto === undefined || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
+            } else {
+                result.numFound--;
             }
         }
 
-        return { docs: theDocs, numFound: theDocs.length, highlighting, lines: theLines };
+        return { docs: theDocs, numFound: result.numFound, highlighting, lines: theLines };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;
@@ -128,7 +138,6 @@ export namespace SearchUtil {
         });
         const result: IdSearchResult = JSON.parse(response);
         const { ids, numFound, highlighting } = result;
-        //console.log(ids.length);
         const docMap = await DocServer.GetRefFields(ids);
         const docs: Doc[] = [];
         for (const id of ids) {

@@ -1,12 +1,63 @@
 @import "../globalCssVariables";
 @import "../_nodeModuleOverrides";
 
-.collectionLinearView-outer{
-    overflow: hidden;
-    height:100%;
+.collectionLinearView-outer {
+    overflow: visible;
+    height: 100%;
+
     .collectionLinearView {
-        display:flex;
+        display: flex;
         height: 100%;
+
+        >span {
+            background: $dark-color;
+            color: $light-color;
+            border-radius: 18px;
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        .bottomPopup-background {
+            padding-right: 14px;
+            height: 35;
+            transform: translate3d(6px, 5px, 0px);
+            padding-top: 6.5px;
+            padding-bottom: 7px;
+            padding-left: 5px;
+        }
+
+        .bottomPopup-text {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 4px;
+            vertical-align: middle;
+            font-size: 12.5px;
+        }
+
+        .bottomPopup-descriptions {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 8px;
+            vertical-align: middle;
+            background-color: lightgrey;
+            border-radius: 5.5px;
+            color: black;
+            margin-right: 5px;
+        }
+
+        .bottomPopup-exit {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 8px;
+            vertical-align: middle;
+            background-color: lightgrey;
+            border-radius: 5.5px;
+            color: black;
+        }
+
         >label {
             margin-top: "auto";
             margin-bottom: "auto";
@@ -17,15 +68,15 @@
             font-size: 12.5px;
             width: 18px;
             height: 18px;
-            margin-top:auto;
-            margin-bottom:auto;
+            margin-top: auto;
+            margin-bottom: auto;
             margin-right: 3px;
             cursor: pointer;
             transition: transform 0.2s;
         }
 
         label p {
-            padding-left:5px;
+            padding-left: 5px;
         }
 
         label:hover {
@@ -36,6 +87,7 @@
         >input {
             display: none;
         }
+
         >input:not(:checked)~.collectionLinearView-content {
             display: none;
         }
@@ -52,12 +104,14 @@
             position: relative;
             margin-top: auto;
 
-            .collectionLinearView-docBtn, .collectionLinearView-docBtn-scalable {
-                position:relative;
-                margin:auto;
+            .collectionLinearView-docBtn,
+            .collectionLinearView-docBtn-scalable {
+                position: relative;
+                margin: auto;
                 margin-left: 3px;
                 transform-origin: center 80%;
             }
+
             .collectionLinearView-docBtn-scalable:hover {
                 transform: scale(1.15);
             }
@@ -68,7 +122,7 @@
                 border-radius: 18px;
                 font-size: 15px;
             }
-            
+
             .collectionLinearView-round-button:hover {
                 transform: scale(1.15);
             }

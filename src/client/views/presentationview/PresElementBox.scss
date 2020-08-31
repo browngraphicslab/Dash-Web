@@ -1,11 +1,19 @@
+$light-blue: #AEDDF8;
+$dark-blue: #5B9FDD;
+$light-background: #ececec;
+
 .presElementBox-item {
-    display: inline-block;
-    background-color: #eeeeee;
+    cursor: grab;
+    display: grid;
+    grid-template-columns: max-content max-content max-content max-content;
+    background-color: #d5dce2;
+    font-family: Roboto;
+    letter-spacing: normal;
+    position: relative;
     pointer-events: all;
     width: 100%;
     height: 100%;
-    outline-color: maroon;
-    outline-style: dashed;
+    font-weight: 400;
     border-radius: 6px;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -13,9 +21,36 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    transition: all .1s; 
+    transition: all .3s;
     padding: 0px;
     padding-bottom: 3px;
+
+    .presElementBox-highlight {
+        position: absolute;
+        transform: translate(-100px, -4px);
+        z-index: -1;
+        width: calc(100% + 200px);
+        height: calc(100% + 8px);
+        background-color: $light-blue;
+    }
+
+    .presElementBox-highlightTop {
+        position: absolute;
+        transform: translate(-100px, -4px);
+        z-index: -1;
+        width: calc(100% + 200px);
+        height: calc(50% + 4px);
+    }
+
+    .presElementBox-highlightBottom {
+        position: absolute;
+        transform: translate(-100px, 0px);
+        z-index: -1;
+        top: 50%;
+        width: calc(100% + 200px);
+        height: calc(50% + 4px);
+    }
+
     .documentView-node {
         position: absolute;
         z-index: 1;
@@ -32,73 +67,146 @@
 
 .presElementBox-item:hover {
     transition: all .1s;
-    background: #AAAAAA;
+    background: #98b7da;
     border-radius: 6px;
 }
 
 .presElementBox-active {
-    background: gray;
     color: black;
     border-radius: 6px;
-    box-shadow: black 2px 2px 5px;
+    border: solid 2px $dark-blue;
 }
-
-.presElementBox-closeIcon {
-    border-radius: 20px;
-    transform:scale(0.7);
-    position: absolute;
-    right: 0;
-    top: 0;
-    padding: 8px;
-}
-
 
 .presElementBox-buttons {
-    display: flow-root;
-    position: relative;
+    display: grid;
+    grid-template-rows: 15px;
+    top: 15px;
+    left: -20;
+    position: absolute;
     width: 100%;
     height: auto;
+
     .presElementBox-interaction {
-        color: gray;
-        float: left;
-        padding: 0px;
-        width: 20px;
-        height: 20px;
+        display: none;
     }
+
     .presElementBox-interaction-selected {
-        color: white;
+        color: grey;
+        background-color: rgba(0, 0, 0, 0);
         float: left;
         padding: 0px;
         width: 20px;
         height: 20px;
-        border: solid 1px darkgray;
     }
+}
+
+.presElementBox-number {
+    font-size: 12px;
+    width: 20;
+    font-weight: 700;
+    text-align: right;
+    justify-content: center;
+    align-content: center;
+    left: -20;
+    position: absolute;
+    display: inline-block;
+    overflow: hidden;
 }
 
 .presElementBox-name {
-    font-size: 12pxππ;
-    position: absolute;
-    display: inline-block;
-    width: calc(100% - 45px);
+    align-self: center;
+    font-size: 13px;
+    font-family: Roboto;
+    font-weight: 500;
+    position: relative;
+    top: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
+    letter-spacing: normal;
+    width: max-content;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: pre;
 }
 
+.presElementBox-time {
+    align-self: center;
+    position: relative;
+    top: 2px;
+    padding-right: 10px;
+    font-size: 10;
+    font-weight: 300;
+    font-family: Roboto;
+    z-index: 300;
+    letter-spacing: normal;
+}
+
 .presElementBox-embedded {
+    grid-column: 1/8;
     position: relative;
     display: flex;
     width: auto;
     justify-content: center;
-    margin:auto;
+    margin: auto;
 }
 
 .presElementBox-embeddedMask {
-    width:100%;
-    height:100%;
+    width: 100%;
+    height: 100%;
     position: absolute;
-    left:0;
-    top:0;
-    background: transparent;
-    z-index:2;
+    border-radius: 3px;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.presElementBox-closeIcon {
+    cursor: pointer;
+    position: absolute;
+    border-radius: 100%;
+    z-index: 300;
+    right: 3px;
+    top: 3px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    font-size: 75%;
+    background-color: black;
+    color: white;
+    justify-content: center;
+    align-items: center;
+}
+
+.presElementBox-expand {
+    cursor: pointer;
+    position: absolute;
+    border-radius: 100%;
+    z-index: 300;
+    right: 26px;
+    top: 3px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    font-size: 75%;
+    background-color: black;
+    color: white;
+    justify-content: center;
+    align-items: center;
+}
+
+.presElementBox-expand-selected {
+    cursor: pointer;
+    position: absolute;
+    border-radius: 100%;
+    right: 3px;
+    bottom: 3px;
+    width: 20px;
+    height: 20px;
+    z-index: 300;
+    display: flex;
+    background-color: black;
+    color: white;
+    justify-content: center;
+    align-items: center;
 }

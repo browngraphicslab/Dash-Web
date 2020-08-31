@@ -83,14 +83,11 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     /////////lifecycle functions////////////
-    componentWillMount() {
+    componentDidMount() {
         const relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
         this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
         this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset
-    }
-
-    componentDidMount() {
         runInAction(() => {
             if (!this.props.Document.AnimationLength) { //if animation length did not exist
                 this.props.Document.AnimationLength = this._time; //set it to default time
@@ -288,13 +285,13 @@ export class Timeline extends React.Component<FieldViewProps> {
     resetView(doc: Doc) {
         doc._panX = doc._customOriginX ?? 0;
         doc._panY = doc._customOriginY ?? 0;
-        doc.scale = doc._customOriginScale ?? 1;
+        doc._viewScale = doc._customOriginScale ?? 1;
     }
 
     setView(doc: Doc) {
         doc._customOriginX = doc._panX;
         doc._customOriginY = doc._panY;
-        doc._customOriginScale = doc.scale;
+        doc._customOriginScale = doc._viewScale;
     }
     /**
      * zooming mechanism (increment and spacing changes)
@@ -385,10 +382,10 @@ export class Timeline extends React.Component<FieldViewProps> {
             const ttime = `Total: ${this.toReadTime(this._time)}`;
             return (
                 <div style={{ flexDirection: "column" }}>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                    <div className="animation-text" style={{ fontSize: "10pt", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
                         {ctime}
                     </div>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                    <div className="animation-text" style={{ fontSize: "10pt", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
                         {ttime}
                     </div>
                 </div>
@@ -466,7 +463,6 @@ export class Timeline extends React.Component<FieldViewProps> {
                 //TODO: remove undefineds and duplicates
             }
         });
-        // console.log(longestTime); 
         return longestTime;
     }
 

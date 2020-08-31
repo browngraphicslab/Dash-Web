@@ -1,12 +1,11 @@
 import React = require("react");
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faVideo } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { Doc } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
+import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
@@ -18,13 +17,10 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
-import { InkTool } from "../../../fields/InkField";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
-
-library.add(faVideo);
 
 @observer
 export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
@@ -77,7 +73,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                             const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                             imageSummary.x = spt[0];
                             imageSummary.y = spt[1];
-                            Cast(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
+                            Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
                         } else {
                             this.props.addDocument?.(imageSummary);
                         }
@@ -112,7 +108,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             return returnedUri;
 
         } catch (e) {
-            console.log(e);
+            console.log("ScreenShotBox:" + e);
         }
     }
     @observable _screenCapture = false;

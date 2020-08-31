@@ -1,16 +1,15 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
-import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
+import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { Upload } from "../../../server/SharedMediaTypes";
-import { Utils, returnFalse } from "../../../Utils";
+import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -19,6 +18,8 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import React = require("react");
+import * as rp from 'request-promise';
+import ReactLoading from 'react-loading';
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -54,17 +55,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
-                this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
+                this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -73,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         componentWillUnmount() {
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -90,6 +91,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
+            // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
+            // setTimeout changes it outside of the @computed section
+            setTimeout(() => {
+                if (!this.dataDoc[this.props.annotationsKey || this.props.fieldKey]) this.dataDoc[this.props.annotationsKey || this.props.fieldKey] = new List<Doc>();
+            }, 1000);
             return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
@@ -101,18 +107,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
         }
+        docFilters = () => {
+            return this.props.ignoreFields?.includes("_docFilters") ? [] :
+                [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
+        }
+        searchFilterDocs = () => {
+            return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
+        }
         @computed get childDocs() {
-            const docFilters = this.props.ignoreFields?.includes("_docFilters") ? [] : Cast(this.props.Document._docFilters, listSpec("string"), []);
-            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-            const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-            for (let i = 0; i < docFilters.length; i += 3) {
-                const [key, value, modifiers] = docFilters.slice(i, i + 3);
-                if (!filterFacets[key]) {
-                    filterFacets[key] = {};
-                }
-                filterFacets[key][value] = modifiers;
-            }
-
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
@@ -124,34 +126,42 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
                 rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
             }
+
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
-                for (const facetKey of Object.keys(filterFacets)) {
-                    const facet = filterFacets[facetKey];
-                    const satisfiesFacet = Object.keys(facet).some(value =>
-                        (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
-                    if (!satisfiesFacet) {
-                        return false;
+            let searchDocs = this.searchFilterDocs();
+
+            let docsforFilter: Doc[] = childDocs;
+
+            if (searchDocs.length > 0) {
+                searchDocs = [...searchDocs, ...docs.filter(d => d.z)];
+                docsforFilter = [];
+                const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+                searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
+                childDocs.forEach((d) => {
+                    let notFiltered = searchDocs.includes(d) || d.z;
+                    if (d.data !== undefined) {
+                        let subDocs = DocListCast(d.data);
+                        if (subDocs.length > 0) {
+                            let newarray: Doc[] = [];
+                            while (subDocs.length > 0 && !notFiltered) {
+                                newarray = [];
+                                subDocs.forEach((t) => {
+                                    notFiltered = notFiltered || searchDocs.includes(t);
+                                    DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
+                                });
+                                subDocs = newarray;
+                            }
+                        }
                     }
-                }
-                return true;
-            }) : childDocs;
-            const rangeFilteredDocs = filteredDocs.filter(d => {
-                for (let i = 0; i < docRangeFilters.length; i += 3) {
-                    const key = docRangeFilters[i];
-                    const min = Number(docRangeFilters[i + 1]);
-                    const max = Number(docRangeFilters[i + 2]);
-                    const val = Cast(d[key], "number", null);
-                    if (val !== undefined && (val < min || val > max)) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-            return rangeFilteredDocs;
+                    notFiltered && docsforFilter.push(d);
+                });
+                return docsforFilter;
+            }
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -203,25 +213,29 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
 
-        @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
-            ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
-                const dropaction = docDragData.dropAction || docDragData.userDropAction;
-                if (dropaction && dropaction !== "move") {
-                    added = this.addDocument(docDragData.droppedDocuments);
-                } else if (docDragData.moveDocument) {
+                const dropAction = docDragData.dropAction || docDragData.userDropAction;
+                if ((!dropAction || dropAction === "move") && docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
+                    if (movedDocs.length) {
+                        const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey || !this.props.isAnnotationOverlay ||
+                            Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
+                        added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
+                    } else added = res;
+                    added && e.stopPropagation();
+                    return added;
                 } else {
+                    ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
-                added && e.stopPropagation();
+                !added && alert("You cannot perform this move");
+                e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {
@@ -230,21 +244,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             return false;
         }
-        readUploadedFileAsText = (inputFile: File) => {
-            const temporaryFileReader = new FileReader();
 
-            return new Promise((resolve, reject) => {
-                temporaryFileReader.onerror = () => {
-                    temporaryFileReader.abort();
-                    reject(new DOMException("Problem parsing input file."));
-                };
-
-                temporaryFileReader.onload = () => {
-                    resolve(temporaryFileReader.result);
-                };
-                temporaryFileReader.readAsText(inputFile);
-            });
-        }
         @undoBatch
         @action
         protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
@@ -256,6 +256,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { dataTransfer } = e;
             const html = dataTransfer.getData("text/html");
             const text = dataTransfer.getData("text/plain");
+            const uriList = dataTransfer.getData("text/uri-list");
 
             if (text && text.startsWith("<div")) {
                 return;
@@ -263,8 +264,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            const { addDocument } = this;
-            if (!addDocument) {
+            if (!this.addDocument) {
                 alert("this.props.addDocument does not exist. Aborting drop operation.");
                 return;
             }
@@ -278,14 +278,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             DocServer.GetRefField(docid).then(f => {
                                 if (f instanceof Doc) {
                                     if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                    (f instanceof Doc) && addDocument(f);
+                                    (f instanceof Doc) && this.addDocument(f);
                                 }
                             });
                         } else {
-                            addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
+                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
-                        addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -305,7 +305,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         if (source.startsWith("http")) {
                             const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                             ImageUtils.ExtractExif(doc);
-                            addDocument(doc);
+                            this.addDocument(doc);
                         }
                         return;
                     } else {
@@ -323,20 +323,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             let srcWeb: Doc | undefined;
                             if (SelectionManager.SelectedDocuments().length) {
                                 srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
-                                srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
+                                srcUrl = (srcWeb.data as WebField).url?.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
                                     const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _LODdisable: true, _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -349,10 +349,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
             }
 
-            if (text) {
-                if (text.includes("www.youtube.com/watch")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    addDocument(Docs.Create.VideoDocument(url, {
+            if (uriList || text) {
+                if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
+                    const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
+                    this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
@@ -376,9 +376,33 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
                 //     const albumId = matches[3];
                 //     const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                //     console.log(mediaItems);
                 //     return;
                 // }
+            }
+            if (uriList) {
+                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+                if (existingWebDoc) {
+                    const alias = Doc.MakeAlias(existingWebDoc);
+                    alias.x = options.x;
+                    alias.y = options.y;
+                    alias._nativeWidth = 850;
+                    alias._nativeHeight = 962;
+                    alias._width = 400;
+                    this.addDocument(alias);
+                } else {
+                    const newDoc = Docs.Create.WebDocument(uriList, {
+                        ...options,
+                        title: uriList.split("#annotations:")[0],
+                        _width: 400,
+                        _height: 315,
+                        _nativeWidth: 850,
+                        _nativeHeight: 962,
+                        UseCors: true
+                    });
+                    newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
+                    this.addDocument(newDoc);
+                }
+                return;
             }
 
             const { items } = e.dataTransfer;
@@ -395,9 +419,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.includes("uri")) {
                     const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
-                    const type = "html";// (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
+                    const type = (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
                     if (type) {
-                        const doc = await DocUtils.DocumentFromType(type, stringContents, options);
+                        const doc = await DocUtils.DocumentFromType(type, Utils.CorsProxy(stringContents), options);
                         doc && generatedDocuments.push(doc);
                     }
                 }
@@ -405,10 +429,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const file = item.getAsFile();
                     file?.type && files.push(file);
 
-                    file?.type === "application/json" && this.readUploadedFileAsText(file).then(result => {
-                        console.log(result);
+                    file?.type === "application/json" && Utils.readUploadedFileAsText(file).then(result => {
                         const json = JSON.parse(result as string);
-                        addDocument(Docs.Create.TreeDocument(
+                        this.addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
                                 const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
                                 const proto = Doc.GetProto(label);
@@ -420,45 +443,36 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
-            for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
-                if (result instanceof Error) {
-                    alert(`Upload failed: ${result.message}`);
-                    return;
-                }
-                const full = { ...options, _width: 400, title: name };
-                const pathname = Utils.prepend(result.accessPaths.agnostic.client);
-                const doc = await DocUtils.DocumentFromType(type, pathname, full);
-                if (!doc) {
-                    continue;
-                }
-                const proto = Doc.GetProto(doc);
-                proto.text = result.rawText;
-                proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
-                if (Upload.isImageInformation(result)) {
-                    proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
-                    proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
-                    proto.contentSize = result.contentSize;
-                }
-                generatedDocuments.push(doc);
-            }
+            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY);
+            batch.end();
+        }
+        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number) => {
+            runInAction(() => CollectionSubViewLoader.Waiting = "block");
+            const disposer = OverlayView.Instance.addElement(
+                <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
+            generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
+                    UndoManager.RunInBatch(() => this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
                 } else {
-                    generatedDocuments.forEach(addDocument);
+                    UndoManager.RunInBatch(() => generatedDocuments.forEach(this.addDocument), "drop");
                 }
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 }
             }
-            batch.end();
+            disposer();
         }
     }
 
     return CollectionSubView;
+}
+
+export class CollectionSubViewLoader {
+    @observable public static Waiting = "none";
 }
 
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -466,5 +480,9 @@ import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
-import { CollectionView } from "./CollectionView";
+import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { OverlayView } from "../OverlayView";
+import { setTimeout } from "timers";
+import { Hypothesis } from "../../util/HypothesisUtils";
+

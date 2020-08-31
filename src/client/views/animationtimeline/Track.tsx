@@ -134,7 +134,6 @@ export class Track extends React.Component<IProps> {
     autoCreateKeyframe = () => {
         const objects = this.objectWhitelist.map(key => this.props.node[key]);
         intercept(this.props.node, change => {
-            console.log(change);
             return change;
         });
         return reaction(() => {
@@ -174,7 +173,6 @@ export class Track extends React.Component<IProps> {
             if (regiondata) {
                 this.props.node.hidden = false;
                 // if (!this._autoKfReaction) {
-                //     // console.log("creating another reaction"); 
                 //     // this._autoKfReaction = this.autoCreateKeyframe(); 
                 // }
                 this.timeChange();
@@ -204,7 +202,6 @@ export class Track extends React.Component<IProps> {
                     }
                 });
             } else {
-                console.log("reverting state");
                 //this.revertState(); 
             }
         });
@@ -229,7 +226,6 @@ export class Track extends React.Component<IProps> {
             const rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             const currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
-                console.log("is current");
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;

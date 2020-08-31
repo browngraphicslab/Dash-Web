@@ -1,0 +1,271 @@
+$navbar-height: 120px;
+$pathbar-height: 50px;
+
+* {
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+    font-family: "Open Sans";
+}
+
+body {
+    overflow: hidden;
+}
+
+.navbar {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: $navbar-height;
+    background-color: whitesmoke;
+    border-bottom: 5px solid black;
+}
+
+.navbar .toggle-btn {
+    position: absolute;
+    right: 20px;
+    top: 30px;
+    height: 70px;
+    width: 70px;
+    transition: all 300ms ease-in-out 200ms;
+}
+
+.navbar .header {
+    position: absolute;
+    top: 50%;
+    top: calc(9px + 50%);
+    right: 50%;
+    transform: translate(50%, -50%);
+    font-size: 40;
+    user-select: none;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbar .toggle-btn span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 4px;
+    background: black;
+    transition: all 200ms ease;
+}
+
+.navbar .toggle-btn span:nth-child(1) {
+    transition: top 200ms ease-in-out;
+    top: 30%;
+}
+
+.navbar .toggle-btn span:nth-child(3) {
+    transition: top 200ms ease-in-out;
+    top: 70%;
+}
+
+.navbar .toggle-btn.active {
+    transition: transform 200ms ease-in-out 200ms;
+    transform: rotate(135deg);
+}
+
+.navbar .toggle-btn.active span:nth-child(1) {
+    top: 50%;
+}
+
+.navbar .toggle-btn.active span:nth-child(2) {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.navbar .toggle-btn.active span:nth-child(3) {
+    top: 50%;
+}
+// .navbar .home {
+//     position: relative;
+//     right: 5px;
+//     transform: translate(50%, -50%);
+//     font-size: 40;
+//     user-select: none;
+//     text-transform: uppercase;
+//     font-family: Arial, Helvetica, sans-serif;
+//     z-index: 200;
+// }
+
+.sidebar {
+    position: absolute;
+    top: 200px;
+    opacity: 0;
+    right: -100%;
+    width: 100%;
+    height: calc(100% - (200px));
+    z-index: 5;
+    background-color: whitesmoke;
+    transition: all 400ms ease 50ms;
+    padding: 20px;
+    // overflow-y: auto;
+    // -webkit-overflow-scrolling: touch;
+    
+    // border-right: 5px solid black;
+}
+
+.sidebar .item {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 35px;
+    text-transform: uppercase;
+    color: black;
+    
+}
+
+.sidebar .ink {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 35px;
+    text-transform: uppercase;
+    color: black;
+}
+
+.sidebar .ink:focus {
+    outline: 1px solid blue;
+}
+
+.sidebar .home {
+    position: absolute;
+    top: -135px;
+    right: calc(50% + 80px);
+    transform: translate(0%, -50%);
+    font-size: 40;
+    user-select: none;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+    z-index: 200;
+}
+
+.type {
+    display: inline;
+    text-transform: lowercase;
+    margin-left: 20px;
+    font-size: 35px;
+    font-style: italic;
+    color: rgb(28, 28, 28);
+}
+
+.right {
+    margin-left: 20px;
+    z-index: 200;
+}
+
+.left {
+    width: 100%;
+    height: 100%;
+}
+
+.sidebar .logout {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 30px;
+    text-transform: uppercase;
+    color: black;
+}
+
+.sidebar .settings {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 30px;
+    text-transform: uppercase;
+    color: black;
+}
+
+
+.sidebar.active {
+    right: 0%;
+    opacity: 1;
+}
+
+.back {
+    position: absolute;
+    top: -140px;
+    left: 50px;
+    transform: translate(0%, -50%);
+    color: black;
+    font-size: 60;
+    user-select: none;
+    text-transform: uppercase;
+    z-index: 100;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+.pathbar {
+    position: absolute;
+    top: 118px;
+    background: #1a1a1a;
+    z-index: 20;
+    border-radius: 0px;
+    width: 100%;
+    height: 80px;
+    transition: all 400ms ease 50ms;
+}
+
+.pathname {
+    position: relative;
+    font-size: 25;
+    top: 50%;
+    width: 90%;
+    left: 3%;
+    color: whitesmoke;
+    transform: translate(0%, -50%);
+    z-index: 20;
+    font-family: sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.homeContainer {
+    position: relative;
+    top: 200px;
+    height: calc(100% - 250px);
+    width: 90%;
+    overflow: scroll;
+    left: 5%;
+    background-color: lightpink;
+}
+
+.pinButton {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    font-size: 90px;
+    text-align: center;
+    left: 50%;
+    transform: translate(-50%, 0);
+    border-style: solid;
+    border-radius: 50px;
+    border-width: medium;
+    background-color: pink;
+    z-index: 100;
+}

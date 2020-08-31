@@ -1,8 +1,8 @@
 import { Doc } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
-import { MainView } from "../views/MainView";
 import * as qs from 'query-string';
 import { Utils, OmitKeys } from "../../Utils";
+import { CurrentUserUtils } from "./CurrentUserUtils";
 
 export namespace HistoryUtil {
     export interface DocInitializerList {

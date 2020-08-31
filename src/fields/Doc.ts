@@ -1,6 +1,6 @@
-import { action, computed, observable, ObservableMap, runInAction } from "mobx";
+import { action, computed, observable, ObservableMap, runInAction, untracked } from "mobx";
 import { computedFn } from "mobx-utils";
-import { alias, map, serializable } from "serializr";
+import { alias, map, serializable, list } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
@@ -14,11 +14,16 @@ import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
+import { ImageField, VideoField, WebField, AudioField, PdfField } from "./URLField";
+import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
+import JSZip = require("jszip");
+import { saveAs } from "file-saver";
+import { result } from "lodash";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -87,33 +92,41 @@ export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
+export function DocListCastOrNull(field: FieldResult) {
+    return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined;
+}
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
+export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
+export const AclEdit = Symbol("AclEdit");
+export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
-const CachedUpdates = Symbol("Cached updates");
+export const CachedUpdates = Symbol("Cached updates");
 
+const AclMap = new Map<string, symbol>([
+    [SharingPermissions.None, AclPrivate],
+    [SharingPermissions.View, AclReadonly],
+    [SharingPermissions.Add, AclAddonly],
+    [SharingPermissions.Edit, AclEdit],
+    [SharingPermissions.Admin, AclAdmin]
+]);
 
 export function fetchProto(doc: Doc) {
-    if (doc.author !== Doc.CurrentUserEmail) {
-        const acl = Doc.Get(doc, "ACL", true);
-        switch (acl) {
-            case "ownerOnly":
-                doc[AclSym] = AclPrivate;
-                return undefined;
-            case "readOnly":
-                doc[AclSym] = AclReadonly;
-                break;
-            case "addOnly":
-                doc[AclSym] = AclAddonly;
-                break;
-        }
+    const permissions: { [key: string]: symbol } = {};
+
+    Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+
+    if (Object.keys(permissions).length) doc[AclSym] = permissions;
+
+    if (GetEffectiveAcl(doc) === AclPrivate) {
+        runInAction(() => doc[FieldsSym](true));
     }
 
     if (doc.proto instanceof Promise) {
@@ -131,10 +144,10 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
-            has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
+            has: (target, key) => GetEffectiveAcl(target) !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
+                if (GetEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fieldKeys);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -142,11 +155,11 @@ export class Doc extends RefField {
                 if (prop.toString() === "__LAYOUT__") {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
                 }
-                if (prop in target.__fields) {
+                if (prop in target.__fieldKeys) {
                     return {
                         configurable: true,//TODO Should configurable be true?
                         enumerable: true,
-                        value: target.__fields[prop]
+                        value: 0//() => target.__fields[prop])
                     };
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -170,15 +183,24 @@ export class Doc extends RefField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
+            field && (this.__fieldKeys[key] = true);
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
             field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
         }
     }
+    private get __fieldKeys() { return this.___fieldKeys; }
+    private set __fieldKeys(value) {
+        this.___fieldKeys = value;
+    }
 
     @observable
-    //{ [key: string]: Field | FieldWaiting | undefined }
     private ___fields: any = {};
+
+    @observable
+    private ___fieldKeys: any = {};
+    @observable
+    public [AclSym]: { [key: string]: symbol };
 
     private [UpdatingFromServer]: boolean = false;
 
@@ -188,11 +210,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [AclSym]: any = undefined;
+    public [FieldsSym](clear?: boolean) { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    public [ToString]() { return `Doc(${this[AclSym] === AclPrivate ? "-inaccessible-" : this.title})`; }
+    public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
+    public [ToString] = () => `Doc(${GetEffectiveAcl(this[SelfProxy]) === AclPrivate ? "-inaccessible-" : this[SelfProxy].title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -212,8 +234,8 @@ export class Doc extends RefField {
             return Cast(this[SelfProxy][renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
         }
         return undefined;
-    }
 
+    }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -228,11 +250,18 @@ export class Doc extends RefField {
                 const fKey = key.substring(7);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
+                    const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
+                    if (fKey.startsWith("ACL")) {
+                        fetchProto(this);
+                    }
                     this[UpdatingFromServer] = false;
+                    if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
+                        DocServer.GetRefField(this[Id], true);
+                    }
                 };
-                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                if (sameAuthor || fKey.startsWith("ACL") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
@@ -315,6 +344,9 @@ export namespace Doc {
     export function IsBaseProto(doc: Doc) {
         return GetT(doc, "baseProto", "boolean", true);
     }
+    export function IsSystem(doc: Doc) {
+        return GetT(doc, "system", "boolean", true);
+    }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         const hasProto = doc.proto instanceof Doc;
         const onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
@@ -378,7 +410,7 @@ export namespace Doc {
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
         if (doc instanceof Promise) {
-            console.log("GetProto: error: got Promise insead of Doc");
+            console.log("GetProto: warning: got Promise insead of Doc");
         }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
@@ -469,7 +501,7 @@ export namespace Doc {
     }
 
     export function MakeAlias(doc: Doc, id?: string) {
-        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
+        const alias = !GetT(doc, "isPrototype", "boolean", true) && doc.proto ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
         if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
@@ -477,30 +509,35 @@ export namespace Doc {
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
+        alias[AclSym] = doc[AclSym];
+
+        Doc.AddDocToList(doc[DataSym], "aliases", alias);
+
         return alias;
     }
 
-
-
-    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean): Promise<Doc> {
         if (Doc.IsBaseProto(doc)) return doc;
         if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = new Doc(undefined, true);
+        const copy = dontCreate ? doc : new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
-        Object.keys(doc).forEach(key => {
-            if (exclude.includes(key)) return;
+        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), exclusions);
+        await Promise.all(Object.keys(doc).map(async key => {
+            if (filter.includes(key)) return;
+            const assignKey = (val: any) => !dontCreate && (copy[key] = val);
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
-            const copyObjectField = (field: ObjectField) => {
+            const copyObjectField = async (field: ObjectField) => {
                 const list = Cast(doc[key], listSpec(Doc));
-                if (list !== undefined && !(list instanceof Promise)) {
-                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+                const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
+                if (docs !== undefined && docs.length) {
+                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate)));
+                    !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate)); // reference documents except copy documents that are expanded teplate fields 
                 } else {
-                    copy[key] = ObjectField.MakeCopy(field);
+                    assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
                         if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
                             rtfs.push({ copy, key, field });
@@ -510,32 +547,34 @@ export namespace Doc {
             };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
+                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate));
                 }
             } else {
                 if (field instanceof RefField) {
-                    copy[key] = field;
+                    assignKey(field);
                 } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
+                    !dontCreate && assignKey(ComputedField.MakeFunction(cfield.script.originalScript));
+                    (key === "links" && field instanceof ObjectField) && await copyObjectField(field);
                 } else if (field instanceof ObjectField) {
-                    copyObjectField(field);
+                    await copyObjectField(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
-                    copy[key] = field;
+                    assignKey(field);
                 }
             }
-        });
-        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-        copy.cloneOf = doc;
-        cloneMap.set(doc[Id], copy);
+        }));
+        if (!dontCreate) {
+            Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+            copy.cloneOf = doc;
+            cloneMap.set(doc[Id], copy);
+        }
         return copy;
     }
-    export function MakeClone(doc: Doc): Doc {
+    export async function MakeClone(doc: Doc, dontCreate: boolean = false) {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf"], dontCreate);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
@@ -549,9 +588,61 @@ export namespace Doc {
             const re = new RegExp(regex, "g");
             copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
         });
-        return copy;
+        return { clone: copy, map: cloneMap };
     }
 
+    export async function Zip(doc: Doc) {
+        // const a = document.createElement("a");
+        // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+        // a.href = url;
+        // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+        // a.click();
+        const { clone, map } = await Doc.MakeClone(doc, true);
+        function replacer(key: any, value: any) {
+            if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
+            else if (value instanceof Doc) {
+                if (key !== "field" && Number.isNaN(Number(key))) {
+                    const __fields = value[FieldsSym]();
+                    return { id: value[Id], __type: "Doc", fields: __fields };
+                } else {
+                    return { fieldId: value[Id], __type: "proxy" };
+                }
+            }
+            else if (value instanceof ScriptField) return { script: value.script, __type: "script" };
+            else if (value instanceof RichTextField) return { Data: value.Data, Text: value.Text, __type: "RichTextField" };
+            else if (value instanceof ImageField) return { url: value.url.href, __type: "image" };
+            else if (value instanceof PdfField) return { url: value.url.href, __type: "pdf" };
+            else if (value instanceof AudioField) return { url: value.url.href, __type: "audio" };
+            else if (value instanceof VideoField) return { url: value.url.href, __type: "video" };
+            else if (value instanceof WebField) return { url: value.url.href, __type: "web" };
+            else if (value instanceof DateField) return { date: value.toString(), __type: "date" };
+            else if (value instanceof ProxyField) return { fieldId: value.fieldId, __type: "proxy" };
+            else if (value instanceof Array && key !== "fields") return { fields: value, __type: "list" };
+            else if (value instanceof ComputedField) return { script: value.script, __type: "computed" };
+            else return value;
+        }
+
+        const docs: { [id: string]: any } = {};
+        Array.from(map.entries()).forEach(f => docs[f[0]] = f[1]);
+        const docString = JSON.stringify({ id: doc[Id], docs }, replacer);
+
+        const zip = new JSZip();
+
+        zip.file(doc.title + ".json", docString);
+
+        // // Generate a directory within the Zip file structure
+        // var img = zip.folder("images");
+
+        // // Add a file to the directory, in this case an image with data URI as contents
+        // img.file("smile.gif", imgData, {base64: true});
+
+        // Generate the zip file asynchronously
+        zip.generateAsync({ type: "blob" })
+            .then((content: any) => {
+                // Force down of the Zip file
+                saveAs(content, doc.title + ".zip"); // glr: Possibly change the name of the document to match the title?
+            });
+    }
     //
     // Determines whether the layout needs to be expanded (as a template).
     // template expansion is rquired when the layout is a template doc/field and there's a datadoc which isn't equal to the layout template
@@ -654,7 +745,7 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        const exclude = Cast(doc.cloneFieldFilter, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
@@ -670,7 +761,7 @@ export namespace Doc {
                     copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
-                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        key.includes("layout[") ? undefined : doc[key] : // reference documents except remove documents that are expanded teplate fields 
                         ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
@@ -680,6 +771,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
         return copy;
     }
 
@@ -690,6 +782,7 @@ export namespace Doc {
         if (doc) {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
+            delegate.author = Doc.CurrentUserEmail;
             title && (delegate.title = title);
             return delegate;
         }
@@ -699,11 +792,14 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const target = Doc.MakeDelegate(new Doc());
+            const proto = new Doc();
+            proto.author = Doc.CurrentUserEmail;
+            const target = Doc.MakeDelegate(proto);
             const targetKey = StrCast(templateDoc.layoutKey, "layout");
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
+            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
             return applied;
         }
         return undefined;
@@ -714,7 +810,8 @@ export namespace Doc {
                 target[targetKey] = new PrefetchProxy(templateDoc);
             } else {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
-                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+                const setDoc = [AclAdmin, AclEdit].includes(GetEffectiveAcl(Doc.GetProto(target))) ? Doc.GetProto(target) : target;
+                setDoc[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
         return target;
@@ -788,6 +885,7 @@ export namespace Doc {
 
     export class DocBrush {
         BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+        SearchMatchDoc: ObservableMap<Doc, { searchMatch: number }> = new ObservableMap();
     }
     const brushManager = new DocBrush();
 
@@ -813,6 +911,33 @@ export namespace Doc {
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
+
+    export function IsSearchMatch(doc: Doc) {
+        return computedFn(function IsSearchMatch(doc: Doc) {
+            return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+                brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+        })(doc);
+    }
+    export function IsSearchMatchUnmemoized(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    }
+    export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
+        brushManager.SearchMatchDoc.set(doc, results);
+        return doc;
+    }
+    export function SearchMatchNext(doc: Doc, backward: boolean) {
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
+        const result = brushManager.SearchMatchDoc.get(doc);
+        const num = Math.abs(result?.searchMatch || 0) + 1;
+        runInAction(() => result && brushManager.SearchMatchDoc.set(doc, { searchMatch: backward ? -num : num }));
+        return doc;
+    }
+    export function ClearSearchMatches() {
+        brushManager.SearchMatchDoc.clear();
+    }
+
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
             return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
@@ -820,7 +945,7 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return 0;
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
@@ -829,13 +954,13 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
@@ -865,7 +990,7 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return false;
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
@@ -894,19 +1019,22 @@ export namespace Doc {
     }
 
     export function getDocTemplate(doc?: Doc) {
-        return doc?.isTemplateDoc ? doc :
-            Cast(doc?.dragFactory, Doc, null)?.isTemplateDoc ? doc?.dragFactory :
-                Cast(doc?.layout, Doc, null)?.isTemplateDoc ? doc?.layout : undefined;
+        return !doc ? undefined :
+            doc.isTemplateDoc ? doc :
+                Cast(doc.dragFactory, Doc, null)?.isTemplateDoc ? doc.dragFactory :
+                    Cast(Doc.Layout(doc), Doc, null)?.isTemplateDoc ?
+                        (Cast(Doc.Layout(doc), Doc, null).resolvedDataDoc ? Doc.Layout(doc).proto : Doc.Layout(doc)) :
+                        undefined;
     }
 
     export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
         const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
-            return vals.some(v => v === value);
+            return vals.some(v => v.includes(value));  // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
         }
         const fieldStr = Field.toString(fieldVal as Field);
-        return fieldStr === value;
+        return fieldStr.includes(value); // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
     }
 
     export function deiconifyView(doc: any) {
@@ -935,27 +1063,31 @@ export namespace Doc {
         }
     }
 
-    export function aliasDocs(field: any) {
-        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d)));
-    }
-
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) {
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
-        for (let i = 0; i < docFilters.length; i += 3) {
-            if (docFilters[i] === key && docFilters[i + 1] === value) {
-                docFilters.splice(i, 3);
-                break;
+        runInAction(() => {
+            for (let i = 0; i < docFilters.length; i += 3) {
+                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
+                    if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
+                    docFilters.splice(i, 3);
+                    container._docFilters = new List<string>(docFilters);
+                    break;
+                }
             }
-        }
-        if (typeof modifiers === "string") {
-            docFilters.push(key);
-            docFilters.push(value);
-            docFilters.push(modifiers);
-            container._docFilters = new List<string>(docFilters);
-        }
+            if (typeof modifiers === "string") {
+                if (!docFilters.length && modifiers === "match" && value === undefined) {
+                    container._docFilters = undefined;
+                } else if (modifiers !== "remove") {
+                    docFilters.push(key);
+                    docFilters.push(value);
+                    docFilters.push(modifiers);
+                    container._docFilters = new List<string>(docFilters);
+                }
+            }
+        });
     }
     export function readDocRangeFilter(doc: Doc, key: string) {
         const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);
@@ -973,7 +1105,7 @@ export namespace Doc {
     export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
         runInAction(() => {
             if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
-                layoutDoc.scale = NumCast(layoutDoc.scale, 1) * contentScale;
+                layoutDoc._viewScale = NumCast(layoutDoc._viewScale, 1) * contentScale;
                 layoutDoc._nativeWidth = undefined;
                 layoutDoc._nativeHeight = undefined;
             }
@@ -994,6 +1126,15 @@ export namespace Doc {
             return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
         }
         return false;
+    }
+
+    export function copyDragFactory(dragFactory: Doc) {
+        const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+        }
+        return ndoc;
     }
 
 
@@ -1144,8 +1285,8 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
-Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
-Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
+Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) { return Doc.copyDragFactory(dragFactory); });
+Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
@@ -1159,12 +1300,11 @@ Scripting.addGlobal(function activePresentationItem() {
     const curPres = Doc.UserDoc().activePresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
-Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().activeSelection = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().activeSelection).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

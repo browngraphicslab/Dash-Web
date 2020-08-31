@@ -21,6 +21,7 @@ import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../fields/documentSchemas';
+import { CollectionViewType } from '../collections/CollectionView';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -55,25 +56,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
         const backup = "oldPath";
         const { Document } = this.props;
-        const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
-        const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
-        const matches = pathCorrectionTest.exec(href);
-        console.log("\nHere's the { url } being fed into the outer regex:");
-        console.log(href);
-        console.log("And here's the 'properPath' build from the captured filename:\n");
-        if (matches !== null && href.startsWith(window.location.origin)) {
-            const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
-            console.log(properPath);
-            if (!properPath.includes(href)) {
-                console.log(`The two (url and proper path) were not equal`);
-                const proto = Doc.GetProto(Document);
-                proto[this.props.fieldKey] = new PdfField(properPath);
-                proto[backup] = href;
+        const pdf = Cast(this.dataDoc[this.props.fieldKey], PdfField);
+        const href = pdf?.url?.href;
+        if (href) {
+            const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
+            const matches = pathCorrectionTest.exec(href);
+            // console.log("\nHere's the { url } being fed into the outer regex:");
+            // console.log(href);
+            // console.log("And here's the 'properPath' build from the captured filename:\n");
+            if (matches !== null && href.startsWith(window.location.origin)) {
+                const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
+                //console.log(properPath);
+                if (!properPath.includes(href)) {
+                    console.log(`The two (url and proper path) were not equal`);
+                    const proto = Doc.GetProto(Document);
+                    proto[this.props.fieldKey] = new PdfField(properPath);
+                    proto[backup] = href;
+                } else {
+                    //console.log(`The two (url and proper path) were equal`);
+                }
             } else {
-                console.log(`The two (url and proper path) were equal`);
+                console.log("Outer matches was null!");
             }
-        } else {
-            console.log("Outer matches was null!");
         }
     }
 
@@ -88,7 +92,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
-        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
+        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = Math.max(NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]), nw * 96 / 72);
         this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
@@ -96,20 +100,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
-    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
+    public backPage = () => { this.Document._curPage = (this.Document._curPage || 1) - 1; return true; };
+    public forwardPage = () => { this.Document._curPage = (this.Document._curPage || 1) + 1; return true; };
+    public gotoPage = (p: number) => { this.Document._curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
+        let processed = false;
         if (e.key === "f" && e.ctrlKey) {
             this._searching = true;
             setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            processed = true;
+        }
+        if (e.key === "PageDown") processed = this.forwardPage();
+        if (e.key === "PageUp") processed = this.backPage();
+        if (e.target instanceof HTMLInputElement || this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) {
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") processed = this.forwardPage();
+            if (e.key === "ArrowUp" || e.key === "ArrowLeft") processed = this.backPage();
+        }
+        if (processed) {
             e.stopImmediatePropagation();
             e.preventDefault();
         }
-        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") this.forwardPage();
-        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") this.backPage();
     });
 
     @undoBatch
@@ -146,13 +158,15 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
+        const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
+        const curPage = this.Document._curPage || 1;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
-                    <button className="pdfBox-overlayButton" title="Open Search Bar" />
+                    <button className="pdfBox-overlayButton" title={searchTitle} />
                     <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
-                    <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
+                    <button className="pdfBox-search" title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
                     <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={this.prevAnnotation} >
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="lg" />
@@ -161,16 +175,22 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="lg" />
                     </button>
                 </div>
-                <button className="pdfBox-overlayButton" key="search" onClick={action(() => this._searching = !this._searching)} title="Open Search Bar" style={{ bottom: 0, right: 0 }}>
+                <button className="pdfBox-overlayButton" key="search" onClick={action(() => {
+                    this._searching = !this._searching;
+                    this.search("mxytzlaf", true);
+                })} title={searchTitle} style={{ bottom: 0, right: 0 }}>
                     <div className="pdfBox-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="lg" /></div>
                 </button>
-                <input value={`${(this.Document.curPage || 1)}`}
-                    onChange={e => this.gotoPage(Number(e.currentTarget.value))}
-                    style={{ left: 5, top: 5, height: "20px", width: "20px", position: "absolute", pointerEvents: "all" }}
-                    onClick={action(() => this._pageControls = !this._pageControls)} />
-                {this._pageControls ? pageBtns : (null)}
+
+                <div className="pdfBox-pageNums">
+                    <input value={curPage}
+                        onChange={e => this.Document._curPage = Number(e.currentTarget.value)}
+                        style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
+                        onClick={action(() => this._pageControls = !this._pageControls)} />
+                    {this._pageControls ? pageBtns : (null)}
+                </div>
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
@@ -178,7 +198,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                             <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="lg" />
                         </div>
                     </button>
-                    <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -600}px` }} >
+                    <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -1000}px` }} >
                         <div className="pdfBox-settingsFlyout-title">
                             Annotation View Settings
                         </div>
@@ -218,7 +238,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
             width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            height: !this.props.Document._fitWidth ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
+            //height adjusted for mobile (window.screen.width > 600)
+            height: !this.props.Document._fitWidth && (window.screen.width > 600) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
             transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
@@ -230,11 +251,11 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                addDocTab={this.props.addDocTab} focus={this.props.focus}
+                addDocTab={this.props.addDocTab} focus={this.props.focus} docFilters={this.props.docFilters} searchFilterDocs={this.props.searchFilterDocs}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                 Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
@@ -248,7 +269,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     _pdfjsRequested = false;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
-        if (this.props.isSelected() || this.props.renderDepth <= 1 || this.props.Document._scrollY !== undefined) this._everActive = true;
+        if (this.props.isSelected() || this.props.renderDepth === 0 || this.props.Document._scrollY !== undefined) this._everActive = true;
         if (pdfUrl && (this._everActive || this.props.Document._scrollTop || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
@@ -256,7 +277,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             if (!this._pdfjsRequested) {
                 this._pdfjsRequested = true;
                 const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
-                promise.then(action(pdf => { this._pdf = pdf; console.log("promise"); }));
+                promise.then(action(pdf => this._pdf = pdf));
 
             }
         }

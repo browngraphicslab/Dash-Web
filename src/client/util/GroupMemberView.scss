@@ -1,0 +1,103 @@
+.editing-interface {
+    width: 100%;
+    height: 100%;
+
+    hr {
+        margin-top: 20;
+    }
+
+    button {
+        outline: none;
+        border-radius: 5px;
+        border: 0px;
+        color: #fcfbf7;
+        text-transform: none;
+        letter-spacing: 2px;
+        font-size: 75%;
+        padding: 10px;
+        margin: 10px;
+        transition: transform 0.2s;
+        margin: 2px;
+    }
+
+    .memberView-closeButton {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+        cursor: pointer;
+        z-index: 1000;
+    }
+
+    .editing-header {
+        margin-bottom: 5;
+
+        .group-title {
+            font-weight: bold;
+            font-size: 15;
+            text-align: center;
+            border: none;
+            outline: none;
+            color: black;
+            margin-top: -5;
+            height: 20;
+            text-overflow: ellipsis;
+            background: none;
+
+            &:hover {
+                text-overflow: unset;
+                overflow-x: auto;
+            }
+        }
+
+        .sort-emails {
+            float: left;
+            margin: -18 0 0 5;
+            cursor: pointer;
+        }
+
+        .group-buttons {
+            display: flex;
+            margin-top: 5;
+            margin-bottom: 25;
+
+            .add-member-dropdown {
+                width: 65%;
+                margin: 0 5;
+
+                input {
+                    height: 30;
+                }
+            }
+        }
+    }
+
+    .editing-contents {
+        overflow-y: auto;
+        height: 62%;
+        width: 100%;
+        color: black;
+        margin-top: -15px;
+
+        .editing-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            position: relative;
+
+            .user-email {
+                min-width: 65%;
+                word-break: break-all;
+                padding: 0 5;
+                text-align: left;
+            }
+
+            .remove-button {
+                position: absolute;
+                right: 10;
+                cursor: pointer;
+            }
+        }
+    }
+
+
+}

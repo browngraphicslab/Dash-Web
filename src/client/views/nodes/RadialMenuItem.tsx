@@ -1,12 +1,8 @@
 import React = require("react");
-import { observable, action } from "mobx";
-import { observer } from "mobx-react";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { observer } from "mobx-react";
 import { UndoManager } from "../../util/UndoManager";
-
-library.add(faAngleRight);
 
 export interface RadialMenuProps {
     description: string;

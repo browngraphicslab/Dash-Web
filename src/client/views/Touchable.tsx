@@ -12,7 +12,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     private holdEndDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
 
-    protected abstract multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected abstract _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
 
@@ -54,7 +54,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             }
         });
 
-        // console.log(ptsToDelete.length);
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
 
         if (this.prevPoints.size) {
@@ -86,7 +85,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // if we're not actually moving a lot, don't consider it as dragging yet
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
-        // console.log(myTouches.length);
         switch (myTouches.length) {
             case 1:
                 this.handle1PointerMove(te, me);
@@ -107,7 +105,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
     @action
     protected onTouchEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
         // remove all the touches associated with the event
         const te = me.touchEvent;
         for (const pt of me.changedTouches) {

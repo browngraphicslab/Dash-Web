@@ -4,25 +4,101 @@
     // border-top: 0.5px solid $main-accent; 
     position: relative;
     display: flex;
-    font-size: 12px;
-    
+    border-bottom: 0.5px solid black;
+
+    padding-left: 6.5px;
+    padding-right: 2px;
+
+    padding-top: 6.5px;
+    padding-bottom: 6.5px;
+
+    background-color: white;
+
 
     .linkMenu-name {
         position: relative;
+        width: auto;
 
-        p {
-            padding: 4px 6px;
-            line-height: 12px;
-            border-radius: 5px;
-            overflow-wrap: break-word;
-            user-select: none;
+        .linkMenu-text {
+
+            padding: 4px 2px;
+            //display: inline;
+
+            .linkMenu-source-title {
+                text-decoration: none;
+                color: rgb(43, 43, 43);
+                font-size: 7px;
+                padding-bottom: 0.75px;
+
+                margin-left: 20px;
+            }
+
+
+            .linkMenu-title-wrapper {
+
+                display: flex;
+
+                .destination-icon-wrapper {
+                    //border: 0.5px solid rgb(161, 161, 161);
+                    margin-right: 2px;
+                    padding-right: 2px;
+
+                    .destination-icon {
+                        float: left;
+                        width: 12px;
+                        height: 12px;
+                        padding: 1px;
+                        margin-right: 3px;
+                        color: rgb(161, 161, 161);
+                    }
+                }
+
+                .linkMenu-destination-title {
+                    text-decoration: none;
+                    color: rgb(85, 120, 196);
+                    font-size: 14px;
+                    padding-bottom: 2px;
+                    padding-right: 4px;
+                    margin-right: 4px;
+                    float: right;
+
+                    &:hover {
+                        text-decoration: underline;
+                        color: rgb(60, 90, 156);
+                        //display: inline;
+                        text-overflow: break;
+                        cursor: pointer;
+                    }
+                }
+            }
+
+            .linkMenu-description {
+                text-decoration: none;
+                font-style: italic;
+                color: rgb(95, 97, 102);
+                font-size: 10px;
+                margin-left: 20px;
+                max-width: 125px;
+                height: auto;
+                white-space: break-spaces;
+            }
+
+            p {
+                padding-right: 4px;
+                line-height: 12px;
+                border-radius: 5px;
+                //overflow-wrap: break-word;
+                user-select: none;
+            }
+
         }
+
     }
 
     .linkMenu-item-content {
         width: 100%;
     }
-    
+
     .link-metadata {
         padding: 0 10px 0 16px;
         margin-bottom: 4px;
@@ -32,36 +108,40 @@
     }
 
     &:hover {
+
+        background-color: rgb(201, 239, 252);
+
         .linkMenu-item-buttons {
             display: flex;
         }
+
         .linkMenu-item-content {
-            &.expand-two p {
-                width: calc(100% - 52px);
-                background-color: lightgray;
-            }
-            &.expand-three p {
-                width: calc(100% - 84px);
-                background-color: lightgray;
+
+            .linkMenu-destination-title {
+                text-decoration: underline;
+                color: rgb(60, 90, 156);
+                //display: inline;
+                text-overflow: break;
             }
         }
     }
 }
 
 .linkMenu-item-buttons {
-    display: none;
+    //@extend: right;
     position: absolute;
     top: 50%;
     right: 0;
     transform: translateY(-50%);
+    display: none;
 
     .button {
         width: 20px;
         height: 20px;
         margin: 0;
-        margin-right: 6px;
+        margin-right: 4px;
+        padding-right: 6px;
         border-radius: 50%;
-        cursor: pointer;
         pointer-events: auto;
         background-color: $dark-color;
         color: $light-color;
@@ -80,8 +160,10 @@
         &:last-child {
             margin-right: 0;
         }
+
         &:hover {
             background: $main-accent;
+            cursor: pointer;
         }
     }
 }

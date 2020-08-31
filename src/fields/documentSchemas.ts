@@ -2,6 +2,7 @@ import { makeInterface, createSchema, listSpec } from "./Schema";
 import { ScriptField } from "./ScriptField";
 import { Doc } from "./Doc";
 import { DateField } from "./DateField";
+import { SchemaHeaderField } from "./SchemaHeaderField";
 
 export const documentSchema = createSchema({
     // content properties
@@ -12,12 +13,17 @@ export const documentSchema = createSchema({
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
 
     // "Location" properties in a very general sense
-    currentFrame: "number",     // current frame of a frame based collection (e.g., a progressive slide)
+    _curPage: "number",         // current page of a page based document
+    _currentFrame: "number",    // current frame of a frame based collection (e.g., a progressive slide)
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
-    currentTimecode: "number",  // current play back time of a temporal document (video / audio)
+    _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
+    isLabel: "boolean",         // whether the document is a label or not (video / audio)
+    audioStart: "number",       // the time frame where the audio should begin playing
+    audioEnd: "number",         // the time frame where the audio should stop playing
+    markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 
     y: "number",                // y coordinate when in a freeform view 
     z: "number",                // z "coordinate" - non-zero specifies the overlay layer of a freeformview
@@ -43,11 +49,17 @@ export const documentSchema = createSchema({
     _showTitleHover: "string",  // the showTitle should be shown only on hover
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
-    _LODdisable: "boolean",     // whether to disbale LOD switching for CollectionFreeFormViews
+    _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
-    _fontSize: "number",
+    _columnsFill: "boolean",    // whether documents in a stacking view column should be sized to fill the column
+    _columnsSort: "string",     // how a document should be sorted "ascending", "descending", undefined (none)   
+    _columnsStack: "boolean",   // whether a stacking document stacks vertically (as opposed to masonry horizontal)
+    _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
+    _columnHeaders: listSpec(SchemaHeaderField), // header descriptions for stacking/masonry
+    _schemaHeaders: listSpec(SchemaHeaderField), // header descriptions for schema views
+    _fontSize: "string",
     _fontFamily: "string",
     _sidebarWidthPercent: "string", // percent of text window width taken up by sidebar
 
@@ -58,6 +70,7 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
     fontSize: "string",
+    hidden: "boolean",          // whether a document should not be displayed
     isInkMask: "boolean",       // is the document a mask (ie, sits on top of other documents, has an unbounded width/height that is dark, and content uses 'hard-light' mix-blend-mode to let other documents pop through)
     layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
@@ -65,10 +78,16 @@ export const documentSchema = createSchema({
     opacity: "number",          // opacity of document
     strokeWidth: "number",
     strokeBezier: "number",
+    strokeStartMarker: "string",
+    strokeEndMarker: "string",
+    strokeDash: "string",
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
+    treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
+    treeViewOutlineMode: "boolean", // whether tree view is an outline and clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
@@ -77,14 +96,17 @@ export const documentSchema = createSchema({
     onPointerUp: ScriptField,   // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
     followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
+    hideLinkButton: "boolean",  // whether the blue link counter button should be hidden
+    hideAllLinks: "boolean",    // whether all individual blue anchor dots should be hidden
+    linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
-    isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
+    _isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 
     // drag drop properties
-    stayInCollection: "boolean",// whether document can be dropped into a different collection
+    _stayInCollection: "boolean",// whether document can be dropped into a different collection
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
     targetDropAction: "string", // allows the target of a drop event to specify the dropAction ("alias", "copy", "move") NOTE: if the document is dropped within the same collection, the dropAction is coerced to 'move'

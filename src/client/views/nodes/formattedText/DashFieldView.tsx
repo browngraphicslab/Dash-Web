@@ -169,7 +169,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     onPointerDownEnumerables = async (e: any) => {
         e.stopPropagation();
         const collview = await DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
-        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
+        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "add:right");
     }
 
 
@@ -183,15 +183,15 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         }
         if (container) {
             const alias = Doc.MakeAlias(container.props.Document);
-            alias.viewType = CollectionViewType.Time;
-            let list = Cast(alias.schemaColumns, listSpec(SchemaHeaderField));
+            alias._viewType = CollectionViewType.Time;
+            let list = Cast(alias._columnHeaders, listSpec(SchemaHeaderField));
             if (!list) {
-                alias.schemaColumns = list = new List<SchemaHeaderField>();
+                alias._columnHeaders = list = new List<SchemaHeaderField>();
             }
             list.map(c => c.heading).indexOf(this._fieldKey) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
             list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
-            alias._pivotField = this._fieldKey;
-            this.props.tbox.props.addDocTab(alias, "onRight");
+            alias._pivotField = this._fieldKey.startsWith("#") ? "#" : this._fieldKey;
+            this.props.tbox.props.addDocTab(alias, "add:right");
         }
     }
 
@@ -205,9 +205,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     {this._fieldKey}
                 </span>}
 
-            {/* <div className="dashFieldView-fieldSpan"> */}
-            {this.fieldValueContent}
-            {/* </div> */}
+            {this.props.fieldKey.startsWith("#") ? (null) : this.fieldValueContent}
 
             {!this._showEnumerables ? (null) : <div className="dashFieldView-enumerables" onPointerDown={this.onPointerDownEnumerables} />}
 
