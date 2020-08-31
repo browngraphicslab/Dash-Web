@@ -24,6 +24,8 @@ import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { DocumentView } from "./nodes/DocumentView";
 import { PDFMenu } from "./pdf/PDFMenu";
+import { SnappingManager } from "../util/SnappingManager";
+import { SearchBox } from "./search/SearchBox";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -82,28 +84,18 @@ export class KeyManager {
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
-                // if (DocumentLinksButton.StartLink) {
-                //     if (DocumentLinksButton.StartLink.Document) {
-                //         action((e: React.PointerEvent<HTMLDivElement>) => {
-                //             Doc.UnBrushDoc(DocumentLinksButton.StartLink?.Document as Doc);
-                //         });
-                //     }
-                // }
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 FormatShapePane.Instance._controlBtn = false;
 
-                const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
-                if (main.isPointerDown) {
+                if (SnappingManager.GetIsDragging()) {
                     DragManager.AbortDrag();
+                } else if (CollectionDockingView.Instance.HasFullScreen) {
+                    CollectionDockingView.Instance.CloseFullScreen();
                 } else {
-                    if (CollectionDockingView.Instance.HasFullScreen) {
-                        CollectionDockingView.Instance.CloseFullScreen();
-                    } else {
-                        doDeselect = !ContextMenu.Instance.closeMenu();
-                    }
+                    doDeselect = !ContextMenu.Instance.closeMenu();
                 }
                 doDeselect && SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
@@ -116,28 +108,18 @@ export class KeyManager {
                 break;
             case "delete":
             case "backspace":
-                if (document.activeElement) {
-                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                        return { stopPropagation: false, preventDefault: false };
-                    }
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
                 }
 
                 const selected = SelectionManager.SelectedDocuments().slice();
                 UndoManager.RunInBatch(() => selected.map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
-            case "arrowleft":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left");
-                break;
-            case "arrowright":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(1, 0)), "nudge right");
-                break;
-            case "arrowup":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -1)), "nudge up");
-                break;
-            case "arrowdown":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 1)), "nudge down");
-                break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(1, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -1)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 1)), "nudge down"); break;
         }
 
         return {
@@ -151,22 +133,10 @@ export class KeyManager {
         const preventDefault = false;
 
         switch (keyname) {
-            // case "~":
-            //     DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
-            //     stopPropagation = true;
-            //     preventDefault = true;
-            case "arrowleft":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-10, 0)), "nudge left");
-                break;
-            case "arrowright":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(10, 0)), "nudge right");
-                break;
-            case "arrowup":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -10)), "nudge up");
-                break;
-            case "arrowdown":
-                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 10)), "nudge down");
-                break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-10, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(10, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -10)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 10)), "nudge down"); break;
         }
 
         return {
@@ -205,51 +175,30 @@ export class KeyManager {
 
         switch (keyname) {
             case "arrowright":
-                if (document.activeElement) {
-                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                        return { stopPropagation: false, preventDefault: false };
-                    }
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
                 }
                 MainView.Instance.mainFreeform && CollectionDockingView.AddSplit(MainView.Instance.mainFreeform, "right");
                 break;
             case "arrowleft":
-                if (document.activeElement) {
-                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                        return { stopPropagation: false, preventDefault: false };
-                    }
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
                 }
                 MainView.Instance.mainFreeform && CollectionDockingView.CloseSplit(MainView.Instance.mainFreeform);
                 break;
             case "backspace":
-                if (document.activeElement) {
-                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                        return { stopPropagation: false, preventDefault: false };
-                    }
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
                 }
                 break;
             case "t":
                 PromiseValue(Cast(Doc.UserDoc()["tabs-button-tools"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
-                if (MainView.Instance.flyoutWidth === 240) {
-                    MainView.Instance.flyoutWidth = 0;
-                } else {
-                    MainView.Instance.flyoutWidth = 240;
-                }
-                break;
-            case "l":
-                PromiseValue(Cast(Doc.UserDoc()["tabs-button-library"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
-                if (MainView.Instance.flyoutWidth === 250) {
-                    MainView.Instance.flyoutWidth = 0;
-                } else {
-                    MainView.Instance.flyoutWidth = 250;
-                }
+                MainView.Instance.flyoutWidth = MainView.Instance.flyoutWidth === 240 ? 0 : 240;
                 break;
             case "f":
-                PromiseValue(Cast(Doc.UserDoc()["tabs-button-search"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
-                if (MainView.Instance.flyoutWidth === 400) {
-                    MainView.Instance.flyoutWidth = 0;
-                } else {
-                    MainView.Instance.flyoutWidth = 400;
-                }
+                SearchBox.Instance._searchFullDB = "My Stuff";
+                SearchBox.Instance.newsearchstring = "";
+                SearchBox.Instance.enter(undefined);
                 break;
             case "o":
                 const target = SelectionManager.SelectedDocuments()[0];

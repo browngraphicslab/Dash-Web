@@ -110,7 +110,7 @@
     height: 55px;
     width: 17px;
     position: absolute;
-    top: 55%;
+    top: 50%;
     border: 1px black solid;
     border-radius: 0;
     border-top-left-radius: 10px;
@@ -143,15 +143,20 @@
     cursor: auto;
 }
 
-.mainView-flyoutContainer {
-    display: flex;
-    flex-direction: column;
+.mainView-innerContent {
+    display: contents;
+    flex-direction: row;
     position: relative;
-    height: 100%;
-    background: dimgray;
+    .mainView-flyoutContainer {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+        background: dimgray;
 
-    .documentView-node-topmost {
-        background: lightgrey;
+        .documentView-node-topmost {
+            background: lightgrey;
+        }
     }
 }
 
@@ -265,6 +270,7 @@
     transform: none !important;
 }
 
+.mainView-libraryFlyout-out,
 .mainView-libraryFlyout {
     height: 100%;
     width: 100%;
@@ -272,6 +278,13 @@
     display: flex;
     flex-direction: column;
     z-index: 2;
+
+    .mainView-contentArea {
+        position: relative;
+        height: 100%; 
+        width: 100%;
+        overflow: visible;
+    }
 
     .mainView-libraryFlyout-close {
         right: 6;
@@ -281,6 +294,10 @@
         z-index: 10;
         margin-bottom: 10;
     }
+}
+.mainView-libraryFlyout-out {
+    transition: width .5s;
+    box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
 }
 
 .mainView-expandFlyoutButton {
@@ -302,6 +319,16 @@
     touch-action: none;
     background-color: lightgrey;
     cursor: grab;
+
+    .mainView-libraryDragger {
+        width: 100%;
+        position: absolute;
+    }
+    .mainView-libraryDragger-out {
+        width: 3vw;
+        position: fixed;
+        top: 0;
+    }
 
     .mainView-libraryHandle-icon {
         width: 10px;
@@ -329,4 +356,21 @@
     height: 25%;
     position: relative;
     display: flex;
+}
+
+.mainVew-webRef {
+    position: absolute;
+    left: -1000;
+    top: -1000;
+    display: block;
+    width: 200px;
+    height: 800px;
+}
+.mainVew-invisibleWebRef {
+    position: absolute;
+    left: 50;
+    top: 50;
+    display: block;
+    width: 500px;
+    height: 1000px;
 }

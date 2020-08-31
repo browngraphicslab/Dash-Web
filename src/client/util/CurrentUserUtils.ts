@@ -1,33 +1,35 @@
-import { computed, observable, reaction, action } from "mobx";
+import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
+import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { List } from "../../fields/List";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { listSpec } from "../../fields/Schema";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
-import { UndoManager } from "./UndoManager";
-import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
-import { List } from "../../fields/List";
-import { listSpec } from "../../fields/Schema";
-import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast, BoolCast } from "../../fields/Types";
-import { nullAudio } from "../../fields/URLField";
-import { DragManager } from "./DragManager";
-import { Scripting } from "./Scripting";
-import { CollectionViewType, CollectionView } from "../views/collections/CollectionView";
-import { makeTemplate } from "./DropConverter";
-import { RichTextField } from "../../fields/RichTextField";
-import { PrefetchProxy } from "../../fields/Proxy";
-import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
-import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
-import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
-import { LabelBox } from "../views/nodes/LabelBox";
-import { LinkManager } from "./LinkManager";
-import { Id } from "../../fields/FieldSymbols";
-import { HistoryUtil } from "./History";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { SelectionManager } from "./SelectionManager";
+import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { MainView } from "../views/MainView";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { LabelBox } from "../views/nodes/LabelBox";
+import { OverlayView } from "../views/OverlayView";
 import { DocumentManager } from "./DocumentManager";
+import { DragManager } from "./DragManager";
+import { makeTemplate } from "./DropConverter";
+import { HistoryUtil } from "./History";
+import { LinkManager } from "./LinkManager";
+import { Scripting } from "./Scripting";
+import { SearchUtil } from "./SearchUtil";
+import { SelectionManager } from "./SelectionManager";
+import { UndoManager } from "./UndoManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -956,6 +958,7 @@ export class CurrentUserUtils {
 
         return doc;
     }
+
     public static async loadCurrentUser() {
         return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
@@ -1018,6 +1021,41 @@ export class CurrentUserUtils {
         return true;
     }
 
+    public static importDocument = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc) {
+                        setTimeout(() => SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs =>
+                            docs.docs.forEach(d => LinkManager.Instance.addLink(d))), 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
+                const disposer = OverlayView.ShowSpinner();
+                DocListCastAsync(importDocs.data).then(async list => {
+                    list?.push(... await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {}));
+                    disposer();
+                });
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
+
     public static snapshotDashboard = (userDoc: Doc) => {
         const copy = CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
         Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
@@ -1053,6 +1091,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
 
+    public static get MySearchPanelDoc() { return Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null); }
     public static get ActiveDashboard() { return Cast(Doc.UserDoc().activeDashboard, Doc, null); }
     public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
     public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
@@ -1078,3 +1117,5 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
     "returns all the links directly to the document", "(doc: any)");
+Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
+    "imports files from device directly into the import sidebar");

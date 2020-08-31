@@ -1,6 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
+import ReactLoading from 'react-loading';
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { NumCast, Cast } from "../../fields/Types";
@@ -211,6 +212,11 @@ export class OverlayView extends React.Component {
             </div>;
         });
     }
+
+    public static ShowSpinner() {
+        return OverlayView.Instance.addElement(<ReactLoading type="spinningBubbles" color="green" height={250} width={250} />, { x: 300, y: 200 });
+    }
+
 
     render() {
         return (

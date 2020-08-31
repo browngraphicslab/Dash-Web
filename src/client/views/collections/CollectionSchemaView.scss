@@ -374,47 +374,6 @@ button.add-column {
     }
 }
 
-.altcollectionTimeView-treeView {
-    display: flex;
-    flex-direction: column;
-    width: 175px;
-    height: auto;
-    position: fixed;
-    border-left: solid 1px;
-    z-index: 1;
-
-    .collectionTimeView-addfacet {
-        display: inline-block;
-        width: 200px;
-        height: 30px;
-        background: darkGray;
-        text-align: left;
-
-        .collectionTimeView-button {
-            align-items: center;
-            display: flex;
-            width: 100%;
-            height: 100%;
-
-            .collectionTimeView-span {
-                margin: auto;
-            }
-        }
-
-        >div,
-        >div>div {
-            width: 100%;
-            height: 100%;
-        }
-    }
-
-    .altcollectionTimeView-tree {
-        display: inline-block;
-        width: 100%;
-        height: calc(100% - 30px);
-    }
-}
-
 .collectionSchema-row {
     height: 100%;
     background-color: white;
