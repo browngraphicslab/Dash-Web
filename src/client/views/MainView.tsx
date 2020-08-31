@@ -7,7 +7,6 @@ import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import Measure from 'react-measure';
 import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
@@ -56,6 +55,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
+const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class MainView extends React.Component {
@@ -415,24 +415,16 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const height = `calc(100% - ${this.topOffset}px)`;
-        const pinned = FormatShapePane.Instance?.Pinned;
-        const innerContent = this.mainInnerContent;
-        return !this.userDoc ? (null) : (
-            <Measure offset onResize={action((r: any) => {
-                this._panelWidth = r.offset.width;
-                this._panelHeight = r.offset.height;
-            })}>
-                {({ measureRef }) =>
-                    <div className="mainView-mainContent" ref={measureRef} style={{
-                        color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                        height,
-                        width: pinned ? `calc(100% - 200px)` : "100%",
-                    }} >
-                        {innerContent}
-                    </div>
-                }
-            </Measure>);
+        return !this.userDoc ? (null) :
+            <div className="mainView-mainContent" ref={r => {
+                r && new _global.ResizeObserver(action(() => { this._panelWidth = r.getBoundingClientRect().width; this._panelHeight = r.getBoundingClientRect().height; })).observe(r);
+            }} style={{
+                color: this.darkScheme ? "rgb(205,205,205)" : "black",
+                height: `calc(100% - ${this.topOffset}px)`,
+                width: "100%",
+            }} >
+                {this.mainInnerContent}
+            </div>;
     }
 
     expandFlyout = action(() => this._flyoutWidth = (this._flyoutWidth || 250));
@@ -613,7 +605,6 @@ export class MainView extends React.Component {
             <PreviewCursor />
             <TaskCompletionBox />
             <ContextMenu />
-            <FormatShapePane />
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
