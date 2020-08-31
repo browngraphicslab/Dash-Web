@@ -20,11 +20,11 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
-import { FormatShapePane } from './FormatShapePane';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { InkStrokeProperties } from './InkStrokeProperties';
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -332,7 +332,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
                 this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
-                if (FormatShapePane.Instance._lock) {
+                if (InkStrokeProperties.Instance?._lock) {
                     doc._nativeHeight = doc._height;
                     doc._nativeWidth = doc._width;
                 }
@@ -365,7 +365,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         var fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
-            if (doc.type === DocumentType.INK && doc._width && doc._height && FormatShapePane.Instance._lock) {
+            if (doc.type === DocumentType.INK && doc._width && doc._height && InkStrokeProperties.Instance?._lock) {
                 fixedAspect = NumCast(doc._nativeWidth) / NumCast(doc._nativeHeight);
             }
         }));

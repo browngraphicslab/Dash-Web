@@ -35,9 +35,9 @@ import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
-import { FormatShapePane } from "./FormatShapePane";
+import { InkStrokeProperties } from './InkStrokeProperties';
 import { GestureOverlay } from './GestureOverlay';
-import { SEARCH_PANEL_HEIGHT, MENU_PANEL_WIDTH } from './globalCssVariables.scss';
+import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
@@ -107,6 +107,7 @@ export class MainView extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
+        new InkStrokeProperties();
         MainView.Instance = this;
         CurrentUserUtils._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
 
@@ -593,7 +594,6 @@ export class MainView extends React.Component {
             <DocumentDecorations />
             {this.search}
             <CollectionMenu />
-            <FormatShapePane />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}

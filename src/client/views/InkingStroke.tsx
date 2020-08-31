@@ -13,10 +13,10 @@ import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
 import { ContextMenu } from "./ContextMenu";
 import { ViewBoxBaseComponent } from "./DocComponent";
-import { FormatShapePane } from "./FormatShapePane";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
+import { InkStrokeProperties } from "./InkStrokeProperties";
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -56,15 +56,17 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
     @action
     changeCurrPoint = (i: number) => {
-        FormatShapePane.Instance._currPoint = i;
+        if (!InkStrokeProperties.Instance) return;
+        InkStrokeProperties.Instance._currPoint = i;
         document.addEventListener("keydown", this.delPts, true);
     }
 
     @action
     onControlMove = (e: PointerEvent, down: number[]): boolean => {
+        if (!InkStrokeProperties.Instance) return false;
         const xDiff = this._prevX - e.clientX;
         const yDiff = this._prevY - e.clientY;
-        FormatShapePane.Instance.control(xDiff, yDiff, this._controlNum);
+        InkStrokeProperties.Instance.control(xDiff, yDiff, this._controlNum);
         this._prevX = e.clientX;
         this._prevY = e.clientY;
         return false;
@@ -79,8 +81,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     }
     @action
     delPts = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        if (e instanceof KeyboardEvent ? e.key === "-" : true) {
-            FormatShapePane.Instance.deletePoints();
+        if (InkStrokeProperties.Instance && (e instanceof KeyboardEvent ? e.key === "-" : true)) {
+            InkStrokeProperties.Instance.deletePoints();
         }
     }
 
@@ -88,6 +90,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     public static MaskDim = 50000;
     render() {
         TraceMobx();
+        const formatInstance = InkStrokeProperties.Instance;
+        if (!formatInstance) return (null);
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         // const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
         const strokeWidth = Number(this.layoutDoc.strokeWidth);
@@ -157,7 +161,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const addpoints = apoints.map((pts, i) =>
             <svg height="10" width="10" key={`add${i}`}>
                 <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
-                    onPointerDown={(e) => { FormatShapePane.Instance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
+                    onPointerDown={(e) => { formatInstance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
 
@@ -170,16 +174,16 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const handles = handlePoints.map((pts, i) =>
             <svg height="10" width="10" key={`hdl${i}`}>
                 <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="green"
-                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
+                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
         const handleLines = handleLine.map((pts, i) =>
             <svg height="100" width="100" key={`line${i}`}>
                 <line x1={(pts.X1 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y1 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
                     x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
-                    display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
+                    display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
                 <line x1={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
                     x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
-                    display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
+                    display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
 
 
@@ -198,7 +202,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     if (cm) {
                         !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
                         cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
-                        cm.addItem({ description: "Edit Points", event: action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn), icon: "paint-brush" });
+                        cm.addItem({ description: "Edit Points", event: action(() => formatInstance._controlBtn = !formatInstance._controlBtn), icon: "paint-brush" });
                         //cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }
                 }}
@@ -206,10 +210,10 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 </defs>
                 {hpoints}
                 {points}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? addpoints : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? controls : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handles : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handleLines : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? addpoints : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? controls : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? handles : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? handleLines : ""}
 
             </svg>
         );

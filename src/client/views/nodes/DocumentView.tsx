@@ -30,7 +30,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { FormatShapePane } from '../FormatShapePane';
+import { InkStrokeProperties } from '../InkStrokeProperties';
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
@@ -316,7 +316,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         func();
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type === DocumentType.INK) {
-                            FormatShapePane.Instance._controlBtn = true;
+                            InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
                         } else {
                             UndoManager.RunInBatch(() => {
                                 let fullScreenDoc = this.props.Document;

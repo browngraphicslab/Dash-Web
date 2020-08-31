@@ -19,7 +19,7 @@ import { Transform } from "../util/Transform";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { EditableView } from "./EditableView";
-import { FormatShapePane } from "./FormatShapePane";
+import { InkStrokeProperties } from "./InkStrokeProperties";
 import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
 import { KeyValueBox } from "./nodes/KeyValueBox";
 import { PresBox } from "./nodes/PresBox";
@@ -526,15 +526,16 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed
     get controlPointsButton() {
-        return <div className="inking-button">
+        const formatInstance = InkStrokeProperties.Instance;
+        return !formatInstance ? (null) : <div className="inking-button">
             <Tooltip title={<div className="dash-tooltip">{"Edit points"}</div>}>
-                <div className="inking-button-points" onPointerDown={action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn)} style={{ backgroundColor: FormatShapePane.Instance._controlBtn ? "black" : "" }}>
+                <div className="inking-button-points" onPointerDown={action(() => formatInstance._controlBtn = !formatInstance._controlBtn)} style={{ backgroundColor: formatInstance._controlBtn ? "black" : "" }}>
                     <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
-                <div className="inking-button-lock" onPointerDown={action(() => FormatShapePane.Instance._lock = !FormatShapePane.Instance._lock)} >
-                    <FontAwesomeIcon icon={FormatShapePane.Instance._lock ? "lock" : "unlock"} color="white" size="lg" />
+            <Tooltip title={<div className="dash-tooltip">{formatInstance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
+                <div className="inking-button-lock" onPointerDown={action(() => formatInstance._lock = !formatInstance._lock)} >
+                    <FontAwesomeIcon icon={formatInstance._lock ? "lock" : "unlock"} color="white" size="lg" />
                 </div>
             </Tooltip>
             <Tooltip title={<div className="dash-tooltip">{"Rotate 90˚"}</div>}>
@@ -594,7 +595,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oldX = NumCast(this.selectedDoc?.x);
                 const oldY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._width = oldWidth + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
                 const doc = this.selectedDoc;
                 if (doc?.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
                     const ink = Cast(doc.data, InkField)?.inkData;
@@ -616,7 +617,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oX = NumCast(this.selectedDoc?.x);
                 const oY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._height = oHeight + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
                 const docu = this.selectedDoc;
                 if (docu?.type === DocumentType.INK && docu.x && docu.y && docu._height && docu._width) {
                     const ink = Cast(docu.data, InkField)?.inkData;
@@ -654,12 +655,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set shapeWid(value) {
         const oldWidth = NumCast(this.selectedDoc?._width);
         this.selectedDoc && (this.selectedDoc._width = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
     }
     set shapeHgt(value) {
         const oldHeight = NumCast(this.selectedDoc?._height);
         this.selectedDoc && (this.selectedDoc._height = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
     }
 
     @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => { if (!isNaN(Number(val))) { this.shapeHgt = val; } return true; }, "H:", "wid", this.shapeWid, (val: string) => { if (!isNaN(Number(val))) { this.shapeWid = val; } return true; }, "W:"); }

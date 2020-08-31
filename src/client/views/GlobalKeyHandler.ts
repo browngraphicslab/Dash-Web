@@ -19,7 +19,7 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 import { ContextMenu } from "./ContextMenu";
 import { DocumentDecorations } from "./DocumentDecorations";
-import { FormatShapePane } from "./FormatShapePane";
+import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { DocumentView } from "./nodes/DocumentView";
@@ -86,7 +86,7 @@ export class KeyManager {
             case "escape":
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
-                FormatShapePane.Instance._controlBtn = false;
+                InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
 
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
