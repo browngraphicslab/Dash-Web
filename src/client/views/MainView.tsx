@@ -39,7 +39,7 @@ import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import { FormatShapePane } from "./FormatShapePane";
 import { GestureOverlay } from './GestureOverlay';
-import { SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
+import { SEARCH_PANEL_HEIGHT, MENU_PANEL_WIDTH } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
@@ -61,17 +61,15 @@ import { SearchBox } from './search/SearchBox';
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 36;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
     private _lastButton: Doc | undefined;
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
-    @observable private _flyoutTranslate: boolean = false;
-    @observable private _sidebarContent: any = this.userDoc?.sidebar;
     @observable private _panelContent: string = "none";
-    @observable public flyoutWidth: number = 0;
+    @observable private _sidebarContent: any = this.userDoc?.sidebar;
+    @observable private _flyoutWidth: number = 0;
 
     @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
     @computed private get userDoc() { return Doc.UserDoc(); }
@@ -79,6 +77,7 @@ export class MainView extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
 
+    menuPanelWidth = () => Number(MENU_PANEL_WIDTH.replace("px", ""));
     propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth || 0));
 
     componentDidMount() {
@@ -165,7 +164,7 @@ export class MainView extends React.Component {
             }
             if (SearchBox.Instance._searchbarOpen) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset["icon"] === "filter" ||
+                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
                         thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
@@ -221,16 +220,9 @@ export class MainView extends React.Component {
         e.preventDefault();
         e.stopPropagation();
     }
-
-    @action
-    onResize = (r: any) => {
-        this._panelWidth = r.offset.width;
-        this._panelHeight = r.offset.height;
-    }
-
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
-    getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
+    getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (doc?.type === DocumentType.COL) {
@@ -292,39 +284,29 @@ export class MainView extends React.Component {
 
     @computed get dockingContent() {
         TraceMobx();
-        const width = this.flyoutWidth + this.propertiesWidth();
-        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: "100%" }}>
+        return <div className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={this.onDrop}
+            style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
 
     @action
     onPropertiesPointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            CurrentUserUtils.propertiesWidth = this._panelWidth - e.clientX;
-            return false;
-        }), returnFalse, action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
+        setupMoveUpEvents(this, e,
+            action(e => (CurrentUserUtils.propertiesWidth = Math.max(0, this._panelWidth - e.clientX)) ? false : false),
+            action(() => CurrentUserUtils.propertiesWidth < 5 && (CurrentUserUtils.propertiesWidth = 0)),
+            action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
     }
 
     @action
     onFlyoutPointerDown = (e: React.PointerEvent) => {
-        if (this._flyoutTranslate) {
-            setupMoveUpEvents(this, e, action((e: PointerEvent) => {
-                this.flyoutWidth = Math.max(e.clientX - 58, 0);
-                if (this.flyoutWidth < 5) {
-                    this._panelContent = "none";
-                    this._lastButton && (this._lastButton.color = "white");
-                    this._lastButton && (this._lastButton._backgroundColor = "");
-                }
-                return false;
-            }), emptyFunction, action(() => {
-                if (this.flyoutWidth < 15) this.expandFlyout();
-                else this.closeFlyout();
-            }));
-        }
+        setupMoveUpEvents(this, e,
+            action(e => (this._flyoutWidth = Math.max(e.clientX - 58, 0)) ? false : false),
+            () => this._flyoutWidth < 5 && this.closeFlyout(),
+            this.toggleFlyout);
     }
 
-    flyoutWidthFunc = () => this.flyoutWidth;
+    flyoutWidthFunc = () => this._flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
@@ -333,41 +315,41 @@ export class MainView extends React.Component {
     mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
     @computed get flyout() {
-        if (!this._sidebarContent) return null;
-        return <div className="mainView-libraryFlyout">
-            <div className="mainView-contentArea">
-                <DocumentView
-                    Document={this._sidebarContent}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={this.addDocTabFunc}
-                    pinToPres={emptyFunction}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    rootSelected={returnTrue}
-                    removeDocument={returnFalse}
-                    onClick={undefined}
-                    ScreenToLocalTransform={this.mainContainerXf}
-                    ContentScaling={returnOne}
-                    PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getContentsHeight}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={this.defaultBackgroundColors}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    docFilters={returnEmptyFilter}
-                    searchFilterDocs={returnEmptyDoclist}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    relative={true}
-                    forcedBackgroundColor={() => "lightgrey"}
-                />
-            </div>
-            {this.docButtons}
-        </div>;
+        return !this._sidebarContent || !this._flyoutWidth ? (null) :
+            <div className={`mainView-libraryFlyout${this._flyoutWidth ? "" : "-out"}`} style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
+                <div className="mainView-contentArea">
+                    <DocumentView
+                        Document={this._sidebarContent}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        addDocument={undefined}
+                        addDocTab={this.addDocTabFunc}
+                        pinToPres={emptyFunction}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
+                        rootSelected={returnTrue}
+                        removeDocument={returnFalse}
+                        onClick={undefined}
+                        ScreenToLocalTransform={this.mainContainerXf}
+                        ContentScaling={returnOne}
+                        PanelWidth={this.flyoutWidthFunc}
+                        PanelHeight={this.getContentsHeight}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={this.defaultBackgroundColors}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                        relative={true}
+                        forcedBackgroundColor={() => "lightgrey"}
+                    />
+                </div>
+                {this.docButtons}
+            </div>;
     }
 
     @computed get menuPanel() {
@@ -386,7 +368,7 @@ export class MainView extends React.Component {
                 onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
                 ContentScaling={returnOne}
-                PanelWidth={() => 60}
+                PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
@@ -404,34 +386,22 @@ export class MainView extends React.Component {
         </div>;
     }
 
-
-    @action
-    closeFlyout = () => {
-        this._lastButton && (this._lastButton.color = "white");
-        this._lastButton && (this._lastButton._backgroundColor = "");
-        this._panelContent = "none";
-        this.flyoutWidth = 0;
-    }
-
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
-        this._lastButton && (this._lastButton.color = "white");
-        this._lastButton && (this._lastButton._backgroundColor = "");
-        if (this._panelContent === title && this.flyoutWidth !== 0) {
-            this._panelContent = "none";
-            this.flyoutWidth = 0;
+        if (this._panelContent === title && this._flyoutWidth) {
+            this.closeFlyout();
         } else {
             switch (this._panelContent = title) {
                 case "Settings":
                     SettingsManager.Instance.open();
-                    this.flyoutWidth = 0;
+                    this.closeFlyout();
                     break;
                 case "Catalog":
                     SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
-                    this.flyoutWidth = 0;
+                    this.closeFlyout();
                     break;
                 default:
                     this._sidebarContent.proto = button.target as any;
@@ -446,38 +416,26 @@ export class MainView extends React.Component {
 
     @computed get propertiesView() {
         TraceMobx();
-        return <div className="mainView-propertiesView">
-            <PropertiesView
-                width={this.propertiesWidth()}
-                height={this.getContentsHeight()}
-                renderDepth={1}
-                ScreenToLocalTransform={Transform.Identity}
-                onDown={action(() => CurrentUserUtils.propertiesWidth = 0)} />
-        </div>;
+        return <PropertiesView
+            width={this.propertiesWidth()}
+            height={this.getContentsHeight()}
+            renderDepth={1}
+            ScreenToLocalTransform={Transform.Identity} />;
     }
 
     @computed get mainInnerContent() {
         return <>
             {this.menuPanel}
             <div className="mainView-innerContent" >
-                <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
-                    {this.flyoutWidth === 0 ? (null) :
-                        <div className="mainView-libraryHandle" onPointerDown={this.onFlyoutPointerDown} >
-                            <span className={`mainView-libraryDragger${this._flyoutTranslate ? "" : "-out"}`} />
-                            <div className="mainview-libraryHandle-icon">
-                                <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
-                            </div>
-                        </div>}
-                    <div className={`mainView-libraryFlyout${this._flyoutTranslate ? "" : "-out"}`} >
-                        {this.flyout}
-                        {this.expandButton}
-                    </div>
+                {this.flyout}
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
                 </div>
+
                 {this.dockingContent}
+
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
-                    <div className="mainView-propertiesDragger-icon">
-                        <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color="black" size="sm" />
-                    </div>
+                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color="black" size="sm" />
                 </div>
                 {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
             </div>
@@ -489,12 +447,15 @@ export class MainView extends React.Component {
         const pinned = FormatShapePane.Instance?.Pinned;
         const innerContent = this.mainInnerContent;
         return !this.userDoc ? (null) : (
-            <Measure offset onResize={this.onResize}>
+            <Measure offset onResize={action((r: any) => {
+                this._panelWidth = r.offset.width;
+                this._panelHeight = r.offset.height;
+            })}>
                 {({ measureRef }) =>
                     <div className="mainView-mainContent" ref={measureRef} style={{
                         color: this.darkScheme ? "rgb(205,205,205)" : "black",
                         height,
-                        width: pinned ? `calc(100% - 200px)` : "100%"
+                        width: pinned ? `calc(100% - 200px)` : "100%",
                     }} >
                         {innerContent}
                     </div>
@@ -502,14 +463,14 @@ export class MainView extends React.Component {
             </Measure>);
     }
 
-    expandFlyout = action(() => {
-        this._flyoutTranslate = true;
-        this.flyoutWidth = (this.flyoutWidth || 250);
+    expandFlyout = action(() => this._flyoutWidth = (this._flyoutWidth || 250));
+    toggleFlyout = action(() => this._flyoutWidth < 15 ? this.expandFlyout() : this.closeFlyout());
+    closeFlyout = action(() => {
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
+        this._panelContent = "none";
+        this._flyoutWidth = 0;
     });
-
-    @computed get expandButton() {
-        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={this.expandFlyout}></div>) : (null);
-    }
 
     addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => {
         const ret = flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
@@ -728,7 +689,7 @@ export class MainView extends React.Component {
                     </div>;
                 </span>, ele);
 
-                var success = false;
+                let success = false;
                 const onSuccess = () => {
                     success = true;
                     clearTimeout(interval);

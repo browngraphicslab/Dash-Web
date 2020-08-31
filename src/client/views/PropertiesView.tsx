@@ -37,7 +37,6 @@ interface PropertiesViewProps {
     height: number;
     renderDepth: number;
     ScreenToLocalTransform: () => Transform;
-    onDown: (event: any) => void;
 }
 
 @observer
@@ -867,13 +866,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
+                    minWidth: this.props.width
                     //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
-                    {/* <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                        <FontAwesomeIcon icon="times" color="black" size="sm" />
-                    </div> */}
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}

@@ -1,6 +1,7 @@
 @import "globalCssVariables";
 @import "nodeModuleOverrides";
 
+
 .dash-tooltip {
     font-size: 11px;
     padding: 2px;
@@ -14,10 +15,14 @@
     margin-top: 10px;
 }
 
+.mainContent-div-flyout,
 .mainContent-div {
     position: relative;
     width: 100%;
     height: 100%;
+}
+.mainContent-div-flyout {
+    left: calc(-1 * var(--flyoutHandleWidth));
 }
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
@@ -116,7 +121,10 @@
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
     border-right: unset;
-    z-index: 2;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 4px;
 
     .mainView-propertiesDragger-icon {
         width: 10px;
@@ -158,16 +166,26 @@
             background: lightgrey;
         }
     }
+    .propertiesView {
+        right: 0;
+        position: absolute;
+        z-index: 2;
+    }
 }
 
 .mainView-menuPanel {
-
-    width: 60px;
+    min-width: var(--menuPanelWidth);
     background-color: #121721;
     height: calc(100% - $searchpanel-height);
     //overflow-y: scroll;
     //overflow-x: hidden;
 
+    .collectionStackingView {
+        scrollbar-width: none;
+    }
+    ::-webkit-scrollbar {
+        width:0;
+    }
 
     .mainView-menuPanel-button {
         padding: 7px;
@@ -274,7 +292,7 @@
 .mainView-libraryFlyout {
     height: 100%;
     width: 100%;
-    position: absolute;
+    position: relative;
     display: flex;
     flex-direction: column;
     z-index: 2;
@@ -296,39 +314,26 @@
     }
 }
 .mainView-libraryFlyout-out {
-    transition: width .5s;
+    transition: width .25s;
     box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
 }
 
-.mainView-expandFlyoutButton {
-    position: absolute;
-    top: 120px;
-    right: 55px;
-    cursor: pointer;
-}
 
 .mainView-libraryHandle {
-    width: 28px;
-    left: calc(100% - 10px);
+    width: var(--flyoutHandleWidth);
     height: 55px;
     top: 50%;
+    left: -10px;
     border: 1px solid black;
     border-radius: 8px;
-    position: absolute;
-    z-index: 2;
+    position: relative;
+    z-index: 1;
     touch-action: none;
     background-color: lightgrey;
     cursor: grab;
-
-    .mainView-libraryDragger {
-        width: 100%;
-        position: absolute;
-    }
-    .mainView-libraryDragger-out {
-        width: 3vw;
-        position: fixed;
-        top: 0;
-    }
+    display: flex;
+    align-items: center;
+    padding: 12px;
 
     .mainView-libraryHandle-icon {
         width: 10px;

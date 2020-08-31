@@ -6,7 +6,7 @@
     cursor: auto;
 
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -271,7 +271,7 @@
         // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
-        overflow-y: scroll;
+        overflow-y: auto;
         width: 92%;
 
         .propertiesView-sharingTable-item {

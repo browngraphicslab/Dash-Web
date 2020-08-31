@@ -8,6 +8,7 @@ interface IGlobalScss {
     ANTIMODEMENU_HEIGHT: string;
     SEARCH_PANEL_HEIGHT: string;
     DFLT_IMAGE_NATIVE_DIM: string;
+    MENU_PANEL_WIDTH: string;
 }
 declare const globalCssVariables: IGlobalScss;
 

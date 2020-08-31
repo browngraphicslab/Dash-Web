@@ -549,8 +549,8 @@ export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent, movement: number[]) => void,
-    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
+    upEvent: (e: PointerEvent, movement: number[]) => any,
+    clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
     stopMovePropagation: boolean = true
 ) {

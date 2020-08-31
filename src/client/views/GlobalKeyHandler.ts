@@ -193,7 +193,6 @@ export class KeyManager {
                 break;
             case "t":
                 PromiseValue(Cast(Doc.UserDoc()["tabs-button-tools"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
-                MainView.Instance.flyoutWidth = MainView.Instance.flyoutWidth === 240 ? 0 : 240;
                 break;
             case "f":
                 SearchBox.Instance._searchFullDB = "My Stuff";
