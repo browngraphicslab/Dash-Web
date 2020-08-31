@@ -12,7 +12,6 @@ import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
-import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
@@ -109,7 +108,6 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
-        this._sidebarContent.proto = undefined;
         CurrentUserUtils._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
 
         // causes errors to be generated when modifying an observable outside of an action
@@ -117,13 +115,9 @@ export class MainView extends React.Component {
 
         if (window.location.pathname !== "/home") {
             const pathname = window.location.pathname.substr(1).split("/");
-            if (pathname.length > 1) {
-                if (pathname[0] === "doc") {
-                    CurrentUserUtils.MainDocId = pathname[1];
-                    if (!this.userDoc) {
-                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action(field => field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
-                    }
-                }
+            if (pathname.length > 1 && pathname[0] === "doc") {
+                CurrentUserUtils.MainDocId = pathname[1];
+                !this.userDoc && DocServer.GetRefField(pathname[1]).then(action(field => field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
             }
         }
 
@@ -156,26 +150,21 @@ export class MainView extends React.Component {
         AudioBox.Enabled = true;
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets.length) {
-            if (targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.closeMenu();
-            }
-            if (targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input") {
-                TimelineMenu.Instance.closeMenu();
-            }
+            const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen) {
                 const check = targets.some((thing) =>
                     (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
                         thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
+            !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
+            !["timeline-menu-desc", "timeline-menu-item", "timeline-menu-input"].includes(targClass) && TimelineMenu.Instance.closeMenu();
         }
-
     });
 
     initEventListeners = () => {
-        window.addEventListener("drop", (e) => { e.preventDefault(); }, false); // drop event handler
-        window.addEventListener("dragover", (e) => { e.preventDefault(); }, false); // drag event handler
-        // click interactions for the context menu
+        window.addEventListener("drop", e => e.preventDefault(), false);  // prevent default behavior of navigating to a new web page
+        window.addEventListener("dragover", e => e.preventDefault(), false);
         document.addEventListener("pointerdown", this.globalPointerDown);
     }
 
@@ -216,26 +205,20 @@ export class MainView extends React.Component {
         Doc.AddDocToList(this.userDoc.myPresentations as Doc, "data", pres);
     }
 
-    onDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (doc?.type === DocumentType.COL) {
-            const system = Doc.IsSystem(doc);
-            return system ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+            return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {
                 case DocumentType.FONTICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
-                case DocumentType.COL:
-                    if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
                 default: return "black";
             }
         } else {
@@ -245,8 +228,7 @@ export class MainView extends React.Component {
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
-                case DocumentType.COL:
-                    if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
+                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
                 default: return "white";
             }
         }
@@ -283,8 +265,7 @@ export class MainView extends React.Component {
     }
 
     @computed get dockingContent() {
-        TraceMobx();
-        return <div className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={this.onDrop}
+        return <div className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
@@ -307,12 +288,12 @@ export class MainView extends React.Component {
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
+    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
     @computed get flyout() {
         return !this._sidebarContent || !this._flyoutWidth ? (null) :
@@ -414,15 +395,6 @@ export class MainView extends React.Component {
         return true;
     }
 
-    @computed get propertiesView() {
-        TraceMobx();
-        return <PropertiesView
-            width={this.propertiesWidth()}
-            height={this.getContentsHeight()}
-            renderDepth={1}
-            ScreenToLocalTransform={Transform.Identity} />;
-    }
-
     @computed get mainInnerContent() {
         return <>
             {this.menuPanel}
@@ -437,7 +409,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color="black" size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -472,13 +444,13 @@ export class MainView extends React.Component {
         this._flyoutWidth = 0;
     });
 
+    remButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    moveButtonDoc = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
     addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => {
         const ret = flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
         ret && (doc._stayInCollection = undefined);
         return ret;
     }, true)
-    remButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
-    moveButtonDoc = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();
@@ -487,11 +459,10 @@ export class MainView extends React.Component {
     }
 
     @computed get docButtons() {
-        const dockedBtns = Doc.UserDoc()?.dockedBtns;
-        return !(dockedBtns instanceof Doc) ? (null) :
-            <div className="mainView-docButtons" ref={this._docBtnRef} style={{ height: !dockedBtns.linearViewIsExpanded ? "42px" : undefined }} >
+        return !(this.userDoc.dockedBtns instanceof Doc) ? (null) :
+            <div className="mainView-docButtons" ref={this._docBtnRef} style={{ height: !this.userDoc.dockedBtns.linearViewIsExpanded ? "42px" : undefined }} >
                 <CollectionLinearView
-                    Document={dockedBtns}
+                    Document={this.userDoc.dockedBtns}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}
@@ -526,7 +497,7 @@ export class MainView extends React.Component {
             </div>;
     }
     @computed get snapLines() {
-        return !Doc.UserDoc().showSnapLines ? (null) : <div className="mainView-snapLines">
+        return !this.userDoc.showSnapLines ? (null) : <div className="mainView-snapLines">
             <svg style={{ width: "100%", height: "100%" }}>
                 {SnappingManager.horizSnapLines().map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
                 {SnappingManager.vertSnapLines().map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
@@ -583,8 +554,7 @@ export class MainView extends React.Component {
                 docFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-            />
+                ContainingCollectionDoc={undefined} />
         </div>;
     }
 
@@ -704,5 +674,6 @@ export class MainView extends React.Component {
             });
     }
 }
+
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });

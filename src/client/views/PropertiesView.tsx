@@ -35,8 +35,6 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    renderDepth: number;
-    ScreenToLocalTransform: () => Transform;
 }
 
 @observer
@@ -275,7 +273,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
                     LibraryPath={emptyPath}
-                    renderDepth={this.props.renderDepth + 1}
+                    renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
                     backgroundColor={this.previewBackground}
