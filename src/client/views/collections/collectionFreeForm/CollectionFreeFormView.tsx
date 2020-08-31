@@ -89,6 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _wordPalette: Map<string, string> = new Map<string, string>();
     private _clusterDistance: number = 75;
     private _hitCluster = false;
+    private _navReaction: IReactionDisposer | undefined;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
     private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
@@ -862,6 +863,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
+    @action
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
 
@@ -870,11 +872,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (state.type === "doc" && this.Document._panX !== undefined && this.Document._panY !== undefined) {
             const init = state.initializers![this.Document[Id]];
             if (!init) {
-                state.initializers![this.Document[Id]] = { panX: this.Document._panX, panY: this.Document._panY };
+                state.initializers![this.Document[Id]] = { _panX: this.Document._panX, _panY: this.Document._panY, _viewTransition: "transform 500ms" };
                 HistoryUtil.pushState(state);
-            } else if (init.panX !== this.Document._panX || init.panY !== this.Document._panY) {
-                init.panX = this.Document._panX;
-                init.panY = this.Document._panY;
+            } else {
+                init._panX = this.Document._panX;
+                init._panY = this.Document._panY;
+                init._viewTransition = "transform 500ms";
                 HistoryUtil.pushState(state);
             }
         }
@@ -894,9 +897,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;
             const newPanY = NumCast(doc.y) + NumCast(layoutdoc._height) / 2;
-            const newState = HistoryUtil.getState();
-            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-            HistoryUtil.pushState(newState);
 
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document.panTransformType };
 
@@ -1139,9 +1139,30 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+
+        // if (!this.props.ContainingCollectionView && this.props.renderDepth < 2) {
+        //     this._navReaction = reaction(() => ({ x: NumCast(this.layoutDoc._panX), y: NumCast(this.layoutDoc._panY) }),
+        //         ({ x, y }) => {
+        //             const state = HistoryUtil.getState();
+        //             const init = state.initializers![this.Document[Id]];
+        //             if (!init) {
+        //                 state.initializers![this.Document[Id]] = { _panX: x, _panY: y, _viewTransition: "transform 500ms" };
+        //                 HistoryUtil.pushState(state);
+        //             } else if (init._panX !== x || init._panY !== y) {
+        //                 init._panX = x;
+        //                 init._panY = y;
+        //                 init._viewTransition = "transform 500ms";
+        //                 HistoryUtil.replaceState(state);
+        //             }
+        //         });
+        // }
+
+        this._marqueeRef.current?.addEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+        this._navReaction?.();
+        this._marqueeRef.current?.removeEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
@@ -1434,6 +1455,132 @@ interface CollectionFreeFormViewPannableContentsProps {
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
+    @observable private _drag: string = '';
+
+    //Adds event listener so knows pointer is down and moving
+    onPointerDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        const corner = e.target as any;
+        if (corner) this._drag = corner.id;
+        const rect = document.getElementById(this._drag);
+        if (rect) {
+            setupMoveUpEvents(e.target, e, this.onPointerMove, (e) => { }, (e) => { });
+        }
+    }
+
+    //Removes all event listeners
+    onPointerUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._drag = "";
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    //Adjusts the value in NodeStore
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        const doc = document.getElementById('resizable');
+        const rect = doc!.getBoundingClientRect();
+        const toNumber = (original: number, delta: number): number => {
+            return original + (delta * this.props.zoomScaling());
+        };
+        if (doc) {
+            const height = doc.offsetHeight;
+            const width = doc.offsetWidth;
+            const top = doc.offsetTop;
+            const left = doc.offsetLeft;
+            switch (this._drag) {
+                case "": break;
+                case "resizer-br":
+                    doc.style.width = toNumber(width, e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
+                    break;
+                case "resizer-bl":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+                    break;
+                case "resizer-tr":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                case "resizer-tl":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+                case "resizable":
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+            }
+            // this.updateAll(height, width, top, left);
+            return false;
+        }
+        return true;
+    }
+
+    // scale: NumCast(targetDoc._viewScale),
+    @computed get zoomProgressivizeContainer() {
+        const activeItem = PresBox.Instance.activeItem;
+        // const targetDoc = PresBox.Instance.targetDoc;
+        if (activeItem && activeItem.presPinView && activeItem.id) {
+            const vfLeft: number = NumCast(activeItem.presPinViewX);
+            const vfTop: number = NumCast(activeItem.presPinViewY);
+            const vfWidth: number = 100;
+            const vfHeight: number = 100;
+            return (
+                <>
+                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                        <div className='resizers' key={'resizer' + activeItem.id}>
+                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                        </div>
+                    </div>}
+                </>
+            );
+        }
+    }
+
+    @computed get zoomProgressivize() {
+        return PresBox.Instance && PresBox.Instance.activeItem && PresBox.Instance.activeItem.presPinView && PresBox.Instance.layoutDoc.presStatus === 'edit' ? this.zoomProgressivizeContainer : (null);
+    }
+
+    @computed get progressivize() {
+        return PresBox.Instance && this.props.progressivize ? PresBox.Instance.progressivizeChildDocs : (null);
+    }
+
+    @computed get presPaths() {
+        const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
+        return !PresBox.Instance || !this.props.presPaths ? (null) : <>
+            <div key="presorder">{PresBox.Instance.order}</div>
+            <svg key="svg" className={presPaths}>
+                <defs>
+                    <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                    </marker>
+                    <marker id="square" markerWidth="3" markerHeight="3" overflow="visible"
+                        refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                        <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#69a6db" />
+                    </marker>
+                    <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
+                        orient="auto" overflow="visible">
+                        <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
+                    </marker>
+
+                    <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
+                        orient="auto" overflow="visible">
+                        <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
+                    </marker>
+                </defs>
+                {PresBox.Instance.paths}
+            </svg>
+        </>;
+    }
+
     render() {
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : (this.props.easing() ? "-ease" : "-none"));
         const cenx = this.props.centeringShiftX();

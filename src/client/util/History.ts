@@ -43,6 +43,7 @@ export namespace HistoryUtil {
     let _lastStatePush = 0;
     export function pushState(state: ParsedUrl) {
         if (Date.now() - _lastStatePush > 1000) {
+            history.replaceState(state, "", createUrl(state));
             history.pushState(state, "", createUrl(state));
         }
         _lastStatePush = Date.now();
@@ -187,6 +188,9 @@ export namespace HistoryUtil {
         if (!(doc instanceof Doc)) {
             return;
         }
+        if (initializer._viewTransition) {
+            doc._viewTransition = initializer._viewTransition;
+        }
         Doc.assign(doc, initializer);
     }
 
@@ -196,9 +200,9 @@ export namespace HistoryUtil {
         if (init) {
             await Promise.all(Object.keys(init).map(id => initDoc(id, init[id])));
         }
-        if (field instanceof Doc) {
-            MainView.Instance.openWorkspace(field, true);
-        }
+        // if (field instanceof Doc) {
+        //     CurrentUserUtils.openDashboard(Doc.UserDoc(), field, true);
+        // }
     }
 
     window.onpopstate = onHistory;
