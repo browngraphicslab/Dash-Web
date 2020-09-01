@@ -285,7 +285,7 @@ export class MainView extends React.Component {
         setupMoveUpEvents(this, e,
             action(e => (this._flyoutWidth = Math.max(e.clientX - 58, 0)) ? false : false),
             () => this._flyoutWidth < 5 && this.closeFlyout(),
-            this.toggleFlyout);
+            this.closeFlyout);
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
@@ -382,11 +382,7 @@ export class MainView extends React.Component {
                     SearchBox.Instance.enter(undefined);
                     break;
                 default:
-                    this._sidebarContent.proto = button.target as any;
-                    closed && this.expandFlyout();
-                    button._backgroundColor = "lightgrey";
-                    button.color = "black";
-                    this._lastButton = button;
+                    closed && this.expandFlyout(button);
             }
         }
         return true;
@@ -424,8 +420,14 @@ export class MainView extends React.Component {
             </div>;
     }
 
-    expandFlyout = action(() => this._flyoutWidth = (this._flyoutWidth || 250));
-    toggleFlyout = action(() => this._flyoutWidth < 15 ? this.expandFlyout() : this.closeFlyout());
+    expandFlyout = action((button: Doc) => {
+        this._flyoutWidth = (this._flyoutWidth || 250);
+        this._sidebarContent.proto = button.target as any;
+        button._backgroundColor = "lightgrey";
+        button.color = "black";
+        this._lastButton = button;
+    });
+
     closeFlyout = action(() => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");

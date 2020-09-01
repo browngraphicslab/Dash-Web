@@ -119,7 +119,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
-            "none", "none", undefined, scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
+            "none", "none", undefined, scaleX, scaleY, "", "visiblepainted", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,

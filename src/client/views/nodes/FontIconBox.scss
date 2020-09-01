@@ -37,9 +37,10 @@
 .menuButton-round {
     border-radius: 100%;
     background-color: black;
+    padding: 0;
 
     .fontIconBox-label {
-        margin-left: -10px; // button padding is 10px;
+        //margin-left: -10px; // button padding is 10px;
         bottom: 0;
         position: absolute;
     }
@@ -52,7 +53,6 @@
 .menuButton-square {
     padding-top: 3px;
     padding-bottom: 3px;
-    padding-left: 5px;
 
     .fontIconBox-label {
         border-radius: 0px;
@@ -64,7 +64,8 @@
 .menuButton,
 .menuButton-round,
 .menuButton-square {
-    width: 100%;
+    margin-left: -5%;
+    width: 110%;
     height: 100%;
     pointer-events: all;
     touch-action: none;
@@ -72,6 +73,7 @@
     .menuButton-wrap {
         touch-action: none;
         border-radius: 8px;
+        width: 100%;
 
         // &:hover {
         //     background: rgb(61, 61, 61);
@@ -88,5 +90,14 @@
     svg {
         width: 95% !important;
         height: 95%;
+    }
+}
+.menuButton-round {
+    width: 100%;
+    svg {
+        width: 50% !important;
+        height: 50%;
+        position: relative;
+        bottom: 2px;
     }
 }
