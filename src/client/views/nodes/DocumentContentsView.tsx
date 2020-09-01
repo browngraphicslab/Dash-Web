@@ -20,7 +20,7 @@ import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
 import { MenuIconBox } from "./MenuIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
+import { FormattedTextBox, FormattedTextBoxProps } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
@@ -93,7 +93,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
 }
 
 @observer
-export class DocumentContentsView extends React.Component<DocumentViewProps & {
+export class DocumentContentsView extends React.Component<DocumentViewProps & FormattedTextBoxProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,

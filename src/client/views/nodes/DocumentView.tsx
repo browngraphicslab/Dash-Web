@@ -973,6 +973,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
+                    yMargin={10}
+                    xMargin={10}
                     hideOnLeave={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}
