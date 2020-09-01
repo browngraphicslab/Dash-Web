@@ -250,7 +250,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._numTotalResults = -1;
             this._searchFullDB ? await this.searchDatabase(query) : this.searchCollection(query);
             runInAction(() => {
-                this._searchbarOpen = true;
+                this.open = this._searchbarOpen = true;
                 this.resultsScrolled();
             });
         }

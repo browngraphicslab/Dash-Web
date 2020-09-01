@@ -352,7 +352,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         // if search term does not already exist as a group type, give option to create new group type
 
         if (this._key !== this._searchTerm.slice(0, this._key.length)) {
-            console.log("little further");
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 options.push(<div key={""} className="key-option" style={{
                     border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
@@ -458,7 +457,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     updateFilter() {
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
         if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
-            console.log("PLEASE");
             this.props.col.setColor("rgb(241, 239, 235)");
             this.closeResultsVisibility = "none";
         }
