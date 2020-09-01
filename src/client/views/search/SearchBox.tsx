@@ -381,7 +381,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             Doc.UnBrushDoc(result[0]);
             Doc.ClearSearchMatches();
         });
-        close && (this._searchbarOpen = false);
+        close && (this.open = this._searchbarOpen = false);
     }
 
     @action.bound

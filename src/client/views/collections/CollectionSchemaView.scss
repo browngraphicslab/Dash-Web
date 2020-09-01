@@ -409,6 +409,7 @@ button.add-column {
             display: flex;
             flex-direction: column;
             justify-content: center;
+            z-index: 2;
 
             &:hover {
                 color: gray;

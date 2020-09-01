@@ -514,7 +514,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 @observer
 export class CollectionSchemaButtons extends CollectionSchemaCell {
     render() {
-        return !this._rowDoc._searchDoc || ![DocumentType.PDF, DocumentType.RTF].includes(StrCast(this._rowDoc.type) as DocumentType) ? <></> :
+        return !this.props.Document._searchDoc || ![DocumentType.PDF, DocumentType.RTF].includes(StrCast(this._rowDoc.type) as DocumentType) ? <></> :
             <div style={{ paddingTop: 8, paddingLeft: 3 }} >
                 <button style={{ padding: 2, left: 77 }} onClick={() => Doc.SearchMatchNext(this._rowDoc, true)}>
                     <FontAwesomeIcon icon="arrow-up" size="sm" />

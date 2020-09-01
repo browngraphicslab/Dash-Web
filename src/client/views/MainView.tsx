@@ -297,41 +297,40 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
-        return !this._sidebarContent || !this._flyoutWidth ? (null) :
-            <div className={`mainView-libraryFlyout${this._flyoutWidth ? "" : "-out"}`} style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
-                <div className="mainView-contentArea" >
-                    <DocumentView
-                        Document={this._sidebarContent}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        addDocument={undefined}
-                        addDocTab={this.addDocTabFunc}
-                        pinToPres={emptyFunction}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        rootSelected={returnTrue}
-                        removeDocument={returnFalse}
-                        onClick={undefined}
-                        ScreenToLocalTransform={this.mainContainerXf}
-                        ContentScaling={returnOne}
-                        PanelWidth={this.flyoutWidthFunc}
-                        PanelHeight={this.getContentsHeight}
-                        renderDepth={0}
-                        focus={emptyFunction}
-                        backgroundColor={this.defaultBackgroundColors}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        docFilters={returnEmptyFilter}
-                        searchFilterDocs={returnEmptyDoclist}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        relative={true}
-                        forcedBackgroundColor={() => "lightgrey"}
-                    />
-                </div>
-                {this.docButtons}
-            </div>;
+        return <div className={`mainView-libraryFlyout${this._flyoutWidth ? "" : "-out"}`} style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
+            <div className="mainView-contentArea" >
+                <DocumentView
+                    Document={this._sidebarContent}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    addDocument={undefined}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    rootSelected={returnTrue}
+                    removeDocument={returnFalse}
+                    onClick={undefined}
+                    ScreenToLocalTransform={this.mainContainerXf}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getContentsHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={this.defaultBackgroundColors}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    relative={true}
+                    forcedBackgroundColor={() => "lightgrey"}
+                />
+            </div>
+            {this.docButtons}
+        </div>;
     }
 
     @computed get menuPanel() {
@@ -371,19 +370,16 @@ export class MainView extends React.Component {
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
-        if (this._panelContent === title && this._flyoutWidth) {
-            this.closeFlyout();
-        } else {
+        this.closeFlyout();
+        if (this._panelContent !== title || !this._flyoutWidth) {
             switch (this._panelContent = title) {
                 case "Settings":
                     SettingsManager.Instance.open();
-                    this.closeFlyout();
                     break;
                 case "Catalog":
                     SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
-                    this.closeFlyout();
                     break;
                 default:
                     this._sidebarContent.proto = button.target as any;
