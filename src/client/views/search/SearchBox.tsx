@@ -49,6 +49,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     private docsforfilter: Doc[] | undefined = [];
     private realTotalResults: number = 0;
+    private newsearchstring = "";
     private collectionRef = React.createRef<HTMLDivElement>();
 
     @observable _icons: string[] = this._allIcons;
@@ -63,7 +64,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable _pageStart = 0;
     @observable open = false;
     @observable children = 0;
-    @observable newsearchstring = "";
     @computed get filter() { return this._results?.length && (this.currentSelectedCollection?.props.Document._searchFilterDocs || this.currentSelectedCollection?.props.Document._docFilters); }
 
     constructor(props: any) {
@@ -74,7 +74,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     componentDidMount = action(() => {
         if (this._inputRef.current) {
             this._inputRef.current.focus();
-            this._searchbarOpen = true;
         }
         this._disposers.filters = reaction(() => this.props.Document._docFilters,
             (filters: any) => this.setSearchFilter(this.currentSelectedCollection, !this.filter ? undefined : this.docsforfilter));
@@ -86,11 +85,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @computed get currentSelectedCollection() { return CollectionDockingView.Instance; }
 
-    @action.bound
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.layoutDoc._searchString = e.target.value;
+    onChange = action((e: React.ChangeEvent<HTMLInputElement>) => {
         this.newsearchstring = e.target.value;
         if (e.target.value === "") {
+            console.log("Reset start");
             this.docsforfilter = undefined;
             this.setSearchFilter(this.currentSelectedCollection, undefined);
             this.resetSearch(false);
@@ -104,7 +102,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._curRequest = undefined;
             this._maxSearchIndex = 0;
         }
-    }
+    })
 
     enter = action((e: React.KeyboardEvent | undefined) => {
         if (!e || e.key === "Enter") {
@@ -372,17 +370,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._results.forEach(result => Doc.BrushDoc(result[0]));
-        this._searchbarOpen = true;
     }
 
-    @action.bound
-    resetSearch = (close: boolean) => {
+    resetSearch = action((close: boolean) => {
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
             Doc.ClearSearchMatches();
         });
         close && (this.open = this._searchbarOpen = false);
-    }
+    })
 
     @action.bound
     closeResults() {
@@ -481,16 +477,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         </div>;
     }
 
-    setSearchFilter = (collectionView: { props: { Document: Doc } }, docsForFilter: Doc[] | undefined) => {
+    setSearchFilter = action((collectionView: { props: { Document: Doc } }, docsForFilter: Doc[] | undefined) => {
         if (collectionView) {
             const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), null);
             collectionView.props.Document._searchFilterDocs = docsForFilter?.length ? new List<Doc>(docsForFilter) : undefined;
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
-    }
-    showLogout = () => {
+    })
 
-    }
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
@@ -520,8 +514,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         </div>
                     </div>
                     <div className="searchBox-query" >
-                        <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
-                            className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
+                        <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
+                            className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
                         <div style={{ display: "flex", alignItems: "center" }}>
                             <div style={{ position: "absolute", left: 10 }}>
