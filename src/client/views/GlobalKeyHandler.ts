@@ -196,7 +196,6 @@ export class KeyManager {
                 break;
             case "f":
                 SearchBox.Instance._searchFullDB = "My Stuff";
-                SearchBox.Instance.newsearchstring = "";
                 SearchBox.Instance.enter(undefined);
                 break;
             case "o":

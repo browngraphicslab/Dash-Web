@@ -359,7 +359,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
+                    this.select(e.ctrlKey || e.shiftKey);
+                    //SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
             }
@@ -855,7 +856,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
-    @computed.struct get linkOffset() { return [-15, 0]; }
+    @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, undefined]; }
     @computed get contents() {
         const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();

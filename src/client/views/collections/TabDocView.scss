@@ -1,4 +1,6 @@
-
+input.lm_title:focus {
+    max-width: max-content !important;
+}
 .miniMap {
     position: absolute;
     overflow: hidden;

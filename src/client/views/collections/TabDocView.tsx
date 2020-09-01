@@ -54,21 +54,29 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
             tab.DashDoc = doc;
 
+            const titleEle = tab.titleElement[0];
             CollectionDockingView.Instance.tabMap.add(tab);
-            tab.titleElement[0].onchange = (e: any) => {
-                tab.titleElement[0].size = e.currentTarget.value.length + 1;
+            titleEle.onchange = (e: any) => {
+                titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             };
-            tab.titleElement[0].size = StrCast(doc.title).length + 1;
-            tab.titleElement[0].value = doc.title;
-            tab.titleElement[0].style["max-width"] = "100px";
+            titleEle.size = StrCast(doc.title).length + 3;
+            titleEle.value = doc.title;
+            titleEle.style["max-width"] = "100px";
             const gearSpan = document.createElement("span");
             gearSpan.className = "collectionDockingView-gear";
             gearSpan.style.position = "relative";
             gearSpan.style.paddingLeft = "0px";
             gearSpan.style.paddingRight = "12px";
             const stack = tab.contentItem.parent;
-            tab.element[0].onclick = (e: any) => e.target.className !== "lm_close_tab" && this.view && SelectionManager.SelectDoc(this.view!, false);
+            tab.element[0].onclick = (e: any) => {
+                if (e.target.className !== "lm_close_tab" && this.view) {
+                    SelectionManager.SelectDoc(this.view, false);
+                    if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
+                    titleEle.lastClick = Date.now();
+                    (document.activeElement !== titleEle) && titleEle.focus();
+                }
+            };
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
@@ -83,7 +91,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 }, returnFalse, emptyFunction);
             };
 
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.props.Document === doc),
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.topMost && v.props.Document === doc),
                 (selected) => {
                     selected && tab.contentItem !== tab.header.parent.getActiveContentItem() && UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
                 }

@@ -102,7 +102,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._curRequest = undefined;
             this._maxSearchIndex = 0;
         }
-    })
+    });
 
     enter = action((e: React.KeyboardEvent | undefined) => {
         if (!e || e.key === "Enter") {
@@ -378,7 +378,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             Doc.ClearSearchMatches();
         });
         close && (this.open = this._searchbarOpen = false);
-    })
+    });
 
     @action.bound
     closeResults() {
@@ -483,7 +483,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             collectionView.props.Document._searchFilterDocs = docsForFilter?.length ? new List<Doc>(docsForFilter) : undefined;
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
-    })
+    });
 
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);

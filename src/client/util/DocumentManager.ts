@@ -160,6 +160,8 @@ export class DocumentManager {
                 docView.props.Document.hidden = !docView.props.Document.hidden;
             }
             else {
+                const contView = docContext && getFirstDocView(docContext, originatingDoc);
+                contView && contView.topMost && contView.select(false);
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);

@@ -370,6 +370,7 @@ export class MainView extends React.Component {
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
+        const closed = !this._flyoutWidth;
         this.closeFlyout();
         if (this._panelContent !== title || !this._flyoutWidth) {
             switch (this._panelContent = title) {
@@ -378,12 +379,11 @@ export class MainView extends React.Component {
                     break;
                 case "Catalog":
                     SearchBox.Instance._searchFullDB = "My Stuff";
-                    SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
                 default:
                     this._sidebarContent.proto = button.target as any;
-                    this.expandFlyout();
+                    closed && this.expandFlyout();
                     button._backgroundColor = "lightgrey";
                     button.color = "black";
                     this._lastButton = button;
