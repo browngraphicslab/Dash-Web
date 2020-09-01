@@ -2,7 +2,7 @@ import { action, computed, IReactionDisposer, reaction, observable, runInAction 
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
+import { Id, ToString } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
@@ -142,15 +142,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
                 childDocs.forEach((d) => {
                     let notFiltered = searchDocs.includes(d) || d.z;
-                    if (d.data !== undefined) {
-                        let subDocs = DocListCast(d.data);
+                    const fieldKey = Doc.LayoutFieldKey(d);
+                    const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                    const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                    if (data !== undefined) {
+                        let subDocs = DocListCast(data);
                         if (subDocs.length > 0) {
                             let newarray: Doc[] = [];
                             while (subDocs.length > 0 && !notFiltered) {
                                 newarray = [];
                                 subDocs.forEach((t) => {
+                                    const fieldKey = Doc.LayoutFieldKey(t);
+                                    const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
                                     notFiltered = notFiltered || searchDocs.includes(t);
-                                    DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
+                                    DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
                                 });
                                 subDocs = newarray;
                             }

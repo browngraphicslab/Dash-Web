@@ -187,7 +187,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
             button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
-            button['target-searchFilterDocs'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = CurrentUserUtils.ActiveDashboard._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(CurrentUserUtils.ActiveDashboard._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
 
