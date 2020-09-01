@@ -51,6 +51,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     currentTimeout?: any;
     static readonly timeout = 300;
     _overPosY = 0;
+    _overPosX = 0;
     onPointerEnter = (e: React.MouseEvent) => {
         if (this.currentTimeout) {
             clearTimeout(this.currentTimeout);
@@ -60,6 +61,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             return;
         }
         this._overPosY = e.clientY;
+        this._overPosX = e.clientX
         this.currentTimeout = setTimeout(action(() => this.overItem = true), ContextMenuItem.timeout);
     }
 
@@ -75,6 +77,9 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     }
 
     render() {
+
+
+
         if ("event" in this.props) {
             return (
                 <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onPointerDown={this.handleEvent}>
@@ -91,8 +96,10 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
         } else if ("subitems" in this.props) {
             const where = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "flex-start" : this._overPosY > window.innerHeight * 2 / 3 ? "flex-end" : "center";
             const marginTop = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "20px" : this._overPosY > window.innerHeight * 2 / 3 ? "-20px" : "";
+
+            // this LINE!!
             const submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "90%", left: "0px", marginTop }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: window.innerWidth < this._overPosX - 100 ? "90%" : "", left: "0px", marginTop }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             if (!("noexpand" in this.props)) {
