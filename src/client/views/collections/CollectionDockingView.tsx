@@ -197,6 +197,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         newContentItem.config.width = 50;
                 }
             }
+            instance._ignoreStateChange = JSON.stringify(instance._goldenLayout.toConfig());
             newContentItem.callDownwards('_$init');
         }
 
@@ -255,7 +256,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             new _global.ResizeObserver(this.onResize).observe(this._containerRef.current);
             this._reactionDisposer = reaction(() => StrCast(this.props.Document.dockingConfig),
                 config => {
-                    if (!this._goldenLayout || this._ignoreStateChange !== config) {
+                    if (!this._goldenLayout || this._ignoreStateChange !== config) {  //  bcz: TODO! really need to diff config with ignoreStateChange and modify the current goldenLayout instead of building a new one.
                         this.setupGoldenLayout();
                     }
                     this._ignoreStateChange = "";

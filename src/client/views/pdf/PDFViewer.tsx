@@ -597,14 +597,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
         // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
         // Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
-        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
+        const annotationDoc = this.highlight("lightBlue");
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
-                        if (link) link.followLinkLocation = "add:right";
+                        if (link) Doc.GetProto(link).followLinkLocation = "default";
                     }
                 }
             });

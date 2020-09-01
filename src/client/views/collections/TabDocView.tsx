@@ -18,7 +18,7 @@ import { DragManager, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
@@ -55,11 +55,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.DashDoc = doc;
 
             CollectionDockingView.Instance.tabMap.add(tab);
-            tab.titleElement[0].onclick = (e: any) => {
-                if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
-                tab.titleElement[0].lastClick = Date.now();
-                tab.titleElement[0].focus();
-            };
             tab.titleElement[0].onchange = (e: any) => {
                 tab.titleElement[0].size = e.currentTarget.value.length + 1;
                 Doc.GetProto(doc).title = e.currentTarget.value;
@@ -73,9 +68,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             gearSpan.style.paddingLeft = "0px";
             gearSpan.style.paddingRight = "12px";
             const stack = tab.contentItem.parent;
-            tab.element[0].onpointerdown = (e: any) => {
-                e.target.className !== "lm_close_tab" && this.view && SelectionManager.SelectDoc(this.view, false);
-            };
+            tab.element[0].onclick = (e: any) => e.target.className !== "lm_close_tab" && this.view && SelectionManager.SelectDoc(this.view!, false);
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
@@ -92,7 +85,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.props.Document === doc),
                 (selected) => {
-                    selected && tab.contentItem !== tab.header.parent.getActiveContentItem() && tab.header.parent.setActiveContentItem(tab.contentItem);
+                    selected && tab.contentItem !== tab.header.parent.getActiveContentItem() && UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
                 }
             );
             tab._disposers.buttonDisposer = reaction(() => this.view,
@@ -245,7 +238,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
             case "inPlace":
             case "add":
-            default: return CollectionDockingView.ToggleSplit(doc, locationParams, this.stack);
+            default: return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }
 

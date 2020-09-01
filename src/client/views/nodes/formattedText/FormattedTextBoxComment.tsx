@@ -111,7 +111,7 @@ export class FormattedTextBoxComment {
                                 const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
 
                                 if (FormattedTextBoxComment.linkDoc.follow) {
-                                    if (FormattedTextBoxComment.linkDoc.follow === "Default") {
+                                    if (FormattedTextBoxComment.linkDoc.follow === "default") {
                                         DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
                                     } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in right tab") {
                                         if (target) { textBox.props.addDocTab(target, "add:right"); }

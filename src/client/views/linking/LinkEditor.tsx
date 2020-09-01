@@ -364,7 +364,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header"
                     onPointerDown={this.changeDropdown}>
-                    {StrCast(this.props.linkDoc.followLinkLocation, "Default")}
+                    {StrCast(this.props.linkDoc.followLinkLocation, "default")}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
                         icon={this.openDropdown ? "chevron-up" : "chevron-down"}
                         size={"lg"} />
@@ -372,7 +372,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <div className="linkEditor-followingDropdown-optionsList"
                     style={{ display: this.openDropdown ? "" : "none" }}>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("Default")}>
+                        onPointerDown={() => this.changeFollowBehavior("default")}>
                         Default
                         </div>
                     <div className="linkEditor-followingDropdown-option"
