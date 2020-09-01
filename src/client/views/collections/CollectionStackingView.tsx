@@ -344,9 +344,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     sectionStacking = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
-        const types = docList.length ? docList.map(d => typeof d[key]) : this.filteredChildren.map(d => typeof d[key]);
-        if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
-            type = types[0];
+        if (this.pivotField) {
+            const types = docList.length ? docList.map(d => typeof d[key]) : this.filteredChildren.map(d => typeof d[key]);
+            if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
+                type = types[0];
+            }
         }
         const cols = () => this.isStackingView ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
@@ -364,10 +366,10 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     this.observer.observe(ref);
                 }
             }}
-            key={heading ? heading.heading : ""}
+            key={heading?.heading ?? ""}
             cols={cols}
             headings={this.headings}
-            heading={heading ? heading.heading : ""}
+            heading={heading?.heading ?? ""}
             headingObject={heading}
             docList={docList}
             parent={this}

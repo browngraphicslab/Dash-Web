@@ -402,7 +402,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         _height: 315,
                         _nativeWidth: 850,
                         _nativeHeight: 962,
-                        UseCors: true
+                        useCors: true
                     });
                     newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                     this.addDocument(newDoc);

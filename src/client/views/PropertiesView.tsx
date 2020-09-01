@@ -180,7 +180,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate"];
             const noviceLayoutFields = ["_curPage"];
-            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL"))),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
                 const docvals = new Set<any>();

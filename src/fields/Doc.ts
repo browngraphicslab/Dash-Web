@@ -23,7 +23,6 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
-import { result } from "lodash";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {

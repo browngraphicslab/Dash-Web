@@ -390,7 +390,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 this: this.doc.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.doc,
                 heading: this.props.containingCollection.title,
                 checked: this.doc.treeViewChecked === "check" ? "x" : this.doc.treeViewChecked === "x" ? undefined : "check",
-                containingTreeView: this.props.treeView,
+                containingTreeView: this.props.treeView.props.Document,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
