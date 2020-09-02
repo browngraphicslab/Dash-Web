@@ -187,7 +187,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
             button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
-            button['target-searchFilterDocs'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = CurrentUserUtils.ActiveDashboard._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(CurrentUserUtils.ActiveDashboard._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
 
@@ -901,15 +901,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
             if (docs instanceof Doc) {
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
-                    key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
-                    key.indexOf("lastModified") >= 0 || (key[0]?.toUpperCase() === key[0] &&
-                        key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
+                    key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
+                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }

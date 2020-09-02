@@ -499,7 +499,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (node.isTextblock) {
             let index = 0, foundAt;
             const ep = this.getNodeEndpoints(pm.state.doc, node);
-            const regexp = find.replace("*", "");
+            const regexp = new RegExp(find.replace("*", ""), "i");
             if (regexp) {
                 while (ep && (foundAt = node.textContent.slice(index).search(regexp)) > -1) {
                     const sel = new TextSelection(pm.state.doc.resolve(ep.from + index + foundAt + 1), pm.state.doc.resolve(ep.from + index + foundAt + find.length + 1));

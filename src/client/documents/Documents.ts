@@ -178,7 +178,7 @@ export interface DocumentOptions {
     clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
-    UseCors?: boolean;
+    useCors?: boolean;
     icon?: string;
     target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script

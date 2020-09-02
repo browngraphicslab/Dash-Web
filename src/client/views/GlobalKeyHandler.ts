@@ -196,7 +196,6 @@ export class KeyManager {
                 break;
             case "f":
                 SearchBox.Instance._searchFullDB = "My Stuff";
-                SearchBox.Instance.newsearchstring = "";
                 SearchBox.Instance.enter(undefined);
                 break;
             case "o":
@@ -272,8 +271,6 @@ export class KeyManager {
                             undoBatch(() => {
                                 targetDataDoc[fieldKey] = new List<Doc>([...docList, ...added]);
                                 targetDataDoc[fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                                const lastModified = "lastModified";
-                                targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                             })();
                         }
                     }

@@ -55,6 +55,8 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
+import { TraceMobx } from '../../fields/util';
+import { SelectionManager } from '../util/SelectionManager';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -152,7 +154,7 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets.length) {
             const targClass = targets[0].className.toString();
-            if (SearchBox.Instance._searchbarOpen) {
+            if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
                     (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
                         thing.className === "collectionSchema-header-menuOptions"));
@@ -285,7 +287,7 @@ export class MainView extends React.Component {
         setupMoveUpEvents(this, e,
             action(e => (this._flyoutWidth = Math.max(e.clientX - 58, 0)) ? false : false),
             () => this._flyoutWidth < 5 && this.closeFlyout(),
-            this.toggleFlyout);
+            this.closeFlyout);
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
@@ -370,6 +372,7 @@ export class MainView extends React.Component {
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
+        const closed = !this._flyoutWidth;
         this.closeFlyout();
         if (this._panelContent !== title || !this._flyoutWidth) {
             switch (this._panelContent = title) {
@@ -378,15 +381,10 @@ export class MainView extends React.Component {
                     break;
                 case "Catalog":
                     SearchBox.Instance._searchFullDB = "My Stuff";
-                    SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
                 default:
-                    this._sidebarContent.proto = button.target as any;
-                    this.expandFlyout();
-                    button._backgroundColor = "lightgrey";
-                    button.color = "black";
-                    this._lastButton = button;
+                    closed && this.expandFlyout(button);
             }
         }
         return true;
@@ -424,8 +422,14 @@ export class MainView extends React.Component {
             </div>;
     }
 
-    expandFlyout = action(() => this._flyoutWidth = (this._flyoutWidth || 250));
-    toggleFlyout = action(() => this._flyoutWidth < 15 ? this.expandFlyout() : this.closeFlyout());
+    expandFlyout = action((button: Doc) => {
+        this._flyoutWidth = (this._flyoutWidth || 250);
+        this._sidebarContent.proto = button.target as any;
+        button._backgroundColor = "lightgrey";
+        button.color = "black";
+        this._lastButton = button;
+    });
+
     closeFlyout = action(() => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
@@ -516,11 +520,18 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
+    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     @computed get search() {
+        TraceMobx();
         return <div className="mainView-searchPanel">
-            <DocumentView Document={CurrentUserUtils.MySearchPanelDoc}
+            <SearchBox Document={CurrentUserUtils.MySearchPanelDoc}
                 DataDoc={undefined}
+                fieldKey="data"
+                dropAction="move"
+                isSelected={returnTrue}
+                active={returnTrue}
+                select={this.select}
                 LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
@@ -537,7 +548,6 @@ export class MainView extends React.Component {
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}

@@ -153,7 +153,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             e.preventDefault();
                             let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                             if (!googleDoc) {
-                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                                 googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                                 dataDoc.googleDoc = googleDoc;
                             }

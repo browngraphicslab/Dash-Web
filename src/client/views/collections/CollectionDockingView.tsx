@@ -173,7 +173,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                         rowlayout.config.height = 50;
                         newContentItem.config.height = 50;
                 }
-            } else if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
+            } else {// if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
                 switch (pullSide) {
                     case "top": instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0); break;
                     case "bottom": instance._goldenLayout.root.contentItems[0].addChild(newContentItem); break;
@@ -360,8 +360,8 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     stackCreated = (stack: any) => {
-        stack.header.element.on('mousedown', (e: any) => {
-            if (e.target === stack.header.element[0] && e.button === 2) {
+        stack.header?.element.on('mousedown', (e: any) => {
+            if (e.target === stack.header?.element[0] && e.button === 2) {
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
                 CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
@@ -370,14 +370,14 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
         });
 
-        stack.header.controlsContainer.find('.lm_close') //get the close icon
+        stack.header?.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(() => {
                 //if (confirm('really close this?')) {
                 stack.remove();
                 stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
             }));
-        stack.header.controlsContainer.find('.lm_popout') //get the close icon
+        stack.header?.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(() => {
                 // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size

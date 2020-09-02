@@ -71,7 +71,7 @@ export class LinkDocPreview extends React.Component<Props> {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.linkSrc,
                 (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
         } else if (this.props.href) {
-            this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, UseCors: true }), "add:right");
+            this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));

@@ -377,6 +377,7 @@
     .antimodeMenu-button {
         text-align: center;
         display: block;
+        position: relative;
     }
 
     .color-previewI {
@@ -384,12 +385,15 @@
         height: 20%;
         bottom: 0;
         position: absolute;
+        margin-left: 2px;
     }
 
     .color-previewII {
         width: 80%;
         height: 80%;
         margin-left: 10%;
+        position: absolute;
+        bottom: 5;
     }
 
     .btn-group {

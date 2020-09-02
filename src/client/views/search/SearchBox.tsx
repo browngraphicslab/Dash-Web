@@ -102,7 +102,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._curRequest = undefined;
             this._maxSearchIndex = 0;
         }
-    })
+    });
 
     enter = action((e: React.KeyboardEvent | undefined) => {
         if (!e || e.key === "Enter") {
@@ -250,7 +250,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._numTotalResults = -1;
             this._searchFullDB ? await this.searchDatabase(query) : this.searchCollection(query);
             runInAction(() => {
-                this._searchbarOpen = true;
+                this.open = this._searchbarOpen = true;
                 this.resultsScrolled();
             });
         }
@@ -286,7 +286,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._lockPromise && (await this._lockPromise);
         this._lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, /*sort: this.primarySort,*/ fq: this.filterQuery, start: 0, rows: this._numResultsPerPage, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, /*sort: this.primarySort,*/ fq: this.filterQuery, start: 0, rows: this._numResultsPerPage, hl: "on", "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -378,7 +378,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             Doc.ClearSearchMatches();
         });
         close && (this.open = this._searchbarOpen = false);
-    })
+    });
 
     @action.bound
     closeResults() {
@@ -483,7 +483,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             collectionView.props.Document._searchFilterDocs = docsForFilter?.length ? new List<Doc>(docsForFilter) : undefined;
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
-    })
+    });
 
     render() {
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);

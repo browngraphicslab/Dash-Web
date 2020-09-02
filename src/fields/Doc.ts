@@ -23,7 +23,6 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
-import { result } from "lodash";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -923,8 +922,9 @@ export namespace Doc {
             brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
     }
     export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
-        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
-        brushManager.SearchMatchDoc.set(doc, results);
+        if (doc && GetEffectiveAcl(doc) !== AclPrivate && GetEffectiveAcl(Doc.GetProto(doc)) !== AclPrivate) {
+            brushManager.SearchMatchDoc.set(doc, results);
+        }
         return doc;
     }
     export function SearchMatchNext(doc: Doc, backward: boolean) {

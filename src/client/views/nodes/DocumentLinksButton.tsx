@@ -25,7 +25,7 @@ export const Flyout = higflyout.default;
 
 interface DocumentLinksButtonProps {
     View: DocumentView;
-    Offset?: number[];
+    Offset?: (number | undefined)[];
     AlwaysOn?: boolean;
     InMenu?: boolean;
     StartLink?: boolean;
@@ -242,7 +242,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             id={"link-icon"}
             src={`/assets/${"link.png"}`} />;
 
-        const linkButton = <div ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
+        const linkButton = <div className="documentLinksButton-cont" ref={this._linkButton} style={{
+            minWidth: 20, minHeight: 20, position: "absolute",
+            left: this.props.Offset?.[0], top: this.props.Offset?.[1], right: this.props.Offset?.[2], bottom: this.props.Offset?.[3]
+        }}>
             <div className={"documentLinksButton"} style={{
                 backgroundColor: this.props.InMenu ? "" : "#add8e6",
                 color: this.props.InMenu ? "white" : "black",

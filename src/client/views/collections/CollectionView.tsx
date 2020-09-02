@@ -400,12 +400,19 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const viewSpecScript = ScriptCast(this.props.Document.viewSpecScript);
         return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
     }
+
     @computed get _allFacets() {
         TraceMobx();
-        const facets = new Set<string>(["type", "text", "data", "author", "ACL"]);
+        return ["author", "creationDate", "type", "text", "context"];
+        const noviceReqFields = ["author", "creationDate", "type", "text", "context"];
+        const noviceLayoutFields: string[] = [];//["_curPage"];
+        const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
+
+        const facets = new Set<string>([...noviceReqFields, ...noviceLayoutFields]);
         this.childDocs.filter(child => child).forEach(child => child && Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-        return Array.from(facets).filter(f => !f.startsWith("_") && !["proto", "zIndex", "isPrototype", "context", "text-noTemplate"].includes(f)).sort();
+
+        return Array.from(facets).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("ACL")) || noviceFields.includes(key)).sort();
     }
 
     /**

@@ -21,7 +21,7 @@ export namespace Hypothesis {
     export const getSourceWebDoc = async (uri: string) => {
         const result = await findWebDoc(uri);
         console.log(result ? "existing doc found" : "existing doc NOT found");
-        return result || Docs.Create.WebDocument(uri, { title: uri, _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true }); // create and return a new Web doc with given uri if no matching docs are found
+        return result || Docs.Create.WebDocument(uri, { title: uri, _nativeWidth: 850, _nativeHeight: 962, _width: 400, useCors: true }); // create and return a new Web doc with given uri if no matching docs are found
     };
 
 

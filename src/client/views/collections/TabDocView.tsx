@@ -53,59 +53,70 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab._disposers = {} as { [name: string]: IReactionDisposer };
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
             tab.DashDoc = doc;
-
             CollectionDockingView.Instance.tabMap.add(tab);
-            tab.titleElement[0].onchange = (e: any) => {
-                tab.titleElement[0].size = e.currentTarget.value.length + 1;
+
+            // setup the title element and set its size according to the # of chars in the title.  Show the full title when clicked.
+            const titleEle = tab.titleElement[0];
+            titleEle.size = StrCast(doc.title).length + 3;
+            titleEle.value = doc.title;
+            titleEle.style["max-width"] = "100px";
+            titleEle.onchange = (e: any) => {
+                titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             };
-            tab.titleElement[0].size = StrCast(doc.title).length + 1;
-            tab.titleElement[0].value = doc.title;
-            tab.titleElement[0].style["max-width"] = "100px";
-            const gearSpan = document.createElement("span");
-            gearSpan.className = "collectionDockingView-gear";
-            gearSpan.style.position = "relative";
-            gearSpan.style.paddingLeft = "0px";
-            gearSpan.style.paddingRight = "12px";
-            const stack = tab.contentItem.parent;
-            tab.element[0].onclick = (e: any) => e.target.className !== "lm_close_tab" && this.view && SelectionManager.SelectDoc(this.view!, false);
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
                     tab.header.parent.setActiveContentItem(tab.contentItem);
+                    console.log("Seetting " + titleEle.value);
+                    tab.setActive(true);
                 }
-                tab.setActive(true);
             };
-            const onDown = (e: React.PointerEvent) => {
+            const onPointerDown = (e: React.PointerEvent) => {
                 setupMoveUpEvents(this, e, (e) => {
-                    !e.defaultPrevented && DragManager.StartDocumentDrag([gearSpan], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY);
+                    !e.defaultPrevented && DragManager.StartDocumentDrag([dragHdl], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY);
                     return !e.defaultPrevented;
                 }, returnFalse, emptyFunction);
             };
 
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.props.Document === doc),
-                (selected) => {
-                    selected && tab.contentItem !== tab.header.parent.getActiveContentItem() && UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
+            // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
+            tab.element[0].onclick = (e: any) => {
+                if (e.target.className !== "lm_close_tab" && this.view) {
+                    SelectionManager.SelectDoc(this.view, false);
+                    if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
+                    titleEle.lastClick = Date.now();
+                    (document.activeElement !== titleEle) && titleEle.focus();
                 }
-            );
-            tab._disposers.buttonDisposer = reaction(() => this.view,
-                (view) => {
-                    if (view) {
-                        ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
-                            <CollectionDockingViewMenu views={() => [view]} Stack={stack} />
-                        </span>,
-                            gearSpan);
-                        tab._disposers.buttonDisposer?.();
-                    }
-                }, { fireImmediately: true });
+            };
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.topMost && v.props.Document === doc),
+                (selected) => selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
+                    UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch"));
 
-            tab.reactComponents = [gearSpan];
-            tab.element.append(gearSpan);
+            //attach the selection doc buttons menu to the drag handle
+            const stack = tab.contentItem.parent;
+            const dragHdl = document.createElement("span");
+            dragHdl.className = "collectionDockingView-gear";
+            dragHdl.style.position = "relative";
+            dragHdl.style.paddingLeft = "0px";
+            dragHdl.style.paddingRight = "12px";
+            tab._disposers.buttonDisposer = reaction(() => this.view, (view) => view &&
+                [ReactDOM.render(
+                    <span title="Drag as document" className="collectionDockingView-drag" onPointerDown={onPointerDown} >
+                        <CollectionDockingViewMenu views={() => [view]} Stack={stack} />
+                    </span>, dragHdl),
+                tab._disposers.buttonDisposer?.()],
+                { fireImmediately: true });
+            tab.reactComponents = [dragHdl];
+            tab.element.append(dragHdl);
+
+            // highlight the tab when the tab document is brushed in any part of the UI
             tab._disposers.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
-                tab.titleElement[0].value = title;
-                tab.titleElement[0].style.padding = degree ? 0 : 2;
-                tab.titleElement[0].style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
+                titleEle.value = title;
+                titleEle.style.padding = degree ? 0 : 2;
+                titleEle.style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
             }, { fireImmediately: true });
+
+            // clean up the tab when it is closed
             tab.closeElement.off('click') //unbind the current click handler
                 .click(function () {
                     Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
