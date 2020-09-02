@@ -334,7 +334,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     setView = action((view: DocumentView) => this._view = view);
     @computed get docView() {
         TraceMobx();
-        return !this._document ? (null) :
+        return !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><DocumentView key={this._document[Id]}
                 LibraryPath={emptyPath}
                 Document={this._document}
