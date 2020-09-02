@@ -45,7 +45,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private _maxSearchIndex: number = 0;
     private _curRequest?: Promise<any> = undefined;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
+    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.FILTER, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
 
     private docsforfilter: Doc[] | undefined = [];
     private realTotalResults: number = 0;
@@ -192,8 +192,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
             while (docs.length > 0) {
                 newarray = [];
-                docs.forEach((d) => {
-                    d.data && newarray.push(...DocListCast(d.data));
+                docs.forEach(d => {
+                    const fieldKey = Doc.LayoutFieldKey(d);
+                    const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                    const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                    data && newarray.push(...DocListCast(data));
                     const hlights = new Set<string>();
                     this.documentKeys(d).forEach(key =>
                         Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));

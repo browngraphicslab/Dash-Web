@@ -191,7 +191,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         if (this.props.glContainer.tab && this._isActive !== this.props.glContainer.tab.isActive) {
             this._isActive = this.props.glContainer.tab.isActive;
             this._isActive && setTimeout(() => this.view && SelectionManager.SelectDoc(this.view, false), 0);
-            (CollectionDockingView.Instance as any)._goldenLayout.isInitialised && CollectionDockingView.Instance.stateChanged();
+            (CollectionDockingView.Instance as any)._goldenLayout?.isInitialised && CollectionDockingView.Instance.stateChanged();
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
         }
     }
@@ -334,7 +334,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     setView = action((view: DocumentView) => this._view = view);
     @computed get docView() {
         TraceMobx();
-        return !this._document ? (null) :
+        return !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><DocumentView key={this._document[Id]}
                 LibraryPath={emptyPath}
                 Document={this._document}

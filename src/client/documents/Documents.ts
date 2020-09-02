@@ -50,6 +50,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { FilterBox } from "../views/nodes/FilterBox";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -244,6 +245,10 @@ export namespace Docs {
             }],
             [DocumentType.SEARCH, {
                 layout: { view: SearchBox, dataField: defaultDataKey },
+                options: { _width: 400 }
+            }],
+            [DocumentType.FILTER, {
+                layout: { view: FilterBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -820,6 +825,9 @@ export namespace Docs {
 
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
+        }
+        export function FilterDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FILTER), undefined, { ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {

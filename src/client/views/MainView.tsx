@@ -372,9 +372,9 @@ export class MainView extends React.Component {
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
-        const closed = !this._flyoutWidth;
+        const willOpen = !this._flyoutWidth || this._panelContent !== title;
         this.closeFlyout();
-        if (this._panelContent !== title || !this._flyoutWidth) {
+        if (willOpen) {
             switch (this._panelContent = title) {
                 case "Settings":
                     SettingsManager.Instance.open();
@@ -384,7 +384,7 @@ export class MainView extends React.Component {
                     SearchBox.Instance.enter(undefined);
                     break;
                 default:
-                    closed && this.expandFlyout(button);
+                    this.expandFlyout(button);
             }
         }
         return true;
@@ -434,6 +434,7 @@ export class MainView extends React.Component {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
         this._panelContent = "none";
+        this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
     });
 
@@ -520,7 +521,7 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
+    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();

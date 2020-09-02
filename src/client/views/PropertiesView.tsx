@@ -243,10 +243,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 return true;
             } else if (value[0] === "#") {
                 const newVal = value + `:'${value}'`;
-                KeyValueBox.SetField(doc, value, `'${value}'`, true);
+                doc[DataSym][value] = value;
                 const tags = StrCast(doc.tags, ":");
-                if (!tags.includes(`#${value}:`)) {
-                    KeyValueBox.SetField(doc, "tags", `"${tags + value + ':'}"`, true);
+                if (!tags.includes(`${value}:`)) {
+                    doc[DataSym].tags = `${tags + value + ':'}`;
                 }
                 return true;
             }
