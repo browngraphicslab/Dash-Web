@@ -56,6 +56,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
 import { TraceMobx } from '../../fields/util';
+import { SelectionManager } from '../util/SelectionManager';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -519,12 +520,18 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
+    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     @computed get search() {
         TraceMobx();
         return <div className="mainView-searchPanel">
-            <DocumentView Document={CurrentUserUtils.MySearchPanelDoc}
+            <SearchBox Document={CurrentUserUtils.MySearchPanelDoc}
                 DataDoc={undefined}
+                fieldKey="data"
+                dropAction="move"
+                isSelected={returnTrue}
+                active={returnTrue}
+                select={this.select}
                 LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
@@ -541,7 +548,6 @@ export class MainView extends React.Component {
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
