@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, DataSym, Doc, Field } from "../../fields/Doc";
+import { AclAdmin, AclEdit, DataSym, Doc, Field, WidthSym, HeightSym } from "../../fields/Doc";
 import { Document } from '../../fields/documentSchemas';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkField } from "../../fields/InkField";
@@ -11,7 +11,7 @@ import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
 import { emptyFunction, returnFalse, setupMoveUpEvents, simulateMouseClick } from "../../Utils";
-import { DocUtils } from "../documents/Documents";
+import { DocUtils, Docs } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -178,17 +178,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action
     onMaximizeDown = (e: React.PointerEvent): void => {
-        if (e.ctrlKey) {
-            const selectedDocs = SelectionManager.SelectedDocuments();
-            const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
-            alias.context = undefined;
-            //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
-            CollectionDockingView.AddSplit(alias, "right");
-            e.stopPropagation();
-            e.preventDefault();
-        } else {
-            setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMaximizeClick);
-        }
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMaximizeClick);
     }
     @undoBatch
     @action
@@ -196,7 +186,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
-                CollectionDockingView.ToggleSplit(selectedDocs[0].props.Document, "right");
+                if (e.ctrlKey) {
+                    const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
+                    alias.context = undefined;
+                    //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
+                    CollectionDockingView.AddSplit(alias, "right");
+                } else if (e.shiftKey) {
+                    const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
+                    alias.context = undefined;
+                    alias.x = -alias[WidthSym]() / 2;
+                    alias.y = -alias[HeightSym]() / 2;
+                    //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
+                    CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
+                } else {
+                    CollectionDockingView.ToggleSplit(selectedDocs[0].props.Document, "right");
+                }
             }
         }
         SelectionManager.DeselectAll();

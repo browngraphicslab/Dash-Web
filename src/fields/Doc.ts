@@ -23,6 +23,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
+import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -1048,7 +1049,8 @@ export namespace Doc {
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
-        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        const container = target ?? CollectionDockingView.Instance.props.Document;
+        const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
                 docRangeFilters.splice(i, 3);
@@ -1059,14 +1061,15 @@ export namespace Doc {
             docRangeFilters.push(key);
             docRangeFilters.push(range[0].toString());
             docRangeFilters.push(range[1].toString());
-            target._docRangeFilters = new List<string>(docRangeFilters);
+            container._docRangeFilters = new List<string>(docRangeFilters);
         }
     }
 
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+        const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {
