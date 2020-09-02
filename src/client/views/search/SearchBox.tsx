@@ -192,8 +192,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
             while (docs.length > 0) {
                 newarray = [];
-                docs.forEach((d) => {
-                    d.data && newarray.push(...DocListCast(d.data));
+                docs.forEach(d => {
+                    const fieldKey = Doc.LayoutFieldKey(d);
+                    const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                    const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                    data && newarray.push(...DocListCast(data));
                     const hlights = new Set<string>();
                     this.documentKeys(d).forEach(key =>
                         Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));

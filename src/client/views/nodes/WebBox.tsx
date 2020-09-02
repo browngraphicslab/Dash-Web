@@ -495,7 +495,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
         clipDoc.rootDocument = targetDoc;
         targetDoc.layoutKey = "layout";
-        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.3)"); // hyperlink color
+        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
