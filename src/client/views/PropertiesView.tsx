@@ -178,7 +178,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
-            const noviceReqFields = ["author", "creationDate"];
+            const noviceReqFields = ["author", "creationDate", "tags"];
             const noviceLayoutFields = ["_curPage"];
             const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL"))),
             ...noviceReqFields, ...noviceLayoutFields];
@@ -234,11 +234,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                const splits = newVal.split(":");
+                KeyValueBox.SetField(doc, splits[0], splits[1], true);
+                const tags = StrCast(doc.tags, ":");
+                if (tags.includes(`${splits[0]}:`) && splits[1] === "undefined") {
+                    KeyValueBox.SetField(doc, "tags", `"${tags.replace(splits[0] + ":", "")}"`, true);
+                }
                 return true;
             } else if (value[0] === "#") {
                 const newVal = value + `:'${value}'`;
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                KeyValueBox.SetField(doc, value, `'${value}'`, true);
+                const tags = StrCast(doc.tags, ":");
+                if (!tags.includes(`#${value}:`)) {
+                    KeyValueBox.SetField(doc, "tags", `"${tags + value + ':'}"`, true);
+                }
                 return true;
             }
         });

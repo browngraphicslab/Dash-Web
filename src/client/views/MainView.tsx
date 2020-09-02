@@ -55,6 +55,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
+import { TraceMobx } from '../../fields/util';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -152,7 +153,7 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets.length) {
             const targClass = targets[0].className.toString();
-            if (SearchBox.Instance._searchbarOpen) {
+            if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
                     (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
                         thing.className === "collectionSchema-header-menuOptions"));
@@ -520,6 +521,7 @@ export class MainView extends React.Component {
     }
 
     @computed get search() {
+        TraceMobx();
         return <div className="mainView-searchPanel">
             <DocumentView Document={CurrentUserUtils.MySearchPanelDoc}
                 DataDoc={undefined}
