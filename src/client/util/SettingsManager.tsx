@@ -93,15 +93,15 @@ export class SettingsManager extends React.Component<{}> {
                 <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                     {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
                 </select>
-                <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
+                <select className="size-select" style={{ marginRight: "10px" }} onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
                 <div>
-                    Show title
+                    <div className="preferences-check">Show title</div>
                     <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = !Doc.UserDoc().showTitle} checked={BoolCast(Doc.UserDoc().showTitle)} />
                 </div>
                 <div>
-                    Alt Btns
+                    <div className="preferences-check">Alt Buttons</div>
                     <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"]}
                         checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
                 </div>
