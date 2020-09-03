@@ -1,27 +1,24 @@
 import React = require("react");
-import { action, computed } from "mobx";
-import { observer } from "mobx-react";
-import { ColorState, SketchPicker } from 'react-color';
-import { Doc, Opt, DocListCast, Field, DataSym } from "../../../fields/Doc";
-import { Utils, returnEmptyFilter, returnEmptyDoclist, returnZero, emptyPath, returnFalse, emptyFunction, returnOne } from "../../../Utils";
-import { documentSchema } from "../../../fields/documentSchemas";
-import { InkTool } from "../../../fields/InkField";
-import { makeInterface, listSpec } from "../../../fields/Schema";
-import { StrCast, Cast } from "../../../fields/Types";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import "./ColorBox.scss";
-import { FieldView, FieldViewProps } from './FieldView';
-import { DocumentType } from "../../documents/DocumentTypes";
-import { CollectionTreeView } from "../collections/CollectionTreeView";
-import { ScriptField, ComputedField } from "../../../fields/ScriptField";
-import { Docs } from "../../documents/Documents";
-import { RichTextField } from "../../../fields/RichTextField";
-import { List } from "../../../fields/List";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import './FilterBox.scss';
+import { computed } from "mobx";
+import { observer } from "mobx-react";
+import { DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { List } from "../../../fields/List";
+import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { Cast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionTreeView } from "../collections/CollectionTreeView";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { SearchBox } from "../search/SearchBox";
+import { FieldView, FieldViewProps } from './FieldView';
+import './FilterBox.scss';
+import { Scripting } from "../../util/Scripting";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -33,17 +30,24 @@ const FilterBoxDocument = makeInterface(documentSchema);
 export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDocument>(FilterBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
+    @computed get allDocs() {
+        const allDocs = new Set<Doc>();
+        if (CollectionDockingView.Instance) {
+            const activeTabs = DocListCast(CollectionDockingView.Instance.props.Document.data);
+            SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allDocs.add(doc));
+            setTimeout(() => CollectionDockingView.Instance.props.Document.allDocuments = new List<Doc>(Array.from(allDocs)));
+        }
+        return allDocs;
+    }
+
     @computed get _allFacets() {
-        return ["author", "creationDate", "type", "text", "context"];
-        // const noviceReqFields = ["author", "creationDate", "type", "text", "context"];
-        // const noviceLayoutFields: string[] = [];//["_curPage"];
-        // const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
+        const noviceReqFields = ["author", "tags", "text", "type"];
+        const noviceLayoutFields: string[] = [];//["_curPage"];
+        const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
 
-        // const facets = new Set<string>([...noviceReqFields, ...noviceLayoutFields]);
-        // this.childDocs.filter(child => child).forEach(child => child && Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
-        // Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-
-        // return Array.from(facets).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("ACL")) || noviceFields.includes(key)).sort();
+        const keys = new Set<string>(noviceFields);
+        this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
+        return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("ACL")) || noviceFields.includes(key)).sort();
     }
     /**
      * Responds to clicking the check box in the flyout menu
@@ -95,7 +99,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
-            } else if (nonNumbers / facetValues.length < .1) {
+            } else if (facetHeader !== "tags" && nonNumbers / facetValues.length < .1) {
                 newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
@@ -115,7 +119,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
                 const capturedVariables = { layoutDoc: targetDoc, dataDoc: (targetDoc.data as any)[0][DataSym] };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, {}, capturedVariables);
+                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
             }
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
@@ -128,28 +132,26 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return script ? () => script : undefined;
     }
 
-    @computed get filterView() {
+    render() {
         const facetCollection = this.props.Document.proto as Doc;
-        const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
-                {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-                    <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
-                    <span className="checkmark" />
-                    {facet}
-                </label>)}
-            </div>
-        );
+        const flyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+            {this._allFacets.map(facet => <label className="filterBox-flyout-face" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+                <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
+                <span className="checkmark" />
+                {facet}
+            </label>)}
+        </div>;
 
-        return this.props.dontRegisterView ? (null) : <div className="collectionTimeView-treeView" style={{ width: "100%" }}>
-            <div className="collectionTimeView-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
+        return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
+            <div className="filterBox-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                    <div className="collectionTimeView-button">
+                    <div className="filterBox-addFacetButton">
                         <FontAwesomeIcon icon={"edit"} size={"lg"} />
-                        <span className="collectionTimeView-span">Facet Filters</span>
+                        <span className="filterBox-span">Choose Facets</span>
                     </div>
                 </Flyout>
             </div>
-            <div className="collectionTimeView-tree" key="tree">
+            <div className="filterBox-tree" key="tree">
                 <CollectionTreeView
                     PanelPosition={""}
                     Document={facetCollection}
@@ -191,7 +193,23 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </div>
         </div>;
     }
-    render() {
-        return this.filterView;
-    }
 }
+
+Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) {
+    const allCollectionDocs = DocListCast(CollectionDockingView.Instance?.props.Document.allDocuments);
+    const set = new Set<string>();
+    if (facetHeader === "tags") allCollectionDocs.forEach(child => Field.toString(child[facetHeader] as Field).split(":").forEach(key => set.add(key)));
+    else allCollectionDocs.forEach(child => set.add(Field.toString(child[facetHeader] as Field)));
+    let facetValues = Array.from(set).filter(v => v);
+
+    let nonNumbers = 0;
+    facetValues.map(val => Number.isNaN(Number(val)) && nonNumbers++);
+    const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue => {
+        const doc = new Doc();
+        doc.system = true;
+        doc.title = facetValue.toString();
+        doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
+        return doc;
+    });
+    return new List<Doc>(facetValueDocSet);
+});

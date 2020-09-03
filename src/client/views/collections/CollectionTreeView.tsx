@@ -32,6 +32,7 @@ import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../fields/util';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { CollectionDockingView } from './CollectionDockingView';
 
 export interface TreeViewProps {
     document: Doc;
@@ -488,7 +489,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
-            {Doc.IsSystem(this.doc) ? (null) : headerElements}
+            {Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode ? (null) : headerElements}
         </>;
     }
 
@@ -874,28 +875,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         );
     }
 }
-
-Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
-    const allCollectionDocs = DocListCast(dataDoc[dataKey]);
-    const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
-        set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
-
-    let nonNumbers = 0;
-    facetValues.map(val => {
-        const num = Number(val);
-        if (Number.isNaN(num)) {
-            nonNumbers++;
-        }
-    });
-    const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue => {
-        const doc = new Doc();
-        doc.system = true;
-        doc.title = facetValue.toString();
-        doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
-        return doc;
-    });
-    return new List<Doc>(facetValueDocSet);
-});
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
     const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);

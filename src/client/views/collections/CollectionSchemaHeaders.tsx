@@ -380,7 +380,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        if (!this._isOpen) {
+        if (!this._isOpen || !this.props.dataDoc) {
             this.defaultMenuHeight = 0;
             return <></>;
         }
@@ -388,7 +388,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         if (this.docSafe.length === 0) {
-            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+            this.docSafe = DocListCast(this.props.dataDoc[this.props.fieldKey]);
         }
         const docs = this.docSafe;
         docs.forEach((doc) => {
@@ -476,8 +476,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     removeFilters = (e: React.PointerEvent): void => {
         const keyOptions: string[] = [];
-        if (this.docSafe.length === 0) {
-            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+        if (this.docSafe.length === 0 && this.props.dataDoc) {
+            this.docSafe = DocListCast(this.props.dataDoc[this.props.fieldKey]);
         }
         const docs = this.docSafe;
         docs.forEach((doc) => {

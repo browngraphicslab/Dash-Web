@@ -55,7 +55,7 @@ export class CurrentUserUtils {
                     Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
@@ -90,7 +90,7 @@ export class CurrentUserUtils {
                     Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, system: true }),
                     Docs.Create.TextDocument("", { title: "text", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
@@ -720,7 +720,7 @@ export class CurrentUserUtils {
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
+                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -734,7 +734,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -750,7 +750,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -768,7 +768,7 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
@@ -783,7 +783,7 @@ export class CurrentUserUtils {
             doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
@@ -799,7 +799,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
