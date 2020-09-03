@@ -32,6 +32,7 @@ import { PDFMenu } from "./PDFMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -167,7 +168,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    (!LinkDocPreview.TargetDoc) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
