@@ -179,6 +179,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return finalDocs;
     }
 
+    static foreachRecursiveDoc(docs: Doc[], func: (doc: Doc) => void) {
+        let newarray: Doc[] = [];
+        while (docs.length > 0) {
+            newarray = [];
+            docs.forEach(d => {
+                const fieldKey = Doc.LayoutFieldKey(d);
+                const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                data && newarray.push(...DocListCast(data));
+                func(d);
+            });
+            docs = newarray;
+        }
+    }
+
     @action
     searchCollection(query: string) {
         const selectedCollection = this.currentSelectedCollection;//SelectionManager.SelectedDocuments()[0];
@@ -186,26 +201,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         if (selectedCollection !== undefined) {
             // this._currentSelectedCollection = selectedCollection;
-            let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
+            const docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             const found: [Doc, string[], string[]][] = [];
-            let newarray: Doc[] = [];
+            SearchBox.foreachRecursiveDoc(docs, (doc: Doc) => {
+                const hlights = new Set<string>();
+                SearchBox.documentKeys(doc).forEach(key => Field.toString(doc[key] as Field).toLowerCase().includes(query) && hlights.add(key));
+                Array.from(hlights.keys()).length > 0 && found.push([doc, Array.from(hlights.keys()), []]);
+            });
 
-            while (docs.length > 0) {
-                newarray = [];
-                docs.forEach(d => {
-                    const fieldKey = Doc.LayoutFieldKey(d);
-                    const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
-                    const data = d[annos ? fieldKey + "-annotations" : fieldKey];
-                    data && newarray.push(...DocListCast(data));
-                    const hlights = new Set<string>();
-                    this.documentKeys(d).forEach(key =>
-                        Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));
-                    if (Array.from(hlights.keys()).length > 0) {
-                        found.push([d, Array.from(hlights.keys()), []]);
-                    }
-                });
-                docs = newarray;
-            }
             this._results = found;
             this.docsforfilter = this._results.map(r => r[0]);
             this.setSearchFilter(selectedCollection, this.filter && found.length ? this.docsforfilter : undefined);
@@ -218,7 +221,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     }
 
-    documentKeys(doc: Doc) {
+    static documentKeys(doc: Doc) {
         const keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be

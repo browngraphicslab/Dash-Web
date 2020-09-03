@@ -83,6 +83,7 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         new InkStrokeProperties();
+        this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
@@ -527,7 +528,7 @@ export class MainView extends React.Component {
         TraceMobx();
         return <div className="mainView-searchPanel">
             <SearchBox Document={CurrentUserUtils.MySearchPanelDoc}
-                DataDoc={undefined}
+                DataDoc={CurrentUserUtils.MySearchPanelDoc}
                 fieldKey="data"
                 dropAction="move"
                 isSelected={returnTrue}

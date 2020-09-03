@@ -105,6 +105,11 @@ export class SettingsManager extends React.Component<{}> {
                     <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"]}
                         checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
                 </div>
+                <div>
+                    Autoscroll
+                    <input type="checkbox" onChange={e => Doc.UserDoc()._noAutoscroll = !Doc.UserDoc()._noAutoscroll}
+                        checked={!BoolCast(Doc.UserDoc()._noAutoscroll)} />
+                </div>
             </div>
         </div>;
     }
@@ -188,6 +193,6 @@ export class SettingsManager extends React.Component<{}> {
             isDisplayed={this.isOpen}
             interactive={true}
             closeOnExternalClick={this.close}
-            dialogueBoxStyle={{ width: "600px", height: "340px" }} />;
+            dialogueBoxStyle={{ width: "600px" }} />;
     }
 }

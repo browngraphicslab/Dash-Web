@@ -28,10 +28,8 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }
         this._originalChrome = StrCast(this.layoutDoc._chromeStatus);
         this.layoutDoc._chromeStatus = "disabled";
-        this.layoutDoc.hideFilterView = true;
     }
     componentWillUnmount() {
-        this.layoutDoc.hideFilterView = false;
         this.layoutDoc._chromeStatus = this._originalChrome;
     }
 

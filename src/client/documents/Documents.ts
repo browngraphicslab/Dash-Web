@@ -108,7 +108,6 @@ export interface DocumentOptions {
     layout?: string | Doc; // default layout string for a document
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
-    hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
@@ -762,7 +761,7 @@ export namespace Docs {
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", hideFilterView: true, forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -835,7 +834,7 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
             const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
@@ -897,7 +896,7 @@ export namespace DocUtils {
                             const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
                             return keys.some(key => Field.toString(d[key] as Field).includes(value));
                         }
-                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                        return /*d[facetKey] === undefined || */Field.toString(d[facetKey] as Field).includes(value);
                     }
                     return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
                 });
