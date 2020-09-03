@@ -435,7 +435,7 @@ export namespace DragManager {
 
             const target = document.elementFromPoint(e.x, e.y);
 
-            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
+            if (target && !Doc.UserDoc()._noAutoscroll && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
                 const autoScrollHandler = () => {
                     target.dispatchEvent(
                         new CustomEvent<React.DragEvent>("dashDragAutoScroll", {
