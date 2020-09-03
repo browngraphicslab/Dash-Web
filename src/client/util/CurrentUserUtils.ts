@@ -867,14 +867,14 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc.mySharedDocs === undefined) {
-            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc.myImportDocs === undefined) {
-            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
@@ -1063,7 +1063,8 @@ export class CurrentUserUtils {
                 const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
-                    list?.push(... await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {}));
+                    const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    list?.push(...results);
                     disposer();
                 });
             } else {
