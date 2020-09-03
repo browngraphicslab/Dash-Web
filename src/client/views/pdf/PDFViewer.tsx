@@ -98,6 +98,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _zoomed = 1;
 
     private _pdfViewer: any;
+    private _styleRule: any; // stylesheet rule for making hyperlinks clickable
     private _retries = 0; // number of times tried to create the PDF viewer
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -435,11 +436,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
-        (e.target as any).tagName === "SPAN" && addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+        (e.target as any).tagName === "SPAN" && (this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" }));
         if ((this.Document._viewScale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
-            //e.stopPropagation();
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {
@@ -461,11 +461,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
-            document.removeEventListener("pointermove", this.onSelectMove);
             document.addEventListener("pointermove", this.onSelectMove);
-            document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
+            document.addEventListener("pointerup", this.removeStyle, true);
         }
+    }
+    removeStyle = () => {
+        clearStyleSheetRules(PDFViewer._annotationStyle);
+        document.removeEventListener("pointerup", this.removeStyle);
     }
 
     @action
