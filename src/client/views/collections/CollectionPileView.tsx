@@ -38,7 +38,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     layoutEngine = () => StrCast(this.Document._pileLayoutEngine);
 
     @computed get contents() {
-        return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" ? undefined : "none", zIndex: this.layoutEngine() === "starburst" ? -10 : "auto" }} >
+        return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" || SnappingManager.GetIsDragging ? undefined : "none", zIndex: this.layoutEngine() === "starburst" && !SnappingManager.GetIsDragging() ? -10 : "auto" }} >
             <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
                 addDocument={(doc: Doc | Doc[]) => {
                     (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
