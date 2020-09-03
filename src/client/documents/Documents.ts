@@ -896,7 +896,7 @@ export namespace DocUtils {
                             const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
                             return keys.some(key => Field.toString(d[key] as Field).includes(value));
                         }
-                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                        return /*d[facetKey] === undefined || */Field.toString(d[facetKey] as Field).includes(value);
                     }
                     return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
                 });
