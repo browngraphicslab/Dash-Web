@@ -598,16 +598,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return collectionAcl === AclAdmin || collectionAcl === AclEdit;
         });
         const minimal = bounds.r - bounds.x < 100 ? true : false;
-        const maximizeIcon = minimal ? (
-            <Tooltip title={<div className="dash-tooltip">Show context menu</div>} placement="top">
-                <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="bars" />
-                </div></Tooltip>) : canDelete ? (
-                    <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
-                        <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
-                            {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                            <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
-                        </div></Tooltip>) : (null);
+        const closeIcon = canDelete ? (
+            <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
+                <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
+                </div></Tooltip>) : (null);
 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
@@ -616,7 +611,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {minimal ? (null) : <Tooltip title={<div className="dash-tooltip">Show context menu</div>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="bars" />
                 </div></Tooltip>}
-                <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
+                <div className="documentDecorations-title" style={{ gridColumnEnd: minimal ? 4 : 5, gridColumnStart: minimal ? 2 : 3 }} key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
                 </div>
             </>;
@@ -651,9 +646,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     left: bounds.x - this._resizeBorderWidth / 2,
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
-                    {maximizeIcon}
+                    {closeIcon}
                     {titleArea}
-                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
+                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || minimal ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
