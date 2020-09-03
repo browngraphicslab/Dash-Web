@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, DocCastAsync, WidthSym, DocListCastAsync } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
 import { returnFalse, returnOne, numberRange, returnTrue } from "../../../Utils";
@@ -109,9 +109,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
         await Doc.UserDoc().myPresentations;
-        if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) {
+        const myPresentationsList = DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data);
+        if (myPresentationsList) {
             console.log(this.rootDoc.title);
-            Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
+            if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
         }
     }
 
@@ -266,7 +267,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
-                bestTarget!._viewTransition = "all 1s";
+                bestTarget!._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
                 bestTarget!._panX = activeItem.presPinViewX;
                 bestTarget!._panY = activeItem.presPinViewY;
                 bestTarget!._viewScale = activeItem.presPinViewScale;
