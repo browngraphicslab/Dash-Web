@@ -1063,7 +1063,8 @@ export class CurrentUserUtils {
                 const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
-                    list?.push(... await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {}));
+                    const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    list?.push(...results);
                     disposer();
                 });
             } else {
