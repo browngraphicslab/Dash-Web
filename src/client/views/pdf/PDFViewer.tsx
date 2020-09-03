@@ -607,7 +607,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        annotationDoc.isLinkButton = true;
+                        annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                         if (link) Doc.GetProto(link).followLinkLocation = "default";
                     }
                 }
