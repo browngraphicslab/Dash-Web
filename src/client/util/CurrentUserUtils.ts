@@ -1064,7 +1064,7 @@ export class CurrentUserUtils {
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
                     const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
-                    list?.push(...results);
+                    list?.splice(0, 0, ...results);
                     disposer();
                 });
             } else {
