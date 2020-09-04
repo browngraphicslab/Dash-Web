@@ -1,7 +1,7 @@
 import { ExifData } from 'exif';
 import { File } from 'formidable';
 
-export namespace AcceptibleMedia {
+export namespace AcceptableMedia {
     export const gifs = [".gif"];
     export const pngs = [".png"];
     export const jpgs = [".jpg", ".jpeg"];
@@ -10,7 +10,7 @@ export namespace AcceptibleMedia {
     export const imageFormats = [...pngs, ...jpgs, ...gifs, ...webps, ...tiffs];
     export const videoFormats = [".mov", ".mp4"];
     export const applicationFormats = [".pdf"];
-    export const audioFormats = [".wav", ".mp3", ".flac", ".au", ".aiff", ".m4a", ".webm"];
+    export const audioFormats = [".wav", ".mp3", ".mpeg", ".flac", ".au", ".aiff", ".m4a", ".webm"];
 }
 
 export namespace Upload {
