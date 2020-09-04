@@ -66,7 +66,8 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     }
 
     render() {
-        const groupItems = this.props.group.map(linkDoc => {
+        const set = new Set<Doc>(this.props.group);
+        const groupItems = Array.from(set.keys()).map(linkDoc => {
             const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc) ||
                 LinkManager.Instance.getOppositeAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, null).annotationOn === this.props.sourceDoc ? Cast(linkDoc.anchor2, Doc, null) : Cast(linkDoc.anchor1, Doc, null));
             if (destination && this.props.sourceDoc) {

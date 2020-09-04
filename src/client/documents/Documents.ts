@@ -888,19 +888,21 @@ export namespace DocUtils {
             if (d.z) return true;
             for (const facetKey of Object.keys(filterFacets)) {
                 const facet = filterFacets[facetKey];
-                const satisfiesFacet = Object.keys(facet).some(value => {
-                    if (facet[value] === "match") {
-                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
-                            const allKeys = Array.from(Object.keys(d));
-                            allKeys.push(...Object.keys(Doc.GetProto(d)));
-                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
-                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
-                        }
-                        return /*d[facetKey] === undefined || */Field.toString(d[facetKey] as Field).includes(value);
+                const matches = Object.keys(facet).filter(value => facet[value] === "match");
+                const checks = Object.keys(facet).filter(value => facet[value] === "check");
+                const xs = Object.keys(facet).filter(value => facet[value] === "x");
+                const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
+                    if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                        const allKeys = Array.from(Object.keys(d));
+                        allKeys.push(...Object.keys(Doc.GetProto(d)));
+                        const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                        return keys.some(key => Field.toString(d[key] as Field).includes(value));
                     }
-                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                    return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                if (!satisfiesFacet) {
+                if (!satisfiesCheckFacets || !satisfiesMatchFacets || failsNotEqualFacets) {
                     return false;
                 }
             }

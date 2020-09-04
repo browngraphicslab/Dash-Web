@@ -220,7 +220,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @computed
     get linkButton() {
         TraceMobx();
-        const links = this.props.links;
+        const links = new Set<Doc>(this.props.links);
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
         const buttonTitle = "Tap to view links";
@@ -265,7 +265,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     <FontAwesomeIcon className="documentdecorations-icon" icon="hand-paper" size="sm" /> : links.length} */}
 
                 {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    link : links.length}
+                    link : Array.from(links).length}
 
             </div>
             {this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document ?
@@ -287,7 +287,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             }
         </div >;
 
-        return (!links.length) && !this.props.AlwaysOn ? (null) :
+        return (!Array.from(links).length) && !this.props.AlwaysOn ? (null) :
             this.props.InMenu && (DocumentLinksButton.StartLink || this.props.StartLink) ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
