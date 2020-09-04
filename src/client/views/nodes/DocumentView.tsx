@@ -300,7 +300,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let stopPropagate = true;
             let preventDefault = true;
             !this.props.Document._isBackground && this.props.bringToFront(this.props.Document);
-            if (this._doubleTap && this.props.renderDepth && (this.props.Document.type !== DocumentType.FONTICON || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
                     this._timeout = undefined;
@@ -661,10 +661,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            de.complete.annoDragData.linkedToDoc = true;
-
-            const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-            linkDoc && makeLink(linkDoc);
+            de.complete.annoDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
+            de.complete.annoDragData.linkDocument && makeLink(de.complete.annoDragData.linkDocument);
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();

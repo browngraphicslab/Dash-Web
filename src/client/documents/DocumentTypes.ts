@@ -13,7 +13,8 @@ export enum DocumentType {
     INK = "inks",        // ink stroke
     SCREENSHOT = "screenshot",  // view of a desktop application
     FONTICON = "fonticonbox",   // font icon
-    SEARCH = "search",            // search query
+    FILTER = "filter",
+    SEARCH = "search",          // search query
     LABEL = "label",            // simple text label
     BUTTON = "button",          // onClick button
     WEBCAM = "webcam",          // webcam
@@ -32,10 +33,10 @@ export enum DocumentType {
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
     DOCHOLDER = "docholder",    // nested document (view of a document)
     SEARCHITEM = "searchitem",
-    COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
+    COMPARISON = "comparison",  // before/after view with slider (view of 2 images)
     GROUP = "group",            // group of users
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
-    SCRIPTDB = "scriptdb",          // database of scripts
+    SCRIPTDB = "scriptdb",      // database of scripts
     GROUPDB = "groupdb"         // database of groups
 }

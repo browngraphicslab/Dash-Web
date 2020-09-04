@@ -140,6 +140,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     //
     @undoBatch
     public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
+        if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);

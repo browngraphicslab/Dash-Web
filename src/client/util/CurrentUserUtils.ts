@@ -55,7 +55,7 @@ export class CurrentUserUtils {
                     Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
@@ -90,7 +90,7 @@ export class CurrentUserUtils {
                     Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, system: true }),
                     Docs.Create.TextDocument("", { title: "text", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
@@ -516,6 +516,7 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
@@ -719,7 +720,7 @@ export class CurrentUserUtils {
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
+                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -733,7 +734,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -749,7 +750,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -767,12 +768,27 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        }
+    }
+    static setupFilterDocs(doc: Doc) {
+        // setup Recently Closed library item
+        doc.myFilter === undefined;
+        if (doc.myFilter === undefined) {
+            doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
+                title: "FilterDoc", _height: 500,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            }));
+            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 
@@ -783,7 +799,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -806,6 +822,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
+        CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
@@ -850,14 +867,14 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc.mySharedDocs === undefined) {
-            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc.myImportDocs === undefined) {
-            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, ignoreClick: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
@@ -1046,7 +1063,8 @@ export class CurrentUserUtils {
                 const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
-                    list?.push(... await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {}));
+                    const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    list?.splice(0, 0, ...results);
                     disposer();
                 });
             } else {

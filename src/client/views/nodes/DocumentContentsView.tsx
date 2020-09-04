@@ -25,6 +25,7 @@ import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
 import { SearchBox } from "../search/SearchBox";
+import { FilterBox } from "./FilterBox";
 import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { LinkAnchorBox } from "./LinkAnchorBox";
@@ -191,7 +192,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                     ScreenshotBox, HTMLtag, ComparisonBox
                 }}

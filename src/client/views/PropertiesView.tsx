@@ -45,11 +45,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
-            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
-        } else { return undefined; }
+        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray.length) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        return undefined;
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
@@ -243,10 +241,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 return true;
             } else if (value[0] === "#") {
                 const newVal = value + `:'${value}'`;
-                KeyValueBox.SetField(doc, value, `'${value}'`, true);
+                doc[DataSym][value] = value;
                 const tags = StrCast(doc.tags, ":");
-                if (!tags.includes(`#${value}:`)) {
-                    KeyValueBox.SetField(doc, "tags", `"${tags + value + ':'}"`, true);
+                if (!tags.includes(`${value}:`)) {
+                    doc[DataSym].tags = `${tags + value + ':'}`;
                 }
                 return true;
             }

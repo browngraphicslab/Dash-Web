@@ -50,6 +50,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { FilterBox } from "../views/nodes/FilterBox";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -107,7 +108,6 @@ export interface DocumentOptions {
     layout?: string | Doc; // default layout string for a document
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
-    hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
@@ -244,6 +244,10 @@ export namespace Docs {
             }],
             [DocumentType.SEARCH, {
                 layout: { view: SearchBox, dataField: defaultDataKey },
+                options: { _width: 400 }
+            }],
+            [DocumentType.FILTER, {
+                layout: { view: FilterBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -757,7 +761,7 @@ export namespace Docs {
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", hideFilterView: true, forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -821,13 +825,16 @@ export namespace Docs {
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
+        export function FilterDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FILTER), undefined, { ...(options || {}) });
+        }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
             const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
@@ -881,19 +888,21 @@ export namespace DocUtils {
             if (d.z) return true;
             for (const facetKey of Object.keys(filterFacets)) {
                 const facet = filterFacets[facetKey];
-                const satisfiesFacet = Object.keys(facet).some(value => {
-                    if (facet[value] === "match") {
-                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
-                            const allKeys = Array.from(Object.keys(d));
-                            allKeys.push(...Object.keys(Doc.GetProto(d)));
-                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
-                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
-                        }
-                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                const matches = Object.keys(facet).filter(value => facet[value] === "match");
+                const checks = Object.keys(facet).filter(value => facet[value] === "check");
+                const xs = Object.keys(facet).filter(value => facet[value] === "x");
+                const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
+                    if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                        const allKeys = Array.from(Object.keys(d));
+                        allKeys.push(...Object.keys(Doc.GetProto(d)));
+                        const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                        return keys.some(key => Field.toString(d[key] as Field).includes(value));
                     }
-                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                    return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                if (!satisfiesFacet) {
+                if (!satisfiesCheckFacets || !satisfiesMatchFacets || failsNotEqualFacets) {
                     return false;
                 }
             }

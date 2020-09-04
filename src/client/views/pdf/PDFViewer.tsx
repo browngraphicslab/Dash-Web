@@ -32,6 +32,7 @@ import { PDFMenu } from "./PDFMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -98,6 +99,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _zoomed = 1;
 
     private _pdfViewer: any;
+    private _styleRule: any; // stylesheet rule for making hyperlinks clickable
     private _retries = 0; // number of times tried to create the PDF viewer
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -166,7 +168,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    (!LinkDocPreview.TargetDoc) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
@@ -435,11 +437,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
-        addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+        (e.target as any).tagName === "SPAN" && (this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" }));
         if ((this.Document._viewScale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
-            //e.stopPropagation();
         }
         this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {
@@ -461,11 +462,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
-            document.removeEventListener("pointermove", this.onSelectMove);
             document.addEventListener("pointermove", this.onSelectMove);
-            document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
+            document.addEventListener("pointerup", this.removeStyle, true);
         }
+    }
+    removeStyle = () => {
+        clearStyleSheetRules(PDFViewer._annotationStyle);
+        document.removeEventListener("pointerup", this.removeStyle);
     }
 
     @action
@@ -601,15 +605,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
         // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
         // Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
-        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.3)"); // hyperlink color
+        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
-                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        annotationDoc.isLinkButton = true;
-                        if (link) Doc.GetProto(link).followLinkLocation = "default";
+                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
+                        e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                        annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     }
+                    e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
                 }
             });
         }

@@ -460,8 +460,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         } else if (de.complete.linkDragData) {
             de.complete.linkDragData.linkDropCallback = this.linkDrop;
         }
+        else if (de.complete.annoDragData) {
+            de.complete.annoDragData.linkDropCallback = this.linkDrop;
+        }
     }
-    linkDrop = (data: DragManager.LinkDragData) => {
+    linkDrop = (data: { linkDocument?: Doc }) => {
         const linkDoc = data.linkDocument!;
         const anchor1Title = linkDoc.anchor1 instanceof Doc ? StrCast(linkDoc.anchor1.title) : "-untitled-";
         const anchor1Id = linkDoc.anchor1 instanceof Doc ? linkDoc.anchor1[Id] : "";

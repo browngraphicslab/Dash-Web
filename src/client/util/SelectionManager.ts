@@ -4,6 +4,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
 import { List } from "../../fields/List";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
+import { CollectionViewType } from "../views/collections/CollectionView";
 
 export namespace SelectionManager {
 
@@ -93,7 +94,7 @@ export namespace SelectionManager {
     }
 
     export function SelectedDocuments(): Array<DocumentView> {
-        return Array.from(manager.SelectedDocuments.keys());
+        return Array.from(manager.SelectedDocuments.keys()).filter(dv => dv.props.Document._viewType !== CollectionViewType.Docking);
     }
     export function SelectedSchemaDoc(): Doc | undefined {
         return manager.SelectedSchemaDocument;

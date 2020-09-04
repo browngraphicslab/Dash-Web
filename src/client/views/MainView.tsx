@@ -83,6 +83,7 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         new InkStrokeProperties();
+        this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
@@ -169,6 +170,14 @@ export class MainView extends React.Component {
         window.addEventListener("drop", e => e.preventDefault(), false);  // prevent default behavior of navigating to a new web page
         window.addEventListener("dragover", e => e.preventDefault(), false);
         document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("click", (e: MouseEvent) => {
+            if (!e.cancelBubble) {
+                const pathstr = (e as any)?.path.map((p: any) => p.classList?.toString()).join();
+                if (pathstr.includes("libraryFlyout")) {
+                    SelectionManager.DeselectAll();
+                }
+            }
+        });
     }
 
     initAuthenticationRouters = async () => {
@@ -372,9 +381,9 @@ export class MainView extends React.Component {
     @action
     selectMenu = (button: Doc) => {
         const title = StrCast(Doc.GetProto(button).title);
-        const closed = !this._flyoutWidth;
+        const willOpen = !this._flyoutWidth || this._panelContent !== title;
         this.closeFlyout();
-        if (this._panelContent !== title || !this._flyoutWidth) {
+        if (willOpen) {
             switch (this._panelContent = title) {
                 case "Settings":
                     SettingsManager.Instance.open();
@@ -384,7 +393,7 @@ export class MainView extends React.Component {
                     SearchBox.Instance.enter(undefined);
                     break;
                 default:
-                    closed && this.expandFlyout(button);
+                    this.expandFlyout(button);
             }
         }
         return true;
@@ -434,6 +443,7 @@ export class MainView extends React.Component {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
         this._panelContent = "none";
+        this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
     });
 
@@ -520,13 +530,13 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
+    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();
         return <div className="mainView-searchPanel">
             <SearchBox Document={CurrentUserUtils.MySearchPanelDoc}
-                DataDoc={undefined}
+                DataDoc={CurrentUserUtils.MySearchPanelDoc}
                 fieldKey="data"
                 dropAction="move"
                 isSelected={returnTrue}

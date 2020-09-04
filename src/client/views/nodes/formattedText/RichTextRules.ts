@@ -3,7 +3,7 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { DataSym, Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
 import { ComputedField } from "../../../../fields/ScriptField";
-import { Cast, NumCast } from "../../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -321,7 +321,11 @@ export class RichTextRules {
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    this.Document[DataSym]["#" + tag] = ".";
+                    this.Document[DataSym]["#" + tag] = "#" + tag;
+                    const tags = StrCast(this.Document.tags, ":");
+                    if (!tags.includes(`#${tag}:`)) {
+                        this.Document[DataSym].tags = `"${tags + "#" + tag + ':'}"`;
+                    }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" + tag });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
