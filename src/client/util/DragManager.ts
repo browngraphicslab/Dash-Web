@@ -117,10 +117,11 @@ export namespace DragManager {
     }
 
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dropAction?: dropActionType) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = [];
             this.offset = [0, 0];
+            this.dropAction = dropAction;
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
@@ -434,7 +435,7 @@ export namespace DragManager {
 
             const target = document.elementFromPoint(e.x, e.y);
 
-            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
+            if (target && !Doc.UserDoc()._noAutoscroll && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
                 const autoScrollHandler = () => {
                     target.dispatchEvent(
                         new CustomEvent<React.DragEvent>("dashDragAutoScroll", {

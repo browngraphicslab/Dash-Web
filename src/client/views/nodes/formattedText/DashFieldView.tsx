@@ -169,7 +169,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     onPointerDownEnumerables = async (e: any) => {
         e.stopPropagation();
         const collview = await DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
-        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
+        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "add:right");
     }
 
 
@@ -191,7 +191,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             list.map(c => c.heading).indexOf(this._fieldKey) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
             list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
             alias._pivotField = this._fieldKey.startsWith("#") ? "#" : this._fieldKey;
-            this.props.tbox.props.addDocTab(alias, "onRight");
+            this.props.tbox.props.addDocTab(alias, "add:right");
         }
     }
 

@@ -260,6 +260,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters?.includes(this._key)) {
+            runInAction(() => this.closeResultsVisibility = "contents");
+        }
     }
 
     @action
@@ -268,14 +272,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         } else {
             this._isOpen = false;
             this.props.setIsEditing(false);
-        }
-    }
-
-    componentWillMount() {
-        document.removeEventListener("pointerdown", this.detectClick);
-        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
-        if (filters?.includes(this._key)) {
-            runInAction(() => this.closeResultsVisibility = "contents");
         }
     }
 
@@ -356,7 +352,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         // if search term does not already exist as a group type, give option to create new group type
 
         if (this._key !== this._searchTerm.slice(0, this._key.length)) {
-            console.log("little further");
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 options.push(<div key={""} className="key-option" style={{
                     border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
@@ -385,7 +380,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        if (!this._isOpen) {
+        if (!this._isOpen || !this.props.dataDoc) {
             this.defaultMenuHeight = 0;
             return <></>;
         }
@@ -393,7 +388,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         if (this.docSafe.length === 0) {
-            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+            this.docSafe = DocListCast(this.props.dataDoc[this.props.fieldKey]);
         }
         const docs = this.docSafe;
         docs.forEach((doc) => {
@@ -462,7 +457,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     updateFilter() {
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
         if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
-            console.log("PLEASE");
             this.props.col.setColor("rgb(241, 239, 235)");
             this.closeResultsVisibility = "none";
         }
@@ -482,8 +476,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     removeFilters = (e: React.PointerEvent): void => {
         const keyOptions: string[] = [];
-        if (this.docSafe.length === 0) {
-            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+        if (this.docSafe.length === 0 && this.props.dataDoc) {
+            this.docSafe = DocListCast(this.props.dataDoc[this.props.fieldKey]);
         }
         const docs = this.docSafe;
         docs.forEach((doc) => {

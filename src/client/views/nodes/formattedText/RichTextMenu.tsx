@@ -810,7 +810,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             <div className="dropdown link-menu">
                 <p>Linked to:</p>
                 <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
-                <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "onRight")}>Apply hyperlink</button>
+                <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "add:right")}>Apply hyperlink</button>
                 <div className="divider"></div>
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
@@ -857,7 +857,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     // TODO: should check for valid URL
     @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
-        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
+        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRadd:rightight", "", target);
     }
 
     @undoBatch

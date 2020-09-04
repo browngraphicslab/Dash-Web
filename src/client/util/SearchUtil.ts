@@ -23,7 +23,7 @@ export namespace SearchUtil {
     }
 
     export interface SearchParams {
-        hl?: boolean;
+        hl?: string;
         "hl.fl"?: string;
         start?: number;
         rows?: number;
@@ -39,9 +39,10 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}*:* AND ${arg}`);
         if (options.onlyAliases) {
-            replacedQuery = `{!join from=id to=proto_i}DEFAULT:${replacedQuery}`;
+            const header = query.match(/_[atnb]?:/) ? replacedQuery : "DEFAULT:" + replacedQuery;
+            replacedQuery = `{!join from=id to=proto_i}${header}`;
         }
         const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);

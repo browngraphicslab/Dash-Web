@@ -124,7 +124,7 @@ export class DocumentManager {
     }
 
     static addRightSplit = (doc: Doc, finished?: () => void) => {
-        CollectionDockingView.AddRightSplit(doc);
+        CollectionDockingView.AddSplit(doc, "right");
         finished?.();
     }
     public jumpToDocument = async (
@@ -160,6 +160,9 @@ export class DocumentManager {
                 docView.props.Document.hidden = !docView.props.Document.hidden;
             }
             else {
+                const contView = docContext && getFirstDocView(docContext, originatingDoc);
+                contView && contView.topMost && contView.select(false);  // bcz: change this to a function prop: popTab() that will make sure the tab for the document is topmost;
+                docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
                 highlight();
@@ -231,7 +234,7 @@ export class DocumentManager {
                     containerDoc._currentTimecode = targetTimecode;
                     const targetContext = await target?.context as Doc;
                     const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
                 } else {
                     finished?.();
                 }

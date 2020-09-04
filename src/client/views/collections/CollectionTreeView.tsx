@@ -32,6 +32,7 @@ import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../fields/util';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { CollectionDockingView } from './CollectionDockingView';
 
 export interface TreeViewProps {
     document: Doc;
@@ -39,7 +40,7 @@ export interface TreeViewProps {
     containingCollection: Doc;
     prevSibling?: Doc;
     renderDepth: number;
-    deleteDoc: (doc: Doc | Doc[]) => boolean;
+    removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
@@ -117,16 +118,16 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.ComputeContentBounds(DocListCast(this.props.document[this.fieldKey]));
     }
 
-    @undoBatch openRight = () => this.props.addDocTab(this.doc, "onRight");
+    @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
-        return this.doc !== target && this.props.deleteDoc(doc) && addDoc(doc);
+        return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
     }
     @undoBatch @action remove = (doc: Doc | Doc[], key: string) => {
         return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
     }
     @undoBatch @action removeDoc = (doc: Doc | Doc[]) => {
         return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
-            flg && Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), doc), true);
+            flg && Doc.RemoveDocFromList(this.doc, Doc.LayoutFieldKey(this.doc), doc), true);
     }
 
     constructor(props: any) {
@@ -280,8 +281,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce(
                     (flg, doc) => flg && Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true), true);
-                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
-                    DocListCast(contents), this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
+                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
+                    this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                     [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged);
@@ -390,7 +391,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 this: this.doc.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.doc,
                 heading: this.props.containingCollection.title,
                 checked: this.doc.treeViewChecked === "check" ? "x" : this.doc.treeViewChecked === "x" ? undefined : "check",
-                containingTreeView: this.props.treeView,
+                containingTreeView: this.props.treeView.props.Document,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
@@ -458,7 +459,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 onDoubleClick={this.onChildDoubleClick}
                 dropAction={this.props.dropAction}
                 moveDocument={this.move}
-                removeDocument={this.removeDoc}
+                removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
                 ContentScaling={returnOne}
                 PanelWidth={this.truncateTitleWidth}
@@ -483,12 +484,12 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
-                    outline: BoolCast(this.doc.dashboardBrush) ? "dashed 1px #06123232" : undefined,
+                    outline: this.doc === CurrentUserUtils.ActiveDashboard ? "dashed 1px #06123232" : undefined,
                     pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }} >
                 {view}
             </div >
-            {Doc.IsSystem(this.doc) ? (null) : headerElements}
+            {Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode ? (null) : headerElements}
         </>;
     }
 
@@ -612,7 +613,7 @@ class TreeView extends React.Component<TreeViewProps> {
             }
 
             const indent = i === 0 ? undefined : () => {
-                if (StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(docs[i - 1].layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(docs[i - 1].layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     if (fieldKey && Cast(docs[i - 1][fieldKey], listSpec(Doc)) !== undefined) {
@@ -623,7 +624,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             const outdent = !parentCollectionDoc ? undefined : () => {
-                if (StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
+                if (remove && StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(parentCollectionDoc.layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     Doc.AddDocToList(parentCollectionDoc, fieldKey, child, parentPrevSibling, false);
@@ -651,7 +652,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 onCheckedClick={onCheckedClick}
                 onChildClick={onChildClick}
                 renderDepth={renderDepth}
-                deleteDoc={remove}
+                removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
                 backgroundColor={backgroundColor}
                 panelWidth={rowWidth}
@@ -738,7 +739,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myDashboards) {
+        if (!e.isPropagationStopped() && this.doc === CurrentUserUtils.MyDashboards) {
             ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => CurrentUserUtils.createNewDashboard(Doc.UserDoc()), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
             e.stopPropagation();
@@ -874,28 +875,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         );
     }
 }
-
-Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
-    const allCollectionDocs = DocListCast(dataDoc[dataKey]);
-    const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
-        set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
-
-    let nonNumbers = 0;
-    facetValues.map(val => {
-        const num = Number(val);
-        if (Number.isNaN(num)) {
-            nonNumbers++;
-        }
-    });
-    const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue => {
-        const doc = new Doc();
-        doc.system = true;
-        doc.title = facetValue.toString();
-        doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
-        return doc;
-    });
-    return new List<Doc>(facetValueDocSet);
-});
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
     const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);

@@ -104,7 +104,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
     //Command to create a new Tab with a PDF of all the command shortcuts
     bind("Mod-/", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const newDoc = Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _fitWidth: true, _width: 300, _height: 300 });
-        props.addDocTab(newDoc, "onRight");
+        props.addDocTab(newDoc, "add:right");
     });
 
     //Commands to modify BlockType

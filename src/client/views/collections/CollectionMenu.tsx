@@ -5,7 +5,7 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
-import { Doc, DocListCast, Opt, Field } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -29,10 +29,10 @@ import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
+import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { DockedFrameRenderer } from "./CollectionDockingView";
-import { PresBox } from "../nodes/PresBox";
+import { TabDocView } from "./TabDocView";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -187,7 +187,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
             button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
-            button['target-searchFilterDocs'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = CurrentUserUtils.ActiveDashboard._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(CurrentUserUtils.ActiveDashboard._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
 
@@ -379,7 +379,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
             <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderRight: "1px solid gray" }}
-                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
             </button>
         </Tooltip>;
@@ -443,7 +443,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <button className="antidmodeMenu-button" style={{ borderRight: "1px solid gray" }}
                 onClick={e => {
                     if (targetDoc) {
-                        DockedFrameRenderer.PinDoc(targetDoc, false);
+                        TabDocView.PinDoc(targetDoc, false);
                         const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
                         const x = targetDoc._panX;
                         const y = targetDoc._panY;
@@ -868,18 +868,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 </Tooltip> : null}
 
                 {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
-                    <Tooltip key="hypothesis" title={<div className="dash-tooltip">Toggle between native iframe and annotation modes</div>} placement="bottom">
-                        <button className={"antimodeMenu-button"} key="hypothesis"
-                            style={{
-                                backgroundColor: this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
-                                borderRight: "1px solid gray"
-                            }}
-                            onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
-                            <FontAwesomeIcon icon={"edit"} size="lg" />    {/* ["fab", "hire-a-helper"]} size={"lg"} /> */}
-                        </button>
-                    </Tooltip>
-                }
-                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
                     this.urlEditor
                 }
                 {!this.isText ?
@@ -913,15 +901,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
             if (docs instanceof Doc) {
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
-                    key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
-                    key.indexOf("lastModified") >= 0 || (key[0]?.toUpperCase() === key[0] &&
-                        key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
+                    key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
+                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }

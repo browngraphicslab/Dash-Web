@@ -4,29 +4,29 @@ import { Checkbox, Tooltip } from "@material-ui/core";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
-import { Id } from "../../../../fields/FieldSymbols";
-import { InkField } from "../../../../fields/InkField";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { GetEffectiveAcl, SharingPermissions } from "../../../../fields/util";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../../Utils";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { SelectionManager } from "../../../util/SelectionManager";
-import { SharingManager } from "../../../util/SharingManager";
-import { Transform } from "../../../util/Transform";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
-import { EditableView } from "../../EditableView";
-import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
-import { KeyValueBox } from "../../nodes/KeyValueBox";
-import { PresBox } from "../../nodes/PresBox";
-import { PropertiesButtons } from "../../PropertiesButtons";
-import { FormatShapePane } from "./FormatShapePane";
-import "./FormatShapePane.scss";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { InkField } from "../../fields/InkField";
+import { ComputedField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../Utils";
+import { DocumentType } from "../documents/DocumentTypes";
+import { DocumentManager } from "../util/DocumentManager";
+import { SelectionManager } from "../util/SelectionManager";
+import { SharingManager } from "../util/SharingManager";
+import { Transform } from "../util/Transform";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CollectionDockingView } from "./collections/CollectionDockingView";
+import { EditableView } from "./EditableView";
+import { InkStrokeProperties } from "./InkStrokeProperties";
+import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { KeyValueBox } from "./nodes/KeyValueBox";
+import { PresBox } from "./nodes/PresBox";
+import { PropertiesButtons } from "./PropertiesButtons";
+import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
-import { CollectionDockingView } from "../CollectionDockingView";
-import { ParentDocSelector, SelectorContextMenu } from "../ParentDocumentSelector";
+import { intersection } from "lodash";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -35,9 +35,6 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    renderDepth: number;
-    ScreenToLocalTransform: () => Transform;
-    onDown: (event: any) => void;
 }
 
 @observer
@@ -48,11 +45,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
-            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
-        } else { return undefined; }
+        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray.length) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        return undefined;
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
@@ -148,7 +143,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     &nbsp;
                 </div>);
                 } else {
-                    let contentElement = <EditableView key="editableView"
+                    const contentElement = <EditableView key="editableView"
                         contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
                         height={13}
                         fontSize={10}
@@ -181,9 +176,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
-            const noviceReqFields = ["author", "creationDate"];
+            const noviceReqFields = ["author", "creationDate", "tags"];
             const noviceLayoutFields = ["_curPage"];
-            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL"))),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
                 const docvals = new Set<any>();
@@ -237,11 +232,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                const splits = newVal.split(":");
+                KeyValueBox.SetField(doc, splits[0], splits[1], true);
+                const tags = StrCast(doc.tags, ":");
+                if (tags.includes(`${splits[0]}:`) && splits[1] === "undefined") {
+                    KeyValueBox.SetField(doc, "tags", `"${tags.replace(splits[0] + ":", "")}"`, true);
+                }
                 return true;
             } else if (value[0] === "#") {
                 const newVal = value + `:'${value}'`;
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                doc[DataSym][value] = value;
+                const tags = StrCast(doc.tags, ":");
+                if (!tags.includes(`${value}:`)) {
+                    doc[DataSym].tags = `${tags + value + ':'}`;
+                }
                 return true;
             }
         });
@@ -259,7 +263,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get contexts() {
-        return !this.selectedDoc ? (null) : <SelectorContextMenu Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddSplit(doc, "right")} />;
     }
 
     previewBackground = () => "lightgrey";
@@ -276,7 +280,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
                     LibraryPath={emptyPath}
-                    renderDepth={this.props.renderDepth + 1}
+                    renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
                     backgroundColor={this.previewBackground}
@@ -317,17 +321,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     @undoBatch
     changePermissions = (e: any, user: string) => {
-        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
+        const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.selectedDoc!] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, docs);
     }
 
     /**
      * @returns the options for the permissions dropdown.
      */
     getPermissionsSelect(user: string, permission: string) {
+        const dropdownValues: string[] = Object.values(SharingPermissions);
+        if (permission === "-multiple-") dropdownValues.unshift(permission);
         return <select className="permissions-select"
             value={permission}
             onChange={e => this.changePermissions(e, user)}>
-            {Object.values(SharingPermissions).map(permission => {
+            {dropdownValues.map(permission => {
                 return (
                     <option key={permission} value={permission}>
                         {permission}
@@ -365,7 +372,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     /**
      * @returns a row of the permissions panel
      */
-    sharingItem(name: string, effectiveAcl: symbol, permission: string) {
+    sharingItem(name: string, admin: boolean, permission: string) {
         return <div className="propertiesView-sharingTable-item" key={name + permission}
         // style={{ backgroundColor: this.selectedUser === name ? "#bcecfc" : "" }}
         // onPointerDown={action(() => this.selectedUser = this.selectedUser === name ? "" : name)}
@@ -373,7 +380,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
             {/* {name !== "Me" ? this.notifyIcon : null} */}
             <div className="propertiesView-sharingTable-item-permission">
-                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
+                {admin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}
             </div>
         </div>;
@@ -391,17 +398,29 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             [AclAdmin, SharingPermissions.Admin]
         ]);
 
-        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
+        // all selected docs
+        const docs = SelectionManager.SelectedDocuments().length < 2 ?
+            [this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym]]
+            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
 
-        const effectiveAcl = GetEffectiveAcl(target);
+        const target = docs[0];
+
+        // tslint:disable-next-line: no-unnecessary-callback-wrapper
+        const effectiveAcls = docs.map(doc => GetEffectiveAcl(doc));
+        const showAdmin = effectiveAcls.every(acl => acl === AclAdmin);
+
+        // users in common between all docs
+        const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
+
         const tableEntries = [];
 
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
-        if (target[AclSym]) {
-            for (const [key, value] of Object.entries(target[AclSym])) {
+        if (commonKeys.length) {
+            for (const key of commonKeys) {
                 const name = key.substring(4).replace("_", ".");
+                const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[key] === docs[0]?.[AclSym]?.[key] : doc?.[DataSym]?.[AclSym]?.[key] === docs[0]?.[DataSym]?.[AclSym]?.[key]);
                 if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public"/* && sidebarUsersDisplayed![name] !== false*/) {
-                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value as symbol)!));
+                    tableEntries.push(this.sharingItem(name, showAdmin, uniform ? AclMap.get(this.layoutDocAcls ? target[AclSym][key] : target[DataSym][AclSym][key])! : "-multiple-"));
                 }
             }
         }
@@ -414,9 +433,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         // })
 
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Public", effectiveAcl, (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None)));
-        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === target.author ? "Owner" : AclMap.get(effectiveAcl)!));
-        if (Doc.CurrentUserEmail !== target.author) tableEntries.unshift(this.sharingItem(StrCast(target.author), effectiveAcl, "Owner"));
+        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.every(doc => doc["ACL-Public"] === docs[0]["ACL-Public"]) ? (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None) : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-"));
+        if (Doc.CurrentUserEmail !== target.author && docs.every(doc => doc.author === docs[0].author)) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
@@ -514,15 +533,16 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed
     get controlPointsButton() {
-        return <div className="inking-button">
+        const formatInstance = InkStrokeProperties.Instance;
+        return !formatInstance ? (null) : <div className="inking-button">
             <Tooltip title={<div className="dash-tooltip">{"Edit points"}</div>}>
-                <div className="inking-button-points" onPointerDown={action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn)} style={{ backgroundColor: FormatShapePane.Instance._controlBtn ? "black" : "" }}>
+                <div className="inking-button-points" onPointerDown={action(() => formatInstance._controlBtn = !formatInstance._controlBtn)} style={{ backgroundColor: formatInstance._controlBtn ? "black" : "" }}>
                     <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
-                <div className="inking-button-lock" onPointerDown={action(() => FormatShapePane.Instance._lock = !FormatShapePane.Instance._lock)} >
-                    <FontAwesomeIcon icon={FormatShapePane.Instance._lock ? "lock" : "unlock"} color="white" size="lg" />
+            <Tooltip title={<div className="dash-tooltip">{formatInstance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
+                <div className="inking-button-lock" onPointerDown={action(() => formatInstance._lock = !formatInstance._lock)} >
+                    <FontAwesomeIcon icon={formatInstance._lock ? "lock" : "unlock"} color="white" size="lg" />
                 </div>
             </Tooltip>
             <Tooltip title={<div className="dash-tooltip">{"Rotate 90˚"}</div>}>
@@ -582,7 +602,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oldX = NumCast(this.selectedDoc?.x);
                 const oldY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._width = oldWidth + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
                 const doc = this.selectedDoc;
                 if (doc?.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
                     const ink = Cast(doc.data, InkField)?.inkData;
@@ -604,7 +624,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oX = NumCast(this.selectedDoc?.x);
                 const oY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._height = oHeight + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
                 const docu = this.selectedDoc;
                 if (docu?.type === DocumentType.INK && docu.x && docu.y && docu._height && docu._width) {
                     const ink = Cast(docu.data, InkField)?.inkData;
@@ -642,12 +662,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set shapeWid(value) {
         const oldWidth = NumCast(this.selectedDoc?._width);
         this.selectedDoc && (this.selectedDoc._width = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
     }
     set shapeHgt(value) {
         const oldHeight = NumCast(this.selectedDoc?._height);
         this.selectedDoc && (this.selectedDoc._height = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
     }
 
     @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => { if (!isNaN(Number(val))) { this.shapeHgt = val; } return true; }, "H:", "wid", this.shapeWid, (val: string) => { if (!isNaN(Number(val))) { this.shapeWid = val; } return true; }, "W:"); }
@@ -852,13 +872,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
+                    minWidth: this.props.width
                     //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
-                    {/* <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                        <FontAwesomeIcon icon="times" color="black" size="sm" />
-                    </div> */}
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}

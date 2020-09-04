@@ -23,7 +23,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
-import { result } from "lodash";
+import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -923,8 +923,9 @@ export namespace Doc {
             brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
     }
     export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
-        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
-        brushManager.SearchMatchDoc.set(doc, results);
+        if (doc && GetEffectiveAcl(doc) !== AclPrivate && GetEffectiveAcl(Doc.GetProto(doc)) !== AclPrivate) {
+            brushManager.SearchMatchDoc.set(doc, results);
+        }
         return doc;
     }
     export function SearchMatchNext(doc: Doc, backward: boolean) {
@@ -1048,7 +1049,8 @@ export namespace Doc {
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
-        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        const container = target ?? CollectionDockingView.Instance.props.Document;
+        const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
                 docRangeFilters.splice(i, 3);
@@ -1059,14 +1061,15 @@ export namespace Doc {
             docRangeFilters.push(key);
             docRangeFilters.push(range[0].toString());
             docRangeFilters.push(range[1].toString());
-            target._docRangeFilters = new List<string>(docRangeFilters);
+            container._docRangeFilters = new List<string>(docRangeFilters);
         }
     }
 
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+        const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {
@@ -1126,6 +1129,15 @@ export namespace Doc {
             return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
         }
         return false;
+    }
+
+    export function copyDragFactory(dragFactory: Doc) {
+        const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+        }
+        return ndoc;
     }
 
 
@@ -1276,14 +1288,7 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
-Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) {
-    const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
-    if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
-        dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
-        Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
-    }
-    return ndoc;
-});
+Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) { return Doc.copyDragFactory(dragFactory); });
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });

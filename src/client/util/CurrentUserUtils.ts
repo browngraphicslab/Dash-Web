@@ -1,31 +1,35 @@
-import { computed, observable, reaction, action } from "mobx";
+import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
+import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { List } from "../../fields/List";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { listSpec } from "../../fields/Schema";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
-import { UndoManager } from "./UndoManager";
-import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
-import { List } from "../../fields/List";
-import { listSpec } from "../../fields/Schema";
-import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast, BoolCast } from "../../fields/Types";
-import { nullAudio } from "../../fields/URLField";
-import { DragManager } from "./DragManager";
-import { Scripting } from "./Scripting";
-import { CollectionViewType, CollectionView } from "../views/collections/CollectionView";
-import { makeTemplate } from "./DropConverter";
-import { RichTextField } from "../../fields/RichTextField";
-import { PrefetchProxy } from "../../fields/Proxy";
-import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
-import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
-import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
-import { LabelBox } from "../views/nodes/LabelBox";
-import { LinkManager } from "./LinkManager";
-import { Id } from "../../fields/FieldSymbols";
-import { HistoryUtil } from "./History";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { MainView } from "../views/MainView";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { LabelBox } from "../views/nodes/LabelBox";
+import { OverlayView } from "../views/OverlayView";
+import { DocumentManager } from "./DocumentManager";
+import { DragManager } from "./DragManager";
+import { makeTemplate } from "./DropConverter";
+import { HistoryUtil } from "./History";
+import { LinkManager } from "./LinkManager";
+import { Scripting } from "./Scripting";
+import { SearchUtil } from "./SearchUtil";
+import { SelectionManager } from "./SelectionManager";
+import { UndoManager } from "./UndoManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -51,7 +55,7 @@ export class CurrentUserUtils {
                     Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
@@ -86,7 +90,7 @@ export class CurrentUserUtils {
                     Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, system: true }),
                     Docs.Create.TextDocument("", { title: "text", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
@@ -435,7 +439,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
@@ -512,6 +516,7 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
@@ -715,7 +720,7 @@ export class CurrentUserUtils {
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
+                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -729,7 +734,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -745,7 +750,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -763,12 +768,27 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        }
+    }
+    static setupFilterDocs(doc: Doc) {
+        // setup Recently Closed library item
+        doc.myFilter === undefined;
+        if (doc.myFilter === undefined) {
+            doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
+                title: "FilterDoc", _height: 500,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            }));
+            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 
@@ -779,7 +799,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -802,6 +822,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
+        CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
@@ -846,14 +867,14 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc.mySharedDocs === undefined) {
-            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc.myImportDocs === undefined) {
-            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My ImportDocuments", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
@@ -861,7 +882,6 @@ export class CurrentUserUtils {
             doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
         }
     }
-
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
@@ -955,6 +975,7 @@ export class CurrentUserUtils {
 
         return doc;
     }
+
     public static async loadCurrentUser() {
         return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
@@ -1017,16 +1038,49 @@ export class CurrentUserUtils {
         return true;
     }
 
-    public static snapshotDashboard = (userDoc: Doc) => {
-        const activeDashboard = Cast(userDoc.activeDashboard, Doc, null);
-        CollectionDockingView.Copy(activeDashboard).then(copy => {
-            Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => CurrentUserUtils.openDashboard(userDoc, copy), 0);
-        });
+    public static importDocument = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc) {
+                        setTimeout(() => SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs =>
+                            docs.docs.forEach(d => LinkManager.Instance.addLink(d))), 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
+                const disposer = OverlayView.ShowSpinner();
+                DocListCastAsync(importDocs.data).then(async list => {
+                    const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    list?.push(...results);
+                    disposer();
+                });
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
     }
 
-    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+    public static snapshotDashboard = (userDoc: Doc) => {
+        const copy = CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
+        Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
+        CurrentUserUtils.openDashboard(userDoc, copy);
+    }
+
+    public static createNewDashboard = (userDoc: Doc, id?: string) => {
         const myPresentations = userDoc.myPresentations as Doc;
         const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
         const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
@@ -1052,13 +1106,25 @@ export class CurrentUserUtils {
         dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => {
-            CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
-        }, 0);
+        CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
+
+    public static get MySearchPanelDoc() { return Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null); }
+    public static get ActiveDashboard() { return Cast(Doc.UserDoc().activeDashboard, Doc, null); }
+    public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
+    public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
+    public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
+    public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
 }
 
+Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
+    const copy = Doc.copyDragFactory(dragFactory);
+    if (copy) {
+        CollectionDockingView.AddSplit(copy, "right");
+        const view = DocumentManager.Instance.getFirstDocumentView(copy);
+        view && SelectionManager.SelectDoc(view, false);
+    }
+});
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
     "creates a snapshot copy of a dashboard");
 Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },
@@ -1069,3 +1135,5 @@ Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Insta
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
     "returns all the links directly to the document", "(doc: any)");
+Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
+    "imports files from device directly into the import sidebar");

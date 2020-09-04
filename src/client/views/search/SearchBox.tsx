@@ -45,10 +45,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private _maxSearchIndex: number = 0;
     private _curRequest?: Promise<any> = undefined;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
+    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.FILTER, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
 
     private docsforfilter: Doc[] | undefined = [];
     private realTotalResults: number = 0;
+    private newsearchstring = "";
     private collectionRef = React.createRef<HTMLDivElement>();
 
     @observable _icons: string[] = this._allIcons;
@@ -63,7 +64,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable _pageStart = 0;
     @observable open = false;
     @observable children = 0;
-    @observable newsearchstring = "";
     @computed get filter() { return this._results?.length && (this.currentSelectedCollection?.props.Document._searchFilterDocs || this.currentSelectedCollection?.props.Document._docFilters); }
 
     constructor(props: any) {
@@ -74,7 +74,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     componentDidMount = action(() => {
         if (this._inputRef.current) {
             this._inputRef.current.focus();
-            this._searchbarOpen = true;
         }
         this._disposers.filters = reaction(() => this.props.Document._docFilters,
             (filters: any) => this.setSearchFilter(this.currentSelectedCollection, !this.filter ? undefined : this.docsforfilter));
@@ -86,11 +85,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @computed get currentSelectedCollection() { return CollectionDockingView.Instance; }
 
-    @action.bound
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.layoutDoc._searchString = e.target.value;
+    onChange = action((e: React.ChangeEvent<HTMLInputElement>) => {
         this.newsearchstring = e.target.value;
         if (e.target.value === "") {
+            console.log("Reset start");
             this.docsforfilter = undefined;
             this.setSearchFilter(this.currentSelectedCollection, undefined);
             this.resetSearch(false);
@@ -104,7 +102,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._curRequest = undefined;
             this._maxSearchIndex = 0;
         }
-    }
+    });
 
     enter = action((e: React.KeyboardEvent | undefined) => {
         if (!e || e.key === "Enter") {
@@ -181,6 +179,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return finalDocs;
     }
 
+    static foreachRecursiveDoc(docs: Doc[], func: (doc: Doc) => void) {
+        let newarray: Doc[] = [];
+        while (docs.length > 0) {
+            newarray = [];
+            docs.forEach(d => {
+                const fieldKey = Doc.LayoutFieldKey(d);
+                const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                data && newarray.push(...DocListCast(data));
+                func(d);
+            });
+            docs = newarray;
+        }
+    }
+
     @action
     searchCollection(query: string) {
         const selectedCollection = this.currentSelectedCollection;//SelectionManager.SelectedDocuments()[0];
@@ -188,23 +201,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         if (selectedCollection !== undefined) {
             // this._currentSelectedCollection = selectedCollection;
-            let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
+            const docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             const found: [Doc, string[], string[]][] = [];
-            let newarray: Doc[] = [];
+            SearchBox.foreachRecursiveDoc(docs, (doc: Doc) => {
+                const hlights = new Set<string>();
+                SearchBox.documentKeys(doc).forEach(key => Field.toString(doc[key] as Field).toLowerCase().includes(query) && hlights.add(key));
+                Array.from(hlights.keys()).length > 0 && found.push([doc, Array.from(hlights.keys()), []]);
+            });
 
-            while (docs.length > 0) {
-                newarray = [];
-                docs.forEach((d) => {
-                    d.data && newarray.push(...DocListCast(d.data));
-                    const hlights = new Set<string>();
-                    this.documentKeys(d).forEach(key =>
-                        Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));
-                    if (Array.from(hlights.keys()).length > 0) {
-                        found.push([d, Array.from(hlights.keys()), []]);
-                    }
-                });
-                docs = newarray;
-            }
             this._results = found;
             this.docsforfilter = this._results.map(r => r[0]);
             this.setSearchFilter(selectedCollection, this.filter && found.length ? this.docsforfilter : undefined);
@@ -217,7 +221,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     }
 
-    documentKeys(doc: Doc) {
+    static documentKeys(doc: Doc) {
         const keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -252,7 +256,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._numTotalResults = -1;
             this._searchFullDB ? await this.searchDatabase(query) : this.searchCollection(query);
             runInAction(() => {
-                this._searchbarOpen = true;
+                this.open = this._searchbarOpen = true;
                 this.resultsScrolled();
             });
         }
@@ -288,7 +292,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._lockPromise && (await this._lockPromise);
         this._lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, /*sort: this.primarySort,*/ fq: this.filterQuery, start: 0, rows: this._numResultsPerPage, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, /*sort: this.primarySort,*/ fq: this.filterQuery, start: 0, rows: this._numResultsPerPage, hl: "on", "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -372,17 +376,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._results.forEach(result => Doc.BrushDoc(result[0]));
-        this._searchbarOpen = true;
     }
 
-    @action.bound
-    resetSearch = (close: boolean) => {
+    resetSearch = action((close: boolean) => {
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
             Doc.ClearSearchMatches();
         });
-        close && (this._searchbarOpen = false);
-    }
+        close && (this.open = this._searchbarOpen = false);
+    });
 
     @action.bound
     closeResults() {
@@ -481,47 +483,45 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         </div>;
     }
 
-    setSearchFilter = (collectionView: { props: { Document: Doc } }, docsForFilter: Doc[] | undefined) => {
+    setSearchFilter = action((collectionView: { props: { Document: Doc } }, docsForFilter: Doc[] | undefined) => {
         if (collectionView) {
             const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), null);
             collectionView.props.Document._searchFilterDocs = docsForFilter?.length ? new List<Doc>(docsForFilter) : undefined;
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
-    }
-    showLogout = () => {
+    });
 
-    }
     render() {
-        const myDashboards = DocListCast(Cast(Doc.UserDoc().myDashboards, Doc, null).data);
+        const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>
-                    <div className="searchBox-lozenge-user">
-                        {`${Doc.CurrentUserEmail}`}
-                        <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                            Logoff
-                        </div>
-                    </div>
-                    <div className="searchBox-lozenge">
-                        {`UI project`}
-                    </div>
-                    <div className="searchBox-lozenge-dashboard"  >
-                        <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
-                            value={myDashboards.indexOf(Cast(Doc.UserDoc().activeDashboard, Doc, null)!)}>
-                            {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
-                        </select>
-                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
-                            New
-                        </div>
-                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
-                            Snapshot
-                        </div>
-                    </div>
-                </div>
                 <div className="searchBox-bar">
-                    <div style={{ position: "relative", display: "flex", width: 450 }}>
-                        <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
-                            className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
+                    <div className="searchBox-lozenges" >
+                        <div className="searchBox-lozenge-user">
+                            {`${Doc.CurrentUserEmail}`}
+                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                Logoff
+                        </div>
+                        </div>
+                        <div className="searchBox-lozenge">
+                            {`UI project`}
+                        </div>
+                        <div className="searchBox-lozenge-dashboard"  >
+                            <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
+                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
+                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                            </select>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                                New
+                        </div>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
+                                Snapshot
+                        </div>
+                        </div>
+                    </div>
+                    <div className="searchBox-query" >
+                        <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
+                            className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
                         <div style={{ display: "flex", alignItems: "center" }}>
                             <div style={{ position: "absolute", left: 10 }}>

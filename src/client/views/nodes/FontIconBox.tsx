@@ -39,7 +39,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     showTemplate = (): void => {
         const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
-        dragFactory && this.props.addDocTab(dragFactory, "onRight");
+        dragFactory && this.props.addDocTab(dragFactory, "add:right");
     }
     dragAsTemplate = (): void => {
         this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
@@ -63,12 +63,11 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc, this.props.renderDepth)));
-        const shape = StrCast(this.layoutDoc.iconShape, "round");
+        const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
         const icon = StrCast(this.dataDoc.icon, "user") as any;
-        const presTrailsIcon = <img
-            style={{ width: shape === 'round' ? 25 : 30, height: shape === 'round' ? 25 : 30, filter: color === 'white' ? 'invert(100%)' : 'invert(0%)', transform: shape === 'round' ? 'translate(-5px, -7px)' : undefined }}
-            id={"pres-icon"}
-            src={`/assets/${"presTrails.png"}`} />;
+        const presSize = shape === 'round' ? 25 : 30;
+        const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
+            style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
         const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,

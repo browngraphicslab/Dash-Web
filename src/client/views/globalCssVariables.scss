@@ -36,6 +36,12 @@ $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should
 $COLLECTION_BORDER_WIDTH: 1;
 $MINIMIZED_ICON_SIZE:25;
 $MAX_ROW_HEIGHT: 44px;
+$DFLT_IMAGE_NATIVE_DIM: 900px;
+$MENU_PANEL_WIDTH: 60px;
+:root {
+    --flyoutHandleWidth: 28px;
+    --menuPanelWidth: 60px;
+}
 
 :export {
     contextMenuZindex: $contextMenu-zindex;
@@ -45,4 +51,6 @@ $MAX_ROW_HEIGHT: 44px;
     SEARCH_THUMBNAIL_SIZE: $search-thumnail-size;
     ANTIMODEMENU_HEIGHT: $antimodemenu-height;
     SEARCH_PANEL_HEIGHT: $searchpanel-height;
+    DFLT_IMAGE_NATIVE_DIM: $DFLT_IMAGE_NATIVE_DIM;
+    MENU_PANEL_WIDTH: $MENU_PANEL_WIDTH;
 }

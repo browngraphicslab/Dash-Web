@@ -5,18 +5,18 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { Docs } from '../documents/Documents';
+import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DragManager } from '../util/DragManager';
 import { SelectionManager } from '../util/SelectionManager';
 import { SharingManager } from '../util/SharingManager';
-import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
-import './collections/ParentDocumentSelector.scss';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { TabDocView } from './collections/TabDocView';
 import './DocumentButtonBar.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
@@ -153,11 +153,11 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         e.preventDefault();
                         let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                         if (!googleDoc) {
-                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
-                        CollectionDockingView.AddRightSplit(googleDoc);
+                        CollectionDockingView.AddSplit(googleDoc, "right");
                     } else if (e.altKey) {
                         e.preventDefault();
                         window.open(googleDocUrl);
@@ -195,7 +195,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
-                onClick={e => this.props.views().map(view => view && DockedFrameRenderer.PinDoc(view.props.Document, isPinned))}>
+                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, isPinned))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
             </div></Tooltip>;
@@ -207,6 +207,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
+    get annotateButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isAnnotating = targetDoc?.isAnnotating;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
+            <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
+                onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit"
                 />
             </div></Tooltip >;
     }
@@ -235,17 +247,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                 </Flyout>
             </div></Tooltip>;
     }
-
-    @computed
-    get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Document={this.view0.props.Document} addDocTab={(doc, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
-                    this.view0?.props.addDocTab(doc, "onRight");
-            return true;
-        }} />;
-    }
-
     @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
@@ -313,15 +314,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             {!Doc.UserDoc()["documentLinksButton-hideEnd"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
             </div>}
-            <div className="documentButtonBar-button">
-                {this.moreButton}
-            </div>
-            {/* <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
+            {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
+                {this.annotateButton}
+            </div>}
+            <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
-            </div> */}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.moreButton}
+            </div>
         </div>;
     }
 }

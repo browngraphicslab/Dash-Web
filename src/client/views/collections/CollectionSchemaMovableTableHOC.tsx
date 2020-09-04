@@ -201,6 +201,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     }
 
     onRowContextMenu = (e: React.MouseEvent): void => {
+        e.preventDefault();
         const description = this.props.rowWrapped ? "Unwrap text on row" : "Text wrap row";
         ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original), icon: "file-pdf" });
     }
@@ -246,7 +247,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
                         <div className="row-dragger">
                             <div className="row-option" style={{ left: 5 }} onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
                             <div className="row-option" style={{ cursor: "grab", left: 25 }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
-                            <div className="row-option" style={{ left: 40 }} onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
+                            <div className="row-option" style={{ left: 40 }} onClick={() => this.props.addDocTab(this.props.rowInfo.original, "add:right")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
                         </div>
                         {children}
                     </ReactTableDefaults.TrComponent>

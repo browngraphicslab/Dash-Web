@@ -16,7 +16,6 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { SelectionManager } from '../util/SelectionManager';
 import { undoBatch } from '../util/UndoManager';
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import './collections/ParentDocumentSelector.scss';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import './PropertiesButtons.scss';
 import React = require("react");
@@ -144,11 +143,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-linker"
                     style={{ backgroundColor: this.pullColor }}
                     onPointerEnter={action(e => {
-                        if (e.altKey) {
-                            this.openHover = UtilityButtonState.OpenExternally;
-                        } else if (e.shiftKey) {
-                            this.openHover = UtilityButtonState.OpenRight;
-                        }
+                        e.altKey && (this.openHover = UtilityButtonState.OpenExternally);
+                        e.shiftKey && (this.openHover = UtilityButtonState.OpenRight);
                     })}
                     onPointerLeave={action(() => this.openHover = UtilityButtonState.Default)}
                     onClick={async e => {
@@ -157,11 +153,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             e.preventDefault();
                             let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                             if (!googleDoc) {
-                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                                 googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                                 dataDoc.googleDoc = googleDoc;
                             }
-                            CollectionDockingView.AddRightSplit(googleDoc);
+                            CollectionDockingView.AddSplit(googleDoc, "right");
                         } else if (e.altKey) {
                             e.preventDefault();
                             window.open(googleDocUrl);
@@ -172,8 +168,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                         }
                     }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg"
-                        color="black"
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" color="black"
                         style={{ WebkitAnimation: animation, MozAnimation: animation }}
                         icon={(() => {
                             switch (this.openHover) {
@@ -344,7 +339,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 dv.toggleFollowLink("inPlace", true, false);
             } else if (value === "linkOnRight") {
                 dv.noOnClick();
-                dv.toggleFollowLink("onRight", false, false);
+                dv.toggleFollowLink("add:right", false, false);
             }
         });
     }

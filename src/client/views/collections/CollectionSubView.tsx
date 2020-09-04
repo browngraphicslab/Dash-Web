@@ -2,7 +2,7 @@ import { action, computed, IReactionDisposer, reaction, observable, runInAction 
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
+import { Id, ToString } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
@@ -131,37 +131,43 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
+            const docFilters = this.docFilters();
             let searchDocs = this.searchFilterDocs();
+            if (this.props.Document.dontRegisterView || (!docFilters.length && !searchDocs.length)) return childDocs;
 
-            let docsforFilter: Doc[] = childDocs;
-
-            if (searchDocs.length > 0) {
-                searchDocs = [...searchDocs, ...docs.filter(d => d.z)];
-                docsforFilter = [];
-                const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-                searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
-                childDocs.forEach((d) => {
-                    let notFiltered = searchDocs.includes(d) || d.z;
-                    if (d.data !== undefined) {
-                        let subDocs = DocListCast(d.data);
-                        if (subDocs.length > 0) {
-                            let newarray: Doc[] = [];
-                            while (subDocs.length > 0 && !notFiltered) {
-                                newarray = [];
-                                subDocs.forEach((t) => {
-                                    notFiltered = notFiltered || searchDocs.includes(t);
-                                    DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
-                                });
-                                subDocs = newarray;
-                            }
+            const docsforFilter: Doc[] = [];
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            childDocs.forEach((d) => {
+                if (this.props.Document.title === "lose this") {
+                    console.log('here"')
+                }
+                if (d.title === "lose this") {
+                    console.log('here"')
+                }
+                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (!docFilters.length || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
+                const fieldKey = Doc.LayoutFieldKey(d);
+                const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                if (data !== undefined) {
+                    let subDocs = DocListCast(data);
+                    if (subDocs.length > 0) {
+                        let newarray: Doc[] = [];
+                        notFiltered = notFiltered || (!searchDocs.length && docFilters.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript).length);
+                        while (subDocs.length > 0 && !notFiltered) {
+                            newarray = [];
+                            subDocs.forEach((t) => {
+                                const fieldKey = Doc.LayoutFieldKey(t);
+                                const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
+                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && (!docFilters.length || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript).length));
+                                DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
+                            });
+                            subDocs = newarray;
                         }
                     }
-                    notFiltered && docsforFilter.push(d);
-                });
-                return docsforFilter;
-            }
-            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
+                }
+                notFiltered && docsforFilter.push(d);
+            });
+            return docsforFilter;
         }
 
         @action
@@ -228,7 +234,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
                     } else added = res;
-                    e.stopPropagation();
+                    added && e.stopPropagation();
+                    return added;
                 } else {
                     ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
@@ -396,7 +403,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         _height: 315,
                         _nativeWidth: 850,
                         _nativeHeight: 962,
-                        UseCors: true
+                        useCors: true
                     });
                     newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                     this.addDocument(newDoc);

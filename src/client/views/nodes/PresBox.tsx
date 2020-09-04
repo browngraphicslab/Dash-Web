@@ -1,34 +1,33 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync, WidthSym, DocListCastAsync } from "../../../fields/Doc";
-import { InkTool } from "../../../fields/InkField";
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { returnFalse, returnOne, numberRange, returnTrue } from "../../../Utils";
+import { ColorState, SketchPicker } from "react-color";
+import { Doc, DocCastAsync, DocListCast, DocListCastAsync } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
-import { CollectionDockingView, DockedFrameRenderer } from "../collections/CollectionDockingView";
-import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { FieldView, FieldViewProps } from './FieldView';
-import { DocumentType } from "../../documents/DocumentTypes";
-import "./PresBox.scss";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface, listSpec } from "../../../fields/Schema";
-import { Docs, DocUtils } from "../../documents/Documents";
-import { PrefetchProxy } from "../../../fields/Proxy";
-import { ScriptField } from "../../../fields/ScriptField";
-import { Scripting } from "../../util/Scripting";
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { Tooltip } from "@material-ui/core";
-import { actionAsync } from "mobx-utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { AudioBox } from "./AudioBox";
-import { DocumentView } from "./DocumentView";
-import { SketchPicker, ColorState } from "react-color";
+import { PrefetchProxy } from "../../../fields/Proxy";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { returnFalse, returnOne } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { Scripting } from "../../util/Scripting";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionView, CollectionViewType } from "../collections/CollectionView";
+import { TabDocView } from "../collections/TabDocView";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { AudioBox } from "./AudioBox";
+import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import "./PresBox.scss";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -108,12 +107,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
-        await Doc.UserDoc().myPresentations;
-        const myPresentationsList = DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data);
-        if (myPresentationsList) {
-            console.log(this.rootDoc.title);
+        DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(async pres => {
+            await Promise.all(pres!);
             if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
-        }
+        });
+        // await Doc.UserDoc().myPresentations;
+        // const myPresentationsList = DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data);
+        // if (myPresentationsList) {
+        //     console.log(this.rootDoc.title) + "12345";
+        //     if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
+        // }
     }
 
     updateCurrentPresentation = () => {
@@ -148,7 +151,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
             // Case 2: Audio or video therefore wait to play the audio or video before moving on
         } else if ((targetDoc.type === DocumentType.AUDIO) && !this._moveOnFromAudio && this.layoutDoc.presStatus !== 'auto') {
-            AudioBox.Instance.playFrom(0);
+            AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
             this._moveOnFromAudio = true;
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
@@ -157,7 +160,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.gotoDocument(nextSelected, this.itemIndex);
             const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
             if (activeNext && targetNext.type === DocumentType.AUDIO && activeNext.playAuto) {
-                AudioBox.Instance.playFrom(0);
+                AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
                 this._moveOnFromAudio = true;
             } else this._moveOnFromAudio = false;
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
@@ -242,8 +245,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            if (collectionDocView) collectionDocView.props.addDocTab(activeItem, "inPlace");
-            else this.props.addDocTab(activeItem, "replace");
+            this.props.addDocTab(activeItem, "replace:right");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -451,7 +453,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (this.layoutDoc.inOverlay) {
             this.layoutDoc.presStatus = 'edit';
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
-            CollectionDockingView.AddRightSplit(this.rootDoc);
+            CollectionDockingView.AddSplit(this.rootDoc, "right");
             this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
             this.layoutDoc.presStatus = 'edit';
@@ -544,14 +546,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach((doc, i) => {
-            console.log(doc.type);
-            console.log(doc.title);
             if (this.childDocs.includes(doc)) {
                 if (docs.length === i + 1) return false;
-            } else if (doc.type === DocumentType.PRESELEMENT) {
-                console.log("presElement");
-                doc.alisOf instanceof Doc;
-                if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
+            } else if (doc.type === DocumentType.LABEL) {
+                const audio = Cast(doc.annotationOn, Doc, null) as Doc;
+                if (audio) {
+                    console.log("labelHA`");
+                    audio.aliasOf instanceof Doc;
+                    audio.presStartTime = doc.audioStart;
+                    audio.presEndTime = doc.audioEnd;
+                    audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
+                    TabDocView.PinDoc(audio, false);
+                    return false;
+                }
             } else {
                 console.log("alias2");
                 doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
@@ -565,7 +572,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     removeDocument = (doc: Doc) => { Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
-    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
+    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     /**
@@ -589,9 +596,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const list = this._selectedArray.map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            return (
+            if (tagDoc) return (
                 <div className="selectedList-items">{index + 1}.  {tagDoc.title}</div>
-            );
+            ); else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>
         });
         return list;
     }
@@ -691,7 +698,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             handled = true;
         }
-    })
+    });
 
     /**
      * 
@@ -837,7 +844,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
                                     type="number" value={transitionSpeed}
-                                    // onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                     onChange={action((e) => this.setTransitionTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
@@ -971,6 +977,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.playAuto ? "#aedef8" : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
                                 <div className="ribbon-button" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : "#aedef8" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
                             </div>
+                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                                <div className="presBox-subheading">Start time</div>
+                                <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
+                                    <input className="presBox-input"
+                                        style={{ textAlign: 'left', width: 50 }}
+                                        type="number" value={NumCast(activeItem.presStartTime)}
+                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presStartTime = Number(val); })} />
+                                </div>
+                            </div> : (null)}
+                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                                <div className="presBox-subheading">End time</div>
+                                <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
+                                    <input className="presBox-input"
+                                        style={{ textAlign: 'left', width: 50 }}
+                                        type="number" value={NumCast(activeItem.presEndTime)}
+                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presEndTime = Number(val); })} />
+                                </div>
+                            </div> : (null)}
                             <div className="ribbon-doubleButton" style={{ display: "flex" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open document</div>
                             </div>
@@ -1066,12 +1090,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Slide Title: <br></br>
                         <input className="ribbon-textInput" placeholder="..." type="text" name="fname"
-                            // onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                             onChange={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 runInAction(() => this.title = e.target.value);
-                            }}></input>
+                            }}>
+                        </input>
                     </div>
                     <div className="ribbon-box">
                         Choose type:
@@ -1126,10 +1150,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const presData = Cast(this.rootDoc.data, listSpec(Doc));
             if (data && presData) {
                 data.push(doc);
-                DockedFrameRenderer.PinDoc(doc, false);
+                TabDocView.PinDoc(doc, false);
                 this.gotoDocument(this.childDocs.length, this.itemIndex);
             } else {
-                this.props.addDocTab(doc, "onRight");
+                this.props.addDocTab(doc, "add:right");
             }
         }
     }

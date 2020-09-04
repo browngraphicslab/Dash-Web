@@ -157,7 +157,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             return;
         }
 
-        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "Default") {
+        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
             const annotationOn = this.props.destinationDoc.annotationOn as Doc;
             this.props.addDocTab(annotationOn instanceof Doc ? annotationOn : this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
             if (annotationOn) {
@@ -167,7 +167,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 });
             }
         } else {
-            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "add:right"), false);
         }
 
         linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId), this.props.destinationDoc);

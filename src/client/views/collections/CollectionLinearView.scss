@@ -4,10 +4,12 @@
 .collectionLinearView-outer {
     overflow: visible;
     height: 100%;
+    pointer-events: none;
 
     .collectionLinearView {
         display: flex;
         height: 100%;
+        align-items: center;
 
         >span {
             background: $dark-color;

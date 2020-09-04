@@ -240,8 +240,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     pagesinit = action(() => {
-        this._pdfViewer.currentScaleValue = this._zoomed = 1;
-        this.gotoPage(this.Document._curPage || 1);
+        if (this._pdfViewer._setDocumentViewerElement.offsetParent) {
+            this._pdfViewer.currentScaleValue = this._zoomed = 1;
+            this.gotoPage(this.Document._curPage || 1);
+        }
         document.removeEventListener("pagesinit", this.pagesinit);
     });
 
@@ -337,7 +339,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     gotoPage = (p: number) => {
-        this._pdfViewer?.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        if (this._pdfViewer?._setDocumentViewerElement?.offsetParent) {
+            this._pdfViewer?.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        }
     }
 
     @action
@@ -597,14 +601,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
         // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
         // Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
-        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
+        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
-                        if (link) link.followLinkLocation = "onRight";
+                        if (link) Doc.GetProto(link).followLinkLocation = "default";
                     }
                 }
             });
