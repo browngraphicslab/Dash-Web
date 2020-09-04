@@ -159,13 +159,14 @@
 .preferences-content {
     display: flex;
     margin-top: 4px;
+    color: black;
+    font-size: 11;
 
     .preferences-color {
         display: flex;
+        width: 55;
 
         .preferences-color-text {
-            color: black;
-            font-size: 11;
             margin-top: 4;
             margin-right: 4;
         }
@@ -176,7 +177,6 @@
 
         .preferences-font-text {
             color: black;
-            font-size: 11;
             margin-top: 4;
             margin-right: 4;
         }
