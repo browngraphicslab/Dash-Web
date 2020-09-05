@@ -215,7 +215,7 @@ export class ContextMenu extends React.Component {
 
     @computed get menuItems() {
         if (!this._searchString) {
-            return this._items.map(item => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />);
+            return this._items.map(item => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} pageX={this.pageX} />);
         }
         return this.filteredViews;
     }
