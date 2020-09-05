@@ -95,7 +95,7 @@ export const documentSchema = createSchema({
     onPointerDown: ScriptField, // script to run when document is clicked (can be overriden by an onClick prop)
     onPointerUp: ScriptField,   // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
-    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
+    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., add:right, inPlace, default, ) 
     hideLinkButton: "boolean",  // whether the blue link counter button should be hidden
     hideAllLinks: "boolean",    // whether all individual blue anchor dots should be hidden
     linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.

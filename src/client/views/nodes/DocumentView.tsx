@@ -661,10 +661,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
-            de.complete.annoDragData.linkedToDoc = true;
-
-            const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-            linkDoc && makeLink(linkDoc);
+            de.complete.annoDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
+            de.complete.annoDragData.linkDocument && makeLink(de.complete.annoDragData.linkDocument);
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();

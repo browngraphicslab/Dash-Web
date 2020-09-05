@@ -170,6 +170,14 @@ export class MainView extends React.Component {
         window.addEventListener("drop", e => e.preventDefault(), false);  // prevent default behavior of navigating to a new web page
         window.addEventListener("dragover", e => e.preventDefault(), false);
         document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("click", (e: MouseEvent) => {
+            if (!e.cancelBubble) {
+                const pathstr = (e as any)?.path.map((p: any) => p.classList?.toString()).join();
+                if (pathstr.includes("libraryFlyout")) {
+                    SelectionManager.DeselectAll();
+                }
+            }
+        });
     }
 
     initAuthenticationRouters = async () => {

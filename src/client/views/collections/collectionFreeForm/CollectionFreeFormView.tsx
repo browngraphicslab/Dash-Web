@@ -1167,7 +1167,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if ((e as any).handlePan || this.props.isAnnotationOverlay) return;
         (e as any).handlePan = true;
 
-        if (this._marqueeRef?.current) {
+        if (!this.props.Document._noAutoscroll && this._marqueeRef?.current) {
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();
