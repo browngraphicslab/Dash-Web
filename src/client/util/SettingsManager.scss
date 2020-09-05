@@ -141,7 +141,7 @@
 
 .colorFlyout {
     margin-top: 2px;
-    margin-right: 25px;
+    margin-right: 18px;
 
     &:hover {
         cursor: pointer;
@@ -162,6 +162,7 @@
 
     .preferences-color {
         display: flex;
+        margin-top: 2px;
 
         .preferences-color-text {
             color: black;
@@ -173,6 +174,8 @@
 
     .preferences-font {
         display: flex;
+        height: 23px;
+        margin-top: 2px;
 
         .preferences-font-text {
             color: black;
@@ -191,6 +194,16 @@
             &:hover {
                 cursor: pointer;
             }
+        }
+
+        .preferences-check {
+            color: black;
+            font-size: 9;
+            /* margin-top: 4; */
+            margin-right: 4;
+            margin-bottom: -3;
+            margin-left: 5;
+            margin-top: -1px;
         }
 
         .size-select {
