@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, DataSym } from "../../../fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { StrCast, NumCast } from "../../../fields/Types";
@@ -90,13 +90,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                 this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
             const key = StrCast(this.props.parent.props.Document._pivotField);
             const castedValue = this.getValue(this.heading);
-            let onLayoutDoc = false;
-            for (const doc of DocListCast(this.props.parent.Document.data)) {
-                if (Doc.Get(doc, key, true)) {
-                    onLayoutDoc = true;
-                    break;
-                }
-            }
+            const onLayoutDoc = this.onLayoutDoc(key);
             de.complete.docDragData.droppedDocuments.forEach(d => Doc.SetInPlace(d, key, castedValue, !onLayoutDoc));
             this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
@@ -122,7 +116,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                     return false;
                 }
             }
-            this.props.docList.forEach(d => d[key] = castedValue);
+            this.props.docList.forEach(d => Doc.SetInPlace(d, key, castedValue, true));
             this._heading = castedValue.toString();
             return true;
         }
@@ -148,7 +142,9 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value });
-        newDoc[key] = this.getValue(this.props.heading);
+        const onLayoutDoc = this.onLayoutDoc(key);
+        (onLayoutDoc ? newDoc : newDoc[DataSym])[key] = this.getValue(this.props.heading);
+        Doc.SetInPlace(newDoc, key, this.getValue(this.props.heading), true);
         const docs = this.props.parent.childDocList;
         return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
     }
@@ -156,7 +152,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     deleteRow = undoBatch(action(() => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        this.props.docList.forEach(d => d[key] = undefined);
+        this.props.docList.forEach(d => Doc.SetInPlace(d, key, undefined, true));
         if (this.props.parent.columnHeaders && this.props.headingObject) {
             const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
             this.props.parent.columnHeaders.splice(index, 1);
@@ -190,6 +186,16 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             setupMoveUpEvents(this, e, this.headerMove, emptyFunction, () => (this.props.parent.props.Document._chromeStatus === "disabled") && this.collapseSection(e));
             this._createAliasSelected = false;
         }
+    }
+
+    /**
+     * Returns true if a key is on the layout doc of the documents in the collection.
+     */
+    onLayoutDoc = (key: string): boolean => {
+        DocListCast(this.props.parent.Document.data).forEach(doc => {
+            if (Doc.Get(doc, key, true)) return true;
+        });
+        return false;
     }
 
     renderColorPicker = () => {
