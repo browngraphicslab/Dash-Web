@@ -33,7 +33,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema, assignedMapStyle?:
     return tx2;
 };
 
-export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
+export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
@@ -104,7 +104,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     //Command to create a new Tab with a PDF of all the command shortcuts
     bind("Mod-/", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const newDoc = Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _fitWidth: true, _width: 300, _height: 300 });
-        props.addDocTab(newDoc, "onRight");
+        props.addDocTab(newDoc, "add:right");
     });
 
     //Commands to modify BlockType
@@ -143,7 +143,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
             newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
@@ -168,7 +168,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
             newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }

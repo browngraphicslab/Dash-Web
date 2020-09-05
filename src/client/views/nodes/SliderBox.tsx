@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
@@ -15,9 +13,6 @@ import { ScriptBox } from '../ScriptBox';
 import { FieldView, FieldViewProps } from './FieldView';
 import { Handle, Tick, TooltipRail, Track } from './SliderBox-components';
 import './SliderBox.scss';
-
-
-library.add(faEdit as any);
 
 const SliderSchema = createSchema({
     _sliderMin: "number",

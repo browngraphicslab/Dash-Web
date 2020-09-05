@@ -1,17 +1,17 @@
 import React = require("react");
-import "./PDFMenu.scss";
-import { observable, action, computed, } from "mobx";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction, returnFalse, Utils } from "../../../Utils";
-import AntimodeMenu from "../AntimodeMenu";
-import { Doc, Opt } from "../../../fields/Doc";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
 import { ColorState } from "react-color";
+import { Doc, Opt } from "../../../fields/Doc";
+import { returnFalse, unimplementedFunction, Utils } from "../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
+import "./PDFMenu.scss";
 
 
 @observer
-export default class PDFMenu extends AntimodeMenu {
+export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
@@ -112,7 +112,7 @@ export default class PDFMenu extends AntimodeMenu {
                 </div>
             </div>;
         return (
-            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} pdf={true} />
         );
     }
 
@@ -154,7 +154,7 @@ export default class PDFMenu extends AntimodeMenu {
         const buttons = this.Status === "pdf" ?
             [
                 this.highlighter,
-                <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
+                <button key="2" className="antimodeMenu-button annotate" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown} style={{ cursor: "grab" }}>
                     <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
             ] : [
                 <button key="5" className="antimodeMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>

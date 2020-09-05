@@ -1,32 +1,29 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
-
-library.add(faCog, faPlus, faSortUp, faSortDown);
-library.add(faTable);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {
@@ -44,7 +41,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["_curPage", ColumnType.Number], ["_currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -62,8 +59,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @observable _menuWidth = 0;
     @observable _headerOpen = false;
-    @observable _isOpen = false;
-    @observable _node: HTMLDivElement | null = null;
     @observable _headerIsEditing = false;
     @observable _col: any = "";
     @observable _menuHeight = 0;
@@ -73,7 +68,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get menuCoordinates() {
         let searchx = 0;
         let searchy = 0;
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             const el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
             if (el !== undefined) {
                 const rect = el.getBoundingClientRect();
@@ -86,7 +81,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
-    @observable scale = this.props.ScreenToLocalTransform().Scale;
+    @computed get scale() { return this.props.ScreenToLocalTransform().Scale; }
 
     @computed get columns() {
         return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
@@ -111,33 +106,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
     @computed get possibleKeys() { return this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1); }
 
+    @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
 
-    componentDidMount() {
-        document.addEventListener("pointerdown", this.detectClick);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.detectClick);
-    }
-
-    @action setHeaderIsEditing = (isEditing: boolean) => {
-        this._headerIsEditing = isEditing;
-    }
-
-    detectClick = (e: PointerEvent): void => {
-        if (this._node && this._node.contains(e.target as Node)) {
-        } else {
-            this._isOpen = false;
-            this.setHeaderIsEditing(false);
-            this.closeHeader();
-        }
-    }
-
-    @action
-    toggleIsOpen = (): void => {
-        this._isOpen = !this._isOpen;
-        this.setHeaderIsEditing(this._isOpen);
-    }
 
     @action
     changeColumnType = (type: ColumnType, col: any): void => {
@@ -188,16 +158,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         column.setDesc(descending);
         columns[index] = column;
         this.columns = columns;
-    }
-
-    @action
-    setNode = (node: HTMLDivElement): void => {
-        node && (this._node = node);
-    }
-
-    @action
-    typesDropdownChange = (bool: boolean) => {
-        this._openTypes = bool;
     }
 
     renderTypes = (col: any) => {
@@ -263,10 +223,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     type === ColumnType.Date ? dateType : imageType;
 
         return (
-            <div className="collectionSchema-headerMenu-group">
-                <div onClick={() => this.typesDropdownChange(!this._openTypes)}>
-                    <label>Column type:</label>
-                    <FontAwesomeIcon icon={"caret-down"} size="lg" style={{ float: "right" }} />
+            <div className="collectionSchema-headerMenu-group" onClick={action(() => this._openTypes = !this._openTypes)}>
+                <div>
+                    <label style={{ cursor: "pointer" }}>Column type:</label>
+                    <FontAwesomeIcon icon={"caret-down"} size="lg" style={{ float: "right", transform: `rotate(${this._openTypes ? "180deg" : 0})`, transition: "0.2s all ease" }} />
                 </div>
                 {this._openTypes ? allColumnTypes : justColType}
             </div >
@@ -340,17 +300,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     this.columns = columns;
                     if (filter) {
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            Doc.setDocFilter(doc, newKey, filter, "match");
-                        }
                     }
                     else {
                         this.props.Document._docFilters = undefined;
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            doc._docFilters = undefined;
-                        }
                     }
                 }
             }
@@ -360,7 +312,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     openHeader = (col: any, screenx: number, screeny: number) => {
         this._col = col;
-        this._headerOpen = !this._headerOpen;
+        this._headerOpen = true;
         this._pointerX = screenx;
         this._pointerY = screeny;
     }
@@ -392,7 +344,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     onHeaderClick = (e: React.PointerEvent) => {
-        this.props.active(true);
         e.stopPropagation();
     }
 
@@ -408,7 +359,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         TraceMobx();
         return <div className="collectionSchema-header-menuOptions">
             {this.renderTypes(this._col)}
-            {this.renderSorting(this._col)}
+            {/* {this.renderSorting(this._col)} */}
             {this.renderColors(this._col)}
             <div className="collectionSchema-headerMenu-group">
                 <button onClick={() => { this.deleteColumn(this._col.heading); }}
@@ -426,7 +377,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
-    @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
+    @action setPreviewDoc = (doc: Opt<Doc>) => {
+        SelectionManager.SelectSchemaDoc(this, doc);
+        this.previewDoc = doc;
+    }
 
     //toggles preview side-panel of schema
     @action
@@ -487,6 +441,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     PanelHeight={this.previewHeight}
                     ScreenToLocalTransform={this.getPreviewTransform}
                     docFilters={this.docFilters}
+                    searchFilterDocs={this.searchFilterDocs}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
@@ -531,6 +486,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             documentKeys={this.documentKeys}
             headerIsEditing={this._headerIsEditing}
             openHeader={this.openHeader}
+            onClick={e => { e.stopPropagation(); this.closeHeader(); }}
             onPointerDown={this.onTablePointerDown}
             onResizedChange={this.onResizedChange}
             setColumns={this.setColumns}
@@ -552,15 +508,29 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
         </div>;
     }
+    onSpecificMenu = (e: React.MouseEvent) => {
+        if ((e.target as any)?.className?.includes?.("collectionSchemaView-cell") || (e.target instanceof HTMLSpanElement)) {
+            const cm = ContextMenu.Instance;
+            const options = cm.findByDescription("Options...");
+            const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+            optionItems.push({ description: "remove", event: () => this.previewDoc && this.props.removeDocument(this.previewDoc), icon: "trash" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+            cm.displayMenu(e.clientX, e.clientY);
+            (e.nativeEvent as any).SchemaHandled = true; // not sure why this is needed, but if you right-click quickly on a cell, the Document/Collection contextMenu handlers still fire without this.
+            e.stopPropagation();
+        }
+    }
 
     @action
     onTablePointerDown = (e: React.PointerEvent): void => {
+        if (!(e.target as any)?.className?.includes?.("collectionSchemaView-cell") && !(e.target instanceof HTMLSpanElement)) {
+            this.setPreviewDoc(undefined);
+        }
         this.setFocused(this.props.Document);
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
         }
-        this._pointerY = e.screenY;
-        this._pointerX = e.screenX;
+        // this.closeHeader();
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
@@ -610,17 +580,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
     render() {
         let name = "collectionSchemaView-container";
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             name = "collectionSchemaView-searchContainer";
         }
+        if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
         TraceMobx();
         const menuContent = this.renderMenuContent;
-        const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
+        const menu = <div className="collectionSchema-header-menu"
             onWheel={e => this.onZoomMenu(e)}
             onPointerDown={e => this.onHeaderClick(e)}
             style={{
                 position: "fixed", background: "white", border: "black 1px solid",
-                transform: `translate(${(this.menuCoordinates[0] / this.scale)}px, ${(this.menuCoordinates[1] / this.scale)}px)`
+                transform: `translate(${(this.menuCoordinates[0])}px, ${(this.menuCoordinates[1])}px)`
             }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
@@ -631,13 +602,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className={name}
             style={{
-                overflow: this.props.overflow === true ? "scroll" : undefined,
-                pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
+                pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
+                onContextMenu={this.onSpecificMenu}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}
@@ -646,7 +618,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
             {this.dividerDragger}
             {!this.previewWidth() ? (null) : this.previewPanel}
-            {this._headerOpen ? menu : null}
+            {this._headerOpen && this.props.active() ? menu : null}
         </div>;
     }
 }

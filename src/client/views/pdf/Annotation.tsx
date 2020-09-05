@@ -4,9 +4,9 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
-import PDFMenu from "./PDFMenu";
+import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
 
 interface IAnnotationProps {
@@ -19,7 +19,7 @@ interface IAnnotationProps {
 }
 
 @observer
-export default
+export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a => (
@@ -86,7 +86,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     @action
-    onPointerDown = async (e: React.PointerEvent) => {
+    onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 2 || e.ctrlKey) {
             PDFMenu.Instance.Status = "annotation";
             PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
@@ -97,11 +97,11 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             e.stopPropagation();
         }
         else if (e.button === 0) {
-            const annoGroup = await Cast(this.props.document.group, Doc);
-            if (annoGroup) {
-                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation), false, undefined);
-                e.stopPropagation();
-            }
+            e.persist();
+            e.stopPropagation();
+            PromiseValue(this.props.document.group).then(annoGroup => annoGroup instanceof Doc &&
+                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined)
+            );
         }
     }
 

@@ -5,7 +5,7 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
 import { Id, HandleUpdate, Parent } from '../fields/FieldSymbols';
-import GestureOverlay from './views/GestureOverlay';
+import { GestureOverlay } from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
@@ -261,7 +261,7 @@ export namespace DocServer {
         } else {
             // CACHED => great, let's just return the cached field we have
             return Promise.resolve(cached).then(field => {
-                (field instanceof Doc) && fetchProto(field);
+                //(field instanceof Doc) && fetchProto(field);
                 return field;
             });
         }

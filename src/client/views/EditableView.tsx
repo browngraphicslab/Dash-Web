@@ -4,10 +4,8 @@ import { observer } from 'mobx-react';
 import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../fields/ObjectField';
 import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
-import "./EditableView.scss";
 import { DragManager } from '../util/DragManager';
-import { ComputedField } from '../../fields/ScriptField';
-import { FieldValue } from '../../fields/Types';
+import "./EditableView.scss";
 
 export interface EditableProps {
     /**
@@ -54,10 +52,6 @@ export interface EditableProps {
     color?: string | undefined;
     onDrop?: any;
     placeholder?: string;
-    highlight?: boolean;
-    positions?: number[];
-    search?: string;
-    bing?: () => string | undefined;
 }
 
 /**
@@ -96,25 +90,30 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Tab") {
-            e.stopPropagation();
-            this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
-            this.props.OnTab && this.props.OnTab(e.shiftKey);
-        } else if (e.key === "Enter") {
-            e.stopPropagation();
-            if (!e.ctrlKey) {
+        switch (e.key) {
+            case "Tab":
+                e.stopPropagation();
                 this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
-            } else if (this.props.OnFillDown) {
-                this.props.OnFillDown(e.currentTarget.value);
+                this.props.OnTab && this.props.OnTab(e.shiftKey);
+                break;
+            case "Enter":
+                e.stopPropagation();
+                if (!e.ctrlKey) {
+                    this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
+                } else if (this.props.OnFillDown) {
+                    this.props.OnFillDown(e.currentTarget.value);
+                    this._editing = false;
+                    this.props.isEditingCallback?.(false);
+                }
+                break;
+            case "Escape":
+                e.stopPropagation();
                 this._editing = false;
                 this.props.isEditingCallback?.(false);
-            }
-        } else if (e.key === "Escape") {
-            e.stopPropagation();
-            this._editing = false;
-            this.props.isEditingCallback?.(false);
-        } else if (e.key === ":") {
-            this.props.menuCallback?.(e.currentTarget.getBoundingClientRect().x, e.currentTarget.getBoundingClientRect().y);
+                break;
+            case ":":
+                this.props.menuCallback?.(e.currentTarget.getBoundingClientRect().x, e.currentTarget.getBoundingClientRect().y);
+                break;
         }
     }
 
@@ -123,11 +122,9 @@ export class EditableView extends React.Component<EditableProps> {
         e.nativeEvent.stopPropagation();
         if (this._ref.current && this.props.showMenuOnLoad) {
             this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
-        } else {
-            if (!this.props.onClick?.(e)) {
-                this._editing = true;
-                this.props.isEditingCallback?.(true);
-            }
+        } else if (!this.props.onClick?.(e)) {
+            this._editing = true;
+            this.props.isEditingCallback?.(true);
         }
         e.stopPropagation();
     }
@@ -154,7 +151,7 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     setIsFocused = (value: boolean) => {
         const wasFocused = this._editing;
-        //this._editing = value;
+        this._editing = value;
         return wasFocused !== this._editing;
     }
 
@@ -171,6 +168,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onPointerDown: this.stopPropagation,
                     onClick: this.stopPropagation,
                     onPointerUp: this.stopPropagation,
+                    onKeyPress: this.stopPropagation,
                     value: this.props.autosuggestProps.value,
                     onChange: this.props.autosuggestProps.onChange
                 }}
@@ -179,6 +177,7 @@ export class EditableView extends React.Component<EditableProps> {
                 defaultValue={this.props.GetValue()}
                 onKeyDown={this.onKeyDown}
                 autoFocus={true}
+                onKeyPress={e => e.stopPropagation()}
                 onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
                 onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                 style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}
@@ -186,51 +185,25 @@ export class EditableView extends React.Component<EditableProps> {
             />;
     }
 
-    returnHighlights() {
-        const results = [];
-        const contents = this.props.bing!();
-
-        if (contents !== undefined) {
-            if (this.props.positions !== undefined) {
-                const positions = this.props.positions;
-                const length = this.props.search!.length;
-
-                // contents = String(this.props.contents.valueOf());
-
-                results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(0, this.props.positions[0]) : this.props.placeholder?.valueOf()}</span>);
-                positions.forEach((num, cur) => {
-                    results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
-                    let end = 0;
-                    cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
-                    results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : this.props.placeholder?.valueOf()}</span>);
-                }
-                );
-            }
-            return results;
-        }
-        else {
-            return <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>;
-        }
-    }
-
     render() {
         if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.sizeToContent ?
                 <div style={{ display: "grid", minWidth: 100 }}>
-                    <div style={{ display: "inline-block", position: "relative", height: 0, width: "100%", overflow: "hidden" }}>{this.props.GetValue()}</div>
+                    <div style={{ display: "inline-block", position: "relative", height: 0, width: "100%", overflow: "hidden" }}>
+                        {this.props.GetValue()}
+                    </div>
                     {this.renderEditor()}
-                </div> : this.renderEditor();
-        } else {
-            setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
-            return (this.props.contents instanceof ObjectField ? (null) :
-                <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
-                    ref={this._ref}
-                    style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
-                    onClick={this.onClick} placeholder={this.props.placeholder}>
-                    {this.props.highlight === undefined || this.props.positions === undefined || this.props.bing === undefined ? <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
-                        : this.returnHighlights()}
-                </div>
-            );
+                </div> :
+                this.renderEditor();
         }
+        setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
+        return this.props.contents instanceof ObjectField ? (null) :
+            <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
+                style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
+                onClick={this.onClick} placeholder={this.props.placeholder}>
+                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{
+                    this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
+                </span>
+            </div>;
     }
 }

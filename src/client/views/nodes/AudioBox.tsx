@@ -109,12 +109,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._linkPlayDisposer?.();
         this._scrubbingDisposer?.();
     }
+
+    @action
     componentDidMount() {
         if (!this.dataDoc.markerAmount) {
             this.dataDoc.markerAmount = 0;
         }
 
-        runInAction(() => this.audioState = this.path ? "paused" : undefined);
+        this.audioState = this.path ? "paused" : undefined;
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
                 if (scrollLinkId) {
@@ -169,11 +171,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
             DocListCast(this.dataDoc.links).map(l => {
                 const { la1, linkTime } = this.getLinkData(l);
-                if (linkTime > NumCast(this.layoutDoc.currentTimecode) && linkTime < htmlEle.currentTime) {
+                if (linkTime > NumCast(this.layoutDoc._currentTimecode) && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
                 }
             });
-            this.layoutDoc.currentTimecode = htmlEle.currentTime;
+            this.layoutDoc._currentTimecode = htmlEle.currentTime;
         }
     }
 
@@ -223,7 +225,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             if (this._paused) {
                 this._pausedTime += (new Date().getTime() - this._recordStart) / 1000;
             } else {
-                this.layoutDoc.currentTimecode = (new Date().getTime() - this._recordStart - this.pauseTime) / 1000;
+                this.layoutDoc._currentTimecode = (new Date().getTime() - this._recordStart - this.pauseTime) / 1000;
             }
         }
     }
@@ -285,7 +287,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // creates a text document for dictation
     onFile = (e: any) => {
         const newDoc = Docs.Create.TextDocument("", {
-            title: "", _chromeStatus: "disabled",
+            _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: "", _chromeStatus: "disabled",
             x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
             _width: NumCast(this.props.Document._width), _height: 2 * NumCast(this.props.Document._height)
         });
@@ -395,7 +397,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 this.changeMarker(this._currMarker, toTimeline(e.clientX - rect.x));
                 return false;
             },
-            () => this._ele!.currentTime = this.layoutDoc.currentTimecode = toTimeline(e.clientX - rect.x),
+            () => this._ele!.currentTime = this.layoutDoc._currentTimecode = toTimeline(e.clientX - rect.x),
             emptyFunction);
     }
 
@@ -463,7 +465,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             color={"darkblue"}
             height={this._waveHeight}
             barWidth={0.1}
-            // pos={this.layoutDoc.currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
+            // pos={this.layoutDoc._currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
             pos={this.audioDuration}
             duration={this.audioDuration}
             peaks={this._buckets.length === 100 ? this._buckets : undefined}
@@ -544,7 +546,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
                                 <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                             </div>
-                            <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}</div>
+                            <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}</div>
                         </div>
                         :
                         <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
@@ -562,7 +564,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
                                     if (e.target !== this._audioRef.current) {
                                         const wasPaused = this.audioState === "paused";
-                                        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
+                                        this._ele!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
                                         wasPaused && this.pause();
                                     }
 
@@ -624,11 +626,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             })}
                             {this._visible ? this.selectionContainer : null}
 
-                            <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
+                            <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
                             {this.audio}
                         </div>
                         <div className="current-time">
-                            {formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
+                            {formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}
                         </div>
                         <div className="total-time">
                             {formatTime(Math.round(this.audioDuration))}

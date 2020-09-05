@@ -59,6 +59,7 @@
     justify-content: space-between;
     flex-wrap: nowrap;
     touch-action: none;
+    padding: 2px;
 
     div {
         touch-action: none;
@@ -98,6 +99,9 @@
         display: -webkit-inline-box;
         direction: ltr;
         overflow: visible;
+    }
+    .rt-noData {
+        display: none;
     }
 
     .rt-thead {
@@ -139,6 +143,10 @@
         width: 100%;
         direction: rtl;
         overflow: visible;
+
+        .rt-td {
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+        }
     }
 
     .rt-tr-group {
@@ -158,6 +166,8 @@
         font-size: 13px;
         text-align: center;
         white-space: nowrap;
+        display: flex;
+        align-items: center;
 
         .imageBox-cont {
             position: relative;
@@ -175,6 +185,11 @@
             width: auto;
             height: 100%;
         }
+    }
+    .rt-td.rt-expandable {
+        display: flex;
+        align-items: center;
+        height: inherit;
     }
 
     .rt-resizer {
@@ -211,7 +226,8 @@
     height: auto;
     z-index: 100;
     position: absolute;
-    background:white;
+    background: white;
+    padding: 5px;
 
     .collectionSchema-header-toggler {
         z-index: 100;
@@ -243,12 +259,13 @@ button.add-column {
 
 .collectionSchema-header-menuOptions {
     color: black;
-    width: 200px;
+    width: 180px;
     text-align: left;
 
     .collectionSchema-headerMenu-group {
         padding: 7px 0;
         border-bottom: 1px solid lightgray;
+        cursor: pointer;
 
         &:first-child {
             padding-top: 0;
@@ -326,6 +343,7 @@ button.add-column {
                 background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
+
                 &:not(:first-child) {
                     border-top: 0;
                 }
@@ -356,47 +374,6 @@ button.add-column {
     }
 }
 
-.altcollectionTimeView-treeView {
-    display: flex;
-    flex-direction: column;
-    width: 175px;
-    height: auto;
-    position: fixed;
-    border-left: solid 1px;
-    z-index: 1;
-
-    .collectionTimeView-addfacet {
-        display: inline-block;
-        width: 200px;
-        height: 30px;
-        background: darkGray;
-        text-align: left;
-
-        .collectionTimeView-button {
-            align-items: center;
-            display: flex;
-            width: 100%;
-            height: 100%;
-
-            .collectionTimeView-span {
-                margin: auto;
-            }
-        }
-
-        >div,
-        >div>div {
-            width: 100%;
-            height: 100%;
-        }
-    }
-
-    .altcollectionTimeView-tree {
-        display: inline-block;
-        width: 100%;
-        height: calc(100% - 30px);
-    }
-}
-
 .collectionSchema-row {
     height: 100%;
     background-color: white;
@@ -414,11 +391,12 @@ button.add-column {
     .row-dragger {
         display: flex;
         justify-content: space-around;
-        flex: 50 0 auto;
-        width: 50px;
+        //flex: 50 0 auto;
+        width: 0;
         max-width: 50px;
-        height: 100%;
+        //height: 100%;
         min-height: 30px;
+        align-items: center;
         color: lightgray;
         background-color: white;
         transition: color 0.1s ease;
@@ -426,10 +404,12 @@ button.add-column {
         .row-option {
             // padding: 5px;
             cursor: pointer;
+            position: absolute;
             transition: color 0.1s ease;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            z-index: 2;
 
             &:hover {
                 color: gray;
@@ -459,15 +439,15 @@ button.add-column {
 
 .collectionSchemaView-cellContainer {
     width: 100%;
-    height: 100%;
+    height: unset;
 }
 
 .collectionSchemaView-cellWrapper {
     height: 100%;
     padding: 4px;
-    text-align:left;
-    padding-left:19px;
-    
+    text-align: left;
+    padding-left: 19px;
+
     position: relative;
 
     &:focus {
@@ -596,21 +576,23 @@ button.add-column {
 .collectionSchemaView-table {
     width: 100%;
     height: 100%;
+    overflow: auto;
+    padding: 3px;
 }
 
+.rt-td.rt-expandable {
+    overflow: visible;
+    position: relative;
+    height:100%;
+    z-index: 1;
+}
 .reactTable-sub {
-    padding: 10px 30px;
     background-color: rgb(252, 252, 252);
     width: 100%;
 
     .rt-thead {
-        display:none;
+        display: none;
     }
-    .collectionSchemaView-table{
-        border: solid 1px;
-        overflow: hidden;
-    }
- 
 
     .row-dragger {
         background-color: rgb(252, 252, 252);
@@ -621,20 +603,26 @@ button.add-column {
     }
 
     .collectionSchemaView-table {
-        width: 100%;
+        width: 100%; 
+        border: solid 1px;
+        overflow: visible;
+        padding: 0px;
     }
 }
 
 .collectionSchemaView-expander {
     height: 100%;
     min-height: 30px;
-    position: relative;
+    position: absolute;
     color: gray;
+    width: 20;
+    height: auto;
+    left: 55;
 
     svg {
         position: absolute;
         top: 50%;
-        left: 50%;
+        left: 10;
         transform: translate(-50%, -50%);
     }
 }

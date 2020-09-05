@@ -38,14 +38,14 @@ const scriptSchema = createSimpleSchema({
 });
 
 async function deserializeScript(script: ScriptField) {
-    if (script.script.originalScript === 'getCopy(this.dragFactory, true)') {
-        return (script as any).script = (ScriptField.GetCopyOfDragFactory ?? (ScriptField.GetCopyOfDragFactory = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')))?.script;
+    if (script.script.originalScript === 'copyDragFactory(this.dragFactory)') {
+        return (script as any).script = (ScriptField.GetCopyOfDragFactory ?? (ScriptField.GetCopyOfDragFactory = ScriptField.MakeFunction('copyDragFactory(this.dragFactory)')))?.script;
     }
     if (script.script.originalScript === 'links(self)') {
         return (script as any).script = (ScriptField.LinksSelf ?? (ScriptField.LinksSelf = ComputedField.MakeFunction('links(self)')))?.script;
     }
-    if (script.script.originalScript === 'openOnRight(getCopy(this.dragFactory, true))') {
-        return (script as any).script = (ScriptField.OpenOnRight ?? (ScriptField.OpenOnRight = ComputedField.MakeFunction('openOnRight(getCopy(this.dragFactory, true))')))?.script;
+    if (script.script.originalScript === 'openOnRight(copyDragFactory(this.dragFactory))') {
+        return (script as any).script = (ScriptField.OpenOnRight ?? (ScriptField.OpenOnRight = ComputedField.MakeFunction('openOnRight(copyDragFactory(this.dragFactory))')))?.script;
     }
     if (script.script.originalScript === 'deiconifyView(self)') {
         return (script as any).script = (ScriptField.DeiconifyView ?? (ScriptField.DeiconifyView = ComputedField.MakeFunction('deiconifyView(self)')))?.script;
@@ -73,6 +73,13 @@ async function deserializeScript(script: ScriptField) {
         throw new Error("Couldn't compile loaded script");
     }
     (script as any).script = comp;
+    if (script.setterscript) {
+        const compset = CompileScript(script.setterscript?.originalScript, script.setterscript.options);
+        if (!compset.compiled) {
+            throw new Error("Couldn't compile setter script");
+        }
+        (script as any).setterscript = compset;
+    }
 }
 
 @scriptingGlobal
@@ -98,6 +105,7 @@ export class ScriptField extends ObjectField {
 
         if (script?.options.capturedVariables) {
             const doc = Doc.assign(new Doc, script.options.capturedVariables);
+            doc.system = true;
             this.captures = new ProxyField(doc);
         }
         this.setterscript = setterscript;

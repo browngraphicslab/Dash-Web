@@ -7,7 +7,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents, returnEmptyDoclist } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -26,7 +26,7 @@ import * as fitCurve from 'fit-curve';
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
-export default class GestureOverlay extends Touchable {
+export class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
     @observable public InkShape: string = "";
@@ -613,10 +613,10 @@ export default class GestureOverlay extends Touchable {
                 }
             }
             // if we're not drawing in a toolglass try to recognize as gesture
-            else {
+            else { // need to decide when to turn gestures back on
                 const result = points.length > 2 && GestureUtils.GestureRecognizer.Recognize(new Array(points));
                 let actionPerformed = false;
-                if (result && result.Score > 0.7) {
+                if (Doc.UserDoc().recognizeGestures && result && result.Score > 0.7) {
                     switch (result.Name) {
                         case GestureUtils.Gestures.Box: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.Box); break;
                         case GestureUtils.Gestures.StartBracket: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.StartBracket); break;
@@ -754,20 +754,64 @@ export default class GestureOverlay extends Touchable {
 
                 break;
             case "circle":
+                // const centerX = (right + left) / 2;
+                // const centerY = (bottom + top) / 2;
+                // const radius = bottom - centerY;
+
+
+                // for (var y = top; y < bottom; y++) {
+                //     const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                //     this._points.push({ X: x, Y: y });
+                // }
+                // for (var y = bottom; y > top; y--) {
+                //     const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                //     const newX = centerX - (x - centerX);
+                //     this._points.push({ X: newX, Y: y });
+                // }
+                // this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                // this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+
                 const centerX = (right + left) / 2;
                 const centerY = (bottom + top) / 2;
-                const radius = bottom - centerY;
-                for (var y = top; y < bottom; y++) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    this._points.push({ X: x, Y: y });
+                if ((bottom - centerY) < (right - centerX)) {
+                    const radius = bottom - centerY;
+                    for (var y = top; y < bottom; y++) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        this._points.push({ X: x, Y: y });
+                    }
+                    for (var y = bottom; y > top; y--) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        const newX = centerX - (x - centerX);
+                        this._points.push({ X: newX, Y: y });
+                    }
+                    this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                    this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+
+                } else {
+                    //right = bottom
+                    //left = top
+                    const radius = right - centerX;
+                    for (var x = left; x < right; x++) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        this._points.push({ X: x, Y: y });
+                    }
+                    for (var x = right; x > left; x--) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        const newY = centerY - (y - centerY);
+                        this._points.push({ X: x, Y: newY });
+                    }
+                    this._points.push({ X: left, Y: Math.sqrt(Math.pow(radius, 2) - (Math.pow((left - centerX), 2))) + centerY });
+                    this._points.push({ X: left, Y: (Math.sqrt(Math.pow(radius, 2) - (Math.pow((left - centerX), 2))) + centerY) - 1 });
+
+
                 }
-                for (var y = bottom; y > top; y--) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    const newX = centerX - (x - centerX);
-                    this._points.push({ X: newX, Y: y });
-                }
-                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
-                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+
+
+
+
+
+
+
 
                 break;
             case "line":
@@ -891,6 +935,7 @@ export default class GestureOverlay extends Touchable {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
             />;

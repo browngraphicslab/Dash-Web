@@ -230,7 +230,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         openItems.push({
             description: "Default Perspective", event: () => {
                 this.props.addDocTab(this.props.Document, "close");
-                this.props.addDocTab(this.fieldDocToLayout, "onRight");
+                this.props.addDocTab(this.fieldDocToLayout, "add:right");
             }, icon: "image"
         });
         !open && cm.addItem({ description: "Change Perspective...", subitems: openItems, icon: "external-link-alt" });

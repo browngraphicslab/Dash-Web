@@ -1,46 +1,32 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction, runInAction, trace, IReactionDisposer } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { DateField } from '../../../fields/DateField';
-import { Doc, DocListCast, Field, Opt, DataSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
-import { FieldId } from "../../../fields/RefField";
+import { InkTool } from '../../../fields/InkField';
+import { List } from '../../../fields/List';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter, setupMoveUpEvents, returnFalse, emptyPath, aggregateBounds } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
-import { DocumentManager } from '../../util/DocumentManager';
-import { DragManager, dropActionType } from "../../util/DragManager";
-import { Scripting } from '../../util/Scripting';
-import { SelectionManager } from '../../util/SelectionManager';
-import { Transform } from '../../util/Transform';
-import { undoBatch } from "../../util/UndoManager";
-import { MainView } from '../MainView';
-import { DocumentView } from "../nodes/DocumentView";
-import "./CollectionDockingView.scss";
-import { SubCollectionViewProps } from "./CollectionSubView";
-import { DockingViewButtonSelector } from './ParentDocumentSelector';
-import React = require("react");
-import { CollectionViewType } from './CollectionView';
-import { SnappingManager } from '../../util/SnappingManager';
-import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { listSpec } from '../../../fields/Schema';
-import { clamp } from 'lodash';
-import { PresBox } from '../nodes/PresBox';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { DragManager } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
-import { InkTool } from '../../../fields/InkField';
+import { Scripting } from '../../util/Scripting';
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import "./CollectionDockingView.scss";
+import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionViewType } from './CollectionView';
+import { TabDocView } from './TabDocView';
+import React = require("react");
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
-export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    @observable public static Instances: CollectionDockingView[] = [];
-    @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
-    public static makeDocumentConfig(document: Doc, width?: number, libraryPath?: Doc[]) {
+export class CollectionDockingView extends CollectionSubView(doc => doc) {
+    @observable public static Instance: CollectionDockingView;
+    public static makeDocumentConfig(document: Doc, panelName?: string, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -48,341 +34,212 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             width: width,
             props: {
                 documentId: document[Id],
-                libraryPath: libraryPath?.map(d => d[Id])
+                panelName   // name of tab that can be used to close or replace its contents
             }
         };
     }
 
-    @computed public get initialized() {
-        return this._goldenLayout !== null;
-    }
-
-    @observable private _goldenLayout: any = null;
+    private _reactionDisposer?: IReactionDisposer;
     private _containerRef = React.createRef<HTMLDivElement>();
-    private _flush: boolean = false;
+    private _flush: UndoManager.Batch | undefined;
     private _ignoreStateChange = "";
-    private _isPointerDown = false;
-    private _maximizedSrc: Opt<DocumentView>;
+    public tabMap: Set<any> = new Set();
+    public get initialized() { return this._goldenLayout !== null; }
+    public get HasFullScreen() { return this._goldenLayout._maximisedItem !== null; }
+    @observable private _goldenLayout: any = null;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        runInAction(() => !CollectionDockingView.Instances ? CollectionDockingView.Instances = [this] : CollectionDockingView.Instances.push(this));
+        runInAction(() => CollectionDockingView.Instance = this);
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
         DragManager.StartWindowDrag = this.StartOtherDrag;
     }
+
     public StartOtherDrag = (e: any, dragDocs: Doc[]) => {
-        let config: any;
-        if (dragDocs.length === 1) {
-            config = CollectionDockingView.makeDocumentConfig(dragDocs[0]);
-        } else {
-            config = {
-                type: 'row',
-                content: dragDocs.map((doc, i) => {
-                    CollectionDockingView.makeDocumentConfig(doc);
-                })
-            };
-        }
-        const div = document.createElement("div");
-        const dragSource = this._goldenLayout.createDragSource(div, config);
-        dragSource._dragListener.on("dragStop", () => {
-            dragSource.destroy();
-        });
+        !this._flush && (this._flush = UndoManager.StartBatch("golden layout drag"));
+        const config = dragDocs.length === 1 ? CollectionDockingView.makeDocumentConfig(dragDocs[0]) :
+            { type: 'row', content: dragDocs.map((doc, i) => CollectionDockingView.makeDocumentConfig(doc)) };
+        const dragSource = this._goldenLayout.createDragSource(document.createElement("div"), config);
+        //dragSource._dragListener.on("dragStop", dragSource.destroy);
         dragSource._dragListener.onMouseDown(e);
     }
 
     @undoBatch
-    @action
-    public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
-        if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
-            return MainView.Instance.openWorkspace(docView.props.Document);
-        }
-        const document = Doc.MakeAlias(docView.props.Document);
-        const newItemStackConfig = {
-            type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath)]
-        };
-        const docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
-        this._goldenLayout.root.contentItems[0].addChild(docconfig);
-        docconfig.callDownwards('_$init');
-        this._goldenLayout._$maximiseItem(docconfig);
-        this._maximizedSrc = docView;
-        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-        this.stateChanged();
-        SelectionManager.DeselectAll();
-    }
-
     public CloseFullScreen = () => {
-        const target = this._goldenLayout._maximisedItem;
-        if (target !== null && this._maximizedSrc) {
-            this._goldenLayout._maximisedItem.remove();
-            SelectionManager.SelectDoc(this._maximizedSrc, false);
-            this._maximizedSrc = undefined;
-            this.stateChanged();
-        }
-    }
-
-    public HasFullScreen = () => {
-        return this._goldenLayout._maximisedItem !== null;
-    }
-
-    @undoBatch
-    @action
-    public static CloseRightSplit(document: Opt<Doc>): boolean {
-        const instance = CollectionDockingView.Instance;
-        const tryClose = (childItem: any) => {
-            if (childItem.config?.component === "DocumentFrameRenderer") {
-                const docView = DocumentManager.Instance.getDocumentViewById(childItem.config.props.documentId);
-                if (docView && ((!document && docView.Document.isDisplayPanel) || (document && Doc.AreProtosEqual(docView.props.Document, document)))) {
-                    childItem.remove();
-                    instance.layoutChanged(document);
-                    return true;
-                }
-            }
-            return false;
-        };
-        const retVal = !instance?._goldenLayout.root.contentItems[0].isRow ? false :
-            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => Array.from(child.contentItems).some(tryClose));
-
-        retVal && instance.stateChanged();
-        return retVal;
-    }
-
-    @action
-    layoutChanged(removed?: Doc) {
-        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
-        this._goldenLayout.emit('stateChanged');
-        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-        if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
+        this._goldenLayout._maximisedItem?.toggleMaximise();
         this.stateChanged();
     }
+
     @undoBatch
-    @action
-    public static ReplaceRightSplit(document: Doc, libraryPath?: Doc[], addToSplit?: boolean): boolean {
-        if (!CollectionDockingView.Instance) return false;
-        const instance = CollectionDockingView.Instance;
-        let retVal = false;
-        if (instance._goldenLayout.root.contentItems[0].isRow) {
-            retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanel) {
-                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
-                    child.addChild(newItemStackConfig, undefined);
-                    !addToSplit && child.contentItems[0].remove();
-                    instance.layoutChanged(document);
-                    return true;
-                }
-                return Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                    if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.Document.isDisplayPanel) {
-                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
-                        child.addChild(newItemStackConfig, undefined);
-                        !addToSplit && child.contentItems[j].remove();
-                        instance.layoutChanged(document);
-                        return true;
-                    }
-                    return false;
-                });
-            });
+    public static CloseSplit(document: Opt<Doc>, panelName?: string): boolean {
+        const tab = Array.from(CollectionDockingView.Instance.tabMap.keys()).find((tab) => panelName ? tab.contentItem.config.props.panelName === panelName : tab.DashDoc === document);
+        if (tab) {
+            const j = tab.header.parent.contentItems.indexOf(tab.contentItem);
+            if (j !== -1) {
+                tab.header.parent.contentItems[j].remove();
+                return CollectionDockingView.Instance.layoutChanged();
+            }
         }
-        if (retVal) {
-            instance.stateChanged();
-        }
-        return retVal;
+
+        return false;
     }
 
-    //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
-    //
     @undoBatch
-    @action
-    public static AddRightSplit(document: Doc, libraryPath?: Doc[]) {
-        if (!CollectionDockingView.Instance) return false;
+    public static OpenFullScreen(doc: Doc, libraryPath?: Doc[]) {
         const instance = CollectionDockingView.Instance;
+        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
+            return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
+        }
         const newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath)]
+            content: [CollectionDockingView.makeDocumentConfig(Doc.MakeAlias(doc))]
         };
-
-        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
-
-        if (instance._goldenLayout.root.contentItems.length === 0) {
-            instance._goldenLayout.root.addChild(newContentItem);
-        } else if (instance._goldenLayout.root.contentItems[0].isRow) {
-            instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-        } else {
-            const collayout = instance._goldenLayout.root.contentItems[0];
-            const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
-            collayout.parent.replaceChild(collayout, newRow);
-
-            newRow.addChild(newContentItem, undefined, true);
-            newRow.addChild(collayout, 0, true);
-
-            collayout.config.width = 50;
-            newContentItem.config.width = 50;
-        }
-        newContentItem.callDownwards('_$init');
-        instance.layoutChanged();
+        const docconfig = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+        instance._goldenLayout.root.contentItems[0].addChild(docconfig);
+        docconfig.callDownwards('_$init');
+        instance._goldenLayout._$maximiseItem(docconfig);
+        instance._goldenLayout.emit('stateChanged');
+        instance._ignoreStateChange = JSON.stringify(instance._goldenLayout.toConfig());
+        instance.stateChanged();
         return true;
     }
 
+    @undoBatch
+    public static ReplaceTab(document: Doc, panelName: string, stack: any, addToSplit?: boolean): boolean {
+        const instance = CollectionDockingView.Instance;
+        if (!instance) return false;
+        const newConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
+        if (!panelName && stack) {
+            const activeContentItemIndex = stack.contentItems.findIndex((item: any) => item.config === stack._activeContentItem.config);
+            const newContentItem = stack.layoutManager.createContentItem(newConfig, instance._goldenLayout);
+            stack.addChild(newContentItem.contentItems[0], undefined);
+            stack.contentItems[activeContentItemIndex].remove();
+            return CollectionDockingView.Instance.layoutChanged();
+        }
+        const tab = Array.from(CollectionDockingView.Instance.tabMap.keys()).find((tab) => tab.contentItem.config.props.panelName === panelName);
+        if (tab) {
+            tab.header.parent.addChild(newConfig, undefined);
+            const j = tab.header.parent.contentItems.indexOf(tab.contentItem);
+            !addToSplit && j !== -1 && tab.header.parent.contentItems[j].remove();
+            return CollectionDockingView.Instance.layoutChanged();
+        }
+        return CollectionDockingView.AddSplit(document, panelName, stack, panelName);
+    }
+
+
+    @undoBatch
+    public static ToggleSplit(doc: Doc, location: string, stack?: any, panelName?: string) {
+        return Array.from(CollectionDockingView.Instance.tabMap.keys()).findIndex((tab) => tab.DashDoc === doc) !== -1 ?
+            CollectionDockingView.CloseSplit(doc) : CollectionDockingView.AddSplit(doc, location, stack, panelName);
+    }
 
     //
     //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
     @undoBatch
-    @action
-    public static AddSplit(document: Doc, pullSide: string, libraryPath?: Doc[]) {
-        if (!CollectionDockingView.Instance) return false;
+    public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
+        if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
         const instance = CollectionDockingView.Instance;
-        const newItemStackConfig = {
-            type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath)]
-        };
+        if (!instance) return false;
+        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
 
-        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
-
-        if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
-            instance._goldenLayout.root.addChild(newContentItem);
-        } else if (instance._goldenLayout.root.contentItems[0].isRow) { // if row
-            if (pullSide === "left") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
-            } else if (pullSide === "right") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            } else if (pullSide === "top" || pullSide === "bottom") {
-                // if not going in a row layout, must add already existing content into column
-                const rowlayout = instance._goldenLayout.root.contentItems[0];
-                const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
-                rowlayout.parent.replaceChild(rowlayout, newColumn);
-                if (pullSide === "top") {
-                    newColumn.addChild(rowlayout, undefined, true);
-                    newColumn.addChild(newContentItem, 0, true);
-                } else if (pullSide === "bottom") {
-                    newColumn.addChild(newContentItem, undefined, true);
-                    newColumn.addChild(rowlayout, 0, true);
-                }
-
-                rowlayout.config.height = 50;
-                newContentItem.config.height = 50;
-            }
-        } else if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
-            if (pullSide === "top") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
-            } else if (pullSide === "bottom") {
-                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
-            } else if (pullSide === "left" || pullSide === "right") {
-                // if not going in a row layout, must add already existing content into column
-                const collayout = instance._goldenLayout.root.contentItems[0];
-                const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
-                collayout.parent.replaceChild(collayout, newRow);
-
-                if (pullSide === "left") {
-                    newRow.addChild(collayout, undefined, true);
-                    newRow.addChild(newContentItem, 0, true);
-                } else if (pullSide === "right") {
-                    newRow.addChild(newContentItem, undefined, true);
-                    newRow.addChild(collayout, 0, true);
-                }
-
-                collayout.config.width = 50;
-                newContentItem.config.width = 50;
-            }
-        }
-
-        newContentItem.callDownwards('_$init');
-        instance.layoutChanged();
-        return true;
-    }
-
-
-    //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
-    //
-    @undoBatch
-    @action
-    public static UseRightSplit(document: Doc, libraryPath?: Doc[], shiftKey?: boolean) {
-        document.isDisplayPanel = true;
-        if (shiftKey || !CollectionDockingView.ReplaceRightSplit(document, libraryPath, shiftKey)) {
-            CollectionDockingView.AddRightSplit(document, libraryPath);
-        }
-    }
-
-    @undoBatch
-    @action
-    public AddTab = (stack: any, document: Doc, libraryPath?: Doc[]) => {
-        Doc.GetProto(document).lastOpened = new DateField;
-        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
-        if (stack === undefined) {
-            let stack: any = this._goldenLayout.root;
-            while (!stack.isStack) {
-                if (stack.contentItems.length) {
-                    stack = stack.contentItems[0];
-                } else {
-                    stack.addChild({ type: 'stack', content: [docContentConfig] });
-                    stack = undefined;
-                    break;
-                }
-            }
-            if (stack) {
-                stack.addChild(docContentConfig);
-            }
-        } else {
+        if (!pullSide && stack) {
             stack.addChild(docContentConfig, undefined);
+        } else {
+            const newItemStackConfig = { type: 'stack', content: [docContentConfig] };
+            const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+            if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
+                instance._goldenLayout.root.addChild(newContentItem);
+            } else if (instance._goldenLayout.root.contentItems[0].isRow) { // if row
+                switch (pullSide) {
+                    default:
+                    case "right": instance._goldenLayout.root.contentItems[0].addChild(newContentItem); break;
+                    case "left": instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0); break;
+                    case "top":
+                    case "bottom":
+                        // if not going in a row layout, must add already existing content into column
+                        const rowlayout = instance._goldenLayout.root.contentItems[0];
+                        const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+                        rowlayout.parent.replaceChild(rowlayout, newColumn);
+                        if (pullSide === "top") {
+                            newColumn.addChild(rowlayout, undefined, true);
+                            newColumn.addChild(newContentItem, 0, true);
+                        } else if (pullSide === "bottom") {
+                            newColumn.addChild(newContentItem, undefined, true);
+                            newColumn.addChild(rowlayout, 0, true);
+                        }
+
+                        rowlayout.config.height = 50;
+                        newContentItem.config.height = 50;
+                }
+            } else {// if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
+                switch (pullSide) {
+                    case "top": instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0); break;
+                    case "bottom": instance._goldenLayout.root.contentItems[0].addChild(newContentItem); break;
+                    case "left":
+                    case "right":
+                    default:
+                        // if not going in a row layout, must add already existing content into column
+                        const collayout = instance._goldenLayout.root.contentItems[0];
+                        const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
+                        collayout.parent.replaceChild(collayout, newRow);
+
+                        if (pullSide === "left") {
+                            newRow.addChild(collayout, undefined, true);
+                            newRow.addChild(newContentItem, 0, true);
+                        } else {
+                            newRow.addChild(newContentItem, undefined, true);
+                            newRow.addChild(collayout, 0, true);
+                        }
+
+                        collayout.config.width = 50;
+                        newContentItem.config.width = 50;
+                }
+            }
+            instance._ignoreStateChange = JSON.stringify(instance._goldenLayout.toConfig());
+            newContentItem.callDownwards('_$init');
         }
-        this.layoutChanged();
-        return true;
+
+        return instance.layoutChanged();
     }
 
     @undoBatch
     @action
-    public ReplaceTab = (stack: any, document: Doc, libraryPath?: Doc[]) => {
-        Doc.GetProto(document).lastOpened = new DateField;
-        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
-        if (stack === undefined) {
-            let stack: any = this._goldenLayout.root;
-            while (!stack.isStack) {
-                if (stack.contentItems.length) {
-                    stack = stack.contentItems[0];
-                } else {
-                    stack.addChild({ type: 'stack', content: [docContentConfig] });
-                    stack = undefined;
-                    break;
-                }
-            }
-            if (stack) {
-                stack.addChild(docContentConfig);
-            }
-        } else {
-            stack.addChild(docContentConfig, undefined);
-        }
-        this.layoutChanged();
+    layoutChanged() {
+        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
+        this._goldenLayout.emit('stateChanged');
+        this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
+        this.stateChanged();
         return true;
     }
 
-    setupGoldenLayout() {
+    async setupGoldenLayout() {
         const config = StrCast(this.props.Document.dockingConfig);
         if (config) {
-            if (!this._goldenLayout) {
-                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
-            }
-            else {
+            const matches = config.match(/\"documentId\":\"[a-z0-9-]+\"/g);
+            const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", "")) ?? [];
+            await Promise.all(docids.map(id => DocServer.GetRefField(id)));
+
+            if (this._goldenLayout) {
                 if (config === JSON.stringify(this._goldenLayout.toConfig())) {
                     return;
+                } else {
+                    try {
+                        this._goldenLayout.unbind('tabCreated', this.tabCreated);
+                        this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
+                        this._goldenLayout.unbind('stackCreated', this.stackCreated);
+                    } catch (e) { }
                 }
-                try {
-                    this._goldenLayout.unbind('itemDropped', this.itemDropped);
-                    this._goldenLayout.unbind('tabCreated', this.tabCreated);
-                    this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
-                    this._goldenLayout.unbind('stackCreated', this.stackCreated);
-                } catch (e) { }
-                this._goldenLayout.destroy();
-                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
-            this._goldenLayout.on('itemDropped', this.itemDropped);
+            this.tabMap.clear();
+            this._goldenLayout?.destroy();
+            runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             this._goldenLayout.on('tabCreated', this.tabCreated);
             this._goldenLayout.on('tabDestroyed', this.tabDestroyed);
             this._goldenLayout.on('stackCreated', this.stackCreated);
-            this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
+            this._goldenLayout.registerComponent('DocumentFrameRenderer', TabDocView);
             this._goldenLayout.container = this._containerRef.current;
             if (this._goldenLayout.config.maximisedItemId === '__glMaximised') {
                 try {
@@ -394,582 +251,152 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._goldenLayout.init();
         }
     }
-    reactionDisposer?: Lambda;
+
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
-            const observer = new _global.ResizeObserver(action((entries: any) => {
-                for (const entry of entries) {
-                    this.onResize(null as any);
-                }
-            }));
-            observer.observe(this._containerRef.current);
-            this.reactionDisposer = reaction(
-                () => this.props.Document.dockingConfig,
-                () => {
-                    if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
-                        // Because this is in a set timeout, if this component unmounts right after mounting,
-                        // we will leak a GoldenLayout, because we try to destroy it before we ever create it
-                        setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((Doc.UserDoc().myWorkspaces as Doc).data).map(d => d.workspaceBrush = false);
-                        this.props.Document.workspaceBrush = true;
+            new _global.ResizeObserver(this.onResize).observe(this._containerRef.current);
+            this._reactionDisposer = reaction(() => StrCast(this.props.Document.dockingConfig),
+                config => {
+                    if (!this._goldenLayout || this._ignoreStateChange !== config) {  //  bcz: TODO! really need to diff config with ignoreStateChange and modify the current goldenLayout instead of building a new one.
+                        this.setupGoldenLayout();
                     }
                     this._ignoreStateChange = "";
-                }, { fireImmediately: true });
-
-            window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
+                });
+            setTimeout(() => this.setupGoldenLayout(), 0);
+            //window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
         }
     }
+
     componentWillUnmount: () => void = () => {
         try {
-            this.props.Document.workspaceBrush = false;
-            this._goldenLayout.unbind('itemDropped', this.itemDropped);
-            this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
             this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
-        } catch (e) {
-
-        }
-        this._goldenLayout && this._goldenLayout.destroy();
-        runInAction(() => {
-            CollectionDockingView.Instances.splice(CollectionDockingView.Instances.indexOf(this), 1);
-            this._goldenLayout = null;
-        });
+        } catch (e) { }
+        this._goldenLayout?.destroy();
         window.removeEventListener('resize', this.onResize);
 
-        this.reactionDisposer && this.reactionDisposer();
+        this._reactionDisposer?.();
     }
+
     @action
     onResize = (event: any) => {
         const cur = this._containerRef.current;
-
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout?.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        cur && this._goldenLayout?.updateSize(cur.getBoundingClientRect().width, cur.getBoundingClientRect().height);
     }
 
     @action
-    onPointerUp = (e: React.PointerEvent): void => {
+    onPointerUp = (e: MouseEvent): void => {
+        window.removeEventListener("pointerup", this.onPointerUp);
         if (this._flush) {
-            this._flush = false;
             setTimeout(() => {
                 CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
                 this.stateChanged();
+                this._flush!.end();
+                this._flush = undefined;
             }, 10);
         }
     }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        this._isPointerDown = true;
-        const onPointerUp = action(() => {
-            window.removeEventListener("pointerup", onPointerUp);
-            this._isPointerDown = false;
-        });
-        window.addEventListener("pointerup", onPointerUp);
-        const className = (e.target as any).className;
-        if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
-            this._flush = true;
+        window.addEventListener("mouseup", this.onPointerUp);
+        if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
+            this._flush = UndoManager.StartBatch("golden layout edit");
         }
-        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
-            return;
-        } else {
+        if (!e.nativeEvent.cancelBubble && !InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE) &&
+            Doc.GetSelectedTool() !== InkTool.Highlighter && Doc.GetSelectedTool() !== InkTool.Pen) {
             e.stopPropagation();
         }
     }
 
-    updateDataField = async (json: string) => {
+    public static Copy(doc: Doc) {
+        let json = StrCast(doc.dockingConfig);
         const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
-        const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", ""));
+        const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", "")) || [];
+        const docs = docids.map(id => DocServer.GetCachedRefField(id)).filter(f => f).map(f => f as Doc);
+        const newtabs = docs.map(doc => {
+            const copy = Doc.MakeAlias(doc);
+            json = json.replace(doc[Id], copy[Id]);
+            return copy;
+        });
+        const copy = Docs.Create.DockDocument(newtabs, json, { title: "Snapshot: " + doc.title });
+        const docsublists = DocListCast(doc.data);
+        const copysublists = DocListCast(copy.data);
+        const docother = Cast(docsublists[1], Doc, null);
+        const copyother = Cast(copysublists[1], Doc, null);
+        const newother = DocListCast(docother.data).map(doc => Doc.MakeAlias(doc));
+        Doc.GetProto(copyother).data = new List<Doc>(newother);
 
-        if (docids) {
-            const docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
-            docs.map(doc => Doc.AddDocToList(Doc.GetProto(this.props.Document), this.props.fieldKey, doc));
-            // Doc.GetProto(this.props.Document)[this.props.fieldKey] = new List<Doc>(docs);
-        }
+        return copy;
     }
 
-    @undoBatch
+    @action
     stateChanged = () => {
         const json = JSON.stringify(this._goldenLayout.toConfig());
+        const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
+        const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", ""));
+        const docs = !docids ? [] : docids.map(id => DocServer.GetCachedRefField(id)).filter(f => f).map(f => f as Doc);
+
         this.props.Document.dockingConfig = json;
-        this.updateDataField(json);
-    }
-
-    itemDropped = () => {
-        CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
-        this.stateChanged();
-    }
-
-    htmlToElement(html: string) {
-        const template = document.createElement('template');
-        html = html.trim(); // Never return a text node of whitespace as the result
-        template.innerHTML = html;
-        return template.content.firstChild;
-    }
-
-    tabCreated = async (tab: any) => {
-        tab.titleElement[0].Tab = tab;
-        if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
-            if (tab.contentItem.config.fixed) {
-                tab.contentItem.parent.config.fixed = true;
-            }
-
-            const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
-            if (doc instanceof Doc) {
-                tab.titleElement[0].onclick = (e: any) => {
-                    if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
-                    tab.titleElement[0].lastClick = Date.now();
-                    tab.titleElement[0].focus();
-                };
-                tab.titleElement[0].onchange = (e: any) => {
-                    tab.titleElement[0].size = e.currentTarget.value.length + 1;
-                    Doc.GetProto(doc).title = e.currentTarget.value, true;
-                };
-                tab.titleElement[0].size = StrCast(doc.title).length + 1;
-                tab.titleElement[0].value = doc.title;
-                tab.titleElement[0].style["max-width"] = "100px";
-                const gearSpan = document.createElement("span");
-                gearSpan.className = "collectionDockingView-gear";
-                gearSpan.style.position = "relative";
-                gearSpan.style.paddingLeft = "0px";
-                gearSpan.style.paddingRight = "12px";
-                const stack = tab.contentItem.parent;
-                tab.element[0].onpointerdown = (e: any) => {
-                    const view = DocumentManager.Instance.getDocumentView(doc);
-                    view && SelectionManager.SelectDoc(view, false);
-                };
-                // shifts the focus to this tab when another tab is dragged over it
-                tab.element[0].onmouseenter = (e: any) => {
-                    if (!this._isPointerDown || !SnappingManager.GetIsDragging()) return;
-                    const activeContentItem = tab.header.parent.getActiveContentItem();
-                    if (tab.contentItem !== activeContentItem) {
-                        tab.header.parent.setActiveContentItem(tab.contentItem);
-                    }
-                    tab.setActive(true);
-                };
-                const onDown = (e: React.PointerEvent) => {
-                    setupMoveUpEvents(this, e, (e) => {
-                        if (!(e as any).defaultPrevented) {
-                            const dragData = new DragManager.DocumentDragData([doc]);
-                            dragData.dropAction = doc.dropAction as dropActionType;
-                            DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
-                            return true;
-                        }
-                        return false;
-                    }, returnFalse, emptyFunction);
-                };
-
-                tab.buttonDisposer = reaction(() => ((view: Opt<DocumentView>) => view ? [view] : [])(DocumentManager.Instance.getDocumentView(doc)),
-                    (views) => {
-                        if (views.length) {
-                            ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
-                                <DockingViewButtonSelector views={() => views} Stack={stack} />
-                            </span>,
-                                gearSpan);
-                            tab.buttonDisposer?.();
-                        }
-                    }, { fireImmediately: true });
-
-                tab.reactComponents = [gearSpan];
-                tab.element.append(gearSpan);
-                tab.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
-                    tab.titleElement[0].textContent = title, { fireImmediately: true };
-                    tab.titleElement[0].style.padding = degree ? 0 : 2;
-                    tab.titleElement[0].style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
-                });
-                //TODO why can't this just be doc instead of the id?
-                tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
-            }
-        }
-        tab.closeElement.off('click') //unbind the current click handler
-            .click(async function () {
-                tab.reactionDisposer?.();
-                tab.buttonDisposer?.();
-                const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
-                if (doc instanceof Doc) {
-                    const theDoc = doc;
-                    CollectionDockingView.Instance._removedDocs.push(theDoc);
-
-                    const recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc);
-                    if (recent) {
-                        Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                    }
-                    SelectionManager.DeselectAll();
-                }
-                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
-                tab.contentItem.remove();
-                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
-            });
+        const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
+        const tabs = Cast(sublists[0], Doc, null);
+        const other = Cast(sublists[1], Doc, null);
+        const tabdocs = DocListCast(tabs.data);
+        const otherdocs = DocListCast(other.data);
+        Doc.GetProto(tabs).data = new List<Doc>(docs);
+        const otherSet = new Set<Doc>();
+        otherdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+        tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+        Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
     }
 
     tabDestroyed = (tab: any) => {
-        if (tab.reactComponents) {
-            for (const ele of tab.reactComponents) {
-                ReactDOM.unmountComponentAtNode(ele);
-            }
-        }
+        this.tabMap.delete(tab);
+        Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
+        tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
-    _removedDocs: Doc[] = [];
+    tabCreated = (tab: any) => {
+        tab.contentItem.element[0]?.firstChild?.firstChild?.InitTab?.(tab);  // have to explicitly initialize tabs that reuse contents from previous abs (ie, when dragging a tab around a new tab is created for the old content)
+    }
 
     stackCreated = (stack: any) => {
-        //stack.header.controlsContainer.find('.lm_popout').hide();
-        stack.header.element.on('mousedown', (e: any) => {
-            if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Collection" }));
+        stack.header?.element.on('mousedown', (e: any) => {
+            if (e.target === stack.header?.element[0] && e.button === 2) {
+                const emptyPane = CurrentUserUtils.EmptyPane;
+                emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                }), "", stack);
             }
         });
 
-        // starter code for bezel to add new pane
-        // stack.element.on("touchstart", (e: TouchEvent) => {
-        // if (e.targetTouches.length === 2) {
-        //     let pt1 = e.targetTouches.item(0);
-        //     let pt2 = e.targetTouches.item(1);
-        //     let threshold = 40 * window.devicePixelRatio;
-        //     if (pt1 && pt2 && InteractionUtils.TwoPointEuclidist(pt1, pt2) < threshold) {
-        //         let edgeThreshold = 30 * window.devicePixelRatio;
-        //         let center = InteractionUtils.CenterPoint([pt1, pt2]);
-        //         let stackRect: DOMRect = stack.element.getBoundingClientRect();
-        //         let nearLeft = center.X - stackRect.x < edgeThreshold;
-        //         let nearTop = center.Y - stackRect.y < edgeThreshold;
-        //         let nearRight = stackRect.right - center.X < edgeThreshold;
-        //         let nearBottom = stackRect.bottom - center.Y < edgeThreshold;
-        //         let ns = [nearLeft, nearTop, nearRight, nearBottom].filter(n => n);
-        //         if (ns.length === 1) {
-
-        //         }
-        //     }
-        // }
-        // });
-        stack.header.controlsContainer.find('.lm_close') //get the close icon
+        stack.header?.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(async function () {
+            .click(action(() => {
                 //if (confirm('really close this?')) {
-
                 stack.remove();
-                stack.contentItems.forEach(async (contentItem: any) => {
-                    const doc = await DocServer.GetRefField(contentItem.config.props.documentId);
-                    if (doc instanceof Doc) {
-                        let recent: Doc | undefined;
-                        if (recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc)) {
-                            Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                        }
-                        const theDoc = doc;
-                        CollectionDockingView.Instance._removedDocs.push(theDoc);
-                    }
-                });
-                //}
+                stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
             }));
-        stack.header.controlsContainer.find('.lm_popout') //get the close icon
+        stack.header?.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(function () {
-                stack.config.fixed = !stack.config.fixed;
-                // const url = Utils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
-                // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
+            .click(action(() => {
+                // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size
+                const emptyPane = CurrentUserUtils.EmptyPane;
+                emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                }), "", stack);
             }));
     }
 
     render() {
-        if (this.props.renderDepth > 0) {
-            return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
-        }
-        return <div className="collectiondockingview-container" id="menuContainer"
-            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />;
-    }
-
-}
-
-interface DockedFrameProps {
-    documentId: FieldId;
-    glContainer: any;
-    libraryPath: (FieldId[]);
-    //collectionDockingView: CollectionDockingView
-}
-@observer
-export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-    _mainCont: HTMLDivElement | null = null;
-    @observable private _libraryPath: Doc[] = [];
-    @observable private _panelWidth = 0;
-    @observable private _panelHeight = 0;
-    @observable private _document: Opt<Doc>;
-    @observable private _isActive: boolean = false;
-    _tabReaction: IReactionDisposer | undefined;
-
-    get _stack(): any {
-        return (this.props as any).glContainer.parent.parent;
-    }
-    get _tab(): any {
-        const tab = (this.props as any).glContainer.tab?.element[0] as HTMLElement;
-        return tab?.getElementsByClassName("lm_title")?.[0];
-    }
-    constructor(props: any) {
-        super(props);
-        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
-        this.props.libraryPath && this.setupLibraryPath();
-    }
-
-    async setupLibraryPath() {
-        Promise.all(this.props.libraryPath.map(async docid => {
-            const d = await DocServer.GetRefField(docid);
-            return d instanceof Doc ? d : undefined;
-        })).then(action((list: (Doc | undefined)[]) => this._libraryPath = list.filter(d => d).map(d => d as Doc)));
-    }
-
-    /**
-     * Adds a document to the presentation view
-     **/
-    @undoBatch
-    @action
-    public static PinDoc(doc: Doc, unpin = false) {
-        if (unpin) DockedFrameRenderer.UnpinDoc(doc);
-        else {
-            //add this new doc to props.Document
-            const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-            if (curPres) {
-                const pinDoc = Doc.MakeAlias(doc);
-                pinDoc.presentationTargetDoc = doc;
-                pinDoc.presZoomButton = true;
-                pinDoc.context = curPres;
-                Doc.AddDocToList(curPres, "data", pinDoc);
-                if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-                if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                    CollectionDockingView.AddRightSplit(curPres);
-                }
-                DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
-            }
-        }
-    }
-    /**
-     * Adds a document to the presentation view
-     **/
-    @undoBatch
-    @action
-    public static UnpinDoc(doc: Doc) {
-        //add this new doc to props.Document
-        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-        if (curPres) {
-            const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
-            ind !== -1 && Doc.RemoveDocFromList(curPres, "data", DocListCast(curPres.data)[ind]);
-        }
-    }
-
-    componentDidMount() {
-        const observer = new _global.ResizeObserver(action((entries: any) => {
-            for (const entry of entries) {
-                this._panelWidth = entry.contentRect.width;
-                this._panelHeight = entry.contentRect.height;
-            }
-        }));
-        observer.observe(this.props.glContainer._element[0]);
-        this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
-        this.props.glContainer.on("tab", this.onActiveContentItemChanged);
-        this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white") }),
-            (data) => {
-                const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
-                this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
-            }
-        );
-    }
-
-    componentWillUnmount() {
-        this._tabReaction?.();
-        this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
-        this.props.glContainer.off("tab", this.onActiveContentItemChanged);
-    }
-
-    @action.bound
-    private onActiveContentItemChanged() {
-        if (this.props.glContainer.tab) {
-            this._isActive = this.props.glContainer.tab.isActive;
-            setTimeout(() => {
-                const dv = this._document && DocumentManager.Instance.getFirstDocumentView(this._document);
-                dv && SelectionManager.SelectDoc(dv, false);
-            });
-            !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
-        }
-    }
-
-    get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
-    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
-        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
-    panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
-
-    nativeWidth = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
-
-    contentScaling = () => {
-        const nativeH = this.nativeHeight();
-        const nativeW = this.nativeWidth();
-        let scaling = 1;
-        if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
-            scaling = 1;
-        } else if (NumCast(this.layoutDoc!._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
-            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth))) {
-            scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-        } else if (nativeW && nativeH) {
-            // if (this.layoutDoc!.type === DocumentType.PDF || this.layoutDoc!.type === DocumentType.WEB) {
-            //     if ((this.layoutDoc?._fitWidth) ||
-            //         this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
-            //         return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-            //     } else {
-            //         return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
-            //     }
-            // }
-            const wscale = this.panelWidth() / nativeW;
-            scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
-        } else scaling = 1;
-        return scaling;
-    }
-
-    ScreenToLocalTransform = () => {
-        if (this._mainCont && this._mainCont.children) {
-            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
-            const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
-        }
-        return Transform.Identity();
-    }
-    get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}%` : undefined; }
-
-    addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
-        SelectionManager.DeselectAll();
-        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
-            return MainView.Instance.openWorkspace(doc);
-        } else if (location === "onRight") {
-            return CollectionDockingView.AddRightSplit(doc, libraryPath);
-        } else if (location === "close") {
-            return CollectionDockingView.CloseRightSplit(doc);
-        } else if (location === "replace") {
-            CollectionDockingView.UseRightSplit(doc);
-            return true;
-        } else {// if (location === "inPlace") {
-            return CollectionDockingView.Instance.AddTab(this._stack, doc, libraryPath);
-        }
-    }
-
-    @computed get renderContentBounds() {
-        const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
-        const xbounds = bounds[2] - bounds[0];
-        const ybounds = bounds[3] - bounds[1];
-        const dim = Math.max(xbounds, ybounds);
-        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
-    }
-    @computed get miniLeft() { return 50 + (NumCast(this._document?._panX) - this.renderContentBounds.cx) / this.renderContentBounds.dim * 100 - this.miniWidth / 2; }
-    @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.dim * 100 - this.miniHeight / 2; }
-    @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
-    @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
-    childLayoutTemplate = () => Cast(this._document?.childLayoutTemplate, Doc, null);
-    returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
-    miniDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._document!._panX = clamp(NumCast(this._document!._panX) + delta[0] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.l, this.renderContentBounds.l + this.renderContentBounds.dim);
-            this._document!._panY = clamp(NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.t, this.renderContentBounds.t + this.renderContentBounds.dim);
-            return false;
-        }), emptyFunction, emptyFunction);
-    }
-    getCurrentFrame = (): number => {
-        const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
-        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
-        return currentFrame;
-    }
-
-    renderMiniMap() {
-        return <div className="miniMap" style={{
-            width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
-                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!, 0))),
-        }}>
-            <CollectionFreeFormView
-                Document={this._document!}
-                LibraryPath={emptyPath}
-                CollectionView={undefined}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-                ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
-                noOverlay={true} // don't render overlay Docs since they won't scale
-                active={returnTrue}
-                select={emptyFunction}
-                dropAction={undefined}
-                isSelected={returnFalse}
-                dontRegisterView={true}
-                annotationsKey={""}
-                fieldKey={Doc.LayoutFieldKey(this._document!)}
-                bringToFront={emptyFunction}
-                rootSelected={returnTrue}
-                addDocument={returnFalse}
-                moveDocument={returnFalse}
-                removeDocument={returnFalse}
-                ContentScaling={returnOne}
-                PanelWidth={this.returnMiniSize}
-                PanelHeight={this.returnMiniSize}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                ScreenToLocalTransform={this.ScreenToLocalTransform}
-                renderDepth={0}
-                whenActiveChanged={emptyFunction}
-                focus={emptyFunction}
-                backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
-                addDocTab={this.addDocTab}
-                pinToPres={DockedFrameRenderer.PinDoc}
-                docFilters={returnEmptyFilter}
-                fitToBox={true}
-            />
-            <div className="miniOverlay" onPointerDown={this.miniDown} >
-                <div className="miniThumb" style={{
-                    width: `${this.miniWidth}%`,
-                    height: `${this.miniHeight}%`,
-                    left: `${this.miniLeft}%`,
-                    top: `${this.miniTop}%`,
-                }}
-                />
-            </div>
+        return <div className="collectiondockingview-container" onPointerDown={this.onPointerDown} ref={this._containerRef}>
+            {this.props.renderDepth > 0 ? "Nested dashboards can't be rendered" : (null)}
         </div>;
     }
-    @computed get docView() {
-        TraceMobx();
-        if (!this._document) return (null);
-        const document = this._document;
-        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined;
-        return <>
-            <DocumentView key={document[Id]}
-                LibraryPath={this._libraryPath}
-                Document={document}
-                DataDoc={resolvedDataDoc}
-                bringToFront={emptyFunction}
-                rootSelected={returnTrue}
-                addDocument={undefined}
-                removeDocument={undefined}
-                ContentScaling={this.contentScaling}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
-                NativeHeight={this.nativeHeight}
-                NativeWidth={this.nativeWidth}
-                ScreenToLocalTransform={this.ScreenToLocalTransform}
-                renderDepth={0}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                focus={emptyFunction}
-                backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
-                addDocTab={this.addDocTab}
-                pinToPres={DockedFrameRenderer.PinDoc}
-                docFilters={returnEmptyFilter}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
-            {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
-        </>;
-    }
-
-    render() {
-        return (!this._isActive || !this.layoutDoc) ? (null) :
-            (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
-                style={{
-                    transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc && this.layoutDoc._fitWidth ? undefined : "100%",
-                    width: this.widthpercent
-                }}>
-                {this.docView}
-            </div >);
-    }
 }
-Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc); },
+
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddSplit(doc, "right"); },
     "opens up the inputted document on the right side of the screen", "(doc: any)");
-Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.UseRightSplit(doc, undefined, shiftKey); });
+Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.ReplaceTab(doc, "right", undefined, shiftKey); });

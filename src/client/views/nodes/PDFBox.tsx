@@ -21,6 +21,7 @@ import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../fields/documentSchemas';
+import { CollectionViewType } from '../collections/CollectionView';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -99,20 +100,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
-    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
+    public backPage = () => { this.Document._curPage = (this.Document._curPage || 1) - 1; return true; };
+    public forwardPage = () => { this.Document._curPage = (this.Document._curPage || 1) + 1; return true; };
+    public gotoPage = (p: number) => { this.Document._curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
+        let processed = false;
         if (e.key === "f" && e.ctrlKey) {
             this._searching = true;
             setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            processed = true;
+        }
+        if (e.key === "PageDown") processed = this.forwardPage();
+        if (e.key === "PageUp") processed = this.backPage();
+        if (e.target instanceof HTMLInputElement || this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) {
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") processed = this.forwardPage();
+            if (e.key === "ArrowUp" || e.key === "ArrowLeft") processed = this.backPage();
+        }
+        if (processed) {
             e.stopImmediatePropagation();
             e.preventDefault();
         }
-        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") this.forwardPage();
-        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") this.backPage();
     });
 
     @undoBatch
@@ -150,7 +159,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </button>
         </>;
         const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
-        const curPage = this.Document.curPage || 1;
+        const curPage = this.Document._curPage || 1;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
@@ -177,7 +186,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
                 <div className="pdfBox-pageNums">
                     <input value={curPage}
-                        onChange={e => this.gotoPage(Number(e.currentTarget.value))}
+                        onChange={e => this.Document._curPage = Number(e.currentTarget.value)}
                         style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
@@ -246,7 +255,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                addDocTab={this.props.addDocTab} focus={this.props.focus} docFilters={this.props.docFilters}
+                addDocTab={this.props.addDocTab} focus={this.props.focus} docFilters={this.props.docFilters} searchFilterDocs={this.props.searchFilterDocs}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                 Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}

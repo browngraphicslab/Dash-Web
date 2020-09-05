@@ -4,7 +4,6 @@ import { EditableView } from "../../views/EditableView";
 import { action, computed } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from "../../../fields/Doc";
 import { StrCast, BoolCast } from "../../../fields/Types";
 
@@ -23,11 +22,6 @@ export default class ImportMetadataEntry extends React.Component<KeyValueProps> 
     private keyRef = React.createRef<EditableView>();
     private valueRef = React.createRef<EditableView>();
     private checkRef = React.createRef<HTMLInputElement>();
-
-    constructor(props: KeyValueProps) {
-        super(props);
-        library.add(faPlus);
-    }
 
     @computed
     public get valid() {
@@ -132,7 +126,7 @@ export default class ImportMetadataEntry extends React.Component<KeyValueProps> 
                 </div>
                 <div onClick={() => this.props.remove(this)} title={"Delete Entry"}>
                     <FontAwesomeIcon
-                        icon={faPlus}
+                        icon={"plus"}
                         color={"red"}
                         size={"1x"}
                         style={{

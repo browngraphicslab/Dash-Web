@@ -1,51 +1,29 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faPhotoVideo, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
-import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast, BoolCast } from "../../fields/Types";
-import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
-import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import { Docs, DocUtils } from '../documents/Documents';
-import { DragManager } from '../util/DragManager';
-import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
-import './collections/ParentDocumentSelector.scss';
-import './PropertiesButtons.scss';
-import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { DocumentView } from './nodes/DocumentView';
-import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
-import { TemplateMenu } from "./TemplateMenu";
-import { Template, Templates } from "./Templates";
-import React = require("react");
-import { Tooltip } from '@material-ui/core';
-import { SelectionManager } from '../util/SelectionManager';
-import SharingManager from '../util/SharingManager';
-import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
-import { ImageField } from '../../fields/URLField';
-import { undoBatch, UndoManager } from '../util/UndoManager';
-import { DocumentType } from '../documents/DocumentTypes';
 import { InkField } from '../../fields/InkField';
-import { PresBox } from './nodes/PresBox';
+import { RichTextField } from '../../fields/RichTextField';
+import { Cast, NumCast } from "../../fields/Types";
+import { ImageField } from '../../fields/URLField';
+import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
+import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
+import { Docs, DocUtils } from '../documents/Documents';
+import { DocumentType } from '../documents/DocumentTypes';
+import { SelectionManager } from '../util/SelectionManager';
+import { undoBatch } from '../util/UndoManager';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
+import './PropertiesButtons.scss';
+import React = require("react");
+import { CollectionViewType } from './collections/CollectionView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faLink);
-library.add(faTag);
-library.add(faTimes);
-library.add(faArrowAltCircleDown);
-library.add(faArrowAltCircleUp);
-library.add(faArrowAltCircleRight);
-library.add(faStopCircle);
-library.add(faCheckCircle);
-library.add(faCloudUploadAlt);
-library.add(faSyncAlt);
-library.add(faShare);
-library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -58,7 +36,6 @@ enum UtilityButtonState {
 
 @observer
 export class PropertiesButtons extends React.Component<{}, {}> {
-    private _dragRef = React.createRef<HTMLDivElement>();
     private _pullAnimating = false;
     private _pushAnimating = false;
     private _pullColorAnimating = false;
@@ -76,13 +53,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     public static hasPulledHack = false;
 
 
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else { return undefined; }
+        } else return undefined;
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
-    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @computed get onClick() { return this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing"; }
 
@@ -167,11 +143,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-linker"
                     style={{ backgroundColor: this.pullColor }}
                     onPointerEnter={action(e => {
-                        if (e.altKey) {
-                            this.openHover = UtilityButtonState.OpenExternally;
-                        } else if (e.shiftKey) {
-                            this.openHover = UtilityButtonState.OpenRight;
-                        }
+                        e.altKey && (this.openHover = UtilityButtonState.OpenExternally);
+                        e.shiftKey && (this.openHover = UtilityButtonState.OpenRight);
                     })}
                     onPointerLeave={action(() => this.openHover = UtilityButtonState.Default)}
                     onClick={async e => {
@@ -180,11 +153,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             e.preventDefault();
                             let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                             if (!googleDoc) {
-                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                                const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                                 googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                                 dataDoc.googleDoc = googleDoc;
                             }
-                            CollectionDockingView.AddRightSplit(googleDoc);
+                            CollectionDockingView.AddSplit(googleDoc, "right");
                         } else if (e.altKey) {
                             e.preventDefault();
                             window.open(googleDocUrl);
@@ -195,8 +168,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                         }
                     }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg"
-                        color="black"
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" color="black"
                         style={{ WebkitAnimation: animation, MozAnimation: animation }}
                         icon={(() => {
                             switch (this.openHover) {
@@ -212,181 +184,24 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div>
         </Tooltip>;
     }
-    @computed
-    get pinButton() {
-        const targetDoc = this.selectedDoc;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
-            <div>
-                <div className="propertiesButtons-linker"
-                    style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white" }}
-                    onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
-                </div>
-
-                <div className="propertiesButtons-title"
-                // style={{
-                //     backgroundColor: Doc.isDocPinned(targetDoc) ? "white" : "black",
-                //     color: Doc.isDocPinned(targetDoc) ? "black" : "white"
-                // }}
-                >{Doc.isDocPinned(targetDoc) ? "Unpin" : "Pin"}</div>
-            </div>
-        </Tooltip>;
-    }
-
-    @computed
-    get pinWithViewButton() {
-        const targetDoc = this.selectedDoc;
-        if (targetDoc) {
-            const x = targetDoc._panX;
-            const y = targetDoc._panY;
-            const scale = targetDoc._viewScale;
-        }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>} placement="top">
-            <div>
-                <div className="propertiesButtons-linker"
-                    onClick={e => {
-                        if (targetDoc) {
-                            DockedFrameRenderer.PinDoc(targetDoc, false);
-                            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                            const x = targetDoc._panX;
-                            const y = targetDoc._panY;
-                            const scale = targetDoc._viewScale;
-                            activeDoc.presPinView = true;
-                            activeDoc.presPinViewX = x;
-                            activeDoc.presPinViewY = y;
-                            activeDoc.presPinViewScale = scale;
-                        }
-                    }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
-                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -28px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
-                </div>
-
-                <div className="propertiesButtons-title">{"View"}</div>
-            </div>
-        </Tooltip>;
-    }
-
-
-    @computed
-    get metadataButton() {
-        //const view0 = this.view0;
-        if (this.selectedDoc) {
-            return <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>} placement="top">
-                <div className="propertiesButtons-linkFlyout">
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                        content={<MetadataEntryMenu docs={[this.selectedDoc]} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                        <div>
-                            <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
-                                {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="lg" />}
-                            </div>
-                            <div className="propertiesButtons-title">Metadata</div>
-                        </div>
-                    </Flyout>
-                </div></Tooltip>;
-        } else {
-            return null;
-        }
-
-    }
-
-    @observable _aliasDown = false;
-    onAliasButtonDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    }
-    @undoBatch
-    onAliasButtonMoved = () => {
-        if (this._dragRef.current) {
-            const dragDocView = this.selectedDocumentView!;
-            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
-            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            dragData.dropAction = "alias";
-            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
-                offsetX: dragData.offset[0],
-                offsetY: dragData.offset[1],
-                hideSource: false
-            });
-            return true;
-        }
-        return false;
-    }
-
-    @computed
-    get templateButton() {
-        const docView = this.selectedDocumentView;
-        const templates: Map<Template, boolean> = new Map();
-        const views = [this.selectedDocumentView];
-        Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-        return !docView ? (null) :
-            <Tooltip title={<><div className="dash-tooltip">Customize layout</div></>} placement="top">
-                <div className="propertiesButtons-linkFlyout">
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} //onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                        content={<TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                        <div>
-                            <div className={"propertiesButtons-linkButton-empty"} >
-                                {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="lg" />}
-                            </div>
-                            <div className="propertiesButtons-title">Layout</div>
-                        </div>
-                    </Flyout>
-                </div></Tooltip>;
-    }
-
-    @undoBatch
-    onCopy = () => {
-        if (this.selectedDoc && this.selectedDocumentView) {
-            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
-            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            // copy.y = NumCast(this.selectedDoc.y) + 30;
-            // this.selectedDocumentView.props.addDocument?.(copy);
-            const alias = Doc.MakeAlias(this.selectedDoc);
-            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            alias.y = NumCast(this.selectedDoc.y) + 30;
-            this.selectedDocumentView.props.addDocument?.(alias);
-        }
-    }
-
-    @computed
-    get copyButton() {
-        const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Tap or Drag to create an alias"}</div></>} placement="top">
-            <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    ref={this._dragRef}
-                    onPointerDown={this.onAliasButtonDown}
-                    onClick={this.onCopy}>
-                    {<FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />}
-                </div>
-                <div className="propertiesButtons-title">Alias</div>
-            </div>
-        </Tooltip>;
-    }
 
     @action @undoBatch
     onLock = () => {
-        this.selectedDocumentView?.toggleLockPosition();
+        SelectionManager.SelectedDocuments().forEach(dv => dv.toggleLockPosition());
     }
 
     @computed
     get lockButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{this.selectedDoc?.lockedPosition ?
-                "Unlock Position" : "Lock Position"}</div></>} placement="top">
+            title={<div className="dash-tooltip">{`${this.selectedDoc?.lockedPosition ? "Unlock" : "Lock"} " Position"`}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "" }}
-                    onPointerDown={this.onLock} >
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color={BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"}
-                        icon={BoolCast(this.selectedDoc?.lockedPosition) ? "unlock" : "lock"} size="lg" />}
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc.lockedPosition ? "on" : "off"}`} onPointerDown={this.onLock} >
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg"
+                        color={this.selectedDoc?.lockedPosition ? "black" : "white"}
+                        icon={this.selectedDoc?.lockedPosition ? "unlock" : "lock"} />
                 </div>
                 <div className="propertiesButtons-title"
-                // style={{
-                //     backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "black",
-                //     color: BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"
-                // }}
                 >Position </div>
             </div>
         </Tooltip>;
@@ -396,64 +211,89 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get downloadButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Download Document"}</div></>} placement="top">
+            title={<div className="dash-tooltip">{"Download Document"}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={async () => {
-                        if (this.selectedDocumentView?.props.Document) {
-                            Doc.Zip(this.selectedDocumentView?.props.Document);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="download" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={() => this.selectedDoc && Doc.Zip(this.selectedDoc)}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="download" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> downld </div>
             </div>
         </Tooltip>;
     }
 
+    @undoBatch
+    @action
+    setDictation = () => {
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showAudio = dv.rootDoc._showAudio === !dv.rootDoc._showAudio);
+    }
+
     @computed
-    get deleteButton() {
+    get dictationButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">Close Document</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Dictation Controls"}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={this.deleteDocument}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="times" size="lg" />}
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._showAudio ? "on" : "off"}`} onPointerDown={this.setDictation}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="microphone" size="lg" />
                 </div>
-                <div className="propertiesButtons-title"> close </div>
+                <div className="propertiesButtons-title"> Dictate </div>
+            </div>
+        </Tooltip>;
+    }
+
+
+    @undoBatch
+    @action
+    setTitle = () => {
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showTitle = dv.rootDoc._showTitle === undefined ? "title" : undefined);
+    }
+
+    @computed
+    get titleButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Title Header"}</div>} placement="top">
+            <div>
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._showTitle ? "on" : "off"}`} onPointerDown={this.setTitle}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="text-width" size="lg" />
+                </div>
+                <div className="propertiesButtons-title"> Title </div>
             </div>
         </Tooltip>;
     }
 
     @undoBatch
     @action
-    deleteDocument = () => {
-        const selected = SelectionManager.SelectedDocuments().slice();
-        selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
-        this.selectedDoc && (this.selectedDoc.deleted = true);
-        this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
-        SelectionManager.DeselectAll();
+    setCaption = () => {
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined);
     }
 
     @computed
-    get sharingButton() {
+    get captionButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Share Document"}</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Caption Footer"}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={() => {
-                        if (this.selectedDocumentView) {
-                            SharingManager.Instance.open(this.selectedDocumentView);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="users" size="lg" />}
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._showCaption ? "on" : "off"}`} onPointerDown={this.setCaption}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="closed-captioning" size="lg" />
                 </div>
-                <div className="propertiesButtons-title"> share </div>
+                <div className="propertiesButtons-title"> Caption </div>
+            </div>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    @action
+    setChrome = () => {
+        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._chromeStatus = dv.rootDoc._chromeStatus === "disabled" ? "enabled" : "disabled");
+    }
+
+    @computed
+    get chromeButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Editing UI"}</div>} placement="top">
+            <div>
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._chromeStatus === "enabled" ? "on" : "off"}`} onPointerDown={this.setChrome}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="edit" size="lg" />
+                </div>
+                <div className="propertiesButtons-title"> Controls </div>
             </div>
         </Tooltip>;
     }
@@ -484,27 +324,31 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     handleOptionChange = (e: any) => {
         const value = e.target.value;
         this.selectedDoc && (this.selectedDoc.onClickBehavior = e.target.value);
-        if (value === "nothing") {
-            this.selectedDocumentView?.noOnClick();
-        } else if (value === "enterPortal") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.makeIntoPortal();
-        } else if (value === "toggleDetail") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleDetail();
-        } else if (value === "linkInPlace") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowLink("inPlace", true, false);
-        } else if (value === "linkOnRight") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowLink("onRight", false, false);
-        }
+
+        SelectionManager.SelectedDocuments().forEach(dv => {
+            if (value === "nothing") {
+                dv.noOnClick();
+            } else if (value === "enterPortal") {
+                dv.noOnClick();
+                dv.makeIntoPortal();
+            } else if (value === "toggleDetail") {
+                dv.noOnClick();
+                dv.toggleDetail();
+            } else if (value === "linkInPlace") {
+                dv.noOnClick();
+                dv.toggleFollowLink("inPlace", true, false);
+            } else if (value === "linkOnRight") {
+                dv.noOnClick();
+                dv.toggleFollowLink("add:right", false, false);
+            }
+        });
     }
 
     @undoBatch @action
     editOnClickScript = () => {
         if (this.selectedDoc) {
-            DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => DocUtils.makeCustomViewClicked(dv.rootDoc, undefined, "onClick"));
+            else DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
         }
     }
 
@@ -563,13 +407,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             title={<><div className="dash-tooltip">{"Export to Google Photos"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={() => {
-                        if (this.selectedDocumentView) {
-                            GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDocumentView.Document }).then(console.log);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        icon="cloud-upload-alt" size="lg" />}
+                    onPointerDown={() => this.selectedDoc && GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDoc }).then(console.log)}>
+                    {<FontAwesomeIcon className="documentdecorations-icon" icon="cloud-upload-alt" size="lg" />}
                 </div>
                 <div className="propertiesButtons-title"> google </div>
             </div>
@@ -580,33 +419,30 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get clustersButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{this.selectedDoc?.useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>} placement="top">
+            title={<><div className="dash-tooltip">{this.selectedDoc?._useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: this.selectedDoc?.useClusters ? "white" : "" }}
-                    onPointerDown={this.changeClusters}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color={this.selectedDoc?.useClusters ? "black" : "white"}
-                        icon="braille" size="lg" />}
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._useClusters ? "on" : "off"}`} onPointerDown={this.changeClusters}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="braille" size="lg" />
                 </div>
-                <div className="propertiesButtons-title"
-                // style={{
-                //     backgroundColor: this.selectedDoc?.useClusters ? "white" : "black",
-                //     color: this.selectedDoc?.useClusters ? "black" : "white"
-                // }}
-                > clusters </div>
+                <div className="propertiesButtons-title" > clusters </div>
             </div>
         </Tooltip>;
     }
 
     @action @undoBatch
     changeFitToBox = () => {
-        this.selectedDoc && (this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox);
+        if (this.selectedDoc) {
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._fitToBox = !dv.rootDoc._fitToBox);
+            else this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox;
+        }
     }
 
     @action @undoBatch
     changeClusters = () => {
-        this.selectedDoc && (this.selectedDoc.useClusters = !this.selectedDoc.useClusters);
+        if (this.selectedDoc) {
+            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._useClusters = !dv.rootDoc._useClusters);
+            else this.selectedDoc._useClusters = !this.selectedDoc._useClusters;
+        }
     }
 
     @computed
@@ -615,19 +451,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">{this.selectedDoc?._fitToBox ? "Stop Fitting Content" : "Fit Content"}</div></>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: this.selectedDoc?._fitToBox ? "white" : "" }}
-                    onPointerDown={this.changeFitToBox}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color={this.selectedDoc?._fitToBox ? "black" : "white"}
-                        icon="expand" size="lg" />}
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._fitToBox ? "on" : "off"}`} onPointerDown={this.changeFitToBox}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="expand" size="lg" />
                 </div>
-                <div className="propertiesButtons-title"
-                // style={{
-                //     backgroundColor: this.selectedDoc?._fitToBox ? "white" : "black",
-                //     color: this.selectedDoc?._fitToBox ? "black" : "white"
-                // }}
-                > {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
+                <div className="propertiesButtons-title"> {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
             </div>
         </Tooltip>;
     }
@@ -650,100 +477,44 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">Make Mask</div></>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={this.makeMask}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color="white" icon="paint-brush" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={this.makeMask}>
+                    <FontAwesomeIcon className="documentdecorations-icon" color="white" icon="paint-brush" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> mask </div>
             </div>
         </Tooltip>;
     }
 
-    @computed
-    get contextButton() {
-        if (this.selectedDoc) {
-            return <Tooltip title={<><div className="dash-tooltip">Show Context</div></>} placement="top">
-                <div>
-                    <div className={"propertiesButtons-linkButton-empty"}>
-                        <ParentDocSelector Document={this.selectedDoc} addDocTab={(doc, where) => {
-                            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-                                this.selectedDocumentView?.props.addDocTab(doc, "onRight");
-                            return true;
-                        }} />
-                    </div>
-                    <div className="propertiesButtons-title"> context </div>
-                </div>
-            </Tooltip>;
-        } else {
-            return false;
-        }
-
-    }
-
-    // @computed
-    // get importButton() {
-    //     const targetDoc = this.selectedDoc;
-    //     return !targetDoc ? (null) : <Tooltip
-    //         title={<><div className="dash-tooltip">{"Import a Document"}</div></>}>
-    //         <div className={"propertiesButtons-linkButton-empty"}
-    //             onPointerDown={() => {
-    //                 if (this.selectedDocumentView) {
-    //                     CollectionFreeFormView.importDocument(100, 100);
-    //                 }
-    //             }}>
-    //             {<FontAwesomeIcon className="documentdecorations-icon"
-    //                 icon="upload" size="sm" />}
-    //         </div>
-    //     </Tooltip>;
-    // }
-
-
     render() {
         if (!this.selectedDoc) return (null);
 
-        const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        const layoutField = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)];
+        const isText = layoutField instanceof RichTextField;
+        const isImage = layoutField instanceof ImageField;
+        const isInk = layoutField instanceof InkField;
+        const isCollection = this.selectedDoc.type === DocumentType.COL;
+        const isFreeForm = this.selectedDoc._viewType === CollectionViewType.Freeform;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
-        const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
-        const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
-        const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
-        const hasContext = this.selectedDoc.context ? true : false;
 
-        return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
+        return <div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
-                {this.templateButton}
-            </div>
-            {/* <div className="propertiesButtons-button">
-                {this.metadataButton}
-            </div> */}
-            <div className="propertiesButtons-button">
-                {this.pinButton}
+                {this.titleButton}
             </div>
             <div className="propertiesButtons-button">
-                {this.pinWithViewButton}
+                {this.captionButton}
             </div>
-            <div className="propertiesButtons-button" style={{ display: hasContext ? "" : "none" }}>
-                {this.copyButton}
+            <div className="propertiesButtons-button" style={{ display: isCollection ? "" : "none" }}>
+                {this.chromeButton}
             </div>
             <div className="propertiesButtons-button">
                 {this.lockButton}
             </div>
-            <div className="propertiesButtons-button">
-                {this.downloadButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.deleteButton}
+            <div className="propertiesButtons-button" style={{ display: isText || isImage ? "" : "none" }}>
+                {this.dictationButton}
             </div>
             <div className="propertiesButtons-button">
                 {this.onClickButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.sharingButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.contextButton}
             </div>
             <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
@@ -754,22 +525,16 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
                 {this.googlePhotosButton}
             </div>
-            {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
-                    {this.importButton}
-                </div> */}
 
             <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
                 {this.clustersButton}
             </div>
-
             <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
                 {this.fitContentButton}
             </div>
-
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
                 {this.maskButton}
             </div>
-        </div>
         </div>;
     }
 }

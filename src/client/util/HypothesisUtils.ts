@@ -21,7 +21,7 @@ export namespace Hypothesis {
     export const getSourceWebDoc = async (uri: string) => {
         const result = await findWebDoc(uri);
         console.log(result ? "existing doc found" : "existing doc NOT found");
-        return result || Docs.Create.WebDocument(uri, { title: uri, _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true }); // create and return a new Web doc with given uri if no matching docs are found
+        return result || Docs.Create.WebDocument(uri, { title: uri, _nativeWidth: 850, _nativeHeight: 962, _width: 400, useCors: true }); // create and return a new Web doc with given uri if no matching docs are found
     };
 
 
@@ -34,7 +34,7 @@ export namespace Hypothesis {
 
         const results: Doc[] = [];
         await SearchUtil.Search("web", true).then(action(async (res: SearchUtil.DocSearchResult) => {
-            const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
+            const docs = res.docs;
             const filteredDocs = docs.filter(doc =>
                 doc.author === Doc.CurrentUserEmail && doc.type === DocumentType.WEB && doc.data
             );
@@ -60,6 +60,7 @@ export namespace Hypothesis {
                 DocumentLinksButton.AnnotationId = annotationId;
                 DocumentLinksButton.AnnotationUri = annotationUri;
                 DocumentLinksButton.StartLink = sourceDoc;
+                DocumentLinksButton.StartLinkView = undefined;
             });
         } else { // if a link has already been started, complete the link to sourceDoc
             runInAction(() => {

@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, Field, Opt } from '../../../fields/Doc';
-import { emptyFunction, returnFalse, returnOne, returnZero, returnEmptyFilter } from '../../../Utils';
+import { emptyFunction, returnFalse, returnOne, returnZero, returnEmptyFilter, returnEmptyDoclist } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
@@ -46,7 +46,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         if (value instanceof Doc) {
             e.stopPropagation();
             e.preventDefault();
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
         }
     }
@@ -56,7 +56,8 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             Document: this.props.doc,
             DataDoc: this.props.doc,
             LibraryPath: [],
-            docFilters:returnEmptyFilter,
+            docFilters: returnEmptyFilter,
+            searchFilterDocs: returnEmptyDoclist,
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
             fieldKey: this.props.keyName,

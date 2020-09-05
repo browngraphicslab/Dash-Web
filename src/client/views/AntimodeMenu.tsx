@@ -1,12 +1,14 @@
 import React = require("react");
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import "./AntimodeMenu.scss";
+export interface AntimodeMenuProps {
+}
 
 /**
  * This is an abstract class that serves as the base for a PDF-style or Marquee-style
  * menu. To use this class, look at PDFMenu.tsx or MarqueeOptionsMenu.tsx for an example.
  */
-export default abstract class AntimodeMenu extends React.Component {
+export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Component<T, {}> {
     protected _offsetY: number = 0;
     protected _offsetX: number = 0;
     protected _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -18,7 +20,7 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable protected _transitionProperty: string = "opacity";
     @observable protected _transitionDuration: string = "0.5s";
     @observable protected _transitionDelay: string = "";
-    @observable protected _canFade: boolean = true;
+    @observable protected _canFade: boolean = false;
 
     @observable public Pinned: boolean = false;
 
@@ -84,7 +86,7 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected togglePin = (e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
+        runInAction(() => this.Pinned = !this.Pinned);
     }
 
     protected dragStart = (e: React.PointerEvent) => {

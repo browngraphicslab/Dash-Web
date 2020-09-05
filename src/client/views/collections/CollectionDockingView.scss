@@ -1,24 +1,5 @@
 @import "../../views/globalCssVariables.scss";
 
-.miniMap {
-    position: absolute;
-    overflow: hidden;
-    right: 10;
-    bottom: 10;
-    border: solid 1px;
-    box-shadow: black 0.4vw 0.4vw 0.8vw;
-
-    .miniOverlay {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-
-        .miniThumb {
-            background: #25252525;
-            position: absolute;
-        }
-    }
-}
 
 .lm_title {
     margin-top: 3px;
@@ -69,19 +50,7 @@
 }
 
 .lm_popout {
-    display: none;
-}
-
-.messageCounter {
-    width: 18px;
-    height: 20px;
-    text-align: center;
-    border-radius: 20px;
-    margin-left: 5px;
-    transform: translate(0px, -8px);
-    display: inline-block;
-    background: transparent;
-    border: 1px #999999 solid;
+    display: inline;
 }
 
 .collectiondockingview-container {
@@ -101,7 +70,7 @@
         margin: auto;
     }
 
-    .collectionDockingView-dragAsDocument {
+    .collectionDockingView-drag {
         touch-action: none;
         position: absolute;
         padding-left: 5px;
@@ -117,6 +86,10 @@
     .lm_controls>li {
         opacity: 0.6;
         transform: scale(1.2);
+    }
+
+    .lm_controls .lm_popout {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAUCAAAAABHICnvAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QAAKqNIzIAAAAHdElNRQfkCBsXMgbrEyzaAAAAT0lEQVQY02NgIAcIu8tgEW3/u4IDQ5B14/8LQlhFhckVFfCJjIyIOfP/QWpEZGSQJFS05s9fIPj3/z+YmseCTxS7CZS7DI+PsYcOjpAkDAA6H0KZxzDzlgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMC0wOC0yN1QyMzo1MDowNi0wNDowMDvgVpQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjAtMDgtMjdUMjM6NTA6MDYtMDQ6MDBKve4oAAAAAElFTkSuQmCC)
     }
 
     .lm_maximised .lm_controls .lm_maximise {

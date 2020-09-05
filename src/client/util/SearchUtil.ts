@@ -23,12 +23,14 @@ export namespace SearchUtil {
     }
 
     export interface SearchParams {
-        hl?: boolean;
+        hl?: string;
         "hl.fl"?: string;
         start?: number;
         rows?: number;
         fq?: string;
+        sort?: string;
         allowAliases?: boolean;
+        onlyAliases?: boolean;
         "facet"?: string;
         "facet.field"?: string;
     }
@@ -37,8 +39,12 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        const replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
-        const gotten = await rp.get(rpquery, { qs: { ...options, sort: "lastModified_d desc", q: replacedQuery } });
+        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}*:* AND ${arg}`);
+        if (options.onlyAliases) {
+            const header = query.match(/_[atnb]?:/) ? replacedQuery : "DEFAULT:" + replacedQuery;
+            replacedQuery = `{!join from=id to=proto_i}${header}`;
+        }
+        const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
@@ -80,6 +86,8 @@ export namespace SearchUtil {
             if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || testDoc.proto === undefined || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
+            } else {
+                result.numFound--;
             }
         }
 

@@ -1,6 +1,7 @@
 @import "globalCssVariables";
 @import "nodeModuleOverrides";
 
+
 .dash-tooltip {
     font-size: 11px;
     padding: 2px;
@@ -14,18 +15,23 @@
     margin-top: 10px;
 }
 
+.mainContent-div-flyout,
 .mainContent-div {
     position: relative;
     width: 100%;
     height: 100%;
 }
+.mainContent-div-flyout {
+    left: calc(-1 * var(--flyoutHandleWidth));
+}
 
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
     position: absolute;
-    bottom: 35px;
+    bottom: 10px;
     left: calc(100% + 5px);
     z-index: 1;
+    pointer-events: none;
 }
 
 .mainView-snapLines {
@@ -110,13 +116,16 @@
     height: 55px;
     width: 17px;
     position: absolute;
-    top: 55%;
+    top: 50%;
     border: 1px black solid;
     border-radius: 0;
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
     border-right: unset;
-    z-index: 2;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 4px;
 
     .mainView-propertiesDragger-icon {
         width: 10px;
@@ -143,26 +152,38 @@
     cursor: auto;
 }
 
-.mainView-flyoutContainer {
-    display: flex;
-    flex-direction: column;
+.mainView-innerContent {
+    display: contents;
+    flex-direction: row;
     position: relative;
-    height: 100%;
-    background: dimgray;
+    .mainView-flyoutContainer {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+        background: dimgray;
 
-    .documentView-node-topmost {
-        background: lightgrey;
+        .documentView-node-topmost {
+            background: lightgrey;
+        }
+    }
+    .propertiesView {
+        right: 0;
+        position: absolute;
+        z-index: 2;
     }
 }
 
 .mainView-menuPanel {
-
-    width: 60px;
+    min-width: var(--menuPanelWidth);
     background-color: #121721;
-    height: calc(100% - $searchpanel-height);
-    //overflow-y: scroll;
-    //overflow-x: hidden;
 
+    .collectionStackingView {
+        scrollbar-width: none;
+    }
+    ::-webkit-scrollbar {
+        width:0;
+    }
 
     .mainView-menuPanel-button {
         padding: 7px;
@@ -265,13 +286,21 @@
     transform: none !important;
 }
 
+.mainView-libraryFlyout-out,
 .mainView-libraryFlyout {
     height: 100%;
     width: 100%;
-    position: absolute;
+    position: relative;
     display: flex;
     flex-direction: column;
     z-index: 2;
+
+    .mainView-contentArea {
+        position: relative;
+        height: 100%; 
+        width: 100%;
+        overflow: visible;
+    }
 
     .mainView-libraryFlyout-close {
         right: 6;
@@ -282,26 +311,27 @@
         margin-bottom: 10;
     }
 }
-
-.mainView-expandFlyoutButton {
-    position: absolute;
-    top: 120px;
-    right: 55px;
-    cursor: pointer;
+.mainView-libraryFlyout-out {
+    transition: width .25s;
+    box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
 }
 
+
 .mainView-libraryHandle {
-    width: 28px;
-    left: calc(100% - 10px);
+    width: var(--flyoutHandleWidth);
     height: 55px;
     top: 50%;
+    left: -10px;
     border: 1px solid black;
     border-radius: 8px;
-    position: absolute;
-    z-index: 2;
+    position: relative;
+    z-index: 1;
     touch-action: none;
     background-color: lightgrey;
     cursor: grab;
+    display: flex;
+    align-items: center;
+    padding: 12px;
 
     .mainView-libraryHandle-icon {
         width: 10px;
@@ -313,7 +343,7 @@
 
 }
 
-.mainView-workspace {
+.mainView-dashboard {
     height: 200px;
     position: relative;
     display: flex;
@@ -325,8 +355,25 @@
     display: flex;
 }
 
-.mainView-recentlyClosed {
+.mainView-inactiveDocs {
     height: 25%;
     position: relative;
     display: flex;
+}
+
+.mainVew-webRef {
+    position: absolute;
+    left: -1000;
+    top: -1000;
+    display: block;
+    width: 200px;
+    height: 800px;
+}
+.mainVew-invisibleWebRef {
+    position: absolute;
+    left: 50;
+    top: 50;
+    display: block;
+    width: 500px;
+    height: 1000px;
 }

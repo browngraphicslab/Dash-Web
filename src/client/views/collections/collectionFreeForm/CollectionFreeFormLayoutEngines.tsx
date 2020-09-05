@@ -10,6 +10,7 @@ import { Id, ToString } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { RefField } from "../../../../fields/RefField";
 import { listSpec } from "../../../../fields/Schema";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 export interface ViewDefBounds {
     type: string;
@@ -359,7 +360,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: toLabel(Math.ceil(maxTime)), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
-    const divider = { type: "div", color: Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimGray" : "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
+    const divider = { type: "div", color: CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimGray" : "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
     return normalizeResults(panelDim, fontHeight, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {

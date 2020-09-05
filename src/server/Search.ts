@@ -7,11 +7,10 @@ export namespace Search {
 
     export async function updateDocument(document: any) {
         try {
-            const res = await rp.post(pathTo("update"), {
+            return await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify([document])
             });
-            return res;
         } catch (e) {
             // console.warn("Search error: " + e + document);
         }
@@ -19,11 +18,10 @@ export namespace Search {
 
     export async function updateDocuments(documents: any[]) {
         try {
-            const res = await rp.post(pathTo("update"), {
+            return await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(documents)
             });
-            return res;
         } catch (e) {
             // console.warn("Search error: ", e, documents);
         }
@@ -31,9 +29,8 @@ export namespace Search {
 
     export async function search(query: any) {
         try {
-            const searchResults = JSON.parse(await rp.get(pathTo("select"), {
-                qs: query
-            }));
+            const output = await rp.get(pathTo("select"), { qs: query });
+            const searchResults = JSON.parse(output);
             const { docs, numFound } = searchResults.response;
             const ids = docs.map((field: any) => field.id);
             return { ids, numFound, highlighting: searchResults.highlighting };

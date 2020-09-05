@@ -17,6 +17,7 @@ import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
 import { Tooltip } from '@material-ui/core';
+import { all } from 'bluebird';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -89,6 +90,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             }
         }
         DocumentLinksButton.StartLink = undefined;
+        DocumentLinksButton.StartLinkView = undefined;
     }
 
     @action
@@ -112,12 +114,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
 
-        const menuOpener = <label htmlFor={`${guid}`} style={{
-            background: backgroundColor === color ? "black" : backgroundColor,
-            // width: "18px", height: "18px", fontSize: "12.5px",
-            // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
-            // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
-        }}
+        const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "default", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
             <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
         </label>;
@@ -139,6 +136,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         const scalable = pair.layout.onClick || pair.layout.onDragStart;
                         return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
+                                pointerEvents: "all",
                                 width: scalable ? (nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize) : undefined,
                                 height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
                             }}  >
@@ -166,6 +164,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 docFilters={this.props.docFilters}
+                                searchFilterDocs={this.props.searchFilterDocs}
                                 ContainingCollectionView={undefined}
                                 ContainingCollectionDoc={undefined} />
                         </div>;
@@ -191,9 +190,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             Clear
                         </span>
                     </Tooltip>
-
-                    {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
-                        onClick={this.exitLongLinks} /> */}
 
                 </span> : null}
             </div>

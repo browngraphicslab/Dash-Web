@@ -62,7 +62,7 @@ export class SearchManager extends ApiManager {
             subscription: "/dashsearch",
             secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
-                ["q", "fq", "start", "rows", "sort", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+                ["q", "fq", "start", "rows", "sort", "hl.maxAnalyzedChars", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                 if (solrQuery.q === undefined) {
                     res.send([]);
                     return;

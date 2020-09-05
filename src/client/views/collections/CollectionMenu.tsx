@@ -5,45 +5,48 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
-import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { WebField } from "../../../fields/URLField";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
+import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import AntimodeMenu from "../AntimodeMenu";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { EditableView } from "../EditableView";
-import GestureOverlay from "../GestureOverlay";
+import { GestureOverlay } from "../GestureOverlay";
 import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
-import RichTextMenu from "../nodes/formattedText/RichTextMenu";
+import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
+import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { TabDocView } from "./TabDocView";
 
 @observer
-export default class CollectionMenu extends AntimodeMenu {
-    static Instance: CollectionMenu;
+export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
+    @observable static Instance: CollectionMenu;
 
     @observable SelectedCollection: DocumentView | undefined;
     @observable FieldKey: string;
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: any) {
         super(props);
         this.FieldKey = "";
-        CollectionMenu.Instance = this;
+        runInAction(() => CollectionMenu.Instance = this);
         this._canFade = false; // don't let the inking menu fade away
-        this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true);
+        runInAction(() => this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true));
         this.jumpTo(300, 300);
     }
 
@@ -130,7 +133,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _contentCommand = {
         params: ["target", "source"], title: "set content",
         script: "getProto(self.target).data = copyField(self.source);",
-        immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
+        immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)),
         initialize: emptyFunction,
     };
     _onClickCommand = {
@@ -161,9 +164,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
-        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
-        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
+        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale']; gotoFrame(self.target, self['target-currentFrame']);",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target._currentFrame = 0; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target._currentFrame; },
     };
     _clusterCommand = {
         params: ["target"], title: "fit content",
@@ -173,18 +176,22 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _fitContentCommand = {
         params: ["target"], title: "toggle clusters",
-        script: "self.target.useClusters = !self.target.useClusters;",
-        immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
+        script: "self.target._useClusters = !self.target._useClusters;",
+        immediate: undoBatch((source: Doc[]) => this.target._useClusters = !this.target._useClusters),
         initialize: emptyFunction
     };
     _saveFilterCommand = {
         params: ["target"], title: "save filter",
-        script: "self.target._docFilters = copyField(self['target-docFilters']);",
-        immediate: undoBatch((source: Doc[]) => this.target._docFilters = undefined),
-        initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
+        script: `self.target._docFilters = compareLists(self['target-docFilters'],self.target._docFilters) ? undefined : copyField(self['target-docFilters']); 
+                 self.target._searchFilterDocs = compareLists(self['target-searchFilterDocs'],self.target._searchFilterDocs) ? undefined: copyField(self['target-searchFilterDocs']);`,
+        immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
+        initialize: (button: Doc) => {
+            button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = CurrentUserUtils.ActiveDashboard._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(CurrentUserUtils.ActiveDashboard._searchFilterDocs as any as ObjectField) : undefined;
+        },
     };
 
-    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
+    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
     @computed get _stacking_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _masonry_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _schema_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._templateCommand, this._narrativeCommand]; }
@@ -366,6 +373,92 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         }
         else return false;
     }
+    @computed
+    get pinButton() {
+        const targetDoc = this.selectedDoc;
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
+            <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderRight: "1px solid gray" }}
+                onClick={e => TabDocView.PinDoc(targetDoc, isPinned)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
+            </button>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    onAlias = () => {
+        if (this.selectedDoc && this.selectedDocumentView) {
+            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
+            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            // copy.y = NumCast(this.selectedDoc.y) + 30;
+            // this.selectedDocumentView.props.addDocument?.(copy);
+            const alias = Doc.MakeAlias(this.selectedDoc);
+            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            alias.y = NumCast(this.selectedDoc.y) + 30;
+            this.selectedDocumentView.props.addDocument?.(alias);
+        }
+    }
+    private _dragRef = React.createRef<HTMLButtonElement>();
+
+    @observable _aliasDown = false;
+    onAliasButtonDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
+    }
+
+    @undoBatch
+    onAliasButtonMoved = (e: PointerEvent) => {
+        if (this._dragRef.current && this.selectedDoc) {
+            const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
+            const [left, top] = [e.clientX, e.clientY];
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                hideSource: false
+            });
+            return true;
+        }
+        return false;
+    }
+
+    @computed
+    get aliasButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
+            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
+            </button>
+        </Tooltip>;
+    }
+
+    @computed
+    get pinWithViewButton() {
+        const targetDoc = this.selectedDoc;
+        if (targetDoc) {
+            const x = targetDoc._panX;
+            const y = targetDoc._panY;
+            const scale = targetDoc._viewScale;
+        }
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
+            <button className="antidmodeMenu-button" style={{ borderRight: "1px solid gray" }}
+                onClick={e => {
+                    if (targetDoc) {
+                        TabDocView.PinDoc(targetDoc, false);
+                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                        const x = targetDoc._panX;
+                        const y = targetDoc._panY;
+                        const scale = targetDoc._viewScale;
+                        activeDoc.presPinView = true;
+                        activeDoc.presPinViewX = x;
+                        activeDoc.presPinViewY = y;
+                        activeDoc.presPinViewScale = scale;
+                    }
+                }}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-marker" />
+            </button>
+        </Tooltip>;
+    }
+
 
     render() {
         return (
@@ -391,6 +484,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}
+                        {this.aliasButton}
+                        {this.pinButton}
+                        {this.pinWithViewButton}
                     </div>
                     {this.subChrome}
                 </div>
@@ -429,7 +525,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
         if (this.selectedDoc) {
-            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+            const layoutField = Doc.LayoutField(this.selectedDoc);
+            return StrCast(layoutField).includes("FormattedText") ||
+                (layoutField instanceof Doc && StrCast(layoutField.layout).includes("FormattedText"));
         }
         else return false;
     }
@@ -437,25 +535,25 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        const currentFrame = Cast(this.document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.document.currentFrame = 0;
+            this.document._currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
-        this.document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        this.document.lastFrame = Math.max(NumCast(this.document.currentFrame), NumCast(this.document.lastFrame));
+        this.document._currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        this.document.lastFrame = Math.max(NumCast(this.document._currentFrame), NumCast(this.document.lastFrame));
     }
     @undoBatch
     @action
     prevKeyframe = (): void => {
-        const currentFrame = Cast(this.document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.document.currentFrame = 0;
+            this.document._currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
+        this.document._currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
     @undoBatch
     @action
@@ -605,6 +703,141 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
+    onUrlDrop = (e: React.DragEvent) => {
+        const { dataTransfer } = e;
+        const html = dataTransfer.getData("text/html");
+        const uri = dataTransfer.getData("text/uri-list");
+        const url = uri || html || this._url;
+        const newurl = url.startsWith(window.location.origin) ?
+            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitURL(newurl);
+        e.stopPropagation();
+    }
+    onUrlDragover = (e: React.DragEvent) => {
+        e.preventDefault();
+    }
+
+    @computed get _url() {
+        return this.selectedDoc?.data instanceof WebField ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : Field.toString(this.selectedDoc?.data as Field);
+    }
+
+    set _url(value) {
+        if (this.selectedDoc) {
+            Doc.GetProto(this.selectedDoc).data = new WebField(value);
+            Doc.SetInPlace(this.selectedDoc, "title", value, true);
+            const annots = Doc.GetProto(this.selectedDoc)["data-annotations-" + this.urlHash(value)];
+            Doc.GetProto(this.selectedDoc)["data-annotations"] = annots instanceof ObjectField ? ObjectField.MakeCopy(annots) : new List<Doc>([]);
+        }
+    }
+
+    @action
+    submitURL = (url: string) => {
+        if (!url.startsWith("http")) url = "http://" + url;
+        try {
+            const selectedDoc = this.selectedDoc;
+            if (selectedDoc) {
+                const URLy = new URL(url);
+                const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
+                const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
+                const annos = DocListCast(selectedDoc["data-annotations"]);
+                if (Field.toString(selectedDoc.data as Field) === Field.toString(new WebField(URLy))) {
+                    Doc.GetProto(selectedDoc).data = undefined;
+                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 0);
+                } else {
+                    if (url) {
+                        Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(annos);
+                        if (history === undefined) {
+                            selectedDoc["data-history"] = new List<string>([this._url]);
+                        } else {
+                            history.push(this._url);
+                        }
+                        future && (future.length = 0);
+                    }
+                    this._url = url;
+                }
+            }
+        } catch (e) {
+            console.log("WebBox URL error:" + url);
+        }
+    }
+
+    urlHash(s: string) {
+        return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+    }
+
+    onValueKeyDown = async (e: React.KeyboardEvent) => {
+        e.key === "Enter" && this.submitURL(this._keyInput.current!.value);
+        e.stopPropagation();
+    }
+
+    @action
+    forward = () => {
+        const selectedDoc = this.selectedDoc;
+        if (selectedDoc) {
+            const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
+            const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
+            if (future?.length) {
+                history?.push(this._url);
+                Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(selectedDoc["data-annotations"]));
+                const newurl = future.pop()!;
+                Doc.GetProto(selectedDoc).data = new WebField(new URL(this._url = newurl));
+                Doc.GetProto(selectedDoc)["data-annotations"] = new List<Doc>(DocListCast(selectedDoc["data-annotations-" + this.urlHash(newurl)]));
+            }
+        }
+    }
+
+    @action
+    back = () => {
+        const selectedDoc = this.selectedDoc;
+        if (selectedDoc) {
+            const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
+            const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
+            if (history?.length) {
+                if (future === undefined) selectedDoc["data-future"] = new List<string>([this._url]);
+                else future.push(this._url);
+                Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(selectedDoc["data-annotations"]));
+                const newurl = history.pop()!;
+                Doc.GetProto(selectedDoc).data = new WebField(new URL(this._url = newurl));
+                Doc.GetProto(selectedDoc)["data-annotations"] = new List<Doc>(DocListCast(selectedDoc["data-annotations-" + this.urlHash(newurl)]));
+            }
+        }
+    }
+
+    private _keyInput = React.createRef<HTMLInputElement>();
+
+    @computed get urlEditor() {
+        return (
+            <div className="webBox-buttons"
+                onDrop={this.onUrlDrop}
+                onDragOver={this.onUrlDragover} style={{ display: "flex" }}>
+                <input className="webpage-urlInput" key={this._url}
+                    placeholder="ENTER URL"
+                    defaultValue={this._url}
+                    onDrop={this.onUrlDrop}
+                    onDragOver={this.onUrlDragover}
+                    onKeyDown={this.onValueKeyDown}
+                    onClick={(e) => {
+                        this._keyInput.current!.select();
+                        e.stopPropagation();
+                    }}
+                    ref={this._keyInput}
+                />
+                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", maxWidth: "250px", }}>
+                    <button className="submitUrl" onClick={() => this.submitURL(this._keyInput.current!.value)} onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
+                        GO
+                    </button>
+                    <button className="submitUrl" onClick={this.back}>
+                        <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
+                    </button>
+                    <button className="submitUrl" onClick={this.forward}>
+                        <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+
     @observable viewType = this.selectedDoc?._viewType;
 
     render() {
@@ -625,7 +858,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 {!this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
                     <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
                         onClick={action(() => this.document.editing = !this.document.editing)} >
-                        {NumCast(this.document.currentFrame)}
+                        {NumCast(this.document._currentFrame)}
                     </div>
                 </Tooltip> : null}
                 {!this.isText && !this.props.isDoc ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
@@ -635,16 +868,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 </Tooltip> : null}
 
                 {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
-                    <Tooltip key="hypothesis" title={<div className="dash-tooltip">Use Hypothesis</div>} placement="bottom">
-                        <button className={"antimodeMenu-button"} key="hypothesis"
-                            style={{
-                                backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
-                                borderRight: "1px solid gray"
-                            }}
-                            onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
-                            <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
-                        </button>
-                    </Tooltip>
+                    this.urlEditor
                 }
                 {!this.isText ?
                     <>
@@ -655,7 +879,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </> :
                     (null)
                 }
-                {this.isText ? <RichTextMenu key="rich" /> : null}
+                {this.isText ? <RichTextMenu /> : null}
             </div>;
     }
 }
@@ -677,15 +901,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
             if (docs instanceof Doc) {
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
-                    key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
-                    key.indexOf("lastModified") >= 0 || (key[0].toUpperCase() === key[0] &&
-                        key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
+                    key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
+                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }
@@ -933,16 +1156,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     get numCols() { return NumCast(this.document.gridNumCols, 10); }
 
     /**
-     * Sets the value of `numCols` on the grid's Document to the value entered.
-     */
-    @undoBatch
-    onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" || e.key === "Tab") {
-            if (e.currentTarget.valueAsNumber > 0) {
-                this.document.gridNumCols = e.currentTarget.valueAsNumber;
-            }
-
-        }
+    * Sets the value of `numCols` on the grid's Document to the value entered.
+    */
+    onNumColsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.currentTarget.valueAsNumber > 0) undoBatch(() => this.document.gridNumCols = e.currentTarget.valueAsNumber)();
     }
 
     /**
@@ -980,9 +1197,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     onDecrementButtonClick = () => {
         this.clicked = true;
-        if (!this.decrementLimitReached) {
+        if (this.numCols > 1 && !this.decrementLimitReached) {
             this.entered && (this.document.gridNumCols as number)++;
             undoBatch(() => this.document.gridNumCols = this.numCols - 1)();
+            if (this.numCols === 1) this.decrementLimitReached = true;
         }
         this.entered = false;
     }
@@ -1005,7 +1223,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     decrementValue = () => {
         this.entered = true;
         if (!this.clicked) {
-            if (this.numCols !== 1) {
+            if (this.numCols > 1) {
                 this.document.gridNumCols = this.numCols - 1;
             }
             else {
@@ -1038,9 +1256,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.numCols.toString()} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
-                    <input className="columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
-                    <input className="columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
+                    <input className="collectionGridViewChrome-entryBox" type="number" value={this.numCols} onChange={this.onNumColsChange} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                    <input className="collectionGridViewChrome-columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
+                    <input className="collectionGridViewChrome-columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
                 </span>
                 {/* <span className="grid-control">
                     <span className="grid-icon">
@@ -1082,3 +1300,14 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         );
     }
 }
+Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
+    const dataField = doc[Doc.LayoutFieldKey(doc)];
+    const childDocs = DocListCast(dataField);
+    const currentFrame = Cast(doc._currentFrame, "number", null);
+    if (currentFrame === undefined) {
+        doc._currentFrame = 0;
+        CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
+    }
+    CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
+    doc._currentFrame = Math.max(0, newFrame);
+});

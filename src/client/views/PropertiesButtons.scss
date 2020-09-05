@@ -43,6 +43,13 @@ $linkGap : 3px;
         cursor: pointer;
     }
 }
+.propertiesButtons-linkButton-empty.toggle-on {
+    background-color: white;
+    color: black;
+}
+.propertiesButtons-linkButton-empty.toggle-off {
+    color: white;
+}
 
 .propertiesButtons {
     margin-top: 3px;

@@ -11,7 +11,7 @@ import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
-import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
+import { GoogleAuthenticationManager } from "../GoogleAuthenticationManager";
 import Photos = require('googlephotos');
 
 export namespace GooglePhotos {

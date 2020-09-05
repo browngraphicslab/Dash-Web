@@ -18,14 +18,14 @@ import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
-import { MenuIconBox } from "./MenuIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
+import { FormattedTextBox, FormattedTextBoxProps } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
 import { SearchBox } from "../search/SearchBox";
+import { FilterBox } from "./FilterBox";
 import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { LinkAnchorBox } from "./LinkAnchorBox";
@@ -93,7 +93,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
 }
 
 @observer
-export class DocumentContentsView extends React.Component<DocumentViewProps & {
+export class DocumentContentsView extends React.Component<DocumentViewProps & FormattedTextBoxProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
@@ -190,9 +190,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 blacklistedAttrs={[]}
                 renderInWrapper={false}
                 components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, MenuIconBox, LabelBox, SliderBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                     ScreenshotBox, HTMLtag, ComparisonBox
                 }}

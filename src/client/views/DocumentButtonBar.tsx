@@ -1,44 +1,33 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faPhotoVideo, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import { Docs, DocUtils } from '../documents/Documents';
+import { Docs } from '../documents/Documents';
+import { DocumentType } from '../documents/DocumentTypes';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DragManager } from '../util/DragManager';
-import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
-import './collections/ParentDocumentSelector.scss';
+import { SelectionManager } from '../util/SelectionManager';
+import { SharingManager } from '../util/SharingManager';
+import { CollectionDockingView } from './collections/CollectionDockingView';
+import { TabDocView } from './collections/TabDocView';
 import './DocumentButtonBar.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { Tooltip } from '@material-ui/core';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faLink);
-library.add(faTag);
-library.add(faTimes);
-library.add(faArrowAltCircleDown);
-library.add(faArrowAltCircleUp);
-library.add(faArrowAltCircleRight);
-library.add(faStopCircle);
-library.add(faCheckCircle);
-library.add(faCloudUploadAlt);
-library.add(faSyncAlt);
-library.add(faShare);
-library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -164,11 +153,11 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         e.preventDefault();
                         let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                         if (!googleDoc) {
-                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
-                        CollectionDockingView.AddRightSplit(googleDoc);
+                        CollectionDockingView.AddSplit(googleDoc, "right");
                     } else if (e.altKey) {
                         e.preventDefault();
                         window.open(googleDocUrl);
@@ -195,14 +184,54 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        // More than 1 document selected then all must be in presentation for isPinned to be true (then it will unpin all)
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
+                if (Doc.isDocPinned(docView.props.Document)) isPinned = true;
+                else isPinned = false;
+            });
+        }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
-                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, isPinned))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
             </div></Tooltip>;
+    }
+
+    @computed
+    get shareButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
+            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
+    get annotateButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isAnnotating = targetDoc?.isAnnotating;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
+            <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
+                onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
+    get moreButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Properties Panel"}</div></>}>
+            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={action(e =>
+                CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h"
+                />
+            </div></Tooltip >;
     }
 
     @computed
@@ -218,17 +247,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                 </Flyout>
             </div></Tooltip>;
     }
-
-    @computed
-    get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Document={this.view0.props.Document} addDocTab={(doc, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
-                    this.view0?.props.addDocTab(doc, "onRight");
-            return true;
-        }} />;
-    }
-
     @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
@@ -293,12 +311,21 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            {/* <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
+            {!Doc.UserDoc()["documentLinksButton-hideEnd"] ? (null) : <div className="documentButtonBar-button">
+                {this.shareButton}
+            </div>}
+            {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
+                {this.annotateButton}
+            </div>}
+            <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
-            </div> */}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.moreButton}
+            </div>
         </div>;
     }
 }

@@ -20,14 +20,14 @@ export class DateField extends ObjectField {
     }
 
     toString() {
-        return `${this.date.toISOString()}`;
+        return `${this.date.toLocaleString()}`;
     }
 
     [ToScriptString]() {
         return `new DateField(new Date(${this.date.toISOString()}))`;
     }
     [ToString]() {
-        return this.date.toISOString();
+        return this.date.toLocaleString();
     }
 
     getDate() {

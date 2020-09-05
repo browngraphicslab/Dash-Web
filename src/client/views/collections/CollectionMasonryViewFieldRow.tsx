@@ -140,7 +140,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
         const docs = this.props.parent.childDocList;
         return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);

@@ -39,7 +39,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     showTemplate = (): void => {
         const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
-        dragFactory && this.props.addDocTab(dragFactory, "onRight");
+        dragFactory && this.props.addDocTab(dragFactory, "add:right");
     }
     dragAsTemplate = (): void => {
         this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
@@ -63,15 +63,18 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc, this.props.renderDepth)));
-        const shape = StrCast(this.layoutDoc.iconShape, "round");
-
+        const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
+        const icon = StrCast(this.dataDoc.icon, "user") as any;
+        const presSize = shape === 'round' ? 25 : 30;
+        const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
+            style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
         const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,
                 backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "",
             }}>
             <div className="menuButton-wrap">
-                {<FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
+                {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={icon} color={color}
                     size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 {this.props.Document.watchedDocuments ? <FontIconBadge collection={Cast(this.props.Document.watchedDocuments, Doc, null)} /> : (null)}

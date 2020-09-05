@@ -1,4 +1,4 @@
-import * as React from "react";
+
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
@@ -10,34 +10,35 @@ import {
     faAlignRight, faAlignLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, reaction, trace, runInAction } from 'mobx';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
-import { Doc, DocListCast } from '../fields/Doc';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
+import * as React from "react";
 import { Docs, DocumentOptions } from '../client/documents/Documents';
-import { Scripting } from '../client/util/Scripting';
-import { DocumentView } from '../client/views/nodes/DocumentView';
-import { Transform } from '../client/util/Transform';
-import "./MobileInterface.scss";
-import "./ImageUpload.scss";
-import "./AudioUpload.scss";
-import SettingsManager from '../client/util/SettingsManager';
-import { Uploader } from "./ImageUpload";
-import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
-import { InkTool } from '../fields/InkField';
-import GestureOverlay from "../client/views/GestureOverlay";
-import { ScriptField } from "../fields/ScriptField";
-import { RadialMenu } from "../client/views/nodes/RadialMenu";
-import { UndoManager } from "../client/util/UndoManager";
-import { List } from "../fields/List";
-import { AudioUpload } from "./AudioUpload";
-import { Cast, FieldValue } from '../fields/Types';
-import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
-import { AudioBox } from "../client/views/nodes/AudioBox";
-import { CollectionViewType } from "../client/views/collections/CollectionView";
 import { DocumentType } from "../client/documents/DocumentTypes";
-import { CollectionFreeFormViewChrome } from "../client/views/collections/CollectionMenu";
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
+import { Scripting } from '../client/util/Scripting';
+import { SettingsManager } from '../client/util/SettingsManager';
+import { Transform } from '../client/util/Transform';
+import { UndoManager } from "../client/util/UndoManager";
+import { TabDocView } from '../client/views/collections/TabDocView';
+import { CollectionViewType } from "../client/views/collections/CollectionView";
+import { GestureOverlay } from "../client/views/GestureOverlay";
+import { AudioBox } from "../client/views/nodes/AudioBox";
+import { DocumentView } from '../client/views/nodes/DocumentView';
+import { RichTextMenu } from "../client/views/nodes/formattedText/RichTextMenu";
+import { RadialMenu } from "../client/views/nodes/RadialMenu";
+import { Doc, DocListCast } from '../fields/Doc';
+import { InkTool } from '../fields/InkField';
+import { List } from "../fields/List";
+import { ScriptField } from "../fields/ScriptField";
+import { Cast, FieldValue } from '../fields/Types';
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
+import { AudioUpload } from "./AudioUpload";
+import { Uploader } from "./ImageUpload";
+import "./AudioUpload.scss";
+import "./ImageUpload.scss";
+import "./MobileInterface.scss";
+import { InkStrokeProperties } from '../client/views/InkStrokeProperties';
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -47,10 +48,11 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
     faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
     faAlignLeft, faAlignRight);
 
+
 @observer
 export class MobileInterface extends React.Component {
     static Instance: MobileInterface;
-    private _library: Doc = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
+    private _library: Promise<Doc>;
     private _mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(Doc.UserDoc());
     @observable private _sidebarActive: boolean = false; //to toggle sidebar display
     @observable private _imageUploadActive: boolean = false; //to toggle image upload
@@ -58,7 +60,7 @@ export class MobileInterface extends React.Component {
     @observable private _menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
     @observable private _homeMenu: boolean = true; // to determine whether currently at home menu
-    @observable private _child: Doc | null = null; // currently selected document
+    @observable private dashboards: Doc | null = null; // currently selected document
     @observable private _activeDoc: Doc = this._mainDoc; // doc updated as the active mobile page is updated (initially home menu)
     @observable private _homeDoc: Doc = this._mainDoc; // home menu as a document
     @observable private _parents: Array<Doc> = []; // array of parent docs (for pathbar)
@@ -67,6 +69,7 @@ export class MobileInterface extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
+        this._library = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
         MobileInterface.Instance = this;
     }
 
@@ -123,7 +126,7 @@ export class MobileInterface extends React.Component {
      * Method called when 'Library' button is pressed on the home screen
      */
     switchToLibrary = async () => {
-        this.switchCurrentView(this._library);
+        this._library.then(library => this.switchCurrentView(library));
         runInAction(() => this._homeMenu = false);
         this.toggleSidebar();
     }
@@ -135,19 +138,19 @@ export class MobileInterface extends React.Component {
     back = () => {
         const header = document.getElementById("header") as HTMLElement;
         const doc = Cast(this._parents.pop(), Doc) as Doc; // Parent document
-        // Case 1: Parent document is 'workspaces'
+        // Case 1: Parent document is 'dashboards'
         if (doc === Cast(this._library, Doc) as Doc) {
-            this._child = null;
-            this.switchCurrentView(this._library);
+            this.dashboards = null;
+            this._library.then(library => this.switchCurrentView(library));
             // Case 2: Parent document is the 'home' menu (root node)
         } else if (doc === Cast(this._homeDoc, Doc) as Doc) {
             this._homeMenu = true;
             this._parents = [];
-            this._child = null;
+            this.dashboards = null;
             this.switchCurrentView(this._homeDoc);
             // Case 3: Parent document is any document
         } else if (doc) {
-            this._child = doc;
+            this.dashboards = doc;
             this.switchCurrentView(doc);
             this._homeMenu = false;
             header.textContent = String(doc.title);
@@ -163,7 +166,7 @@ export class MobileInterface extends React.Component {
         if (!this._homeMenu || this._sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
-            this._child = null;
+            this.dashboards = null;
             this.switchCurrentView(this._homeDoc);
         }
         if (this._sidebarActive) {
@@ -172,14 +175,14 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Return to primary Workspace in library (Workspaces Doc)
+     * Return to primary Dashboard in library (Dashboards Doc)
      */
     @action
     returnMain = () => {
         this._parents = [this._homeDoc];
-        this.switchCurrentView(this._library);
+        this._library.then(library => this.switchCurrentView(library));
         this._homeMenu = false;
-        this._child = null;
+        this.dashboards = null;
     }
 
     /**
@@ -193,7 +196,7 @@ export class MobileInterface extends React.Component {
     /**
      * DocumentView for graphic display of all documents
      */
-    @computed get displayWorkspaces() {
+    @computed get displayDashboards() {
         return !this.mainContainer ? (null) :
             <div style={{ position: "relative", top: '198px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
                 <DocumentView
@@ -219,6 +222,7 @@ export class MobileInterface extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                 />
@@ -242,7 +246,7 @@ export class MobileInterface extends React.Component {
                 this._parents.push(this._activeDoc);
                 this.switchCurrentView(doc);
                 this._homeMenu = false;
-                this._child = doc;
+                this.dashboards = doc;
             }
         });
     }
@@ -257,7 +261,7 @@ export class MobileInterface extends React.Component {
         this._parents.push(this._activeDoc);
         this.switchCurrentView(doc);
         this._homeMenu = false;
-        this._child = doc;
+        this.dashboards = doc;
         this.toggleSidebar();
     }
 
@@ -286,15 +290,16 @@ export class MobileInterface extends React.Component {
 
     // Handles when user clicks on a document in the pathbar
     @action
-    handlePathClick = (doc: Doc, index: number) => {
-        if (doc === this._library) {
-            this._child = null;
+    handlePathClick = async (doc: Doc, index: number) => {
+        const library = await this._library;
+        if (doc === library) {
+            this.dashboards = null;
             this.switchCurrentView(doc);
             this._parents.length = index;
         } else if (doc === this._homeDoc) {
             this.returnHome();
         } else {
-            this._child = doc;
+            this.dashboards = doc;
             this.switchCurrentView(doc);
             this._parents.length = index;
         }
@@ -319,13 +324,13 @@ export class MobileInterface extends React.Component {
                 </div>
             );
         }
-        // stores workspace documents as 'workspaces' variable
-        let workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
-        if (this._child) {
-            workspaces = this._child;
+        // stores dashboards documents as 'dashboards' variable
+        let dashboards = CurrentUserUtils.MyDashboards;
+        if (this.dashboards) {
+            dashboards = this.dashboards;
         }
         // returns a list of navbar buttons as 'buttons'
-        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+        const buttons = DocListCast(dashboards.data).map((doc: Doc, index: any) => {
             if (doc.type !== "ink") {
                 return (
                     <div
@@ -355,7 +360,7 @@ export class MobileInterface extends React.Component {
                 {this.renderPathbar()}
                 <div className={`sidebar ${this._sidebarActive ? "active" : ""}`}>
                     <div className="sidebarButtons">
-                        {this._child ?
+                        {this.dashboards ?
                             <>
                                 {buttons}
                                 <div
@@ -363,7 +368,7 @@ export class MobileInterface extends React.Component {
                                     onClick={this.returnMain}
                                     style={{ opacity: 0.7 }}>
                                     <FontAwesomeIcon className="right" icon="angle-double-left" size="lg" />
-                                    <div className="item-type">Return to workspaces</div>
+                                    <div className="item-type">Return to dashboards</div>
                                 </div>
                             </> :
                             <>
@@ -371,9 +376,9 @@ export class MobileInterface extends React.Component {
                                 <div
                                     className="item"
                                     style={{ opacity: 0.7 }}
-                                    onClick={() => this.createNewWorkspace()}>
+                                    onClick={() => this.createNewDashboard()}>
                                     <FontAwesomeIcon className="right" icon="plus" size="lg" />
-                                    <div className="item-type">Create New Workspace</div>
+                                    <div className="item-type">Create New Dashboard</div>
                                 </div>
                             </>
                         }
@@ -386,27 +391,27 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Handles the 'Create New Workspace' button in the menu (taken from MainView.tsx)
+     * Handles the 'Create New Dashboard' button in the menu (taken from MainView.tsx)
      */
     @action
-    createNewWorkspace = async (id?: string) => {
-        const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
-        const workspaceCount = DocListCast(workspaces.data).length + 1;
+    createNewDashboard = async (id?: string) => {
+        const scens = CurrentUserUtils.MyDashboards;
+        const dashboardCount = DocListCast(scens.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            title: "Collection " + workspaceCount,
+            title: "Collection " + dashboardCount,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
-        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
-        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
+        const cloneDashboard = ScriptField.MakeScript(`cloneDashboard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Dashboard Layout"]);
 
-        Doc.AddDocToList(workspaces, "data", workspaceDoc);
+        Doc.AddDocToList(scens, "data", dashboardDoc);
     }
 
     // Button for switching between pen and ink mode
@@ -436,7 +441,7 @@ export class MobileInterface extends React.Component {
     // DocButton that uses UndoManager and handles the opacity change if CanUndo is true
     @computed get undo() {
         if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
-            this._activeDoc !== Doc.UserDoc()["sidebar-sharing"] && this._activeDoc.title !== "WORKSPACES") {
+            this._activeDoc !== Doc.UserDoc().mySharedDocs && this._activeDoc.title !== "WORKSPACES") {
             return (
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
@@ -454,7 +459,7 @@ export class MobileInterface extends React.Component {
     // DocButton that uses UndoManager and handles the opacity change if CanRedo is true
     @computed get redo() {
         if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
-            this._activeDoc !== Doc.UserDoc()["sidebar-sharing"] && this._activeDoc.title !== "WORKSPACES") {
+            this._activeDoc !== Doc.UserDoc().mySharedDocs && this._activeDoc.title !== "WORKSPACES") {
             return (
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
@@ -512,7 +517,7 @@ export class MobileInterface extends React.Component {
             return <div className="docButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Unpin from presentation" : "Pin to presentation"}
                 style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-                onClick={e => DockedFrameRenderer.PinDoc(this._activeDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(this._activeDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div>;
         } else return (null);
@@ -605,12 +610,12 @@ export class MobileInterface extends React.Component {
 
     // Returns the image upload pop up
     @computed get uploadImage() {
-        const doc = !this._homeMenu ? this._activeDoc : Cast(Doc.UserDoc()["sidebar-sharing"], Doc) as Doc;
+        const doc = !this._homeMenu ? this._activeDoc : Cast(Doc.UserDoc().mySharedDocs, Doc) as Doc;
         return <Uploader Document={doc} />;
     }
 
     // Radial menu can only be used if it is a colleciton and it is not a homeDoc 
-    // (and cannot be used on Workspace to avoid pin to presentation opening on right)
+    // (and cannot be used on Dashboard to avoid pin to presentation opening on right)
     @computed get displayRadialMenu() {
         return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
             this._activeDoc._viewType !== CollectionViewType.Docking ? <RadialMenu /> : (null);
@@ -628,7 +633,7 @@ export class MobileInterface extends React.Component {
      */
     @action
     switchToMobileUploads = () => {
-        const mobileUpload = Cast(Doc.UserDoc()["sidebar-sharing"], Doc) as Doc;
+        const mobileUpload = Cast(Doc.UserDoc().mySharedDocs, Doc) as Doc;
         this.switchCurrentView(mobileUpload);
         this._homeMenu = false;
     }
@@ -655,7 +660,7 @@ export class MobileInterface extends React.Component {
                         {this.drawInk}
                         {this.uploadImageButton}
                     </div>
-                    {this.displayWorkspaces}
+                    {this.displayDashboards}
                     {this.renderDefaultContent}
                 </GestureOverlay>
                 {this.displayRadialMenu}
@@ -667,7 +672,7 @@ export class MobileInterface extends React.Component {
 
 //Global functions for mobile menu
 Scripting.addGlobal(function switchToMobileLibrary() { return MobileInterface.Instance.switchToLibrary(); },
-    "opens the library to navigate through workspaces on Dash Mobile");
+    "opens the library to navigate through dashboards on Dash Mobile");
 Scripting.addGlobal(function openMobileUploads() { return MobileInterface.Instance.toggleUpload(); },
     "opens the upload files menu for Dash Mobile");
 Scripting.addGlobal(function switchToMobileUploadCollection() { return MobileInterface.Instance.switchToMobileUploads(); },

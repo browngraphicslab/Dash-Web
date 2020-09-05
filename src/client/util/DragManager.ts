@@ -117,10 +117,11 @@ export namespace DragManager {
     }
 
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dropAction?: dropActionType) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = [];
             this.offset = [0, 0];
+            this.dropAction = dropAction;
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
@@ -143,7 +144,7 @@ export namespace DragManager {
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
         linkDocument?: Doc;
-        linkDropCallback?: (data: LinkDragData) => void;
+        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -160,7 +161,7 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.offset = [0, 0];
         }
-        linkedToDoc?: boolean;
+        linkDocument?: Doc;
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
@@ -168,6 +169,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
+        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
     }
 
     export function MakeDropTarget(
@@ -434,7 +436,7 @@ export namespace DragManager {
 
             const target = document.elementFromPoint(e.x, e.y);
 
-            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
+            if (target && !Doc.UserDoc()._noAutoscroll && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
                 const autoScrollHandler = () => {
                     target.dispatchEvent(
                         new CustomEvent<React.DragEvent>("dashDragAutoScroll", {

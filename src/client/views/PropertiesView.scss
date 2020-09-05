@@ -6,7 +6,7 @@
     cursor: auto;
 
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -47,7 +47,7 @@
     }
 
     .propertiesView-settings {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
         font-size: 12.5px;
         font-weight: bold;
@@ -87,7 +87,7 @@
     }
 
     .propertiesView-sharing {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-sharing-title {
@@ -121,6 +121,19 @@
             padding: 10px;
             margin-left: 5px;
 
+            .propertiesView-acls-checkbox {
+                float: right;
+                height: 20px;
+                margin-top: -20px;
+                margin-right: -15;
+
+                .propertiesView-acls-checkbox-text {
+                    font-size: 7px;
+                    margin-top: -10px;
+                    margin-left: 6px;
+                }
+            }
+
             .change-buttons {
                 display: flex;
 
@@ -137,7 +150,7 @@
     }
 
     .propertiesView-appearance {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-appearance-title {
@@ -174,7 +187,7 @@
     }
 
     .propertiesView-transform {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-transform-title {
@@ -258,7 +271,8 @@
         // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
-        overflow-y: scroll;
+        overflow-y: auto;
+        width: 92%;
 
         .propertiesView-sharingTable-item {
 
@@ -267,7 +281,6 @@
             padding: 3px;
             align-items: center;
             border-bottom: 0.5px solid grey;
-            cursor: pointer;
 
             &:hover .propertiesView-sharingTable-item-name {
                 overflow-x: unset;
@@ -290,7 +303,6 @@
                 margin-left: auto;
 
                 .permissions-select {
-                    z-index: 1;
                     border: none;
                     background-color: inherit;
                     width: 75px;
@@ -310,7 +322,7 @@
     }
 
     .propertiesView-fields {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-fields-title {
@@ -383,6 +395,41 @@
         }
     }
 
+    .propertiesView-contexts {
+
+        .propertiesView-contexts-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-contexts-title-icon {
+                float: right;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-contexts-content {
+            overflow: hidden;
+            padding: 10px;
+        }
+
+    }
+
     .propertiesView-layout {
 
         .propertiesView-layout-title {
@@ -419,7 +466,7 @@
     }
 
     .propertiesView-presTrails {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-presTrails-title {
@@ -718,7 +765,9 @@
     border: none;
     padding: 6px;
     padding-bottom: 2px;
-
+    background: #eeeeee;
+    border-top: 1px solid;
+    border-left: 1px solid;
 
     &:hover {
         border: 0.75px solid rgb(122, 28, 28);

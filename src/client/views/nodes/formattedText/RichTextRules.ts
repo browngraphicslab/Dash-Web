@@ -3,13 +3,13 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { DataSym, Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
 import { ComputedField } from "../../../../fields/ScriptField";
-import { Cast, NumCast } from "../../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
-import RichTextMenu from "./RichTextMenu";
+import { RichTextMenu } from "./RichTextMenu";
 import { schema } from "./schema_rts";
 import { List } from "../../../../fields/List";
 
@@ -92,7 +92,7 @@ export class RichTextRules {
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
                     const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9pt", title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
-                    textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
+                    textDocInline["title-custom"] = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
                     textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
                     textDocInline._textContext = ComputedField.MakeFunction(`copyField(self.${inlineFieldKey})`);
@@ -279,7 +279,7 @@ export class RichTextRules {
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
                                 DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
-                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "add:right", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
@@ -321,7 +321,11 @@ export class RichTextRules {
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    this.Document[DataSym]["#" + tag] = ".";
+                    this.Document[DataSym]["#" + tag] = "#" + tag;
+                    const tags = StrCast(this.Document.tags, ":");
+                    if (!tags.includes(`#${tag}:`)) {
+                        this.Document[DataSym].tags = `"${tags + "#" + tag + ':'}"`;
+                    }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" + tag });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),

@@ -1,5 +1,5 @@
-import { runInAction, action } from "mobx";
-import { extname, basename } from "path";
+import { runInAction } from "mobx";
+import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
@@ -12,28 +12,28 @@ import { ComputedField, ScriptField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
 import { MessageStore } from "../../server/Message";
+import { Upload } from "../../server/SharedMediaTypes";
 import { OmitKeys, Utils } from "../../Utils";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { DocServer } from "../DocServer";
+import { Networking } from "../Network";
 import { DocumentManager } from "../util/DocumentManager";
 import { dropActionType } from "../util/DragManager";
 import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
-import { UndoManager } from "../util/UndoManager";
-import { DocumentType } from "./DocumentTypes";
-import { SearchBox } from "../views/search/SearchBox";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
 import { ContextMenuProps } from "../views/ContextMenuItem";
+import { DFLT_IMAGE_NATIVE_DIM } from "../views/globalCssVariables.scss";
 import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -47,11 +47,13 @@ import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { Networking } from "../Network";
-import { Upload } from "../../server/SharedMediaTypes";
+import { DocumentType } from "./DocumentTypes";
+import { FilterBox } from "../views/nodes/FilterBox";
 const path = require('path');
 
+const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 export interface DocumentOptions {
     system?: boolean;
     _autoHeight?: boolean;
@@ -72,6 +74,7 @@ export interface DocumentOptions {
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
+    _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
@@ -101,12 +104,10 @@ export interface DocumentOptions {
     page?: number;
     description?: string; // added for links
     _viewScale?: number;
-    isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
-    hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
@@ -128,27 +129,26 @@ export interface DocumentOptions {
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
-    isBackground?: boolean;
+    _isBackground?: boolean;
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
     _fontWeight?: number;
     _fontFamily?: string;
-    curPage?: number;
-    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _curPage?: number;
+    _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
     presTransition?: number; //the time taken for the transition TO a document
     presDuration?: number; //the duration of the slide in presentation view
     presProgressivize?: boolean;
-    // xArray?: number[];
-    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
+    dontRegisterView?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
@@ -178,21 +178,25 @@ export interface DocumentOptions {
     clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
-    UseCors?: boolean;
+    useCors?: boolean;
     icon?: string;
     target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+    cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
-    treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
+    treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
+    treeViewDefaultExpandedView?: string; // default expanded view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -242,6 +246,10 @@ export namespace Docs {
                 layout: { view: SearchBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
+            [DocumentType.FILTER, {
+                layout: { view: FilterBox, dataField: defaultDataKey },
+                options: { _width: 400 }
+            }],
             [DocumentType.COLOR, {
                 layout: { view: ColorBox, dataField: defaultDataKey },
                 options: { _nativeWidth: 220, _nativeHeight: 300 }
@@ -268,7 +276,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: defaultDataKey },
-                options: { currentTimecode: 0 },
+                options: { _currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: defaultDataKey },
@@ -276,7 +284,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: defaultDataKey },
-                options: { curPage: 1 }
+                options: { _curPage: 1 }
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: defaultDataKey },
@@ -331,7 +339,7 @@ export namespace Docs {
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
-                options: { backgroundColor: "transparent" }
+                options: { _fontFamily: "cursive", backgroundColor: "transparent" }
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
@@ -442,7 +450,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view?.LayoutString(layout.dataField);
-            const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
+            const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options });
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
         }
@@ -533,7 +541,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -564,6 +572,7 @@ export namespace Docs {
 
             if (!("creationDate" in protoProps)) {
                 protoProps.creationDate = new DateField;
+                protoProps[`${fieldKey}-lastModified`] = new DateField;
             }
 
             protoProps.isPrototype = true;
@@ -575,7 +584,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
-            dataDoc.aliases = new List<Doc>();
+            dataDoc.aliases = new List<Doc>([viewDoc]);
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -679,17 +688,19 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
-                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+                dontRegisterChildViews: true,
+                isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
+                treeViewExpandedView: "fields", removeDropProperties: new List(["_isBackground", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
+            linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
+            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
-                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
@@ -718,6 +729,7 @@ export namespace Docs {
             I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
+            I._fontFamily = "cursive";
             I.author = Doc.CurrentUserEmail;
             I.rotation = 0;
             I.data = new InkField(points);
@@ -749,7 +761,7 @@ export namespace Docs {
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", hideFilterView: true, forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -813,14 +825,19 @@ export namespace Docs {
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
+        export function FilterDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FILTER), undefined, { ...(options || {}) });
+        }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            Doc.GetProto(inst).data = new List<Doc>(documents);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }
 
@@ -840,7 +857,7 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, config.initialWidth, config.path))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth))
                         ]
                     }
                 ]
@@ -868,21 +885,24 @@ export namespace DocUtils {
         }
 
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            if (d.z) return true;
             for (const facetKey of Object.keys(filterFacets)) {
                 const facet = filterFacets[facetKey];
-                const satisfiesFacet = Object.keys(facet).some(value => {
-                    if (facet[value] === "match") {
-                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
-                            const allKeys = Array.from(Object.keys(d));
-                            allKeys.push(...Object.keys(Doc.GetProto(d)));
-                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
-                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
-                        }
-                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                const matches = Object.keys(facet).filter(value => facet[value] === "match");
+                const checks = Object.keys(facet).filter(value => facet[value] === "check");
+                const xs = Object.keys(facet).filter(value => facet[value] === "x");
+                const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
+                const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
+                    if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                        const allKeys = Array.from(Object.keys(d));
+                        allKeys.push(...Object.keys(Doc.GetProto(d)));
+                        const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                        return keys.some(key => Field.toString(d[key] as Field).includes(value));
                     }
-                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                    return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                if (!satisfiesFacet) {
+                if (!satisfiesCheckFacets || !satisfiesMatchFacets || failsNotEqualFacets) {
                     return false;
                 }
             }
@@ -982,7 +1002,7 @@ export namespace DocUtils {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
             layout = CollectionView.LayoutString;
         } else {
-            created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+            created = Docs.Create.TextDocument("", { ...{ _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 25, _autoHeight: true }, ...resolved });
             layout = FormattedTextBox.LayoutString;
         }
         if (created) {
@@ -1040,15 +1060,15 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc()["template-notes"] as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => {
+                event: undoBatch((args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
-                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
                         title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
                     });
                     textDoc.layoutKey = "layout_" + note.title;
                     textDoc[textDoc.layoutKey] = note;
                     docTextAdder(textDoc);
-                },
+                }),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
@@ -1057,7 +1077,7 @@ export namespace DocUtils {
             description: "Add Template Doc ...",
             subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
-                event: (args: { x: number, y: number }) => {
+                event: undoBatch((args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
                     if (newDoc) {
                         newDoc.author = Doc.CurrentUserEmail;
@@ -1065,7 +1085,7 @@ export namespace DocUtils {
                         newDoc.y = y;
                         docAdder(newDoc);
                     }
-                },
+                }),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
@@ -1169,7 +1189,7 @@ export namespace DocUtils {
         }
         const options = optionsCollection as Doc;
         const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        const docFind = `options.data?.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
         targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
         targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
         targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));
@@ -1179,7 +1199,7 @@ export namespace DocUtils {
                 found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
                 found._color = enumeration.color || found._color;
             } else {
-                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
+                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, { ...enumeration, system: true }));
             }
         });
         return optionsCollection;
@@ -1202,8 +1222,10 @@ export namespace DocUtils {
             proto.text = result.rawText;
             proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
             if (Upload.isImageInformation(result)) {
-                proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
-                proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
+                const maxNativeDim = Math.min(Math.max(result.nativeHeight, result.nativeWidth), defaultNativeImageDim);
+                proto["data-nativeOrientation"] = result.exifData?.data?.image?.Orientation;
+                proto["data-nativeWidth"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim * result.nativeWidth / result.nativeHeight : maxNativeDim;
+                proto["data-nativeHeight"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim : maxNativeDim / (result.nativeWidth / result.nativeHeight);
                 proto.contentSize = result.contentSize;
             }
             generatedDocuments.push(doc);
