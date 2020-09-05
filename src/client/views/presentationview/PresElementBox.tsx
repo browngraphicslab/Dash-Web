@@ -21,6 +21,7 @@ import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -116,8 +117,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @computed get duration() {
         let durationInS: number;
-        if (this.targetDoc.type === DocumentType.AUDIO) durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime);
-        else if (this.targetDoc.presDuration) durationInS = NumCast(this.targetDoc.presDuration) / 1000;
+        if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10 }
+        else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
         return "D: " + durationInS + "s";
     }
@@ -131,6 +132,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _titleRef: React.RefObject<EditableView> = React.createRef();
+
 
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -139,10 +142,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.preventDefault();
         if (element && !(e.ctrlKey || e.metaKey)) {
             if (PresBox.Instance._eleArray.includes(this._itemRef.current!)) {
-                console.log('includes');
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
-                console.log('does not include');
                 PresBox.Instance._selectedArray = [];
                 PresBox.Instance._selectedArray.push(this.rootDoc);
                 PresBox.Instance._eleArray = [];
@@ -155,7 +156,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     headerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-        console.log('test');
         e.stopPropagation();
         e.preventDefault();
         DragManager.docsBeingDragged = [];
@@ -206,7 +206,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @action
     toggleProperties = () => {
-        if (CurrentUserUtils.propertiesWidth === 0) {
+        if (CurrentUserUtils.propertiesWidth < 5) {
             CurrentUserUtils.propertiesWidth = 250;
         }
     }
@@ -220,9 +220,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
     });
 
+    @action
+    onSetValue = (value: string) => {
+        this.rootDoc.title = value;
+        return true;
+    }
+
     render() {
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");
-        const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
@@ -238,7 +243,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
                         // Regular click
                     } else {
-                        console.log("regular click");
                         this.props.focus(this.rootDoc);
                         PresBox.Instance._eleArray = [];
                         PresBox.Instance._eleArray.push(this._itemRef.current!);
@@ -263,14 +267,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.indexInPres + 1}.`}
                     </div>
                     <div ref={this._dragRef} className="presElementBox-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
-                        <input className="ribbon-textInput" value={`${this.rootDoc?.title}`} type="text" name="fname"
-                            onPointerDown={e => { e.stopPropagation(); }} onClick={e => { e.stopPropagation(); console.log('title clicked'); }}
-                            onChange={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                runInAction(() => this.rootDoc.title = e.target.value);
-                            }}>
-                        </input>
+                        <EditableView ref={this._titleRef}
+                            contents={this.rootDoc.title}
+                            GetValue={() => StrCast(this.rootDoc.title)}
+                            SetValue={action((value: string) => {
+                                this.onSetValue(value);
+                                return true;
+                            })}
+                        />
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>

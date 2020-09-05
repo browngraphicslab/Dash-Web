@@ -30,6 +30,8 @@ const VideoDocument = makeInterface(documentSchema, timeSchema);
 
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+    static Instance: VideoBox;
+
     static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
@@ -160,6 +162,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
+        VideoBox.Instance = this;
+
         if (this.props.setVideoBox) this.props.setVideoBox(this);
 
         if (this.youtubeVideoId) {

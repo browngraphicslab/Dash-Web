@@ -131,7 +131,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
      **/
     @undoBatch
     @action
-    public static PinDoc(doc: Doc, unpin = false) {
+    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) TabDocView.UnpinDoc(doc);
         else {
             //add this new doc to props.Document
@@ -142,7 +142,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinDoc.presZoomButton = true;
                 pinDoc.context = curPres;
                 Doc.AddDocToList(curPres, "data", pinDoc);
-                if (pinDoc.type === "audio") {
+                if (pinDoc.type === "audio" && !audioRange) {
                     pinDoc.presStartTime = 0;
                     pinDoc.presEndTime = doc.duration;
                 }

@@ -1023,6 +1023,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const type = PresBox.Instance.targetDoc.type;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -1049,7 +1050,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
@@ -1062,11 +1063,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem && type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; Other options
+                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
                         <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>

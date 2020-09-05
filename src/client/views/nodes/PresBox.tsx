@@ -28,6 +28,7 @@ import { AudioBox } from "./AudioBox";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
+import { VideoBox } from "./VideoBox";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -50,7 +51,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
     @observable private progressivizeTools: boolean = false;
-    @observable private moreInfoTools: boolean = false;
     @observable private playTools: boolean = false;
     @observable private presentTools: boolean = false;
     @observable private pathBoolean: boolean = false;
@@ -111,12 +111,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             await Promise.all(pres!);
             if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
         });
-        // await Doc.UserDoc().myPresentations;
-        // const myPresentationsList = DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data);
-        // if (myPresentationsList) {
-        //     console.log(this.rootDoc.title) + "12345";
-        //     if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
-        // }
     }
 
     updateCurrentPresentation = () => {
@@ -149,22 +143,25 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (targetDoc.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
             else targetDoc.editing = true;
             if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
-            // Case 2: Audio or video therefore wait to play the audio or video before moving on
-        } else if ((targetDoc.type === DocumentType.AUDIO) && !this._moveOnFromAudio && this.layoutDoc.presStatus !== 'auto') {
-            AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
-            this._moveOnFromAudio = true;
-            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide
+            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== 'auto') {
+            if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
+            if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
+            activeItem.playNow = false;
+            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             const nextSelected = this.itemIndex + 1;
-            if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.pause();
-            this.gotoDocument(nextSelected, this.itemIndex);
+            if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
+            if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
             const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
-            if (activeNext && targetNext.type === DocumentType.AUDIO && activeNext.playAuto) {
-                AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
-                this._moveOnFromAudio = true;
-            } else this._moveOnFromAudio = false;
+            // If next slide is audio / video 'Play automatically' then the next slide should be played
+            if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+                console.log('play next automatically');
+                if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
+                if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+            } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
+            this.gotoDocument(nextSelected, this.itemIndex);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
-            const nextSelected = 0;
             this.gotoDocument(0, this.itemIndex);
         }
     }
@@ -366,13 +363,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         let activeItem: Doc = this.activeItem;
         let targetDoc: Doc = this.targetDoc;
-        let duration = NumCast(targetDoc.presDuration) + NumCast(targetDoc.presTransition);
+        let duration = NumCast(activeItem.presDuration) + NumCast(targetDoc.presTransition);
         const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
         const load = async () => { // Wrap the loop into an async function for this to work
             for (var i = startSlide; i < this.childDocs.length; i++) {
                 activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
                 targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-                duration = NumCast(targetDoc.presDuration) + NumCast(targetDoc.presTransition);
+                duration = NumCast(activeItem.presDuration) + NumCast(targetDoc.presTransition);
                 if (duration <= 100) { duration = 2500; }
                 if (NumCast(targetDoc.lastFrame) > 0) {
                     for (var f = 0; f < NumCast(targetDoc.lastFrame); f++) {
@@ -553,10 +550,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (audio) {
                     console.log("labelHA`");
                     audio.aliasOf instanceof Doc;
-                    audio.presStartTime = doc.audioStart;
-                    audio.presEndTime = doc.audioEnd;
+                    audio.presStartTime = NumCast(doc.audioStart);
+                    audio.presEndTime = NumCast(doc.audioEnd);
                     audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
-                    TabDocView.PinDoc(audio, false);
+                    TabDocView.PinDoc(audio, false, true);
+                    setTimeout(() => this.removeDocument(doc), 1);
                     return false;
                 }
             } else {
@@ -605,7 +603,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     selectPres = () => {
-        const presDocView = DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc)!;
+        const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc)!;
         SelectionManager.SelectDoc(presDocView, false);
     }
 
@@ -812,7 +810,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 20000) timeInMS = 20000;
-        if (this.targetDoc) this.targetDoc.presDuration = timeInMS;
+        if (this.activeItem) this.activeItem.presDuration = timeInMS;
     }
 
 
@@ -821,8 +819,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc: Doc = this.targetDoc;
         if (activeItem && targetDoc) {
             const transitionSpeed = targetDoc.presTransition ? NumCast(targetDoc.presTransition) / 1000 : 0.5;
-            let duration = targetDoc.presDuration ? NumCast(targetDoc.presDuration) / 1000 : 2;
-            if (targetDoc.type === DocumentType.AUDIO) duration = NumCast(targetDoc.duration);
+            let duration = activeItem.presDuration ? NumCast(activeItem.presDuration) / 1000 : 2;
+            if (activeItem.type === DocumentType.AUDIO) duration = NumCast(activeItem.duration);
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
             activeItem.presMovement = activeItem.presMovement ? activeItem.presMovement : 'Zoom';
             return (
@@ -867,6 +865,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="ribbon-doubleButton">
                             <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton}>Hide before</div></Tooltip>
                             <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton}>Hide after</div></Tooltip>
+                        </div>
+                        <div className="ribbon-doubleButton" style={{ display: "flex" }}>
+                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open document</div>
+                            </Tooltip>
                         </div>
                         <div className="ribbon-doubleButton" >
                             <div className="presBox-subheading">Slide Duration</div>
@@ -955,7 +958,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc && targetDoc) {
                 tagDoc.presTransition = targetDoc.presTransition;
-                tagDoc.presDuration = targetDoc.presDuration;
+                curDoc.presDuration = activeItem.presDuration;
                 tagDoc.presEffect = targetDoc.presEffect;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;
                 curDoc.presMovement = activeItem.presMovement;
@@ -977,13 +980,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.playAuto ? "#aedef8" : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
                                 <div className="ribbon-button" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : "#aedef8" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
                             </div>
+                            {targetDoc.type === DocumentType.VID ? <div className="ribbon-button" style={{ backgroundColor: activeItem.presVidFullScreen ? "#aedef8" : "" }} onClick={() => activeItem.presVidFullScreen = !activeItem.presVidFullScreen}>Full screen</div> : (null)}
                             {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                 <div className="presBox-subheading">Start time</div>
                                 <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
                                     <input className="presBox-input"
                                         style={{ textAlign: 'left', width: 50 }}
                                         type="number" value={NumCast(activeItem.presStartTime)}
-                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presStartTime = Number(val); })} />
+                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })} />
                                 </div>
                             </div> : (null)}
                             {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
@@ -995,9 +999,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presEndTime = Number(val); })} />
                                 </div>
                             </div> : (null)}
-                            <div className="ribbon-doubleButton" style={{ display: "flex" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open document</div>
-                            </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.presPinView ? "#aedef8" : "" }}
                                     onClick={() => {
