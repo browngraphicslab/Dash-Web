@@ -200,7 +200,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) 
     const set = new Set<string>();
     if (facetHeader === "tags") allCollectionDocs.forEach(child => Field.toString(child[facetHeader] as Field).split(":").forEach(key => set.add(key)));
     else allCollectionDocs.forEach(child => set.add(Field.toString(child[facetHeader] as Field)));
-    let facetValues = Array.from(set).filter(v => v);
+    const facetValues = Array.from(set).filter(v => v);
 
     let nonNumbers = 0;
     facetValues.map(val => Number.isNaN(Number(val)) && nonNumbers++);
