@@ -144,7 +144,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value });
         const onLayoutDoc = this.onLayoutDoc(key);
         (onLayoutDoc ? newDoc : newDoc[DataSym])[key] = this.getValue(this.props.heading);
-        Doc.SetInPlace(newDoc, key, this.getValue(this.props.heading), true);
         const docs = this.props.parent.childDocList;
         return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
     }
