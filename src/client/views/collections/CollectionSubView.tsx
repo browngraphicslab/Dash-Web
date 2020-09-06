@@ -132,18 +132,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
             const docFilters = this.docFilters();
-            let searchDocs = this.searchFilterDocs();
+            const searchDocs = this.searchFilterDocs();
             if (this.props.Document.dontRegisterView || (!docFilters.length && !searchDocs.length)) return childDocs;
 
             const docsforFilter: Doc[] = [];
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             childDocs.forEach((d) => {
-                if (this.props.Document.title === "lose this") {
-                    console.log('here"')
-                }
-                if (d.title === "lose this") {
-                    console.log('here"')
-                }
                 let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (!docFilters.length || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");

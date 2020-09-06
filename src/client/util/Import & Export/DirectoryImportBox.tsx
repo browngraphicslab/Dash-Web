@@ -11,7 +11,7 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast } from "../../../fields/Types";
-import { AcceptibleMedia, Upload } from "../../../server/SharedMediaTypes";
+import { AcceptableMedia, Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
@@ -87,7 +87,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
             const file = files.item(i);
             if (file && !unsupported.includes(file.type)) {
                 const ext = path.extname(file.name).toLowerCase();
-                if (AcceptibleMedia.imageFormats.includes(ext)) {
+                if (AcceptableMedia.imageFormats.includes(ext)) {
                     validated.push(file);
                 }
             }

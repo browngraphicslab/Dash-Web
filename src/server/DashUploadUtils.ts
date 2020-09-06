@@ -13,7 +13,7 @@ import { Utils } from '../Utils';
 import { createIfNotExists } from './ActionUtilities';
 import { clientPathToFile, Directory, pathToDirectory, serverPathToFile } from './ApiManagers/UploadManager';
 import { resolvedServerUrl } from "./server_Initialization";
-import { AcceptibleMedia, Upload } from './SharedMediaTypes';
+import { AcceptableMedia, Upload } from './SharedMediaTypes';
 import request = require('request-promise');
 const parse = require('pdf-parse');
 const requestImageSize = require("../client/util/request-image-size");
@@ -48,13 +48,13 @@ export namespace DashUploadUtils {
     };
 
     export function validateExtension(url: string) {
-        return AcceptibleMedia.imageFormats.includes(path.extname(url).toLowerCase());
+        return AcceptableMedia.imageFormats.includes(path.extname(url).toLowerCase());
     }
 
     const size = "content-length";
     const type = "content-type";
 
-    const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptibleMedia;
+    const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptableMedia;
 
     export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
@@ -313,7 +313,7 @@ export namespace DashUploadUtils {
         return { data, error };
     };
 
-    const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;
+    const { pngs, jpgs, webps, tiffs } = AcceptableMedia;
     const pngOptions = {
         compressionLevel: 9,
         adaptiveFiltering: true,
