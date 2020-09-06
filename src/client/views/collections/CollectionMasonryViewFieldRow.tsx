@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
+import { Doc, DataSym } from "../../../fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { StrCast, NumCast } from "../../../fields/Types";
@@ -90,7 +90,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                 this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
             const key = StrCast(this.props.parent.props.Document._pivotField);
             const castedValue = this.getValue(this.heading);
-            de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
+            de.complete.docDragData.droppedDocuments.forEach(d => d[key] = d[DataSym][key] = castedValue);
             this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
         }
