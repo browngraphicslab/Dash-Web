@@ -175,7 +175,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={StrCast(this.props.Document.display, "contents")} // sets the css display type of the ContentFittingDocumentView component
+            dontCenter={true}
         />;
     }
 
