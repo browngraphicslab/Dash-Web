@@ -82,6 +82,7 @@ export class MainView extends React.Component {
     propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth || 0));
 
     componentDidMount() {
+        document.getElementById("root")?.addEventListener("scroll", e => document.getElementById("root")!.scrollTop = 0);
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
