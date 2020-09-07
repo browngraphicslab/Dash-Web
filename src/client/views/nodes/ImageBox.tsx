@@ -262,7 +262,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
                 const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
                 const orientation = NumCast(this.dataDoc[this.fieldKey + "-nativeOrientation"]);
-                if (orientation === 6 || rotation === 90 || rotation === 270) {
+                if (orientation >= 5 || rotation === 90 || rotation === 270) {
                     this.layoutDoc._nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
                     this.layoutDoc._nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
                 } else {
