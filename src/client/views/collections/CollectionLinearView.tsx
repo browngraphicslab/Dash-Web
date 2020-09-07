@@ -171,7 +171,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     })}
                 </div>
                 {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor
+                    background: backgroundColor === color ? "black" : backgroundColor,
+                    pointerEvents: "all"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
