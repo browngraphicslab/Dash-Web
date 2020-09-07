@@ -226,7 +226,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get moreButton() {
         const targetDoc = this.view0?.props.Document;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Properties Panel"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${CurrentUserUtils.propertiesWidth > 0 ? "Close" : "Open"} Properties Panel`}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={action(e =>
                 CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h"
