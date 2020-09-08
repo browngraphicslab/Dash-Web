@@ -46,7 +46,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         const layoutTemp = this.props.DataDoc ? true : undefined;
-        const curDoc = this.childLayoutPairs?.[index] || (layoutTemp ? { layout: this.rootDoc, data: this.rootDoc } : undefined);
+        const curDoc = this.childLayoutPairs?.[index];
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">

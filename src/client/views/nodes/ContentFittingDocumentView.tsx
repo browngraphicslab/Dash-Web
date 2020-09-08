@@ -26,8 +26,12 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
 
-    nativeWidth = () => returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth())));
-    nativeHeight = () => returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight())));
+    nativeWidth = () => returnVal(this.props.NativeWidth?.(),
+        NumCast(this.layoutDoc?._nativeWidth || this.props.DataDoc?.[Doc.LayoutFieldKey(this.layoutDoc) + "-nativeWidth"],
+            (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth())));
+    nativeHeight = () => returnVal(this.props.NativeHeight?.(),
+        NumCast(this.layoutDoc?._nativeHeight || this.props.DataDoc?.[Doc.LayoutFieldKey(this.layoutDoc) + "-nativeHeight"],
+            (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight())));
     @computed get scaling() {
         const wscale = this.props.PanelWidth() / this.nativeWidth();
         if (wscale * this.nativeHeight() > this.props.PanelHeight()) {
