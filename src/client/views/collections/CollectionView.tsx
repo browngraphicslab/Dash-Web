@@ -367,12 +367,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     bodyPanelWidth = () => this.props.PanelWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
-
-    @computed get dataDoc() {
-        return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
-            this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
-    }
-
     onPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._facetWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
