@@ -78,7 +78,7 @@ export class LinkDocPreview extends React.Component<Props> {
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225)) - 16;
-    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16;
     @computed get targetDocView() {
         return !this._targetDoc ?
             <div style={{

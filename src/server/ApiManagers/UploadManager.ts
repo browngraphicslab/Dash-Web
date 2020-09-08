@@ -9,7 +9,7 @@ import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
 import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import * as sharp from 'sharp';
-import { AcceptibleMedia, Upload } from "../SharedMediaTypes";
+import { AcceptableMedia, Upload } from "../SharedMediaTypes";
 import { normalize } from "path";
 import RouteSubscriber from "../RouteSubscriber";
 const imageDataUri = require('image-data-uri');
@@ -237,7 +237,7 @@ export default class UploadManager extends ApiManager {
                 }
                 return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, InjectSize(filename, SizeSuffix.Original))).then((savedName: string) => {
                     const ext = extname(savedName).toLowerCase();
-                    const { pngs, jpgs } = AcceptibleMedia;
+                    const { pngs, jpgs } = AcceptableMedia;
                     const resizers = [
                         { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
                         { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },

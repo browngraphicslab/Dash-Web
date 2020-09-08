@@ -388,7 +388,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     /**
-     * @returns the sharing and permissiosn panel.
+     * @returns the sharing and permissions panel.
      */
     @computed get sharingTable() {
         const AclMap = new Map<symbol, string>([
@@ -908,6 +908,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {!this.openSharing ? (null) :
                             <div className="propertiesView-sharing-content">
+                                {!novice ? (<div className="propertiesView-acls-checkbox">
+                                    <Checkbox
+                                        color="primary"
+                                        onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
+                                        checked={this.layoutDocAcls}
+                                    />;
+                                    <div className="propertiesView-acls-checkbox-text">Layout</div>
+                                </div>) : (null)}
                                 {this.sharingTable}
                                 {/* <div className="change-buttons">
                             <button

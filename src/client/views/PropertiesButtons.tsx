@@ -194,7 +194,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get lockButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<div className="dash-tooltip">{`${this.selectedDoc?.lockedPosition ? "Unlock" : "Lock"} " Position"`}</div>} placement="top">
+            title={<div className="dash-tooltip">{`${this.selectedDoc?.lockedPosition ? "Unlock" : "Lock"} Position`}</div>} placement="top">
             <div>
                 <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc.lockedPosition ? "on" : "off"}`} onPointerDown={this.onLock} >
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg"
