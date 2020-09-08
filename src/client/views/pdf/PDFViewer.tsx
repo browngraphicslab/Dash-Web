@@ -115,6 +115,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _lastSearch = false;
     private _viewerIsSetup = false;
 
+    @computed get mainCont() { return this._mainCont.current }
+
     @computed get allAnnotations() {
         return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).
             filter(anno => this._script.run({ this: anno }, console.log, true).result);

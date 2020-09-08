@@ -209,7 +209,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutDoc = Doc.Layout(d);
             if (this.Document._currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.scroll, vals.opacity);
+                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, this.Document.editScrollProgressivize ? vals.scroll : undefined, vals.opacity);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];

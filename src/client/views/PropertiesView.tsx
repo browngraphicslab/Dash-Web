@@ -45,12 +45,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
         if (PresBox.Instance && PresBox.Instance._selectedArray.length) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
         return undefined;
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
+        else console.log('NOT isPRES: ' + this.selectedDoc?.title);
         return false;
     }
     @computed get dataDoc() { return this.selectedDoc?.[DataSym]; }
@@ -1015,7 +1016,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
-                const type = PresBox.Instance.targetDoc.type;
+                const type = PresBox.Instance.activeItem?.type;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation

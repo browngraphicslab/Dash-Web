@@ -433,6 +433,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed
     get pinWithViewButton() {
+        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
+            style={{ width: 19, transform: 'translate(-2px, -2px)' }} />;
         const targetDoc = this.selectedDoc;
         if (targetDoc) {
             const x = targetDoc._panX;
@@ -454,7 +456,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         activeDoc.presPinViewScale = scale;
                     }
                 }}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-marker" />
+                <>{presPinWithViewIcon}</>
             </button>
         </Tooltip>;
     }

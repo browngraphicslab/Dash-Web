@@ -83,7 +83,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         hindexed[timecode] = h as any as number;
         windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
-        scrollIndexed[timecode] = scroll as any as number;
+        if (scroll) scrollIndexed[timecode] = scroll as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
         d["h-indexed"] = new List<number>(hindexed);
