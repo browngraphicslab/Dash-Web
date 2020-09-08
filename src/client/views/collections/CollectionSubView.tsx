@@ -123,8 +123,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             } else {   // Finally, if it's not a doc or a list and the document is a template, we try to render the root doc.
                 // For example, if an image doc is rendered with a slide template, the template will try to render the data field as a collection.
                 // Since the data field is actually an image, we set the list of documents to the singleton of root document's proto which will be an image.
-                const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
-                rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
+                // const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
+                // rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
             }
 
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);

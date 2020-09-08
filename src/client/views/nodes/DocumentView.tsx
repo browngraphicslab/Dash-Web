@@ -119,8 +119,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }

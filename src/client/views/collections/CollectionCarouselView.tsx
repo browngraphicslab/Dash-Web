@@ -45,17 +45,20 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     onContentClick = () => ScriptCast(this.layoutDoc.onChildClick);
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
+        const layoutTemp = this.props.DataDoc ? true : undefined;
+        const curDoc = this.childLayoutPairs?.[index] || (layoutTemp ? { layout: this.rootDoc, data: this.rootDoc } : undefined);
+        return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
+                        dontRegisterView={layoutTemp} // temporary hack to mark documents as being a template  see imageBox
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
-                        Document={this.childLayoutPairs[index].layout}
-                        DataDoc={this.childLayoutPairs[index].data}
+                        Document={curDoc.layout}
+                        DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
@@ -71,7 +74,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                     <FormattedTextBox key={index} {...this.props}
                         xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
                         yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"} />
+                        Document={curDoc.layout} DataDoc={undefined} fieldKey={"caption"} />
                 </div>
             </>;
     }

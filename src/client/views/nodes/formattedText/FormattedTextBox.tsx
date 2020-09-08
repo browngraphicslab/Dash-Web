@@ -1200,7 +1200,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
         }
-        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.button === 0 && (this.props.rootSelected(true) || this.props.isSelected(true)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
                 e.stopPropagation();  // if the text box is selected, then it consumes all down events
             }

@@ -250,6 +250,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     _curSuffix = "_m";
 
     resize = (imgPath: string) => {
+        if (this.props.dontRegisterView) return;
         const basePath = imgPath.replace(/_[oms]./, "");
         const curPath = this.dataDoc[this.fieldKey + "-path"];
         const cachedNativeSize = {
