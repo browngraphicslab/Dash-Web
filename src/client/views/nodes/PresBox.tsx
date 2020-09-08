@@ -98,7 +98,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     componentWillUnmount() {
         document.removeEventListener("keydown", this.keyEvents, true);
         // Turn of progressivize editors
-        this.turnOffEdit();
+        this.turnOffEdit(true);
     }
 
     componentDidMount = async () => {
@@ -200,7 +200,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
             if (presTargetDoc?.lastFrame !== undefined) {
-                presTargetDoc.currentFrame = 0;
+                presTargetDoc._currentFrame = 0;
             }
             this._selectedArray = [this.childDocs[index]]; //Update selected array
             //Handles movement to element
@@ -223,7 +223,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const srcContext = await DocCastAsync(targetDoc.context);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
         const collectionDocView = presCollection ? await DocumentManager.Instance.getDocumentView(presCollection) : undefined;
-        this.turnOffEdit(true);
+        this.turnOffEdit();
 
         if (this.itemIndex >= 0) {
             if (srcContext && targetDoc) {
@@ -409,9 +409,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._itemIndex = 0;
     }
 
-    @action togglePath = (srcContext: Doc) => {
-        this.pathBoolean = !this.pathBoolean;
-        srcContext.presPathView = this.pathBoolean;
+    @action togglePath = (srcContext: Doc, off?: boolean) => {
+        if (off) {
+            this.pathBoolean = false;
+            srcContext.presPathView = false;
+        } else {
+            this.pathBoolean = !this.pathBoolean;
+            srcContext.presPathView = this.pathBoolean;
+        }
     }
     @action toggleExpandMode = () => {
         this.rootDoc.expandBoolean = !this.rootDoc.expandBoolean;
@@ -704,7 +709,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     @action
     viewPaths = () => {
-        console.log("clicked");
         const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
         if (srcContext) {
             this.togglePath(srcContext);
@@ -1202,10 +1206,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presentDropdown() {
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                <div className="dropdown-play-button" onClick={(action(() => { this.updateMinimize(); this.turnOffEdit(); }))}>
+                <div className="dropdown-play-button" onClick={(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
                     Minimize
                 </div>
-                <div className="dropdown-play-button" onClick={(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(); }))}>
+                <div className="dropdown-play-button" onClick={(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
                     Sidebar view
                 </div>
             </div>
@@ -1219,7 +1223,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
         const currentFrame = Cast(tagDoc._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            tagDoc.currentFrame = 0;
+            tagDoc._currentFrame = 0;
             CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
             CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
@@ -1388,13 +1392,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    turnOffEdit = (navigating?: boolean) => {
-        // Turn off the progressivize editors for each
-        if (!navigating) {
-            // Turn of paths
+    turnOffEdit = (paths?: boolean) => {
+        if (paths) {
+            // Turn off paths
             const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
-            if (srcContext) this.togglePath(srcContext);
+            if (srcContext) this.togglePath(srcContext, true);
         }
+        // Turn off the progressivize editors for each
         this.childDocs.forEach((doc) => {
             doc.editSnapZoomProgressivize = false;
             doc.editZoomProgressivize = false;
@@ -1493,13 +1497,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             targetDoc.presProgressivize = true;
             targetDoc._currentFrame = 0;
             docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
-            targetDoc.lastFrame = docs.length - 1;
+            targetDoc.lastFrame = targetDoc.lastFrame ? NumCast(targetDoc.lastFrame) : docs.length - 1;
         } else {
             targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
             targetDoc._currentFrame = 0;
-            targetDoc.lastFrame = 0;
             targetDoc.editing = true;
         }
     }
@@ -1709,7 +1712,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return (
             <>
                 {this.targetDoc ? <div className="presPanel-button-frame" style={{ display: targetDoc.lastFrame !== undefined && targetDoc.lastFrame >= 0 ? "inline-flex" : "none" }}>
-                    <div>{targetDoc.currentFrame}</div>
+                    <div>{targetDoc._currentFrame}</div>
                     <div className="presPanel-divider" style={{ border: 'solid 0.5px white', height: '60%' }}></div>
                     <div>{targetDoc.lastFrame}</div>
                 </div> : null}
@@ -1752,11 +1755,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         return this.layoutDoc.inOverlay ?
             <div className="miniPres">
-                <div className="presPanelOverlay" style={{ display: "inline-flex", width: 250, height: 35, background: '#323232', top: 0, zIndex: 3000000 }}>
-                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="miniPres-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+                <div className="presPanelOverlay" style={{ display: "inline-flex", height: 35, background: '#323232', top: 0, zIndex: 3000000 }}>
+                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="miniPres-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button-text">

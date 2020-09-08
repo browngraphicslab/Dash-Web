@@ -1055,7 +1055,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem && type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
