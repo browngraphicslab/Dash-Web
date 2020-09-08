@@ -369,7 +369,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
@@ -650,8 +650,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.props.PanelWidth}
                             annotationsKey={this.annotationKey}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             VisibleHeight={this.visibleHeiht}
                             focus={this.props.focus}
                             setPreviewCursor={this.setPreviewCursor}

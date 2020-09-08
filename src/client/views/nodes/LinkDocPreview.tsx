@@ -114,8 +114,6 @@ export class LinkDocPreview extends React.Component<Props> {
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
-                NativeWidth={returnZero}
-                NativeHeight={returnZero}
                 backgroundColor={this.props.backgroundColor} />;
     }
 

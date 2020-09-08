@@ -75,10 +75,12 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     componentDidMount() {
         this._pathDisposer = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
             ({ nativeSize, width }) => {
-                this.layoutDoc._nativeWidth = nativeSize.nativeWidth;
-                this.layoutDoc._nativeHeight = nativeSize.nativeHeight;
-                this.layoutDoc._nativeOrientation = nativeSize.nativeOrientation;
-                this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
+                if (this.props.NativeWidth?.() !== 0 || !this.layoutDoc._height) {
+                    this.layoutDoc._nativeWidth = nativeSize.nativeWidth;
+                    this.layoutDoc._nativeHeight = nativeSize.nativeHeight;
+                    this.layoutDoc._nativeOrientation = nativeSize.nativeOrientation;
+                    this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
+                }
             },
             { fireImmediately: true });
     }
@@ -164,19 +166,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
-                // funcs.push({
-                //     description: "Reset Native Dimensions", event: action(async () => {
-                //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-                //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-                //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
-                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
-                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
-                //         } else {
-                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
-                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
-                //         }
-                //     }), icon: "expand-arrows-alt"
-                // });
 
                 const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
                 const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -434,8 +423,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 forceScaling={true}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 annotationsKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}

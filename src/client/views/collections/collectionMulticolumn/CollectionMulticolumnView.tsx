@@ -213,19 +213,19 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return this.props.addDocTab(doc, where);
     }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
+        const layoutTemp = this.props.DataDoc ? true : undefined;
         return <ContentFittingDocumentView
             Document={layout}
-            DataDoc={layout.resolvedDataDoc as Doc}
+            DataDoc={layout.resolvedDataDoc as Doc || (layoutTemp ? layout : undefined)}
             backgroundColor={this.props.backgroundColor}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
+            NativeWidth={layoutTemp ? returnZero : this.props.NativeWidth}
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
             fitToBox={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
@@ -248,6 +248,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             ContentScaling={returnOne}
         />;
     }
+    @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -257,6 +258,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         const { childLayoutPairs } = this;
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
+        const layoutTemp = this.props.DataDoc ? true : undefined;
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));

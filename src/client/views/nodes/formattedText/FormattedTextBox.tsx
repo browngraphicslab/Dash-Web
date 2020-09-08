@@ -562,7 +562,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.()||0, this.props.NativeHeight?.()||0);
     }
 
     public static get DefaultLayout(): Doc | string | undefined {
@@ -1565,8 +1565,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             <CollectionFreeFormView {...this.props}
                                 PanelHeight={this.props.PanelHeight}
                                 PanelWidth={this.sidebarWidth}
-                                NativeHeight={returnZero}
-                                NativeWidth={returnZero}
                                 scaleField={this.annotationKey + "-scale"}
                                 annotationsKey={this.annotationKey}
                                 isAnnotationOverlay={false}

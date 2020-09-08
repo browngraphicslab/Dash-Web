@@ -150,8 +150,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 select={emptyFunction}
                 renderDepth={1}
                 addDocTab={returnFalse}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 PanelWidth={this.return100}
                 PanelHeight={this.return100}
                 treeViewHideHeaderFields={true}

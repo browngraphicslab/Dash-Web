@@ -172,8 +172,6 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     annotationsKey={""}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

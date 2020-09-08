@@ -6,7 +6,7 @@ import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction } from "../../../Utils";
+import { emptyFunction, returnVal } from "../../../Utils";
 import { dropActionType } from "../../util/DragManager";
 import { CollectionView } from "../collections/CollectionView";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
@@ -26,8 +26,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
 
-    nativeWidth = () => NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], this.props.NativeWidth?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth()));
-    nativeHeight = () => NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], this.props.NativeHeight?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight()));
+    nativeWidth = () => returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth())));
+    nativeHeight = () => returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc?.[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight())));
     @computed get scaling() {
         const wscale = this.props.PanelWidth() / this.nativeWidth();
         if (wscale * this.nativeHeight() > this.props.PanelHeight()) {
@@ -40,8 +40,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     private PanelWidth = () => this.panelWidth;
     private PanelHeight = () => this.panelHeight;
 
-    @computed get panelWidth() { return this.nativeWidth && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
-    @computed get panelHeight() { return this.nativeHeight && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
+    @computed get panelWidth() { return this.nativeWidth() && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
+    @computed get panelHeight() { return this.nativeHeight() && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
 
     private getTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(1 / this.contentScaling());
     private get centeringOffset() { return this.nativeWidth() && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth() * this.contentScaling()) / 2 : 0; }

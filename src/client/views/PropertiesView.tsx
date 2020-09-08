@@ -287,9 +287,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     fitToBox={true}
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : returnZero}
+                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : returnZero}
+                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
                     focus={returnFalse}

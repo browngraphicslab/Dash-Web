@@ -31,8 +31,8 @@ export interface CollectionViewProps extends FieldViewProps {
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
-    NativeWidth: () => number;
-    NativeHeight: () => number;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {

@@ -319,8 +319,8 @@ export class FormattedTextBoxComment {
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={() => target._nativeWidth ? NumCast(target._nativeWidth) : 0}
-                                            NativeHeight={() => target._nativeHeight ? NumCast(target._nativeHeight) : 0}
+                                            NativeWidth={target._nativeWidth ? (() => NumCast(target._nativeWidth)) : undefined}
+                                            NativeHeight={target._natvieHeight ? (() => NumCast(target._nativeHeight)) : undefined}
                                         />
                                     </div>
                                 </div>;

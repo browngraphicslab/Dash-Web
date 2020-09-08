@@ -145,8 +145,6 @@ export class DashDocView {
                     addDocTab={this._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={self._textBox.props.renderDepth + 1}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}

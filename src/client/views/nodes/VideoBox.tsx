@@ -368,8 +368,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     annotationsKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

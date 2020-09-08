@@ -52,8 +52,8 @@ export interface FieldViewProps {
     PanelHeight: () => number;
     PanelPosition?: string;
     overflow?: boolean;
-    NativeHeight: () => number;
-    NativeWidth: () => number;
+    NativeHeight?: () => number;
+    NativeWidth?: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;

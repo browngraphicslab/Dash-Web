@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { emptyFunction, returnFalse, setupMoveUpEvents, simulateMouseClick } from "../../Utils";
+import { emptyFunction, returnFalse, setupMoveUpEvents, simulateMouseClick, returnVal } from "../../Utils";
 import { DocUtils, Docs } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -453,8 +453,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (e.ctrlKey && !element.props.Document._nativeHeight) element.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(element.rootDoc);
-                let nwidth = doc._nativeWidth || 0;
-                let nheight = doc._nativeHeight || 0;
+                let nwidth = returnVal(element.NativeWidth?.(), doc._nativeWidth);
+                let nheight = returnVal(element.NativeHeight?.(), doc._nativeHeight);
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;

@@ -165,8 +165,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             {...this.props}
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}

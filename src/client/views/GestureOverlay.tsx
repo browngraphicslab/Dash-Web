@@ -926,8 +926,6 @@ export class GestureOverlay extends Touchable {
                 ContentScaling={returnOne}
                 PanelWidth={this.return300}
                 PanelHeight={this.return300}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 renderDepth={0}
                 backgroundColor={returnEmptyString}
                 focus={emptyFunction}

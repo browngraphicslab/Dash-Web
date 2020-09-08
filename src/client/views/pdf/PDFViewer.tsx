@@ -679,8 +679,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 dropAction={"alias"}
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}

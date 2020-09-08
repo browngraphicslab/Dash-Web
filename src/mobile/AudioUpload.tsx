@@ -94,8 +94,6 @@ export class AudioUpload extends React.Component {
                         ContentScaling={returnOne}
                         PanelWidth={() => 600}
                         PanelHeight={() => 400}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
                         renderDepth={0}
                         focus={emptyFunction}
                         backgroundColor={() => "rgba(0,0,0,0)"}

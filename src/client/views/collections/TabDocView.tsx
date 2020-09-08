@@ -306,8 +306,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ContentScaling={returnOne}
                 PanelWidth={this.returnMiniSize}
                 PanelHeight={this.returnMiniSize}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 renderDepth={0}
                 whenActiveChanged={emptyFunction}

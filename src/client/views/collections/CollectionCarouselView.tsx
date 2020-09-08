@@ -13,7 +13,7 @@ import { Doc } from '../../../fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse } from '../../../Utils';
+import { returnFalse, returnZero } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
@@ -54,9 +54,9 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
-                        dontRegisterView={layoutTemp} // temporary hack to mark documents as being a template  see imageBox
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
+                        NativeWidth={layoutTemp ? returnZero : this.props.NativeWidth}
                         Document={curDoc.layout}
                         DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}
