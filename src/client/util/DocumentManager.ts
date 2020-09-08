@@ -61,9 +61,11 @@ export class DocumentManager {
 
         for (const pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
-                    toReturn = view;
-                    return;
+                if (!pass || view.props.ContainingCollectionView === preferredCollection) {
+                    if (view.props.Document[Id] === id) {
+                        toReturn = view;
+                        return;
+                    }
                 }
             });
             if (!toReturn) {

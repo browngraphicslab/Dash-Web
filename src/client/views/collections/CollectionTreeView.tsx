@@ -607,7 +607,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         const rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
-            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
+            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child, undefined);
             if (!pair.layout || pair.data instanceof Promise) {
                 return (null);
             }

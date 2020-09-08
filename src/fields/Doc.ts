@@ -711,13 +711,14 @@ export namespace Doc {
 
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
     // otherwise, it just returns the childDoc
-    export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        if (!childDoc || childDoc instanceof Promise || !Doc.GetProto(childDoc)) {
+    export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc, childDocLayout: Opt<Doc>) {
+        if (!childDoc || childDoc instanceof Promise || !Doc.GetProto(childDoc) || childDocLayout instanceof Promise) {
             console.log("No, no, no!");
-            return { layout: childDoc, data: childDoc };
+            return { root: childDoc, layout: childDoc, data: childDoc };
         }
-        const resolvedDataDoc = (Doc.AreProtosEqual(containerDataDoc, containerDoc) || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
-        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc.PARAMS) + ")"), data: resolvedDataDoc };
+        if (!childDocLayout) childDocLayout = Doc.Layout(childDoc);
+        const resolvedDataDoc = (Doc.AreProtosEqual(containerDataDoc, containerDoc) || (!childDocLayout.isTemplateDoc && !childDocLayout.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
+        return { root: childDoc, layout: Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc, "(" + StrCast(containerDoc.PARAMS) + ")"), data: resolvedDataDoc };
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

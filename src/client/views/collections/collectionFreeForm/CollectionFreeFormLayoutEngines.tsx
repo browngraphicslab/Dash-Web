@@ -28,7 +28,7 @@ export interface ViewDefBounds {
     color?: string;
     opacity?: number;
     replica?: string;
-    pair?: { layout: Doc, data?: Doc };
+    pair?: { root: Doc, layout: Doc, data?: Doc };
 }
 
 export interface PoolData {
@@ -43,7 +43,7 @@ export interface PoolData {
     transition?: string;
     highlight?: boolean;
     replica: string;
-    pair: { layout: Doc, data?: Doc };
+    pair: { root: Doc, layout: Doc, data?: Doc };
 }
 
 export interface ViewDefResult {
@@ -87,18 +87,18 @@ interface PivotColumn {
 export function computerPassLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childPairs: { layout: Doc, data?: Doc }[],
+    childPairs: { root: Doc, layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const docMap = new Map<string, PoolData>();
-    childPairs.forEach(({ layout, data }, i) => {
-        docMap.set(layout[Id], {
-            x: NumCast(layout.x),
-            y: NumCast(layout.y),
+    childPairs.forEach(({ layout, data, root }, i) => {
+        docMap.set(root[Id], {
+            x: NumCast(root.x),
+            y: NumCast(root.y),
             width: layout[WidthSym](),
             height: layout[HeightSym](),
-            pair: { layout, data },
+            pair: { layout, data, root },
             replica: ""
         });
     });
@@ -108,7 +108,7 @@ export function computerPassLayout(
 export function computerStarburstLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childPairs: { layout: Doc, data?: Doc }[],
+    childPairs: { root: Doc, layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
@@ -117,14 +117,14 @@ export function computerStarburstLayout(
     const docScale = NumCast(pivotDoc._starburstDocScale);
     const docSize = docScale * 100; // assume a icon sized at 100
     const scaleDim = [burstRadius[0] + docSize, burstRadius[1] + docSize];
-    childPairs.forEach(({ layout, data }, i) => {
+    childPairs.forEach(({ layout, data, root }, i) => {
         const deg = i / childPairs.length * Math.PI * 2;
         docMap.set(layout[Id], {
             x: Math.cos(deg) * (burstRadius[0] / 3) - docScale * layout[WidthSym]() / 2,
             y: Math.sin(deg) * (burstRadius[1] / 3) - docScale * layout[HeightSym]() / 2,
             width: docScale * layout[WidthSym](),
             height: docScale * layout[HeightSym](),
-            pair: { layout, data },
+            pair: { layout, data, root },
             replica: ""
         });
     });
@@ -135,7 +135,7 @@ export function computerStarburstLayout(
 export function computePivotLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childPairs: { layout: Doc, data?: Doc }[],
+    childPairs: { root: Doc, layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
@@ -165,7 +165,7 @@ export function computePivotLayout(
             pivotColumnGroups.get(val)!.docs.push(pair.layout);
             pivotColumnGroups.get(val)!.replicas.push("");
         } else {
-            docMap.set(pair.layout[Id], {
+            docMap.set(pair.root[Id], {
                 x: 0,
                 y: 0,
                 zIndex: -99,
@@ -251,7 +251,7 @@ export function computePivotLayout(
                 y: -y + (pivotAxisWidth - hgt) / 2,
                 width: wid,
                 height: hgt,
-                pair: { layout: doc },
+                pair: { layout: doc, root: doc },
                 replica: val.replicas[i]
             });
             xCount++;
@@ -276,7 +276,7 @@ function toNumber(val: FieldResult<Field>) {
 export function computeTimelineLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childPairs: { layout: Doc, data?: Doc }[],
+    childPairs: { root: Doc, layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
@@ -379,7 +379,7 @@ export function computeTimelineLayout(
                 highlight: curTime === key,
                 width: wid / (Math.max(stack, 1)),
                 height: hgt / (Math.max(stack, 1)),
-                pair: { layout: doc },
+                pair: { root: doc, layout: doc },
                 replica: ""
             });
             stacking[stack] = x + pivotAxisWidth;

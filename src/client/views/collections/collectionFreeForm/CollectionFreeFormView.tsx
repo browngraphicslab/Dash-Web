@@ -182,12 +182,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     private selectDocuments = (docs: Doc[]) => {
         SelectionManager.DeselectAll();
-        docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
+        docs.map(doc => {
+            const dv = DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView);
+            return dv;
+        }).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
     public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document._currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
-        return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
+        return this.childDocList?.filter(d => d instanceof Doc).map(d => d as Doc) || [];
     }
 
     onExternalDrop = (e: React.DragEvent) => {
@@ -201,7 +204,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const z = NumCast(docDragData.droppedDocuments[0].z);
         const x = (z ? xpo : xp) - docDragData.offset[0];
         const y = (z ? ypo : yp) - docDragData.offset[1];
-        const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
+        const zsorted = this.childLayoutPairs.map(pair => pair.root).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
         zsorted.forEach((doc, index) => doc.zIndex = doc.isInkMask ? 5000 : index + 1);
         const dropPos = [NumCast(docDragData.droppedDocuments[0].x), NumCast(docDragData.droppedDocuments[0].y)];
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
@@ -269,14 +272,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     pickCluster(probe: number[]) {
-        return this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
-            const layoutDoc = Doc.Layout(cd);
-            const cx = NumCast(cd.x) - this._clusterDistance;
-            const cy = NumCast(cd.y) - this._clusterDistance;
-            const cw = NumCast(layoutDoc._width) + 2 * this._clusterDistance;
-            const ch = NumCast(layoutDoc._height) + 2 * this._clusterDistance;
-            return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
-                NumCast(cd.cluster) : cluster;
+        return this.childLayoutPairs.reduce((cluster, cd) => {
+            const cx = NumCast(cd.root.x) - this._clusterDistance;
+            const cy = NumCast(cd.root.y) - this._clusterDistance;
+            const cw = NumCast(cd.layout._width) + 2 * this._clusterDistance;
+            const ch = NumCast(cd.layout._height) + 2 * this._clusterDistance;
+            return !cd.root.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
+                NumCast(cd.root.cluster) : cluster;
         }, -1);
     }
     tryDragCluster(e: PointerEvent | TouchEvent) {
@@ -284,7 +286,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (ptsParent) {
             const cluster = this.pickCluster(this.getTransform().transformPoint(ptsParent.clientX, ptsParent.clientY));
             if (cluster !== -1) {
-                const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
+                const eles = this.childLayoutPairs.map(pair => pair.root).filter(cd => NumCast(cd.cluster) === cluster);
                 const clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
                 const de = new DragManager.DocumentDragData(eles);
                 de.moveDocument = this.props.moveDocument;
@@ -304,12 +306,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     updateClusters(_useClusters: boolean) {
         this.props.Document._useClusters = _useClusters;
         this._clusterSets.length = 0;
-        this.childLayoutPairs.map(pair => pair.layout).map(c => this.updateCluster(c));
+        this.childLayoutPairs.map(pair => this.updateCluster(pair.root));
     }
 
     @action
     updateClusterDocs(docs: Doc[]) {
-        const childLayouts = this.childLayoutPairs.map(pair => pair.layout);
+        const childLayouts = this.childLayoutPairs.map(pair => pair.root);
         if (this.props.Document._useClusters) {
             const docFirst = docs[0];
             docs.map(doc => this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1)));
@@ -344,7 +346,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     updateCluster(doc: Doc) {
-        const childLayouts = this.childLayoutPairs.map(pair => pair.layout);
+        const childLayouts = this.childLayoutPairs.map(pair => pair.root);
         if (this.props.Document._useClusters) {
             this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
             const preferredInd = NumCast(doc.cluster);
@@ -808,7 +810,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     setPan(panX: number, panY: number, panType: string = "None", clamp: boolean = false) {
         if (!this.isAnnotationOverlay && clamp) {
             // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
-            const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
+            const docs = this.childLayoutPairs.map(pair => pair.root);
             const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "")).map(doc => this.childDataProvider(doc, ""));
             if (measuredDocs.length) {
                 const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
@@ -844,7 +846,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;
         } else {
-            const docs = this.childLayoutPairs.map(pair => pair.layout);
+            const docs = this.childLayoutPairs.map(pair => pair.root);
             docs.slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
             let zlast = docs.length ? Math.max(docs.length, NumCast(docs[docs.length - 1].zIndex)) : 1;
             if (zlast - docs.length > 100) {
@@ -935,7 +937,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     backgroundHalo = () => BoolCast(this.Document._useClusters);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
-    getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
+    getChildDocumentViewProps(pair: { root: Doc, layout: Doc, data?: Doc }): DocumentViewProps {
         return {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
@@ -945,23 +947,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             NativeHeight: returnZero,
             NativeWidth: returnZero,
             fitToBox: false,
-            DataDoc: childData,
-            Document: childLayout,
+            DataDoc: pair.data,
+            Document: pair.root,
             LibraryPath: this.libraryPath,
-            LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
-            LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
+            LayoutTemplate: pair.root.z ? undefined : this.props.ChildLayoutTemplate,
+            LayoutTemplateString: pair.root.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
-            rootSelected: childData ? this.rootSelected : returnFalse,
+            rootSelected: pair.data ? this.rootSelected : returnFalse,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             onClick: this.onChildClickHandler,
             onDoubleClick: this.onChildDoubleClickHandler,
-            ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
+            ScreenToLocalTransform: pair.root.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            PanelWidth: childLayout[WidthSym],
-            PanelHeight: childLayout[HeightSym],
+            PanelWidth: pair.layout[WidthSym],
+            PanelHeight: pair.layout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.Document,
@@ -998,15 +1000,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return this.props.addDocTab(doc, where);
     });
-    getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
-        const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, opacity } = this.Document._currentFrame === undefined ? params.pair.layout :
-            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame || 0);
-        const { z, color, zIndex } = params.pair.layout;
+    getCalculatedPositions(params: { pair: { root: Doc, layout: Doc, data?: Doc }, index: number, collection: Doc }): PoolData {
+        const { x, y, opacity } = this.Document._currentFrame === undefined ? params.pair.root :
+            CollectionFreeFormDocumentView.getValues(params.pair.root, this.Document._currentFrame || 0);
+        const { z, color, zIndex } = params.pair.root;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            transition: StrCast(layoutDoc.dataTransition), opacity: this.Document.editing ? 1 : Cast(opacity, "number", null),
-            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
+            transition: StrCast(params.pair.layout.dataTransition), opacity: this.Document.editing ? 1 : Cast(opacity, "number", null),
+            width: Cast(params.pair.layout._width, "number"), height: Cast(params.pair.layout._height, "number"), pair: params.pair, replica: ""
         };
     }
 
@@ -1055,7 +1056,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         engine: (
             poolData: Map<string, PoolData>,
             pivotDoc: Doc,
-            childPairs: { layout: Doc, data?: Doc }[],
+            childPairs: { root: Doc, layout: Doc, data?: Doc }[],
             panelDim: number[],
             viewDefsToJSX: ((views: ViewDefBounds[]) => ViewDefResult[])) => ViewDefResult[]
     ) {
@@ -1063,16 +1064,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     doFreeformLayout(poolData: Map<string, PoolData>) {
-        const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
-        const initResult = this.Document.arrangeInit?.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
-        const state = initResult?.success ? initResult.result.scriptState : undefined;
-        const elements = initResult?.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
-        this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
-            const pos = this.getCalculatedPositions({ pair, index: i, collection: this.Document, docs: layoutDocs, state });
-            poolData.set(pair.layout[Id], pos);
+        this.childLayoutPairs.filter(pair => this.isCurrent(pair.root)).map((pair, i) => {
+            const pos = this.getCalculatedPositions({ pair, index: i, collection: this.Document });
+            poolData.set(pair.root[Id], pos);
         });
-        return elements;
+        return [];
     }
 
     @computed get doInternalLayoutComputation() {
@@ -1109,11 +1106,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         Array.from(newPool.entries()).forEach(k => this._cachedPool.set(k[0], k[1]));
         const elements: ViewDefResult[] = computedElementData.slice();
         const engine = this.props.layoutEngine?.() || StrCast(this.props.Document._layoutEngine);
-        Array.from(newPool.entries()).filter(entry => this.isCurrent(entry[1].pair.layout)).forEach(entry =>
+        Array.from(newPool.entries()).filter(entry => this.isCurrent(entry[1].pair.root)).forEach(entry =>
             elements.push({
                 ele: <CollectionFreeFormDocumentView
-                    key={entry[1].pair.layout[Id] + (entry[1].replica || "")}
-                    {...this.getChildDocumentViewProps(entry[1].pair.layout, entry[1].pair.data)}
+                    key={entry[1].pair.root[Id] + (entry[1].replica || "")}
+                    {...this.getChildDocumentViewProps(entry[1].pair)}
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
@@ -1125,7 +1122,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
                 />,
-                bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
+                bounds: this.childDataProvider(entry[1].pair.root, entry[1].replica)
             }));
 
         if (this.props.isAnnotationOverlay) {
@@ -1204,8 +1201,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
         const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
         docs.forEach(pair => {
-            pair.layout.x = x;
-            pair.layout.y = y;
+            pair.root.x = x;
+            pair.root.y = y;
             x += width + 20;
             if (++i === 6) {
                 i = 0;

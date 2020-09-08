@@ -196,6 +196,27 @@ export class CurrentUserUtils {
             });
         }
 
+
+        if (doc["template-button-simple"] === undefined) {
+            const { ImageDocument, TextDocument } = Docs.Create;
+
+            const hero = ImageDocument("http://cs.brown.edu/~bcz/face.gif", {
+                title: "data", _width: 350, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10, backgroundColor: "#9b9b9b3F", system: true
+            });
+
+            const details = TextDocument("", { title: "title", _height: 50, _autoHeight: true, system: true });
+
+            const detailView = Docs.Create.StackingDocument([hero, details], { _autoHeight: true, _width: 250, _height: 400, system: true });
+            detailView.isTemplateDoc = makeTemplate(detailView);
+            details.title = "Hero";
+
+            doc["template-button-simple"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "simple view", icon: "window-maximize", system: true
+            });
+        }
+
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
@@ -247,6 +268,7 @@ export class CurrentUserUtils {
         }
 
         const requiredTypes = [
+            doc["template-button-simple"] as Doc,
             doc["template-button-slides"] as Doc,
             doc["template-button-description"] as Doc,
             doc["template-button-query"] as Doc,

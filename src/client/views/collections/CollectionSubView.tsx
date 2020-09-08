@@ -99,10 +99,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
-        get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
+        get childLayoutPairs(): { layout: Doc; root: Doc, data: Doc; }[] {
             const { Document, DataDoc } = this.props;
-            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).filter(pair => pair.layout);
-            return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc, this.props.ChildLayoutTemplate?.())).filter(pair => pair.layout);
+            return validPairs.map(({ data, layout, root }) => ({ root, data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
