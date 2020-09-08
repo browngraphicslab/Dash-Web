@@ -1226,6 +1226,10 @@ export namespace DocUtils {
                 proto["data-nativeOrientation"] = result.exifData?.data?.image?.Orientation;
                 proto["data-nativeWidth"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim * result.nativeWidth / result.nativeHeight : maxNativeDim;
                 proto["data-nativeHeight"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim : maxNativeDim / (result.nativeWidth / result.nativeHeight);
+                if (Number(result.exifData?.data?.image?.Orientation) >= 5) {
+                    proto["data-nativeHeight"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim * result.nativeWidth / result.nativeHeight : maxNativeDim;
+                    proto["data-nativeWidth"] = (result.nativeWidth < result.nativeHeight) ? maxNativeDim : maxNativeDim / (result.nativeWidth / result.nativeHeight);
+                }
                 proto.contentSize = result.contentSize;
             }
             generatedDocuments.push(doc);
