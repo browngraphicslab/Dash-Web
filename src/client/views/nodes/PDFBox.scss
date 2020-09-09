@@ -204,6 +204,7 @@
 .pdfBox {
     width: 100%;
     height: 100%;
+    pointer-events: none;
     .pdfViewerDash-text {
         .textLayer {
             span {
@@ -211,6 +212,12 @@
             }
         }
     }
+}
+
+.pdfBox-background {
+    width: 100%;
+    height: 100%;
+    background: lightGray;
 }
 
 .pdfBox-interactive {

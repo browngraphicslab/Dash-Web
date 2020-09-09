@@ -107,7 +107,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
-                renderDepth={0}
+                renderDepth={-1}
                 PanelWidth={this.width} //Math.min(350, NumCast(target._width, 350))}
                 PanelHeight={this.height} //Math.min(250, NumCast(target._height, 250))}
                 focus={emptyFunction}

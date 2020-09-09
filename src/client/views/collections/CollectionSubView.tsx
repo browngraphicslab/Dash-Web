@@ -270,7 +270,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 return;
             }
 
-            console.log("Html = ", html);
             if (html) {
                 if (FormattedTextBox.IsFragment(html)) {
                     const href = FormattedTextBox.GetHref(html);
@@ -333,7 +332,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0]?.contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);

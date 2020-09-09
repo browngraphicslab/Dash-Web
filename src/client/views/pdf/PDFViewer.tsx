@@ -33,8 +33,10 @@ import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
+import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
+const _global = (window /* browser */ || global /* node */) as any;
 
 export const pageSchema = createSchema({
     _curPage: "number",
@@ -144,9 +146,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        runInAction(() => this._showWaiting = this._showCover = true);
+        runInAction(() => this._showWaiting = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
+        if (this._mainCont.current) {
+            this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0;
+            const observer = new _global.ResizeObserver(action((entries: any) => this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0)));
+            observer.observe(this._mainCont.current);
+        }
+
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
                 if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);
@@ -168,7 +175,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    (!LinkDocPreview.TargetDoc) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    (this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
@@ -265,7 +272,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         document.addEventListener("copy", this.copy);
         const eventBus = new PDFJSViewer.EventBus(true);
         eventBus._on("pagesinit", this.pagesinit);
-        eventBus._on("pagerendered", action(() => this._showCover = this._showWaiting = false));
+        eventBus._on("pagerendered", action(() => {
+            this._showWaiting = false;
+        }));
         const pdfLinkService = new PDFJSViewer.PDFLinkService({ eventBus });
         const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService, eventBus });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
@@ -369,12 +378,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     pageDelay: any;
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
-        this.pageDelay && clearTimeout(this.pageDelay);
-        this.pageDelay = setTimeout(() => {
-            this.pageDelay = undefined;
-            this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
-        }, 250);
+        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+            this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
+            this.pageDelay && clearTimeout(this.pageDelay);
+            this.pageDelay = setTimeout(() => {
+                this.pageDelay = undefined;
+                this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+            }, 250);
+        }
     }
 
     // get the page index that the vertical offset passed in is on
