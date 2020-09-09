@@ -383,7 +383,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
-                ;
                 console.log("Web URI = ", uriList);
                 const existingWebDoc = await Hypothesis.findWebDoc(uriList);
                 if (existingWebDoc) {
