@@ -1497,11 +1497,9 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         e.stopPropagation();
         e.preventDefault();
         const corner = e.target as any;
-        console.log(corner.id);
         if (corner) this._drag = corner.id;
         const rect = document.getElementById(this._drag);
         if (rect) {
-            console.log(this._drag);
             setupMoveUpEvents(e.target, e, this.onPointerMove, (e) => { }, (e) => { });
         }
     }
@@ -1567,8 +1565,6 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             const vfTop: number = NumCast(activeItem.presPinViewY);
             const vfWidth: number = 100;
             const vfHeight: number = 100;
-            console.log(vfTop + " | " + vfLeft);
-            console.log(this.props.presPinView);
             return (
                 <>
                     {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>

@@ -64,7 +64,19 @@ interface HTMLtagProps {
     onClick?: ScriptField;
     onInput?: ScriptField;
 }
-//"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'><ImageBox {...props} fieldKey={'data'}/><HTMLspan width='100%'  marginTop='50%'  height='10%'  position='absolute' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}grey'>{this.title}</HTMLspan></HTMLdiv>"@observer
+
+//"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} overflow='hidden' position='absolute' width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'> <ImageBox {...props} fieldKey={'data'}/> <HTMLspan width='200px' top='0' height='35px' textAlign='center' paddingTop='10px' transform='translate(-40px, 45px) rotate(-45deg)' position='absolute' color='{this.bannerColor===`green`?`light`:`dark`}blue' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}blue'> {this.title}</HTMLspan></HTMLdiv>"
+//"<HTMLdiv borderRadius='100px' overflow='hidden' position='absolute' width='100%' height='100%' 
+//          transform='rotate({2*this.x+this.y}deg)' 
+//          onClick = { this.bannerColor = this.bannerColor === 'red' ? 'green' : 'red' } >
+//    <ImageBox {...props} fieldKey={'data'}/>
+//    <HTMLspan width='200px' top='0' height='35px' textAlign='center' paddingTop='10px' 
+//              transform='translate(-40px, 45px) rotate(-45deg)' position='absolute' 
+//              color='{this.bannerColor===`green`?`light`:`dark`}blue' 
+//              backgroundColor='{this.bannerColor===`green`?`dark`:`light`}blue'>
+//       {this.title}
+//    </HTMLspan>
+//  </HTMLdiv>"
 @observer
 export class HTMLtag extends React.Component<HTMLtagProps> {
     click = (e: React.MouseEvent) => {
@@ -170,10 +182,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
 
         // add onClick function to props
         const makeFuncProp = (func: string) => {
-            const splits = layoutFrame.split(`func=`);
+            const splits = layoutFrame.split(`${func}=`);
             if (splits.length > 1) {
                 const code = XRegExp.matchRecursive(splits[1], "{", "}", "", { valueNames: ["between", "left", "match", "right", "between"] });
-                layoutFrame = splits[0] + ` ${func}={props.onClick} ` + splits[1].substring(code[1].end + 1);
+                layoutFrame = splits[0] + ` ${func}={props.${func}} ` + splits[1].substring(code[1].end + 1);
                 return ScriptField.MakeScript(code[1].value, { this: Doc.name, self: Doc.name, value: "string" });
             }
             return undefined;

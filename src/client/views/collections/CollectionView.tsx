@@ -71,8 +71,6 @@ export enum CollectionViewType {
 }
 export interface CollectionViewCustomProps {
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
-    childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
-    childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
     hideFilter?: true;
 }
@@ -85,8 +83,8 @@ export interface CollectionRenderProps {
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    ChildLayoutTemplate?: () => Doc;
-    ChildLayoutString?: string;
+    ChildLayoutTemplate?: () => Doc;// specify a layout Doc template to use for children of the collection
+    ChildLayoutString?: string;// specify a layout string to use for children of the collection
 }
 
 @observer
@@ -244,7 +242,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     screenToLocalTransform = () => this.props.renderDepth ? this.props.ScreenToLocalTransform() : this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
-    private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        TraceMobx();
         const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
@@ -263,12 +262,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
             case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
             case CollectionViewType.Freeform:
-            default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
+            default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} ChildLayoutString={props.ChildLayoutString} />); }
         }
-    }
-
-    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        return this.SubViewHelper(type, renderProps);
     }
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
@@ -411,7 +406,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
-    childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
+    @computed get childLayoutString() { return StrCast(this.props.Document.childLayoutString); }
 
     render() {
         TraceMobx();

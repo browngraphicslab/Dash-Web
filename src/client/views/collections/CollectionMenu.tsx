@@ -33,6 +33,7 @@ import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
+import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -121,7 +122,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _templateCommand = {
         params: ["target", "source"], title: "item view",
         script: "self.target.childLayoutTemplate = getDocTemplate(self.source?.[0])",
-        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]))),
+        immediate: undoBatch((source: Doc[]) => {
+            if (source.length === 1 && source[0].type === DocumentType.RTF && Cast(source[0].text, RichTextField, null)?.Text) {
+                Doc.SetInPlace(this.target, "childLayoutString", Cast(source[0].text, RichTextField, null)?.Text, false);
+            } else if (source.length) {
+                this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]);
+            } else {
+                Doc.SetInPlace(this.target, "childLayoutString", undefined, true);
+                Doc.SetInPlace(this.target, "childLayoutTemplate", undefined, true);
+            }
+        }),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
