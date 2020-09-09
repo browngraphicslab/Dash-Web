@@ -191,7 +191,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
-                <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
+                {/* <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
                         <div className="pdfBox-settingsButton-iconCont">
@@ -220,7 +220,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                             </button>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>);
     }
 
@@ -236,12 +236,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
-        return <div className={classname} style={{
-            width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            //height adjusted for mobile (window.screen.width > 600)
-            height: !this.props.Document._fitWidth && (window.screen.width > 600) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
-            transform: `scale(${this.contentScaling})`
-        }}  >
+        return <div className={classname} >
             <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
             </div>
@@ -270,7 +265,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.renderDepth === 0 || this.props.Document._scrollY !== undefined) this._everActive = true;
-        if (pdfUrl && (this._everActive || this.props.Document._scrollTop || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+        if (pdfUrl && (this._everActive || this.props.Document._scrollTop)) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
             }

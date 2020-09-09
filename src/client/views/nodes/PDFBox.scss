@@ -189,8 +189,8 @@
             margin-bottom: auto;
             transform-origin: 42% 15%;
             width: 100%;
-            transform: rotate(55deg);
-            font-size: 200;
+            transform: rotate(55deg) scale(0.8);
+            font-size: 80;
             padding: 5%;
             overflow: hidden;
             display: inline-block;
@@ -202,6 +202,8 @@
 }
 
 .pdfBox {
+    width: 100%;
+    height: 100%;
     .pdfViewerDash-text {
         .textLayer {
             span {
@@ -212,6 +214,8 @@
 }
 
 .pdfBox-interactive {
+    width: 100%;
+    height: 100%;
     pointer-events: all;
     .pdfViewerDash-text {
         .textLayer {

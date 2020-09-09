@@ -72,7 +72,7 @@ interface IViewerProps {
     active: (outsideReaction?: boolean) => boolean;
     isChildActive: (outsideReaction?: boolean) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
+    pinToPres: (document: Doc, unpin?: boolean) => void;
     addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
@@ -224,7 +224,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         await this.initialLoad();
 
         this._disposers.scrollTop = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) && (this._mainCont.current.scrollTop = stop),
+            (stop) => {
+                if (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) {
+                    (this._mainCont.current.scrollTop = stop);
+                }
+            },
             { fireImmediately: true });
 
         this._disposers.filterScript = reaction(
@@ -362,10 +366,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
 
+    pageDelay: any;
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
-        this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+        this.pageDelay && clearTimeout(this.pageDelay);
+        this.pageDelay = setTimeout(() => {
+            this.pageDelay = undefined;
+            this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+        }, 250);
     }
 
     // get the page index that the vertical offset passed in is on
