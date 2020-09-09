@@ -281,7 +281,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
         if (this._savedAnnotations.size() === 0) return undefined;
-        let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
+        // let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
+        let mainAnnoDoc = Docs.Create.FreeformDocument([], { title: "anno", _width: 1, _height: 1 });
         let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
         const annoDocs: Doc[] = [];
         let maxX = -Number.MAX_VALUE;
@@ -611,8 +612,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     }
+                    annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
                 }
             });
