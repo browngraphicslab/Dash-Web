@@ -51,7 +51,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
-        else console.log('NOT isPRES: ' + this.selectedDoc?.title);
         return false;
     }
     @computed get dataDoc() { return this.selectedDoc?.[DataSym]; }
