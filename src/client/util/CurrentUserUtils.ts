@@ -49,21 +49,6 @@ export class CurrentUserUtils {
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
-        if (doc["template-button-query"] === undefined) {
-            const queryTemplate = Docs.Create.MulticolumnDocument(
-                [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
-                    Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
-                ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
-            );
-            queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
-            doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
-            });
-        }
         // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
         if (doc["template-mobile-button"] === undefined) {
             const queryTemplate = this.mobileButton({
@@ -249,11 +234,11 @@ export class CurrentUserUtils {
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
             doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-link"] as Doc,
-            doc["template-button-switch"] as Doc];
+            //doc["template-button-switch"] as Doc]
+        ];
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
