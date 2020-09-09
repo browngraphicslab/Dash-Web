@@ -1286,7 +1286,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     onPointerWheel = (e: React.WheelEvent): void => {
         // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
-        if (this.props.isSelected(true) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
+        if ((this.props.rootSelected(true) || this.props.isSelected(true)) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
             e.stopPropagation();
         }
     }

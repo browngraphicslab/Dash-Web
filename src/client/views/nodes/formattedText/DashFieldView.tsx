@@ -106,7 +106,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     ref={r => {
                         r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
                         r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
-                        r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
+                        r?.addEventListener("pointerdown", action((e) => {
+                            this._showEnumerables = true;
+                            e.stopPropagation();
+                        }));
                     }} >
                     {strVal}
                 </span>;
