@@ -13,7 +13,7 @@ import { Doc } from '../../../fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse, returnZero } from '../../../Utils';
+import { returnFalse, returnZero, OmitKeys } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
@@ -50,13 +50,14 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
-                    <ContentFittingDocumentView {...this.props}
+                    <ContentFittingDocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
-                        NativeWidth={layoutTemp ? returnZero : this.props.NativeWidth}
+                        NativeWidth={undefined}
+                        NativeHeight={undefined}
                         Document={curDoc.layout}
                         DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}

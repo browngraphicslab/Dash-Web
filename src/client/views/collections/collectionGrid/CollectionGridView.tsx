@@ -163,6 +163,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
             {...this.props}
+            NativeWidth={undefined}
+            NativeHeight={undefined}
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             backgroundColor={this.props.backgroundColor}

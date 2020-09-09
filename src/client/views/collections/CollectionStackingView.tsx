@@ -209,6 +209,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
             fitToBox={false}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}

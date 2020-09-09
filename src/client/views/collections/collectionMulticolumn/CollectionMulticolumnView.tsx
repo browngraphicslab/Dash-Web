@@ -220,7 +220,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             backgroundColor={this.props.backgroundColor}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
-            NativeWidth={layoutTemp ? returnZero : this.props.NativeWidth}
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}

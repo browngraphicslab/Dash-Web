@@ -28,6 +28,7 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
+    childIgnoreNativeSize?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
@@ -40,6 +41,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
     childOpacity?: () => number;
+    childIgnoreNativeSize?: boolean;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
