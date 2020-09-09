@@ -45,7 +45,6 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     onContentClick = () => ScriptCast(this.layoutDoc.onChildClick);
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        const layoutTemp = this.props.DataDoc ? true : undefined;
         const curDoc = this.childLayoutPairs?.[index];
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
@@ -56,8 +55,6 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
-                        NativeWidth={undefined}
-                        NativeHeight={undefined}
                         Document={curDoc.layout}
                         DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}
