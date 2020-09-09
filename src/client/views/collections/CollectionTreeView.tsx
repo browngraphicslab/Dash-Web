@@ -348,8 +348,8 @@ class TreeView extends React.Component<TreeViewProps> {
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
-                    Document={layoutDoc}
-                    DataDoc={this.dataDoc}
+                    Document={this.doc}
+                    DataDoc={undefined}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}

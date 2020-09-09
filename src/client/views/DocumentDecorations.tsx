@@ -647,8 +647,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {closeIcon}
-                    {titleArea}
-                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || minimal ? (null) :
+                    {Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) : titleArea}
+                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || minimal || Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />

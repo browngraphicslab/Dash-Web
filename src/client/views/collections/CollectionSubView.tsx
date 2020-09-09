@@ -270,6 +270,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 return;
             }
 
+            console.log("Html = ", html);
             if (html) {
                 if (FormattedTextBox.IsFragment(html)) {
                     const href = FormattedTextBox.GetHref(html);
@@ -353,14 +354,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (uriList || text) {
                 if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    this.addDocument(Docs.Create.VideoDocument(url, {
+                    console.log("Video URI = ", uriList);
+                    console.log("Add:" + this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
                         _height: 315,
                         _nativeWidth: 600,
                         _nativeHeight: 472.5
-                    }));
+                    })));
                     return;
                 }
                 // let matches: RegExpExecArray | null;
@@ -381,27 +383,30 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
+                ;
+                console.log("Web URI = ", uriList);
                 const existingWebDoc = await Hypothesis.findWebDoc(uriList);
                 if (existingWebDoc) {
                     const alias = Doc.MakeAlias(existingWebDoc);
                     alias.x = options.x;
                     alias.y = options.y;
                     alias._nativeWidth = 850;
-                    alias._nativeHeight = 962;
+                    alias._height = 512;
                     alias._width = 400;
                     this.addDocument(alias);
                 } else {
+                    console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList, {
                         ...options,
                         title: uriList.split("#annotations:")[0],
                         _width: 400,
-                        _height: 315,
+                        _height: 512,
                         _nativeWidth: 850,
-                        _nativeHeight: 962,
                         useCors: true
                     });
+                    console.log(" ... " + newDoc.title);
                     newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
-                    this.addDocument(newDoc);
+                    console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;
             }

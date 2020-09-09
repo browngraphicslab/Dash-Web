@@ -11,7 +11,7 @@ import { ComputedField } from '../../../fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { AudioField, ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnZero, Utils } from '../../../Utils';
+import { emptyFunction, returnOne, returnZero, Utils, OmitKeys } from '../../../Utils';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
@@ -419,7 +419,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
-            <CollectionFreeFormView {...this.props}
+            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 forceScaling={true}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
