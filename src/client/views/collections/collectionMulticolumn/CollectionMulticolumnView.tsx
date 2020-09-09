@@ -247,7 +247,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             ContentScaling={returnOne}
         />;
     }
-    @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
