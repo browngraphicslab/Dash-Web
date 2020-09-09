@@ -42,7 +42,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     @computed get panelWidth() { return this.nativeWidth && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
     @computed get panelHeight() { return this.nativeHeight && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
 
-    private getTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(1 / this.contentScaling());
+    private getTransform = () => this.props.dontCenter ? this.props.ScreenToLocalTransform().scale(1 / this.contentScaling()) : this.props.ScreenToLocalTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(1 / this.contentScaling());
     private get centeringOffset() { return this.nativeWidth() && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
     private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight() * this.contentScaling()) / 2 : 0; }
 
