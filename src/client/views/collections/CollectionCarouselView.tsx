@@ -13,7 +13,7 @@ import { Doc } from '../../../fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse } from '../../../Utils';
+import { returnFalse, returnZero, OmitKeys } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
@@ -45,17 +45,18 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     onContentClick = () => ScriptCast(this.layoutDoc.onChildClick);
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
+        const curDoc = this.childLayoutPairs?.[index];
+        return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
-                    <ContentFittingDocumentView {...this.props}
+                    <ContentFittingDocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
-                        Document={this.childLayoutPairs[index].layout}
-                        DataDoc={this.childLayoutPairs[index].data}
+                        Document={curDoc.layout}
+                        DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
@@ -71,7 +72,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                     <FormattedTextBox key={index} {...this.props}
                         xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
                         yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"} />
+                        Document={curDoc.layout} DataDoc={undefined} fieldKey={"caption"} />
                 </div>
             </>;
     }

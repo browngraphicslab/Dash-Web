@@ -12,7 +12,7 @@ import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnVal } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -107,8 +107,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
-    @computed get nativeWidth() { return this.fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight, this.props.NativeHeight()); }
+    @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), NumCast(this.Document._nativeWidth)); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : returnVal(this.props.NativeHeight?.(), NumCast(this.Document._nativeHeight)); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get scaleFieldKey() { return this.props.scaleField || "_viewScale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
@@ -942,8 +942,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             moveDocument: this.props.moveDocument,
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
-            NativeHeight: returnZero,
-            NativeWidth: returnZero,
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
@@ -1218,7 +1216,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
     }
 
     @undoBatch
@@ -1411,8 +1409,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get contentScaling() {
         if (this.props.annotationsKey && !this.props.forceScaling) return 0;
-        const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
-        const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
+        const nw = returnVal(this.props.NativeWidth?.(), NumCast(this.Document._nativeWidth));
+        const nh = returnVal(this.props.NativeHeight?.(), NumCast(this.Document._nativeHeight));
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;

@@ -12,7 +12,7 @@ import "./Annotation.scss";
 interface IAnnotationProps {
     anno: Doc;
     addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
+    pinToPres: (document: Doc, unpin?: boolean) => void;
     focus: (doc: Doc) => void;
     dataDoc: Doc;
     fieldKey: string;
@@ -22,8 +22,8 @@ interface IAnnotationProps {
 export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
-        return DocListCast(this.props.anno.annotations).map(a => (
-            <RegionAnnotation {...this.props} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />));
+        return DocListCast(this.props.anno.annotations).map(a =>
+            <RegionAnnotation {...this.props} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
     }
 }
 
@@ -33,7 +33,7 @@ interface IRegionAnnotationProps {
     width: number;
     height: number;
     addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
+    pinToPres: (document: Doc, unpin: boolean) => void;
     document: Doc;
     dataDoc: Doc;
     fieldKey: string;
@@ -82,7 +82,8 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     pinToPres = () => {
         const group = FieldValue(Cast(this.props.document.group, Doc));
-        group && this.props.pinToPres(group);
+        const isPinned = group && Doc.isDocPinned(group) ? true : false;
+        group && this.props.pinToPres(group, isPinned);
     }
 
     @action

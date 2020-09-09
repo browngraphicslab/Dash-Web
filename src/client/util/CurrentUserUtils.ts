@@ -245,6 +245,26 @@ export class CurrentUserUtils {
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize", system: true
             });
         }
+        if (doc["template-button-simple"] === undefined) {
+            const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
+
+            const openInTarget = ScriptField.MakeScript("openOnRight(self.doubleClickView)");
+            const carousel = CarouselDocument([], {
+                title: "data", _height: 350, _itemIndex: 0, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10,
+                onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F", system: true
+            });
+
+            const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
+            const detailView = Docs.Create.StackingDocument([carousel], { ...shared, ...detailViewOpts, system: true });
+            detailView.isTemplateDoc = makeTemplate(detailView);
+
+            doc["template-button-simple"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "simple view", icon: "window-maximize", system: true
+            });
+        }
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
@@ -252,6 +272,7 @@ export class CurrentUserUtils {
             doc["template-button-query"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
+            doc["template-button-simple"] as Doc,
             doc["template-button-link"] as Doc,
             doc["template-button-switch"] as Doc];
         if (doc["template-buttons"] === undefined) {
@@ -439,7 +460,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
