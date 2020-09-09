@@ -73,6 +73,7 @@ export interface CollectionViewCustomProps {
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childOpacity?: () => number;
     hideFilter?: true;
+    childIgnoreNativeSize?: boolean;
 }
 
 export interface CollectionRenderProps {

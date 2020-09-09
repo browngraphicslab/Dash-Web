@@ -581,8 +581,6 @@ export class MainView extends React.Component {
                     focus={returnFalse}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
-                    NativeHeight={() => 500}
-                    NativeWidth={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -648,8 +646,6 @@ export class MainView extends React.Component {
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}
-                            NativeHeight={() => 500}
-                            NativeWidth={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}

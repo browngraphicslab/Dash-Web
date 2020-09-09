@@ -80,21 +80,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
-    @action
     rtfWidth = () => {
-        if (this.selectedDoc) {
-            return Math.min(this.selectedDoc?.[WidthSym](), this.props.width - 20);
-        } else {
-            return 0;
-        }
+        return !this.selectedDoc ? 0 : Math.min(this.selectedDoc?.[WidthSym](), this.props.width - 20);
     }
-    @action
     rtfHeight = () => {
-        if (this.selectedDoc) {
-            return this.rtfWidth() <= this.selectedDoc?.[WidthSym]() ? Math.min(this.selectedDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
-        } else {
-            return 0;
-        }
+        return !this.selectedDoc ? 0 : this.rtfWidth() <= this.selectedDoc?.[WidthSym]() ? Math.min(this.selectedDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
     }
 
     @action
@@ -286,10 +276,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     backgroundColor={this.previewBackground}
                     fitToBox={true}
                     FreezeDimensions={true}
-                    NativeWidth={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : undefined}
-                    NativeHeight={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : undefined}
+                    dontCenter={true}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
                     focus={returnFalse}

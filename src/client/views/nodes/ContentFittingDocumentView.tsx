@@ -62,7 +62,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
             {!this.props.Document || !this.props.PanelWidth ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc"
                     style={{
-                        transform: !this.props.dontCenter ? `translate(${this.centeringOffset}px, 0px)` : undefined,
+                        transform: !this.props.dontCenter ? `translate(${this.centeringOffset}px, ${this.centeringYOffset}px)` : undefined,
                         borderRadius: this.borderRounding,
                         height: Math.abs(this.centeringYOffset) > 0.001 ? `${100 * this.nativeHeight() / this.nativeWidth() * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                         width: Math.abs(this.centeringOffset) > 0.001 ? `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth()

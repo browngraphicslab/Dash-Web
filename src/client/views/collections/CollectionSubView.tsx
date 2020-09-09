@@ -28,7 +28,6 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
-    childIgnoreNativeSize?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;

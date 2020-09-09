@@ -256,7 +256,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         const { childLayoutPairs } = this;
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
-        const layoutTemp = this.props.DataDoc ? true : undefined;
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));

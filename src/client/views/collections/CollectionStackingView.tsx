@@ -128,19 +128,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return fields;
     }
 
-    getSimpleDocHeight(d?: Doc) {
-        if (!d) return 0;
-        const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
-        const nw = NumCast(layoutDoc._nativeWidth);
-        const nh = NumCast(layoutDoc._nativeHeight);
-        let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!layoutDoc._fitWidth && nw && nh) {
-            const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(layoutDoc[WidthSym](), wid);
-            return wid * aspect;
-        }
-        return layoutDoc._fitWidth ? wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1) : layoutDoc[HeightSym]();
-    }
     componentDidMount() {
         super.componentDidMount?.();
 
@@ -209,8 +196,9 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            dontCenter={this.props.childIgnoreNativeSize ? true : false}
             fitToBox={false}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}

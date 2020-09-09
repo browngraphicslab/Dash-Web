@@ -228,8 +228,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
+    @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
     //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
@@ -345,8 +345,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ContentScaling={this.contentScaling}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
-                NativeHeight={this.nativeHeight}
-                NativeWidth={this.nativeWidth}
+                NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}
+                NativeWidth={this.nativeWidth() ? this.nativeWidth : undefined}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 renderDepth={0}
                 parentActive={returnTrue}
