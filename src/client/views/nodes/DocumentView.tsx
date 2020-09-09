@@ -172,7 +172,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         me.touchEvent.preventDefault();
         e.stopPropagation();
         if (RadialMenu.Instance.used) {
-            this.onContextMenu(me.touches[0]);
+            this.onContextMenu(undefined, me.touches[0].pageX, me.touches[0].pageY);
         }
     }
 
@@ -723,20 +723,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = (e: React.MouseEvent | Touch) => {
+    onContextMenu = (e?: React.MouseEvent, pageX?: number, pageY?: number) => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (!(e instanceof Touch)) {
-            if (e.button === 0 && !e.ctrlKey) {
+        if (e) {
+            if (e.button === 0 && !e.ctrlKey || e.isDefaultPrevented()) {
                 e.preventDefault();
                 return;
             }
-            e.persist();
             e.stopPropagation();
+            e.persist();
 
-            if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
-                e?.isDefaultPrevented()) {
-                e?.preventDefault();
-                return;
+            if (!navigator.userAgent.includes("Mozilla")) {
+                if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3) {
+                    e?.preventDefault();
+                    return;
+                }
             }
             e.preventDefault();
         }
@@ -821,11 +822,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         runInAction(() => {
-            if (!this.topMost && !(e instanceof Touch)) {
-                e.stopPropagation(); // DocumentViews should stop propagation of this event
+            if (!this.topMost) {
+                e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
-            cm.displayMenu(e.pageX - 15, e.pageY - 15);
-            !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
+            cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
+            this.isSelected(true) && SelectionManager.SelectDoc(this, false);
         });
     }
 
