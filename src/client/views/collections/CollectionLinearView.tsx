@@ -153,8 +153,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
-                                NativeHeight={returnZero}
-                                NativeWidth={returnZero}
                                 PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
                                 PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}

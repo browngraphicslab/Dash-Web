@@ -96,37 +96,38 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.onpointerdown = async (e: PointerEvent) => {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
-                if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    if (FormattedTextBoxComment.linkDoc.author) {
-
-                        if (FormattedTextBoxComment._deleteRef && FormattedTextBoxComment._deleteRef.contains(e.target as any)) {
+                const linkDoc = FormattedTextBoxComment.linkDoc;
+                if (linkDoc && !keep && textBox) {
+                    FormattedTextBoxComment.linkDoc = undefined;
+                    if (linkDoc.author) {
+                        if (FormattedTextBoxComment._deleteRef?.contains(e.target as any)) {
                             this.deleteLink();
                         } else if (FormattedTextBoxComment._followRef && FormattedTextBoxComment._followRef.contains(e.target as any)) {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
+                            if (linkDoc.type !== DocumentType.LINK) {
+                                textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
-                                const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc)), textBox.dataDoc) ?
-                                    Cast(FormattedTextBoxComment.linkDoc.anchor2, Doc) : (Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc))
-                                    || FormattedTextBoxComment.linkDoc);
+                                const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ?
+                                    Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc))
+                                    || linkDoc);
                                 const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
 
-                                if (FormattedTextBoxComment.linkDoc.follow) {
-                                    if (FormattedTextBoxComment.linkDoc.follow === "default") {
-                                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in right tab") {
+                                if (linkDoc.follow) {
+                                    if (linkDoc.follow === "default") {
+                                        DocumentManager.Instance.FollowLink(linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
+                                    } else if (linkDoc.follow === "Always open in right tab") {
                                         if (target) { textBox.props.addDocTab(target, "add:right"); }
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in new tab") {
+                                    } else if (linkDoc.follow === "Always open in new tab") {
                                         if (target) { textBox.props.addDocTab(target, "add"); }
                                     }
                                 } else {
-                                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
+                                    DocumentManager.Instance.FollowLink(linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
                                 }
                             }
                         } else {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
+                            if (linkDoc.type !== DocumentType.LINK) {
+                                textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
-                                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
+                                DocumentManager.Instance.FollowLink(linkDoc, textBox.props.Document,
                                     (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
                             }
                         }
@@ -140,7 +141,7 @@ export class FormattedTextBoxComment {
                 e.stopPropagation();
                 e.preventDefault();
             };
-            root && root.appendChild(FormattedTextBoxComment.tooltip);
+            root?.appendChild(FormattedTextBoxComment.tooltip);
         }
     }
 
@@ -158,6 +159,7 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.textBox = undefined;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
         ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+        FormattedTextBoxComment.linkDoc = undefined;
     }
     public static SetState(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
@@ -312,15 +314,15 @@ export class FormattedTextBoxComment {
                                             searchFilterDocs={returnEmptyDoclist}
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
-                                            renderDepth={0}
+                                            renderDepth={-1}
                                             PanelWidth={() => 175} //Math.min(350, NumCast(target._width, 350))}
                                             PanelHeight={() => 175} //Math.min(250, NumCast(target._height, 250))}
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={() => target._nativeWidth ? NumCast(target._nativeWidth) : 0}
-                                            NativeHeight={() => target._nativeHeight ? NumCast(target._nativeHeight) : 0}
+                                            NativeWidth={target._nativeWidth ? (() => NumCast(target._nativeWidth)) : undefined}
+                                            NativeHeight={target._natvieHeight ? (() => NumCast(target._nativeHeight)) : undefined}
                                         />
                                     </div>
                                 </div>;

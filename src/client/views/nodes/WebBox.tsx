@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym, HeightSym, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
-import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue } from "../../../Utils";
+import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -67,6 +67,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
+
+    constructor(props: any) {
+        super(props);
+        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 850));
+        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, this.Document[HeightSym]() / this.Document[WidthSym]() * 850));
+    }
 
     iframeLoaded = action((e: any) => {
         const iframe = this._iframeRef.current;
@@ -369,7 +375,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
@@ -646,12 +652,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         height: NumCast(this.layoutDoc.scrollHeight),
                         pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                     }}>
-                        <CollectionFreeFormView {...this.props}
+                        <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.props.PanelWidth}
                             annotationsKey={this.annotationKey}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             VisibleHeight={this.visibleHeiht}
                             focus={this.props.focus}
                             setPreviewCursor={this.setPreviewCursor}

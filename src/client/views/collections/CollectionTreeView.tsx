@@ -348,8 +348,8 @@ class TreeView extends React.Component<TreeViewProps> {
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
-                    Document={layoutDoc}
-                    DataDoc={this.dataDoc}
+                    Document={this.doc}
+                    DataDoc={undefined}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
@@ -357,8 +357,8 @@ class TreeView extends React.Component<TreeViewProps> {
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
-                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : returnZero}
-                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : returnZero}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
                     focus={returnFalse}
@@ -464,8 +464,6 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContentScaling={returnOne}
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 contextMenuItems={this.contextMenuItems}
                 opacity={returnOne}
                 renderDepth={1}

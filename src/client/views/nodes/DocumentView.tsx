@@ -11,7 +11,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, returnVal } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -49,8 +49,8 @@ export interface DocumentViewProps {
     docFilters: () => string[];
     searchFilterDocs: () => Doc[];
     FreezeDimensions?: boolean;
-    NativeWidth: () => number;
-    NativeHeight: () => number;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
     Document: Doc;
     DataDoc?: Doc;
     getView?: (view: DocumentView) => any;
@@ -119,8 +119,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0))); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0))); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
@@ -172,7 +172,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         me.touchEvent.preventDefault();
         e.stopPropagation();
         if (RadialMenu.Instance.used) {
-            this.onContextMenu(me.touches[0]);
+            this.onContextMenu(undefined, me.touches[0].pageX, me.touches[0].pageY);
         }
     }
 
@@ -723,20 +723,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = (e: React.MouseEvent | Touch) => {
+    onContextMenu = (e?: React.MouseEvent, pageX?: number, pageY?: number) => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (!(e instanceof Touch)) {
-            if (e.button === 0 && !e.ctrlKey) {
+        if (e) {
+            if (e.button === 0 && !e.ctrlKey || e.isDefaultPrevented()) {
                 e.preventDefault();
                 return;
             }
-            e.persist();
             e.stopPropagation();
+            e.persist();
 
-            if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
-                e?.isDefaultPrevented()) {
-                e?.preventDefault();
-                return;
+            if (!navigator.userAgent.includes("Mozilla")) {
+                if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3) {
+                    e?.preventDefault();
+                    return;
+                }
             }
             e.preventDefault();
         }
@@ -821,11 +822,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         runInAction(() => {
-            if (!this.topMost && !(e instanceof Touch)) {
-                e.stopPropagation(); // DocumentViews should stop propagation of this event
+            if (!this.topMost) {
+                e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
-            cm.displayMenu(e.pageX - 15, e.pageY - 15);
-            !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
+            cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
+            this.isSelected(true) && SelectionManager.SelectDoc(this, false);
         });
     }
 

@@ -11,7 +11,7 @@ import { Document } from "../../../fields/documentSchemas";
 import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { List } from "../../../fields/List";
-import { numberRange, smoothScroll } from "../../../Utils";
+import { numberRange, smoothScroll, returnVal } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -55,8 +55,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc._nativeWidth, this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc._nativeHeight, this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
 
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
