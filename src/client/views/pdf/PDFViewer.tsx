@@ -302,7 +302,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
+            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color.replace(/[0-9.]*\)/, ".3)"), title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
@@ -584,7 +584,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
 
         if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
-            this.highlight("rgba(245, 230, 95, 0.616)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
+            this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
         }
         else {
             PDFMenu.Instance.StartDrag = this.startDrag;
