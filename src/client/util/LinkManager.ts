@@ -200,7 +200,7 @@ export class LinkManager {
     // finds the opposite anchor of a given anchor in a link
     //TODO This should probably return undefined if there isn't an opposite anchor
     //TODO This should also await the return value of the anchor so we don't filter out promises
-    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
+    public static getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         const a1 = Cast(linkDoc.anchor1, Doc, null);
         const a2 = Cast(linkDoc.anchor2, Doc, null);
         if (Doc.AreProtosEqual(anchor, a1)) return a2;

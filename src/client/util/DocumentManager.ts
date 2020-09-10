@@ -109,7 +109,7 @@ export class DocumentManager {
         const pairs = DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
             const linksList = DocListCast(dv.props.Document.links);
             pairs.push(...linksList.reduce((pairs, link) => {
-                const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                const linkToDoc = link && LinkManager.getOppositeAnchor(link, dv.props.Document);
                 linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
                     if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== docView1.props.LayoutTemplateString) {
                         pairs.push({ a: dv, b: docView1, l: link });
