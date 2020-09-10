@@ -177,7 +177,7 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
+                targetDocContext._scrollY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
@@ -192,11 +192,19 @@ export class DocumentManager {
                             if (retryDocView) {   // we found the target in the context
                                 retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
                             } else { // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
-                                if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                setTimeout(() => {
+                                    const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
+                                    if (retryDocView) {   // we found the target in the context
+                                        retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
+                                    } else { // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
+                                        if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
+                                        // targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                    }
+                                    highlight();
+                                }, 2000)
                             }
                             highlight();
-                        }, 0);
+                        }, 250);
                     }
                 } else {  // there's no context view so we need to create one first and try again
                     createViewFunc(targetDocContext); // so first we create the target, but don't pass finished because we still need to create the target

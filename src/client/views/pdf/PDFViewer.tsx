@@ -175,7 +175,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    (this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    if ((this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current) {
+                        smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    } else {
+                        console.log("Waiting for preview");
+                    }
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
