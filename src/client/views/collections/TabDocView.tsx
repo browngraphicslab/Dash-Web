@@ -68,7 +68,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
                     tab.header.parent.setActiveContentItem(tab.contentItem);
-                    console.log("Seetting " + titleEle.value);
                     tab.setActive(true);
                 }
             };
@@ -88,7 +87,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     (document.activeElement !== titleEle) && titleEle.focus();
                 }
             };
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.topMost && v.props.Document === doc),
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => (v.topMost || v.props.treeViewDoc) && v.props.Document === doc),
                 (selected) => selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
                     UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch"));
 
@@ -194,9 +193,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     private onActiveContentItemChanged() {
         if (this.props.glContainer.tab && this._isActive !== this.props.glContainer.tab.isActive) {
             this._isActive = this.props.glContainer.tab.isActive;
-            this._isActive && setTimeout(() => this.view && SelectionManager.SelectDoc(this.view, false), 0);
             (CollectionDockingView.Instance as any)._goldenLayout?.isInitialised && CollectionDockingView.Instance.stateChanged();
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
+            this._isActive && this.view && SelectionManager.SelectDoc(this.view, false);
         }
     }
 
@@ -232,8 +231,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
+    @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
     //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
@@ -310,8 +309,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ContentScaling={returnOne}
                 PanelWidth={this.returnMiniSize}
                 PanelHeight={this.returnMiniSize}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 renderDepth={0}
                 whenActiveChanged={emptyFunction}
@@ -336,6 +333,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => afterFocus?.();
     setView = action((view: DocumentView) => this._view = view);
+    active = () => this._isActive;
     @computed get docView() {
         TraceMobx();
         return !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
@@ -351,11 +349,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 ContentScaling={this.contentScaling}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
-                NativeHeight={this.nativeHeight}
-                NativeWidth={this.nativeWidth}
+                NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}
+                NativeWidth={this.nativeWidth() ? this.nativeWidth : undefined}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
                 renderDepth={0}
-                parentActive={returnTrue}
+                parentActive={this.active}
                 whenActiveChanged={emptyFunction}
                 focus={this.focusFunc}
                 backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
@@ -373,7 +371,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         return (<div className="collectionDockingView-content" ref={ref => {
             if (this._mainCont = ref) {
                 (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
-                this.tab && DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.init(this.tab, this._document)));
+                DocServer.GetRefField(this.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.tab && this.init(this.tab, this._document)));
             }
         }}
             style={{

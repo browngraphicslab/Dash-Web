@@ -12,7 +12,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll, returnVal } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -77,12 +77,9 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf, width, height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            if (height() < 5) {
-                console.log("here" + height());
-            }
             const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(d, (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc, dxf, width)}
+                {this.getDisplayDoc(d, dxf, width)}
             </div>;
         });
     }
@@ -131,19 +128,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return fields;
     }
 
-    getSimpleDocHeight(d?: Doc) {
-        if (!d) return 0;
-        const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
-        const nw = NumCast(layoutDoc._nativeWidth);
-        const nh = NumCast(layoutDoc._nativeHeight);
-        let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!layoutDoc._fitWidth && nw && nh) {
-            const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(layoutDoc[WidthSym](), wid);
-            return wid * aspect;
-        }
-        return layoutDoc._fitWidth ? wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1) : layoutDoc[HeightSym]();
-    }
     componentDidMount() {
         super.componentDidMount?.();
 
@@ -197,7 +181,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         }, 500);
     }
 
-    getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
+    getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
+        const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
         const opacity = () => this.Document._currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
         return <ContentFittingDocumentView
@@ -211,10 +196,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
+            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            dontCenter={this.props.childIgnoreNativeSize ? true : false}
             fitToBox={false}
-            dontRegisterView={BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
+            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -247,13 +233,15 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
+        const dataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
         const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
-        const nw = NumCast(layoutDoc._nativeWidth);
-        const nh = NumCast(layoutDoc._nativeHeight);
+        const layoutField = Doc.LayoutFieldKey(layoutDoc);
+        const nw = NumCast(layoutDoc._nativeWidth) || NumCast(dataDoc?.[`${layoutField}-nativeWidth`]);
+        const nh = NumCast(layoutDoc._nativeHeight) || NumCast(dataDoc?.[`${layoutField}-nativeHeight`]);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
         if (!layoutDoc._fitWidth && nw && nh) {
             const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(layoutDoc[WidthSym](), wid);
+            if (!(this.layoutDoc._columnsFill)) wid = Math.min(this.getDocWidth(d), wid);
             return wid * aspect;
         }
         return layoutDoc._fitWidth ?
@@ -481,8 +469,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
 
 
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth) || this.props.NativeWidth() || 0; }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight) || this.props.NativeHeight() || 0; }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc._nativeWidth)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc._nativeHeight)); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 

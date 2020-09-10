@@ -420,7 +420,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     render() {
-        const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+        const destination = LinkManager.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
         const groups = [this.props.linkDoc].map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc}

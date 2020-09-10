@@ -261,8 +261,6 @@ export class MainView extends React.Component {
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={emptyFunction}
@@ -318,8 +316,6 @@ export class MainView extends React.Component {
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     rootSelected={returnTrue}
                     removeDocument={returnFalse}
                     onClick={undefined}
@@ -354,8 +350,6 @@ export class MainView extends React.Component {
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
                 onClick={undefined}
@@ -487,8 +481,6 @@ export class MainView extends React.Component {
                     onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
@@ -553,8 +545,6 @@ export class MainView extends React.Component {
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
@@ -591,8 +581,6 @@ export class MainView extends React.Component {
                     focus={returnFalse}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
-                    NativeHeight={() => 500}
-                    NativeWidth={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -658,8 +646,6 @@ export class MainView extends React.Component {
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}
-                            NativeHeight={() => 500}
-                            NativeWidth={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}

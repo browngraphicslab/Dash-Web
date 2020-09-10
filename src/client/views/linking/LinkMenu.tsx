@@ -96,7 +96,7 @@ export class LinkMenu extends React.Component<Props> {
                 <div className="linkMenu-list" >
                     {this.renderAllGroups(groups)}
                 </div> :
-                <div className="linkMenu-listEditor" style={{ left: this.position.x, top: this.position.b + 15 }}>
+                <div className="linkMenu-listEditor">
                     <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
                         showLinks={action(() => this._editingLink = undefined)} />
                 </div>

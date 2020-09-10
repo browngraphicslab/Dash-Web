@@ -292,7 +292,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             setTimeout(() => {
                 CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
                 this.stateChanged();
-                this._flush!.end();
+                this._flush?.end();
                 this._flush = undefined;
             }, 10);
         }
@@ -353,7 +353,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
     tabDestroyed = (tab: any) => {
         this.tabMap.delete(tab);
-        Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
+        tab._disposers && Object.values(tab._disposers).forEach((disposer: any) => disposer?.());
         tab.reactComponents?.forEach((ele: any) => ReactDOM.unmountComponentAtNode(ele));
     }
     tabCreated = (tab: any) => {

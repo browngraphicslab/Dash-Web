@@ -1,28 +1,28 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
+import { action } from "mobx";
 import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
+import wiki from "wikijs";
 import { Doc, DocCastAsync, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter, returnEmptyDoclist } from "../../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { schema } from "./schema_rts";
+import { Docs } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { LinkManager } from "../../../util/LinkManager";
 import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
+import { LinkMenuItem } from "../../linking/LinkMenuItem";
 import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
+import { DocumentLinksButton } from "../DocumentLinksButton";
+import { LinkDocPreview } from "../LinkDocPreview";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
+import { schema } from "./schema_rts";
 import React = require("react");
-import { Docs } from "../../../documents/Documents";
-import wiki from "wikijs";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action } from "mobx";
-import { LinkManager } from "../../../util/LinkManager";
-import { LinkDocPreview } from "../LinkDocPreview";
-import { DocumentLinksButton } from "../DocumentLinksButton";
-import { Tooltip } from "@material-ui/core";
-import { undoBatch } from "../../../util/UndoManager";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -96,41 +96,20 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.onpointerdown = async (e: PointerEvent) => {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
-                if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    if (FormattedTextBoxComment.linkDoc.author) {
-
-                        if (FormattedTextBoxComment._deleteRef && FormattedTextBoxComment._deleteRef.contains(e.target as any)) {
+                const linkDoc = FormattedTextBoxComment.linkDoc;
+                if (linkDoc && !keep && textBox) {
+                    if (linkDoc.author) {
+                        if (FormattedTextBoxComment._deleteRef?.contains(e.target as any)) {
                             this.deleteLink();
-                        } else if (FormattedTextBoxComment._followRef && FormattedTextBoxComment._followRef.contains(e.target as any)) {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
-                            } else {
-                                const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc)), textBox.dataDoc) ?
-                                    Cast(FormattedTextBoxComment.linkDoc.anchor2, Doc) : (Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc))
-                                    || FormattedTextBoxComment.linkDoc);
-                                const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
-
-                                if (FormattedTextBoxComment.linkDoc.follow) {
-                                    if (FormattedTextBoxComment.linkDoc.follow === "default") {
-                                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in right tab") {
-                                        if (target) { textBox.props.addDocTab(target, "add:right"); }
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in new tab") {
-                                        if (target) { textBox.props.addDocTab(target, "add"); }
-                                    }
-                                } else {
-                                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "add:right"), false);
-                                }
-                            }
                         } else {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
+                            FormattedTextBoxComment.linkDoc = undefined;
+                            if (linkDoc.type !== DocumentType.LINK) {
+                                textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
-                                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
-                                    (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
+                                const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
+                                target && LinkMenuItem.followDefault(linkDoc, textBox.dataDoc, target, textBox.props.addDocTab);
                             }
                         }
-
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
                     textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, useCors: true }), "add:right");
@@ -140,24 +119,24 @@ export class FormattedTextBoxComment {
                 e.stopPropagation();
                 e.preventDefault();
             };
-            root && root.appendChild(FormattedTextBoxComment.tooltip);
+            root?.appendChild(FormattedTextBoxComment.tooltip);
         }
     }
 
     @undoBatch
-    @action
-    deleteLink = () => {
+    deleteLink = action(() => {
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
         LinkDocPreview.LinkInfo = undefined;
         DocumentLinksButton.EditLink = undefined;
         //FormattedTextBoxComment.tooltipText = undefined;
         FormattedTextBoxComment.Hide();
-    }
+    });
 
     public static Hide() {
         FormattedTextBoxComment.textBox = undefined;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
         ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+        FormattedTextBoxComment.linkDoc = undefined;
     }
     public static SetState(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
@@ -312,15 +291,15 @@ export class FormattedTextBoxComment {
                                             searchFilterDocs={returnEmptyDoclist}
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
-                                            renderDepth={0}
+                                            renderDepth={-1}
                                             PanelWidth={() => 175} //Math.min(350, NumCast(target._width, 350))}
                                             PanelHeight={() => 175} //Math.min(250, NumCast(target._height, 250))}
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={() => target._nativeWidth ? NumCast(target._nativeWidth) : 0}
-                                            NativeHeight={() => target._nativeHeight ? NumCast(target._nativeHeight) : 0}
+                                            NativeWidth={target._nativeWidth ? (() => NumCast(target._nativeWidth)) : undefined}
+                                            NativeHeight={target._natvieHeight ? (() => NumCast(target._nativeHeight)) : undefined}
                                         />
                                     </div>
                                 </div>;
