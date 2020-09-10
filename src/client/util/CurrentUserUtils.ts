@@ -49,21 +49,6 @@ export class CurrentUserUtils {
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
-        if (doc["template-button-query"] === undefined) {
-            const queryTemplate = Docs.Create.MulticolumnDocument(
-                [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
-                    Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
-                ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
-            );
-            queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
-            doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
-            });
-        }
         // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
         if (doc["template-mobile-button"] === undefined) {
             const queryTemplate = this.mobileButton({
@@ -245,15 +230,36 @@ export class CurrentUserUtils {
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize", system: true
             });
         }
+        if (doc["template-button-simple"] === undefined) {
+            const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
+
+            const openInTarget = ScriptField.MakeScript("openOnRight(self.doubleClickView)");
+            const carousel = CarouselDocument([], {
+                title: "data", _height: 350, _itemIndex: 0, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10,
+                onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F", system: true
+            });
+
+            const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
+            const detailView = Docs.Create.StackingDocument([carousel], { ...shared, ...detailViewOpts, system: true });
+            detailView.isTemplateDoc = makeTemplate(detailView);
+
+            doc["template-button-simple"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "simple view", icon: "window-maximize", system: true
+            });
+        }
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
             doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
+            doc["template-button-simple"] as Doc,
             doc["template-button-link"] as Doc,
-            doc["template-button-switch"] as Doc];
+            //doc["template-button-switch"] as Doc]
+        ];
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
@@ -439,7 +445,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);

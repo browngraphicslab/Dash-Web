@@ -9,7 +9,7 @@ import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
-import { emptyFunction, returnFalse, returnOne, returnZero, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -169,11 +169,9 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <div className="videoBox-viewer" >
-                <CollectionFreeFormView {...this.props}
+                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     annotationsKey={""}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

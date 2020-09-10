@@ -536,8 +536,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 Document={mark}
                 focus={() => this.playLink(mark)}
                 pointerEvents={true}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
                 ContainingCollectionDoc={this.props.Document}
@@ -623,8 +621,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={l[Id]} style={{ left: `${startTime / this.audioDuration * 100}%` }} onClick={e => e.stopPropagation()}>
                                         <DocumentView {...this.props}
                                             Document={l}
-                                            NativeHeight={returnZero}
-                                            NativeWidth={returnZero}
                                             rootSelected={returnFalse}
                                             ContainingCollectionDoc={this.props.Document}
                                             parentActive={returnTrue}

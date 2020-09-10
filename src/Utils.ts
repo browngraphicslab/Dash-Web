@@ -414,6 +414,8 @@ export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
 
+export function returnVal(val1?: number, val2?: number) { return val1 !== undefined ? val1 : val2 !== undefined ? val2 : 0; }
+
 export function returnOne() { return 1; }
 
 export function returnZero() { return 0; }

@@ -12,7 +12,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne } from "../../../Utils";
+import { returnFalse, returnOne, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -1731,6 +1731,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             ContainingCollectionDoc={this.props.Document}
                             PanelWidth={this.props.PanelWidth}
                             PanelHeight={this.panelHeight}
+                            childIgnoreNativeSize={true}
                             moveDocument={returnFalse}
                             childOpacity={returnOne}
                             childLayoutTemplate={this.childLayoutTemplate}

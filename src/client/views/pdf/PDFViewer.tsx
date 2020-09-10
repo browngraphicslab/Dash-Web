@@ -13,7 +13,7 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils } from "../../../Utils";
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
@@ -33,8 +33,10 @@ import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
+import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
+const _global = (window /* browser */ || global /* node */) as any;
 
 export const pageSchema = createSchema({
     _curPage: "number",
@@ -72,7 +74,7 @@ interface IViewerProps {
     active: (outsideReaction?: boolean) => boolean;
     isChildActive: (outsideReaction?: boolean) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
+    pinToPres: (document: Doc, unpin?: boolean) => void;
     addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ScreenToLocalTransform: () => Transform;
@@ -144,9 +146,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        runInAction(() => this._showWaiting = this._showCover = true);
+        runInAction(() => this._showWaiting = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
+        if (this._mainCont.current) {
+            this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0;
+            const observer = new _global.ResizeObserver(action((entries: any) => this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0)));
+            observer.observe(this._mainCont.current);
+        }
+
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
                 if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);
@@ -168,7 +175,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    (!LinkDocPreview.TargetDoc) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    (this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
@@ -224,7 +231,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         await this.initialLoad();
 
         this._disposers.scrollTop = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) && (this._mainCont.current.scrollTop = stop),
+            (stop) => {
+                if (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) {
+                    (this._mainCont.current.scrollTop = stop);
+                }
+            },
             { fireImmediately: true });
 
         this._disposers.filterScript = reaction(
@@ -261,7 +272,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         document.addEventListener("copy", this.copy);
         const eventBus = new PDFJSViewer.EventBus(true);
         eventBus._on("pagesinit", this.pagesinit);
-        eventBus._on("pagerendered", action(() => this._showCover = this._showWaiting = false));
+        eventBus._on("pagerendered", action(() => {
+            this._showWaiting = false;
+        }));
         const pdfLinkService = new PDFJSViewer.PDFLinkService({ eventBus });
         const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService, eventBus });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
@@ -281,14 +294,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
         if (this._savedAnnotations.size() === 0) return undefined;
-        let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
+        // let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
+        let mainAnnoDoc = Docs.Create.FreeformDocument([], { title: "anno", _width: 1, _height: 1 });
         let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
         const annoDocs: Doc[] = [];
         let maxX = -Number.MAX_VALUE;
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
+            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color.replace(/[0-9.]*\)/, ".3)"), title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
@@ -361,10 +375,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
 
+    pageDelay: any;
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
-        this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+            this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
+            this.pageDelay && clearTimeout(this.pageDelay);
+            this.pageDelay = setTimeout(() => {
+                this.pageDelay = undefined;
+                this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+            }, 250);
+        }
     }
 
     // get the page index that the vertical offset passed in is on
@@ -563,7 +584,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
 
         if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
-            this.highlight("rgba(245, 230, 95, 0.616)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
+            this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
         }
         else {
             PDFMenu.Instance.StartDrag = this.startDrag;
@@ -611,8 +632,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     }
+                    annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
                 }
             });
@@ -673,14 +694,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get overlayLayer() {
         return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
-            <CollectionFreeFormView {...this.props}
+            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
                 annotationsKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 dropAction={"alias"}
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}

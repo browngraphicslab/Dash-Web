@@ -73,6 +73,7 @@ export interface CollectionViewCustomProps {
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childOpacity?: () => number;
     hideFilter?: true;
+    childIgnoreNativeSize?: boolean;
 }
 
 export interface CollectionRenderProps {
@@ -367,37 +368,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     bodyPanelWidth = () => this.props.PanelWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
-
-    @computed get dataDoc() {
-        return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
-            this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
-    }
-    // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
-    // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
-    // to its children which may be templates.
-    // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
-    @computed get dataField() {
-        return this.dataDoc[this.props.fieldKey];
-    }
-
-    get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
-        const { Document, DataDoc } = this.props;
-        const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, doc)).filter(pair => pair.layout);
-        return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
-    }
-
-    get childDocList() {
-        return Cast(this.dataField, listSpec(Doc));
-    }
-
-    get childDocs() {
-        const dfield = this.dataField;
-        const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), Cast(this.props.Document.rootDocument, Doc, null) ? [Cast(this.props.Document.rootDocument, Doc, null)] : []);
-        const docs = rawdocs.filter(d => d && !(d instanceof Promise)).map(d => d as Doc);
-        const viewSpecScript = ScriptCast(this.props.Document.viewSpecScript);
-        return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
-    }
-
     onPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._facetWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
