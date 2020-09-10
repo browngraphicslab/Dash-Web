@@ -32,7 +32,6 @@ import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../fields/util';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-import { CollectionDockingView } from './CollectionDockingView';
 
 export interface TreeViewProps {
     document: Doc;
@@ -465,7 +464,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
                 contextMenuItems={this.contextMenuItems}
-                opacity={returnOne}
+                opacity={this.props.treeView.props.Document.treeViewOutlineMode ? undefined : returnOne}
                 renderDepth={1}
                 focus={returnTrue}
                 parentActive={returnTrue}
@@ -838,12 +837,13 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
             this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged);
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
+        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
 
         return !childDocs ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget" id="body"
                     style={{
-                        background: this.props.backgroundColor?.(this.doc, this.props.renderDepth),
+                        background: backgroundColor,
                         paddingLeft: `${NumCast(this.doc._xPadding, 10)}px`,
                         paddingRight: `${NumCast(this.doc._xPadding, 10)}px`,
                         paddingTop: `${NumCast(this.doc._yPadding, 20)}px`,

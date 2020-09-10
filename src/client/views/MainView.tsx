@@ -101,6 +101,7 @@ export class MainView extends React.Component {
             DocServer.GetRefField(id).then(doc => (doc instanceof Doc) ? DocumentManager.Instance.jumpToDocument(doc, false, undefined) : (null));
         });
         document.addEventListener("linkAnnotationToDash", Hypothesis.linkListener);
+        this.initEventListeners();
     }
 
     componentWillUnMount() {
@@ -147,7 +148,6 @@ export class MainView extends React.Component {
             fa.faArrowAltCircleDown, fa.faArrowAltCircleUp, fa.faArrowAltCircleLeft, fa.faArrowAltCircleRight, fa.faStopCircle, fa.faCheckCircle, fa.faGripVertical,
             fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload,
             fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines);
-        this.initEventListeners();
         this.initAuthenticationRouters();
     }
 
@@ -178,7 +178,7 @@ export class MainView extends React.Component {
                     SelectionManager.DeselectAll();
                 }
             }
-        });
+        }, false);
     }
 
     initAuthenticationRouters = async () => {

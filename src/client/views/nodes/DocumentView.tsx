@@ -299,7 +299,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !this.props.Document._isBackground && this.props.bringToFront(this.props.Document);
+            !this.props.Document._isBackground && !this.props.Document["_isBackground-canClick"] && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -762,6 +762,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
         optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+        optionItems.push({ description: "Lock in Back", event: () => this.rootDoc["_isBackground-canClick"] = !this.rootDoc["_isBackground-canClick"], icon: "expand-arrows-alt" });
         !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
@@ -1007,6 +1008,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
+            (SnappingManager.GetIsDragging() && this.Document["_isBackground-canClick"]) ||
             (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }
