@@ -107,8 +107,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                 />
                 <div className="presElementBox-embeddedMask" />
             </div>;

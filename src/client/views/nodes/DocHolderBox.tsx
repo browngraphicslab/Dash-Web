@@ -135,8 +135,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     pinToPres={this.props.pinToPres}
                     ScreenToLocalTransform={this.getTransform}
                     renderDepth={containedDoc.type !== DocumentType.DOCHOLDER && !this.props.renderDepth ? 0 : this.props.renderDepth + 1}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={this.pwidth}
                     PanelHeight={this.pheight}
                     focus={this.props.focus}
@@ -166,8 +164,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     pinToPres={this.props.pinToPres}
                     ScreenToLocalTransform={this.getTransform}
                     renderDepth={containedDoc.type !== DocumentType.DOCHOLDER && !this.props.renderDepth ? 0 : this.props.renderDepth + 1}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={this.pwidth}
                     PanelHeight={this.pheight}
                     focus={this.props.focus}

@@ -213,8 +213,6 @@ export class MobileInterface extends React.Component {
                     ContentScaling={returnOne}
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     renderDepth={0}
                     focus={emptyFunction}
                     backgroundColor={this.whitebackground}

@@ -31,8 +31,8 @@ export interface CollectionViewProps extends FieldViewProps {
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
-    NativeWidth: () => number;
-    NativeHeight: () => number;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -40,6 +40,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
     childOpacity?: () => number;
+    childIgnoreNativeSize?: boolean;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
@@ -132,18 +133,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
             const docFilters = this.docFilters();
-            let searchDocs = this.searchFilterDocs();
+            const searchDocs = this.searchFilterDocs();
             if (this.props.Document.dontRegisterView || (!docFilters.length && !searchDocs.length)) return childDocs;
 
             const docsforFilter: Doc[] = [];
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             childDocs.forEach((d) => {
-                if (this.props.Document.title === "lose this") {
-                    console.log('here"')
-                }
-                if (d.title === "lose this") {
-                    console.log('here"')
-                }
                 let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (!docFilters.length || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
@@ -337,7 +332,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0]?.contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
@@ -358,14 +353,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (uriList || text) {
                 if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    this.addDocument(Docs.Create.VideoDocument(url, {
+                    console.log("Video URI = ", uriList);
+                    console.log("Add:" + this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
                         _height: 315,
                         _nativeWidth: 600,
                         _nativeHeight: 472.5
-                    }));
+                    })));
                     return;
                 }
                 // let matches: RegExpExecArray | null;
@@ -386,27 +382,29 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
+                console.log("Web URI = ", uriList);
                 const existingWebDoc = await Hypothesis.findWebDoc(uriList);
                 if (existingWebDoc) {
                     const alias = Doc.MakeAlias(existingWebDoc);
                     alias.x = options.x;
                     alias.y = options.y;
                     alias._nativeWidth = 850;
-                    alias._nativeHeight = 962;
+                    alias._height = 512;
                     alias._width = 400;
                     this.addDocument(alias);
                 } else {
+                    console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList, {
                         ...options,
                         title: uriList.split("#annotations:")[0],
                         _width: 400,
-                        _height: 315,
+                        _height: 512,
                         _nativeWidth: 850,
-                        _nativeHeight: 962,
                         useCors: true
                     });
+                    console.log(" ... " + newDoc.title);
                     newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
-                    this.addDocument(newDoc);
+                    console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;
             }

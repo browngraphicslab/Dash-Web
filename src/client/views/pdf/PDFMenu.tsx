@@ -161,12 +161,12 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
                     <FontAwesomeIcon icon="trash-alt" size="lg" /></button>,
                 <button key="6" className="antimodeMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}>
                     <FontAwesomeIcon icon="map-pin" size="lg" /></button>,
-                <div key="7" className="pdfMenu-addTag" >
-                    <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
-                    <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
-                </div>,
-                <button key="8" className="antimodeMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
-                    <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
+                // <div key="7" className="pdfMenu-addTag" >
+                //     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
+                //     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
+                // </div>,
+                // <button key="8" className="antimodeMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
+                //     <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
             ];
 
         return this.getElement(buttons);

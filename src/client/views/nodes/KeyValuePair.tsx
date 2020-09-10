@@ -71,8 +71,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
-            NativeHeight: returnZero,
-            NativeWidth: returnZero,
             PanelWidth: this.props.PanelWidth,
             PanelHeight: this.props.PanelHeight,
             addDocTab: returnFalse,

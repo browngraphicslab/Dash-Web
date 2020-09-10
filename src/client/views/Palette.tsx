@@ -49,8 +49,6 @@ export default class Palette extends React.Component<PaletteProps> {
                             onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             PanelWidth={() => window.screen.width}
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}

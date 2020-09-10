@@ -103,7 +103,23 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             //         showLinks={action(() => { })}
             //     />, { x: 300, y: 300 });
         });
+
+
     }
+
+    visibleY = (el: any) => {
+        var rect = el.getBoundingClientRect(), top = rect.top, height = rect.height,
+            el = el.parentNode;
+        do {
+            rect = el.getBoundingClientRect();
+            if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
+            // Check if the element is out of view due to a container scrolling
+            if ((top + height) <= rect.top && getComputedStyle(el).overflow === "hidden") return rect.top;
+            el = el.parentNode;
+        } while (el != document.body);
+        // Check its within the document viewport
+        return top; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
+    };
 
     @computed get renderData() {
         this._start;
@@ -113,18 +129,22 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
         const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-        const a = (acont.length ? acont[0] : this.props.A.ContentDiv).getBoundingClientRect();
-        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv).getBoundingClientRect();
-        const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
-            b.left, b.top, b.width, b.height,
+        const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
+        const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
+        const a = adiv.getBoundingClientRect();
+        const b = bdiv.getBoundingClientRect();
+        const atop = this.visibleY(adiv);
+        const btop = this.visibleY(bdiv);
+        const apt = Utils.closestPtBetweenRectangles(a.left, atop, a.width, a.height,
+            b.left, btop, b.width, b.height,
             a.left + a.width / 2, a.top + a.height / 2);
-        const bpt = Utils.closestPtBetweenRectangles(b.left, b.top, b.width, b.height,
-            a.left, a.top, a.width, a.height,
+        const bpt = Utils.closestPtBetweenRectangles(b.left, btop, b.width, b.height,
+            a.left, atop, a.width, a.height,
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
-        const pt1vec = [pt1[0] - (a.left + a.width / 2), pt1[1] - (a.top + a.height / 2)];
-        const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (b.top + b.height / 2)];
+        const pt1vec = [pt1[0] - (a.left + a.width / 2), pt1[1] - (atop + a.height / 2)];
+        const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (btop + b.height / 2)];
         const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
         const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
         const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;

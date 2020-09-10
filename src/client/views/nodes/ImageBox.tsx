@@ -11,7 +11,7 @@ import { ComputedField } from '../../../fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { AudioField, ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnZero, Utils } from '../../../Utils';
+import { emptyFunction, returnOne, returnZero, Utils, OmitKeys } from '../../../Utils';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
@@ -73,10 +73,18 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     componentDidMount() {
-        this._pathDisposer = reaction(() => this.paths.length && this.resize(this.paths[0]),
-            () => true,
+        this._pathDisposer = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
+            ({ nativeSize, width }) => {
+                if (this.props.NativeWidth?.() !== 0 || !this.layoutDoc._height) {
+                    this.layoutDoc._nativeWidth = nativeSize.nativeWidth;
+                    this.layoutDoc._nativeHeight = nativeSize.nativeHeight;
+                    this.layoutDoc._nativeOrientation = nativeSize.nativeOrientation;
+                    this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
+                }
+            },
             { fireImmediately: true });
     }
+
     componentWillUnmount() {
         this._pathDisposer?.();
     }
@@ -158,19 +166,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
-                // funcs.push({
-                //     description: "Reset Native Dimensions", event: action(async () => {
-                //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-                //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-                //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
-                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
-                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
-                //         } else {
-                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
-                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
-                //         }
-                //     }), icon: "expand-arrows-alt"
-                // });
 
                 const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
                 const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -248,45 +243,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         }
     }
     _curSuffix = "_m";
-
-    resize = (imgPath: string) => {
-        const basePath = imgPath.replace(/_[oms]./, "");
-        const curPath = this.dataDoc[this.fieldKey + "-path"];
-        const cachedNativeSize = {
-            width: basePath === curPath || !curPath ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
-            height: basePath === curPath || !curPath ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
-        };
-        const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
-        const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
-        if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05) {
-            if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
-                const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
-                const orientation = NumCast(this.dataDoc[this.fieldKey + "-nativeOrientation"]);
-                if (orientation === 6 || rotation === 90 || rotation === 270) {
-                    this.layoutDoc._nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-                    this.layoutDoc._nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-                } else {
-                    this.layoutDoc._nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-                    this.layoutDoc._nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-                }
-                const rotatedAspect = NumCast(this.layoutDoc._nativeHeight) / NumCast(this.layoutDoc._nativeWidth);
-                if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
-                    this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
-                    this.dataDoc[this.fieldKey + "-path"] = basePath;
-                }
-            } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
-                this.layoutDoc._width = this.layoutDoc[WidthSym]() || cachedNativeSize.width;
-                this.layoutDoc._height = this.layoutDoc[WidthSym]() * cachedAspect;
-            }
-        } else if (this.layoutDoc._nativeWidth !== cachedNativeSize.width || this.layoutDoc._nativeHeight !== cachedNativeSize.height) {
-            !(this.layoutDoc[StrCast(this.layoutDoc.layoutKey)] instanceof Doc) && setTimeout(() => {
-                if (!(this.layoutDoc[StrCast(this.layoutDoc.layoutKey)] instanceof Doc)) {
-                    this.layoutDoc._nativeWidth = cachedNativeSize.width;
-                    this.layoutDoc._nativeHeight = cachedNativeSize.height;
-                }
-            }, 0);
-        }
-    }
 
     @action
     onPointerEnter = () => {
@@ -370,7 +326,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const pw = this.props.PanelWidth?.() || 50;
         const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], pw);
         const nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1);
-        return { nativeWidth, nativeHeight };
+        const nativeOrientation = NumCast(this.dataDoc[this.fieldKey + "-nativeOrientation"], 1);
+        return { nativeWidth, nativeHeight, nativeOrientation };
     }
 
     // this._curSuffix = "";
@@ -391,9 +348,9 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
         const srcpath = this.paths[0];
         const fadepath = this.paths[Math.min(1, this.paths.length - 1)];
-        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const { nativeWidth, nativeHeight, nativeOrientation } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
-        const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
+        const aspect = rotation % 180 ? nativeHeight / nativeWidth : 1;
         let transformOrigin = "center center";
         let transform = `translate(0%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         if (rotation === 90 || rotation === -270) {
@@ -462,12 +419,10 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
-            <CollectionFreeFormView {...this.props}
+            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 forceScaling={true}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
                 annotationsKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}

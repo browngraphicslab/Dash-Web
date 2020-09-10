@@ -153,8 +153,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
-                                NativeHeight={returnZero}
-                                NativeWidth={returnZero}
                                 PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
                                 PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}
@@ -171,7 +169,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     })}
                 </div>
                 {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor
+                    background: backgroundColor === color ? "black" : backgroundColor,
+                    pointerEvents: "all"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >

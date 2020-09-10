@@ -78,7 +78,7 @@ export class LinkDocPreview extends React.Component<Props> {
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225)) - 16;
-    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16;
     @computed get targetDocView() {
         return !this._targetDoc ?
             <div style={{
@@ -107,15 +107,13 @@ export class LinkDocPreview extends React.Component<Props> {
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
-                renderDepth={0}
+                renderDepth={-1}
                 PanelWidth={this.width} //Math.min(350, NumCast(target._width, 350))}
                 PanelHeight={this.height} //Math.min(250, NumCast(target._height, 250))}
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
-                NativeWidth={returnZero}
-                NativeHeight={returnZero}
                 backgroundColor={this.props.backgroundColor} />;
     }
 
