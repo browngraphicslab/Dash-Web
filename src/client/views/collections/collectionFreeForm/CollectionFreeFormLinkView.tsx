@@ -118,7 +118,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             el = el.parentNode;
         } while (el != document.body);
         // Check its within the document viewport
-        return top;//top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
+        return top; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
     };
 
     @computed get renderData() {
@@ -129,10 +129,12 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
         const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-        const a = (acont.length ? acont[0] : this.props.A.ContentDiv).getBoundingClientRect();
-        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv).getBoundingClientRect();
-        const atop = this.visibleY(this.props.A.ContentDiv);
-        const btop = this.visibleY(this.props.B.ContentDiv);
+        const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
+        const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
+        const a = adiv.getBoundingClientRect();
+        const b = bdiv.getBoundingClientRect();
+        const atop = this.visibleY(adiv);
+        const btop = this.visibleY(bdiv);
         const apt = Utils.closestPtBetweenRectangles(a.left, atop, a.width, a.height,
             b.left, btop, b.width, b.height,
             a.left + a.width / 2, a.top + a.height / 2);
