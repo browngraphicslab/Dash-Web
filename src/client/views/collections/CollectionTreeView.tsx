@@ -339,7 +339,7 @@ class TreeView extends React.Component<TreeViewProps> {
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
             return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""} onClick={(e) => {
-                this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true));
+                !this.props.treeView.Document.treeViewOutlineMode && (this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true)));
                 e.stopPropagation();
             }}>
                 {!docs ? (null) :
@@ -379,10 +379,10 @@ class TreeView extends React.Component<TreeViewProps> {
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
-                    moveDocument={this.props.moveDocument}
+                    moveDocument={this.move}
                     removeDocument={this.props.removeDoc}
                     parentActive={this.props.active}
-                    whenActiveChanged={emptyFunction}
+                    whenActiveChanged={this.props.whenActiveChanged}
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
                     bringToFront={returnFalse}
@@ -657,7 +657,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => {
-                return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
+                return add(doc, relativeTo ?? docs[i], before !== undefined ? before : false);
             };
             const childLayout = Doc.Layout(pair.layout);
             const rowHeight = () => {
