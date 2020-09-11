@@ -127,22 +127,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         setTimeout(() => this._keyinput.current!.focus(), 0);
     }
 
-    @action onSettingsDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, () => false, (e) => { }, this.onSettingsClick);
-    }
-    @action onSettingsClick = (e: PointerEvent): void => {
-        if (e.button === 0 && !e.altKey && !e.ctrlKey) {
-            let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
-            while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) === "string");
-                if (next?.className.includes("documentView-node")) break;
-                if (next) child = next;
-                else break;
-            }
-            simulateMouseClick(child, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-        }
-    }
-
     onBackgroundDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onBackgroundMove, (e) => { }, (e) => { });
     }
@@ -607,14 +591,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                 onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
-            <>
-                {minimal ? (null) : <Tooltip title={<div className="dash-tooltip">Show context menu</div>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="bars" />
-                </div></Tooltip>}
-                <div className="documentDecorations-title" style={{ gridColumnEnd: minimal ? 4 : 5, gridColumnStart: minimal ? 2 : 3 }} key="title" onPointerDown={this.onTitleDown} >
-                    <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
-                </div>
-            </>;
+            <div className="documentDecorations-title" style={{ gridColumnEnd: minimal ? 4 : 5 }} key="title" onPointerDown={this.onTitleDown} >
+                <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
+            </div>;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
