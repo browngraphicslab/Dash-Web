@@ -419,7 +419,7 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            doc.emptySlide = Docs.Create.TreeDocument([], { title: "slide", treeViewOutlineMode: true, "_isBackground-canClick": true, _backgroundColor: "transparent", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptySlide = Docs.Create.TreeDocument([], { title: "slide", treeViewOutlineMode: true, _backgroundColor: "transparent", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });

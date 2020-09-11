@@ -208,11 +208,7 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.UserDoc().activeSelection = new List([this.doc]);
             return false;
         }}
-        OnEmpty={undoBatch(() => {
-            if (this.props.treeView.doc.treeViewOutlineMode) {
-                this.props.removeDoc?.(this.doc);
-            }
-        })}
+        OnEmpty={undoBatch(() => this.props.treeView.doc.treeViewOutlineMode && this.props.removeDoc?.(this.doc))}
         OnTab={undoBatch((shift?: boolean) => {
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
             setTimeout(() => Doc.SetInPlace(this.doc, "editTitle", `${this.props.treeView._uniqueId}`, false), 0);
@@ -384,7 +380,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
                     moveDocument={this.props.moveDocument}
-                    removeDocument={returnFalse}
+                    removeDocument={this.props.removeDoc}
                     parentActive={this.props.active}
                     whenActiveChanged={emptyFunction}
                     addDocTab={this.props.addDocTab}
@@ -520,6 +516,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         TraceMobx();
+        if (this.props.renderedIds.indexOf(this.doc[Id]) !== -1) return null;
         const sorting = this.doc[`${this.fieldKey}-sortAscending`];
         if (this.showTitleEdit) { // find  containing CollectionTreeView and set our maximum width so  the containing tree view won't have to scroll
             let par: any = this._header?.current;
@@ -532,7 +529,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             }
         } else this._editMaxWidth = "";
-        return this.doc.treeViewHideTitle && this.props.firstLevel ? this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent :
+        return this.doc.treeViewHideTitle || (this.props.treeView.props.Document.treeViewOutlineMode && this.doc.type !== DocumentType.COL) ? this.renderContent :
             <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}>
                 <li className="collection-child">
                     <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
@@ -892,12 +889,13 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         maxHeight={72}
                         height={"auto"}
                         GetValue={() => StrCast(this.dataDoc.title)}
-                        SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
-                        OnFillDown={undoBatch((value: string) => {
-                            Doc.SetInPlace(this.dataDoc, "title", value, false);
-                            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
-                            Doc.SetInPlace(doc, "editTitle", "*", false);
-                            this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
+                        SetValue={undoBatch((value: string) => {
+                            if (this.props.Document.treeViewOutlineMode) {
+                                const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                                Doc.SetInPlace(doc, "editTitle", "*", false);
+                                this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
+                            }
+                            return Doc.SetInPlace(this.dataDoc, "title", value, false);
                         })} />}
                     {this.doc.allowClear ? this.renderClearButton : (null)}
                     <ul className="no-indent" style={{ width: "max-content" }} > {childElements} </ul>
