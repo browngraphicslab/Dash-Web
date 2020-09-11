@@ -1147,8 +1147,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (selectOnLoad && !this.props.dontRegisterView) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
-            FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
-            FormattedTextBox.SelectOnLoadChar = "";
+            if (FormattedTextBox.SelectOnLoadChar) {
+                FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
+                FormattedTextBox.SelectOnLoadChar = "";
+            } else if (curText?.Text) {
+                selectAll(this._editorView!.state, this._editorView?.dispatch);
+            }
 
         }
         selectOnLoad && this._editorView!.focus();

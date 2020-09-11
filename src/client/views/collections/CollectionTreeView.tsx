@@ -176,7 +176,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 2000, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 2000, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -937,7 +937,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 renderDepth={this.props.renderDepth + 1}
                 rootSelected={returnTrue}
                 treeViewDoc={undefined}
-                dontRegisterView={true}
+                //dontRegisterView={true}
                 backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}

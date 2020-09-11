@@ -23,6 +23,7 @@ import { CollectionView, CollectionViewType } from "../CollectionView";
 import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { Id } from "../../../../fields/FieldSymbols";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -131,8 +132,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const slide = Doc.copyDragFactory(Doc.UserDoc().emptySlide as Doc)!;
                 slide.x = x;
                 slide.y = y;
+                FormattedTextBox.SelectOnLoad = slide[Id];
                 this.props.addDocument(slide);
-                setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
+                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
