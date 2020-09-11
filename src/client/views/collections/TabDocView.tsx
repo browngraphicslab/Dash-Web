@@ -146,6 +146,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     CollectionDockingView.AddSplit(curPres, "right");
                 }
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+                setTimeout(() => {
+                    curPres._itemIndex = DocListCast(curPres.data).length - 1;
+                    doc.treeViewOutlineMode && PresBox.Instance.progressivizeChild(null as any);
+                }, 100);
             }
         }
     }

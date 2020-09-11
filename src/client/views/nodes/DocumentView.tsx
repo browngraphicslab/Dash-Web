@@ -593,9 +593,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (CurrentUserUtils.ActiveDashboard === this.props.Document) {
             alert("Can't delete the active dashboard");
         } else {
-            const selected = SelectionManager.SelectedDocuments().slice();
-            SelectionManager.DeselectAll();
-            selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
             this.props.removeDocument?.(this.props.Document);
         }
     }

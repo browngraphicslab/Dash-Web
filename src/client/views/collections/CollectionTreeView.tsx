@@ -181,22 +181,38 @@ class TreeView extends React.Component<TreeViewProps> {
         fontStyle={style}
         fontSize={12}
         GetValue={() => StrCast(this.doc[key])}
-        SetValue={undoBatch((value: string) => {
-            Doc.SetInPlace(this.doc, key, value, false) || true;
-            Doc.SetInPlace(this.doc, "editTitle", undefined, false);
+        SetValue={undoBatch((value: string, shiftKey: boolean, enterKey: boolean) => {
+            if (this.props.treeView.doc.treeViewOutlineMode && enterKey) {
+                Doc.SetInPlace(this.doc, key, value, false);
+                const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                Doc.SetInPlace(this.doc, "editTitle", undefined, false);
+                Doc.SetInPlace(doc, "editTitle", "*", false);
+                this.props.addDocument(doc);
+                doc.context = this.props.treeView.Document;
+            } else {
+                Doc.SetInPlace(this.doc, key, value, false) || true;
+                Doc.SetInPlace(this.doc, "editTitle", undefined, false);
+            }
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.doc, key, value, false);
-            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             Doc.SetInPlace(this.doc, "editTitle", undefined, false);
             Doc.SetInPlace(doc, "editTitle", "*", false);
-            return this.props.addDocument(doc);
+            const added = this.props.addDocument(doc);
+            doc.context = this.props.treeView.Document;
+            return added;
         })}
         onClick={() => {
             SelectionManager.DeselectAll();
             Doc.UserDoc().activeSelection = new List([this.doc]);
             return false;
         }}
+        OnEmpty={undoBatch(() => {
+            if (this.props.treeView.doc.treeViewOutlineMode) {
+                this.props.removeDoc?.(this.doc);
+            }
+        })}
         OnTab={undoBatch((shift?: boolean) => {
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
             setTimeout(() => Doc.SetInPlace(this.doc, "editTitle", `${this.props.treeView._uniqueId}`, false), 0);
@@ -398,13 +414,25 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
+    @computed get renderOutlineBullet() {
+        TraceMobx();
+        return <div className="outline-bullet"
+            title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
+            onClick={this.bulletClick}
+            style={{ opacity: NumCast(this.doc.opacity, 1) }}>
+            {<FontAwesomeIcon icon={"circle"} />}
+        </div>;
+    }
     @computed get renderBullet() {
         TraceMobx();
         const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
-            style={{ color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
+            style={{
+                color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"),
+                opacity: checked === "unchecked" ? undefined : 0.4
+            }}>
             {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs?.length ? "caret-square-right" : "caret-right") : (this.childDocs?.length ? "caret-square-down" : "caret-down"))} />}
         </div>;
     }
@@ -521,10 +549,10 @@ class TreeView extends React.Component<TreeViewProps> {
                             }
                         }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                        {this.renderBullet}
+                        {this.props.treeView.props.Document.treeViewOutlineMode ? this.renderOutlineBullet : this.renderBullet}
                         {this.renderTitle}
                     </div>
-                    <div className="treeViewItem-border" style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
+                    <div className={`treeViewItem-border${this.props.treeView.props.Document.treeViewOutlineMode ? "outline" : ""}`} style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
                         {!this.treeViewOpen || this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent}
                     </div>
                 </li>
@@ -617,6 +645,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         Doc.AddDocToList(docs[i - 1], fieldKey, child);
                         docs[i - 1].treeViewOpen = true;
                         remove(child);
+                        child.context = treeView.Document;
                     }
                 }
             };
@@ -627,6 +656,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     Doc.AddDocToList(parentCollectionDoc, fieldKey, child, parentPrevSibling, false);
                     parentCollectionDoc.treeViewOpen = true;
                     remove(child);
+                    child.context = treeView.Document;
                 }
             };
             const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => {
@@ -729,8 +759,11 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 flg && Doc.AddDocToList(this.doc[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false), true);
         if (this.doc.resolvedDataDoc instanceof Promise) {
             this.doc.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
+        } else if (relativeTo === undefined) {
+            this.props.addDocument(doc);
         } else {
             doAddDoc(doc);
+            (doc instanceof Doc ? [doc] : doc).forEach(d => d.context = this.props.Document);
         }
         return true;
     }

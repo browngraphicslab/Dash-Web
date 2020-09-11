@@ -1258,7 +1258,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} selected
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform' ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Contents</div>
                                 <div className="ribbon-button" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
@@ -1435,18 +1435,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    progressivizeChild = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    progressivizeChild = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
         if (!activeItem.presProgressivize) {
             targetDoc.editing = false;
             activeItem.presProgressivize = true;
             targetDoc.presProgressivize = true;
             targetDoc._currentFrame = 0;
-            docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
-            targetDoc.lastFrame = docs.length - 1;
+            let count = 0;
+            const setupProgressivize = (doc: Doc) => {
+                CollectionFreeFormDocumentView.setupKeyframes([doc], count++, true);
+                targetDoc.treeViewOutlineMode && DocListCast(doc[Doc.LayoutFieldKey(doc)]).forEach(d => setupProgressivize(d));
+            }
+            setupProgressivize(targetDoc);
+            targetDoc.lastFrame = count;
         } else {
             targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
