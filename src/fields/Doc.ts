@@ -183,7 +183,7 @@ export class Doc extends RefField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
-            field && (this.__fieldKeys[key] = true);
+            (field !== undefined) && (this.__fieldKeys[key] = true);
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
             field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
@@ -875,12 +875,7 @@ export namespace Doc {
     }
 
     export function isBrushedHighlightedDegree(doc: Doc) {
-        if (Doc.IsHighlighted(doc)) {
-            return 6;
-        }
-        else {
-            return Doc.IsBrushedDegree(doc);
-        }
+        return Doc.IsHighlighted(doc) ? 6 : Doc.IsBrushedDegree(doc);
     }
 
     export class DocBrush {

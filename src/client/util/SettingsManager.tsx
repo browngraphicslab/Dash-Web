@@ -81,7 +81,7 @@ export class SettingsManager extends React.Component<{}> {
         </div>;
 
         const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
-        const fontSizes = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
+        const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
 
         return <div className="preferences-content">
             <div className="preferences-color">
@@ -93,7 +93,7 @@ export class SettingsManager extends React.Component<{}> {
                 <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                     {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
                 </select>
-                <select className="size-select" style={{ marginRight: "10px" }} onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
+                <select className="size-select" style={{ marginRight: "10px" }} onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7px")}>
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
                 <div>

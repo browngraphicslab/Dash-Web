@@ -329,7 +329,7 @@ export namespace DragManager {
             dragLabel = document.createElement("div");
             dragLabel.className = "dragManager-dragLabel";
             dragLabel.style.zIndex = "100001";
-            dragLabel.style.fontSize = "10pt";
+            dragLabel.style.fontSize = "10px";
             dragLabel.style.position = "absolute";
             // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);

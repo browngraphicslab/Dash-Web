@@ -1129,13 +1129,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             y = NumCast(targetDoc.y) + NumCast(targetDoc._height) + 20;
         }
         let doc = undefined;
-        const title = Docs.Create.TextDocument("Click to change title", { title: "Slide title", _width: 380, _height: 60, x: 10, y: 58, _fontSize: "24pt", });
-        const subtitle = Docs.Create.TextDocument("Click to change subtitle", { title: "Slide subtitle", _width: 380, _height: 50, x: 10, y: 118, _fontSize: "16pt" });
-        const header = Docs.Create.TextDocument("Click to change header", { title: "Slide header", _width: 380, _height: 65, x: 10, y: 80, _fontSize: "20pt" });
-        const contentTitle = Docs.Create.TextDocument("Click to change title", { title: "Slide title", _width: 380, _height: 60, x: 10, y: 10, _fontSize: "24pt" });
-        const content = Docs.Create.TextDocument("Click to change text", { title: "Slide text", _width: 380, _height: 145, x: 10, y: 70, _fontSize: "14pt" });
-        const content1 = Docs.Create.TextDocument("Click to change text", { title: "Column 1", _width: 185, _height: 140, x: 10, y: 80, _fontSize: "14pt" });
-        const content2 = Docs.Create.TextDocument("Click to change text", { title: "Column 2", _width: 185, _height: 140, x: 205, y: 80, _fontSize: "14pt" });
+        const title = Docs.Create.TextDocument("Click to change title", { title: "Slide title", _width: 380, _height: 60, x: 10, y: 58, _fontSize: "24px", });
+        const subtitle = Docs.Create.TextDocument("Click to change subtitle", { title: "Slide subtitle", _width: 380, _height: 50, x: 10, y: 118, _fontSize: "16px" });
+        const header = Docs.Create.TextDocument("Click to change header", { title: "Slide header", _width: 380, _height: 65, x: 10, y: 80, _fontSize: "20px" });
+        const contentTitle = Docs.Create.TextDocument("Click to change title", { title: "Slide title", _width: 380, _height: 60, x: 10, y: 10, _fontSize: "24px" });
+        const content = Docs.Create.TextDocument("Click to change text", { title: "Slide text", _width: 380, _height: 145, x: 10, y: 70, _fontSize: "14px" });
+        const content1 = Docs.Create.TextDocument("Click to change text", { title: "Column 1", _width: 185, _height: 140, x: 10, y: 80, _fontSize: "14px" });
+        const content2 = Docs.Create.TextDocument("Click to change text", { title: "Column 2", _width: 185, _height: 140, x: 205, y: 80, _fontSize: "14px" });
         switch (layout) {
             case 'blank':
                 doc = Docs.Create.FreeformDocument([], { title: input ? input : "Blank slide", _width: 400, _height: 225, x: x, y: y });
@@ -1227,8 +1227,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         let type: string = '';
+        const effectiveType = targetDoc.treeViewOutlineMode ? DocumentType.COL : targetDoc.type;// bcz: Argh .. .need a better way to identify a slide doc
         if (activeItem) {
-            switch (targetDoc.type) {
+            switch (effectiveType) {
                 case DocumentType.PDF: type = "PDF"; break;
                 case DocumentType.RTF: type = "Text node"; break;
                 case DocumentType.COL: type = "Collection"; break;
@@ -1248,8 +1249,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
 
     @computed get progressivizeDropdown() {
-        const activeItem: Doc = this.activeItem;
-        const targetDoc: Doc = this.targetDoc;
+        const activeItem = this.activeItem;
+        const targetDoc = this.targetDoc;
+        const effectiveType = targetDoc.treeViewOutlineMode ? DocumentType.COL : targetDoc.type;
         if (activeItem && targetDoc) {
             const activeFontColor = targetDoc["pres-text-color"] ? StrCast(targetDoc["pres-text-color"]) : "Black";
             const viewedFontColor = targetDoc["pres-text-viewed-color"] ? StrCast(targetDoc["pres-text-viewed-color"]) : "Black";
@@ -1258,7 +1260,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} selected
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: effectiveType === DocumentType.COL ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Contents</div>
                                 <div className="ribbon-button" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
@@ -1274,11 +1276,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 </div>
                             </div>
                             {this.viewedColorPicker}
-                            {/* <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
+                            {/* <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (effectiveType === DocumentType.COL && targetDoc._viewType === 'freeform') || effectiveType === DocumentType.IMG ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Zoom</div>
                                 <div className="ribbon-button" style={{ opacity: activeItem.zoomProgressivize ? 1 : 0.4, backgroundColor: activeItem.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Edit</div>
                             </div> */}
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc._viewType === "stacking" || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc._viewType === "stacking" || effectiveType === DocumentType.PDF || effectiveType === DocumentType.WEB || effectiveType === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll</div>
                                 <div className="ribbon-button" style={{ opacity: activeItem.scrollProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>

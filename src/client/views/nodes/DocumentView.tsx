@@ -40,6 +40,7 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { RichTextField } from '../../../fields/RichTextField';
 
 export type DocFocusFunc = () => boolean;
 
@@ -269,6 +270,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
+        if (this.rootDoc._singleLine && ((e.key === "Backspace" && this.dataDoc.text && !(this.dataDoc.text as RichTextField)?.Text) || ["Tab", "Enter"].includes(e.key))) {
+            return;
+        }
         if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
             (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
             e.stopPropagation();
@@ -624,6 +628,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (this.props.LayoutTemplateString) return;
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             if ((e.target as any)?.closest?.("*.lm_content")) {
                 alert("You can't perform this move most likely because you don't have permission to modify the destination.");
@@ -901,7 +906,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) :
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || (!this.isSelected() && this.layoutDoc.hideLinkButton) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
@@ -1045,7 +1050,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
-        const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        const fullDegree = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
         const highlightColors = CurrentUserUtils.ActiveDashboard?.darkScheme ?
@@ -1059,8 +1064,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={action(() => { Doc.BrushDoc(this.props.Document); })}
-            onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+            onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
+            onPointerLeave={action(e => {
                 let entered = false;
                 const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
                 for (let child: any = target; child; child = child?.parentElement) {
