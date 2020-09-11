@@ -10,6 +10,7 @@ import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { TraceMobx } from '../../fields/util';
+import { returnFalse } from '../../Utils';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -86,7 +87,8 @@ export class DocumentManager {
     }
 
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
-        return this.getDocumentViews(toFind)?.find(view => view.props.Document !== originatingDoc);
+        const views = this.getDocumentViews(toFind).filter(view => view.props.Document !== originatingDoc);
+        return views?.find(view => view.props.focus !== returnFalse) || (view.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
@@ -200,7 +202,7 @@ export class DocumentManager {
                             } else {
                                 setTimeout(() => findView(delay + 250), 250);
                             }
-                        }
+                        };
                         findView(0);
                     }
                 } else {  // there's no context view so we need to create one first and try again
