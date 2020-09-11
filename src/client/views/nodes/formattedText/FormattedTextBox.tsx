@@ -988,7 +988,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (documentId) {
             exportState = await RichTextUtils.GoogleDocs.Import(documentId, dataDoc);
         }
-        UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
+        exportState && UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
     updateState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
@@ -1171,6 +1171,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     componentWillUnmount() {
+        this.endUndoTypingBatch();
         Object.values(this._disposers).forEach(disposer => disposer?.());
         this._editorView?.destroy();
     }
@@ -1417,7 +1418,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     _lastTimedMark: Mark | undefined = undefined;
-    onKeyPress = (e: React.KeyboardEvent) => {
+    onKeyDown = (e: React.KeyboardEvent) => {
+        // single line text boxes need to pass through tab/enter/backspace so that their containers can respond (eg, an outline container)
+        if (this.rootDoc._singleLine && ((e.key === "Backspace" && !this.dataDoc[this.fieldKey]?.Text) || ["Tab", "Enter"].includes(e.key))) {
+            return;
+        }
         if (e.altKey) {
             e.preventDefault();
             return;
@@ -1502,8 +1507,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
-        const selPad = this.props.isSelected() ? -10 : 0;
-        const selclass = this.props.isSelected() ? "-selected" : "";
+        const selPad = this.props.isSelected() && !this.layoutDoc._singleLine ? -10 : 0;
+        const selclass = this.props.isSelected() && !this.layoutDoc._singleLine ? "-selected" : "";
         return (
             <div className={"formattedTextBox-cont"}
                 style={{
@@ -1526,7 +1531,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                     }}
                     onContextMenu={this.specificContextMenu}
-                    onKeyDown={this.onKeyPress}
+                    onKeyDown={this.onKeyDown}
                     onFocus={this.onFocused}
                     onClick={this.onClick}
                     onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, true)}

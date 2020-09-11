@@ -251,7 +251,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get subChrome() {
-        switch (this.props.type) {
+        switch (this.props.docView.props.LayoutTemplateString ? CollectionViewType.Freeform : this.props.type) { // bcz: ARgh!  hack to get menu for tree view outline items
             default: return this.otherSubChrome;
             case CollectionViewType.Invalid:
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
@@ -528,16 +528,14 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else { return undefined; }
+        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
         if (this.selectedDoc) {
             const layoutField = Doc.LayoutField(this.selectedDoc);
-            return StrCast(layoutField).includes("FormattedText") ||
-                (layoutField instanceof Doc && StrCast(layoutField.layout).includes("FormattedText"));
+            const layoutStr = this.selectedDocumentView?.props.LayoutTemplateString || StrCast(layoutField);
+            return layoutStr.includes("FormattedText") || StrCast((layoutField as Doc)?.layout).includes("FormattedText");
         }
         else return false;
     }

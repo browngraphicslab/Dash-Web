@@ -146,6 +146,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     CollectionDockingView.AddSplit(curPres, "right");
                 }
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+                setTimeout(() => {
+                    curPres._itemIndex = DocListCast(curPres.data).length - 1;
+                    doc.treeViewOutlineMode && PresBox.Instance.progressivizeChild(null as any);
+                }, 100);
             }
         }
     }
@@ -367,7 +371,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         return (<div className="collectionDockingView-content" ref={ref => {
             if (this._mainCont = ref) {
                 (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
-                this.tab && DocServer.GetRefField(this.tab.contentItem.config.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.init(this.tab, this._document)));
+                DocServer.GetRefField(this.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.tab && this.init(this.tab, this._document)));
             }
         }}
             style={{

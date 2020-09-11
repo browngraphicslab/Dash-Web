@@ -130,6 +130,7 @@ export interface DocumentOptions {
     opacity?: number;
     defaultBackgroundColor?: string;
     _isBackground?: boolean;
+    "_isBackground-canClick"?: boolean; // a background document that you can still click on to edit its contents
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
@@ -195,6 +196,7 @@ export interface DocumentOptions {
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
+    treeViewOutlineMode?: boolean; // whether slide should function as a text outline
     treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
     treeViewDefaultExpandedView?: string; // default expanded view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents

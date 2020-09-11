@@ -128,6 +128,7 @@ export namespace UndoManager {
     }
 
     export function StartBatch(batchName: string): Batch {
+        // console.log("Start " + batchCounter + " " + batchName);
         batchCounter++;
         if (batchCounter > 0 && currentBatch === undefined) {
             currentBatch = [];
@@ -137,6 +138,7 @@ export namespace UndoManager {
 
     const EndBatch = action((cancel: boolean = false) => {
         batchCounter--;
+        // console.log("End " + batchCounter);
         if (batchCounter === 0 && currentBatch?.length) {
             if (!cancel) {
                 undoStack.push(currentBatch);

@@ -33,7 +33,7 @@ interface LinkMenuItemProps {
 
 // drag links and drop link targets (aliasing them if needed)
 export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: DocumentView, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
-    const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
+    const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
 
     if (draggedDocs.length) {
         const moddrag: Doc[] = [];
@@ -142,35 +142,34 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
         e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => LinkMenuItem.followDefault(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
     @action.bound
-    followDefault() {
+    public static followDefault(linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        const linkDoc = this.props.linkDoc;
 
-        if (linkDoc.followLinkLocation === "openExternal" && this.props.destinationDoc.type === DocumentType.WEB) {
+        if (linkDoc.followLinkLocation === "openExternal" && destinationDoc.type === DocumentType.WEB) {
             window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
             return;
         }
 
         if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
-            const annotationOn = this.props.destinationDoc.annotationOn as Doc;
-            this.props.addDocTab(annotationOn instanceof Doc ? annotationOn : this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
+            const annotationOn = destinationDoc.annotationOn as Doc;
+            addDocTab(annotationOn instanceof Doc ? annotationOn : destinationDoc, StrCast(linkDoc.followLinkLocation));
             if (annotationOn) {
                 setTimeout(() => {
-                    const dv = DocumentManager.Instance.getFirstDocumentView(this.props.destinationDoc);
-                    dv?.props.focus(this.props.destinationDoc, false);
+                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
+                    dv?.props.focus(destinationDoc, false);
                 });
             }
         } else {
-            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "add:right"), false);
+            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, doc => addDocTab(doc, "add:right"), false);
         }
 
-        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId), this.props.destinationDoc);
+        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
     }
 
     @undoBatch
@@ -250,7 +249,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
-                                    onPointerDown={this.followDefault}>
+                                    onPointerDown={() => LinkMenuItem.followDefault(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab)}>
                                     {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>

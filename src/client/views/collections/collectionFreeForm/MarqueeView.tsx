@@ -116,15 +116,23 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 })();
                 e.stopPropagation();
             } else if (e.key === "b" && e.ctrlKey) {
+                // e.preventDefault();
+                // navigator.clipboard.readText().then(text => {
+                //     const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                //     if (ns.length === 1 && text.startsWith("http")) {
+                //         this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
+                //     } else {
+                //         this.pasteTable(ns, x, y);
+                //     }
+                // });
+                // e.stopPropagation();
+
                 e.preventDefault();
-                navigator.clipboard.readText().then(text => {
-                    const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                    if (ns.length === 1 && text.startsWith("http")) {
-                        this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
-                    } else {
-                        this.pasteTable(ns, x, y);
-                    }
-                });
+                const slide = Doc.copyDragFactory(Doc.UserDoc().emptySlide as Doc)!;
+                slide.x = x;
+                slide.y = y;
+                this.props.addDocument(slide);
+                setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";

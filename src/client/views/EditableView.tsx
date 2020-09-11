@@ -18,11 +18,12 @@ export interface EditableProps {
      * @param value - The string entered by the user to set the value to
      * @returns `true` if setting the value was successful, `false` otherwise
      *  */
-    SetValue(value: string, shiftDown?: boolean): boolean;
+    SetValue(value: string, shiftDown?: boolean, enterKey?: boolean): boolean;
 
     OnFillDown?(value: string): void;
 
     OnTab?(shift?: boolean): void;
+    OnEmpty?(): void;
 
     /**
      * The contents to render when not editing
@@ -93,13 +94,17 @@ export class EditableView extends React.Component<EditableProps> {
         switch (e.key) {
             case "Tab":
                 e.stopPropagation();
-                this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
-                this.props.OnTab && this.props.OnTab(e.shiftKey);
+                this.finalizeEdit(e.currentTarget.value, e.shiftKey, false, false);
+                this.props.OnTab?.(e.shiftKey);
+                break;
+            case "Backspace":
+                e.stopPropagation();
+                if (!e.currentTarget.value) this.props.OnEmpty?.();
                 break;
             case "Enter":
                 e.stopPropagation();
                 if (!e.ctrlKey) {
-                    this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
+                    this.finalizeEdit(e.currentTarget.value, e.shiftKey, false, true);
                 } else if (this.props.OnFillDown) {
                     this.props.OnFillDown(e.currentTarget.value);
                     this._editing = false;
@@ -130,10 +135,10 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     @action
-    private finalizeEdit(value: string, shiftDown: boolean, lostFocus: boolean) {
-        if (this.props.SetValue(value, shiftDown)) {
+    private finalizeEdit(value: string, shiftDown: boolean, lostFocus: boolean, enterKey: boolean) {
+        if (this.props.SetValue(value, shiftDown, enterKey)) {
             this._editing = false;
-            this.props.isEditingCallback?.(false);
+            this.props.isEditingCallback?.(false,);
         } else {
             this._editing = false;
             this.props.isEditingCallback?.(false);
@@ -164,7 +169,7 @@ export class EditableView extends React.Component<EditableProps> {
                     className: "editableView-input",
                     onKeyDown: this.onKeyDown,
                     autoFocus: true,
-                    onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true),
+                    onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true, false),
                     onPointerDown: this.stopPropagation,
                     onClick: this.stopPropagation,
                     onPointerUp: this.stopPropagation,
@@ -178,7 +183,7 @@ export class EditableView extends React.Component<EditableProps> {
                 onKeyDown={this.onKeyDown}
                 autoFocus={true}
                 onKeyPress={e => e.stopPropagation()}
-                onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
+                onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true, false)}
                 onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                 style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}
                 placeholder={this.props.placeholder}

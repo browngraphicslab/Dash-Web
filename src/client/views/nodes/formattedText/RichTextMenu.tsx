@@ -78,21 +78,21 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         runInAction(() => this.Pinned = true);
 
         this.fontSizeOptions = [
-            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "9pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "9px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72px", command: this.changeFontSize },
             { mark: null, title: "", label: "...", command: unimplementedFunction, hidden: true },
-            { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
+            { mark: null, title: "", label: "13px", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
         ];
 
         this.fontFamilyOptions = [
@@ -177,7 +177,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         this.activeListType = this.getActiveListStyle();
         this.activeAlignment = this.getActiveAlignment();
         this.activeFontFamily = !activeFamilies.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
+        this.activeFontSize = !activeSizes.length ? "13px" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
         this.activeFontColor = !activeColors.length ? "black" : activeColors.length === 1 ? String(activeColors[0]) : "...";
         this.activeHighlightColor = !activeHighlights.length ? "" : activeHighlights.length === 1 ? String(activeHighlights[0]) : "...";
 
@@ -255,7 +255,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 marks.forEach(m => {
                     m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
                     m.type === state.schema.marks.pFontColor && activeColors.push(m.attrs.color);
-                    m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
+                    m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "px");
                     m.type === state.schema.marks.marker && activeHighlights.push(String(m.attrs.highlight));
                 });
             }
@@ -384,7 +384,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                     if (!self.TextView.props.isSelected(true)) {
                         switch (mark.type) {
                             case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
-                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "pt"); break;
+                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "px"); break;
                         }
                     }
                     else UndoManager.RunInBatch(() => self.view && mark && command(mark, self.view), "text mark dropdown");
@@ -425,7 +425,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     changeFontSize = (mark: Mark, view: EditorView) => {
         if ((this.view?.state.selection.$from.pos || 0) < 2) {
-            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
+            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize === Number(mark.attrs.fontSize) ? `${mark.attrs.fontSize}pt` : mark.attrs.fontSize;
         }
         const fmark = view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize });
         this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);

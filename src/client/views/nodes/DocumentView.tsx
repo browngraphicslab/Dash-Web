@@ -40,6 +40,7 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { RichTextField } from '../../../fields/RichTextField';
 
 export type DocFocusFunc = () => boolean;
 
@@ -269,6 +270,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
+        if (this.rootDoc._singleLine && ((e.key === "Backspace" && this.dataDoc.text && !(this.dataDoc.text as RichTextField)?.Text) || ["Tab", "Enter"].includes(e.key))) {
+            return;
+        }
         if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
             (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
             e.stopPropagation();
@@ -299,7 +303,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !this.props.Document._isBackground && this.props.bringToFront(this.props.Document);
+            !this.props.Document._isBackground && !this.props.Document["_isBackground-canClick"] && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -593,9 +597,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (CurrentUserUtils.ActiveDashboard === this.props.Document) {
             alert("Can't delete the active dashboard");
         } else {
-            const selected = SelectionManager.SelectedDocuments().slice();
-            SelectionManager.DeselectAll();
-            selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
             this.props.removeDocument?.(this.props.Document);
         }
     }
@@ -627,6 +628,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (this.props.LayoutTemplateString) return;
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             if ((e.target as any)?.closest?.("*.lm_content")) {
                 alert("You can't perform this move most likely because you don't have permission to modify the destination.");
@@ -762,6 +764,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
         optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+        optionItems.push({ description: "Lock in Back", event: () => this.rootDoc["_isBackground-canClick"] = !this.rootDoc["_isBackground-canClick"], icon: "expand-arrows-alt" });
         !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
@@ -903,7 +906,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) :
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || (!this.isSelected() && this.layoutDoc.hideLinkButton) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
@@ -1007,6 +1010,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
+            (SnappingManager.GetIsDragging() && this.Document["_isBackground-canClick"]) ||
             (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }
@@ -1046,7 +1050,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
-        const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        const fullDegree = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
         const highlightColors = CurrentUserUtils.ActiveDashboard?.darkScheme ?
@@ -1060,8 +1064,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={action(() => { Doc.BrushDoc(this.props.Document); })}
-            onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+            onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
+            onPointerLeave={action(e => {
                 let entered = false;
                 const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
                 for (let child: any = target; child; child = child?.parentElement) {
