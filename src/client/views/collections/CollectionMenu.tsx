@@ -240,11 +240,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         runInAction(() => this._currentKey = e.target.selectedOptions[0].value);
     }
 
-    @action
-    toggleViewSpecs = (e: React.SyntheticEvent) => {
-        this.document._facetWidth = this.document._facetWidth ? 0 : 200;
-        e.stopPropagation();
-    }
 
     @action closeViewSpecs = () => {
         this.document._facetWidth = 0;
@@ -441,6 +436,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </Tooltip>;
     }
 
+    @computed get lightboxButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Images"}</div>} placement="top">
+            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={action(() => targetDoc._isLightboxOpen = true)} onClick={this.onAlias}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
+            </button>
+        </Tooltip>;
+    }
+
     @computed
     get pinWithViewButton() {
         const targetDoc = this.selectedDoc;
@@ -477,14 +481,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <div className="collectionViewBaseChrome">
                         {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {!this._buttonizableCommands ? (null) : this.templateChrome}
-                        {Doc.UserDoc().noviceMode ? (null) :
-                            <Tooltip title={<div className="dash-tooltip">filter documents to show</div>} placement="bottom">
-                                <div className="collectionViewBaseChrome-viewSpecs" style={{ display: "grid" }}>
-                                    <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
-                                        <FontAwesomeIcon icon="filter" size="lg" />
-                                    </button>
-                                </div>
-                            </Tooltip>}
+
 
                         {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
@@ -494,6 +491,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}
+                        {this.notACollection ? (null) : this.lightboxButton}
                         {this.aliasButton}
                         {this.pinButton}
                         {this.pinWithViewButton}
@@ -562,11 +560,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.document._currentFrame = Math.max(0, (currentFrame || 0) - 1);
-    }
-    @undoBatch
-    @action
-    miniMap = (): void => {
-        this.document.hideMinimap = !this.document.hideMinimap;
     }
 
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
@@ -851,13 +844,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                {this.props.docView.props.renderDepth !== 0 || this.isText || this.props.isDoc ? (null) :
-                    <Tooltip key="map" title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
-                        <div className="backKeyframe" onClick={this.miniMap} style={{ marginRight: "5px" }}>
-                            <FontAwesomeIcon icon={"map"} size={"lg"} />
-                        </div>
-                    </Tooltip>
-                }
                 {!this.isText && !this.props.isDoc ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
                     <div className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />

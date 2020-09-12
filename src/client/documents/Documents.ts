@@ -1052,7 +1052,7 @@ export namespace DocUtils {
                 });
             }
             ctor = Docs.Create.WebDocument;
-            options = { ...options, _nativeWidth: 850, _width: 400, _height: 512, title: path, };
+            options = { ...options, _fitWidth: true, _nativeWidth: 850, _width: 400, _height: 512, title: path, };
         }
         return ctor ? ctor(path, options) : undefined;
     }

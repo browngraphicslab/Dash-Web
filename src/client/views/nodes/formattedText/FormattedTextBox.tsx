@@ -1147,8 +1147,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (selectOnLoad && !this.props.dontRegisterView) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
-            FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
-            FormattedTextBox.SelectOnLoadChar = "";
+            if (FormattedTextBox.SelectOnLoadChar) {
+                FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
+                FormattedTextBox.SelectOnLoadChar = "";
+            } else if (curText?.Text) {
+                selectAll(this._editorView!.state, this._editorView?.dispatch);
+            }
 
         }
         selectOnLoad && this._editorView!.focus();
@@ -1488,13 +1492,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 }, 10);
             } else {
-                this.layoutDoc._height = newHeight;
-                this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                try {
+                    this.layoutDoc._height = newHeight;
+                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
         }
     }
 
-    @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
+    @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "20%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
     sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
@@ -1563,32 +1569,33 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             }}
                         />
                     </div>
-                    {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
-                        <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :
+                    {!this.layoutDoc._showSidebar ? (null) : <>
                         <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                             style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                                PanelHeight={this.props.PanelHeight}
-                                PanelWidth={this.sidebarWidth}
-                                scaleField={this.annotationKey + "-scale"}
-                                annotationsKey={this.annotationKey}
-                                isAnnotationOverlay={false}
-                                focus={this.props.focus}
-                                isSelected={this.props.isSelected}
-                                select={emptyFunction}
-                                active={this.annotationsActive}
-                                ContentScaling={returnOne}
-                                whenActiveChanged={this.whenActiveChanged}
-                                removeDocument={this.removeDocument}
-                                moveDocument={this.moveDocument}
-                                addDocument={this.addDocument}
-                                CollectionView={undefined}
-                                ScreenToLocalTransform={this.sidebarScreenToLocal}
-                                renderDepth={this.props.renderDepth + 1}
-                                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
-                            </CollectionFreeFormView>
-                            <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} />
-                        </div>}
+                            {this.sidebarWidthPercent === "0%" ? (null) :
+                                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                                    PanelHeight={this.active() ? () => 1000 : this.props.PanelHeight}
+                                    PanelWidth={this.sidebarWidth}
+                                    scaleField={this.annotationKey + "-scale"}
+                                    annotationsKey={this.annotationKey}
+                                    isAnnotationOverlay={true}
+                                    focus={this.props.focus}
+                                    isSelected={this.props.isSelected}
+                                    select={emptyFunction}
+                                    active={this.annotationsActive}
+                                    ContentScaling={returnOne}
+                                    whenActiveChanged={this.whenActiveChanged}
+                                    removeDocument={this.removeDocument}
+                                    moveDocument={this.moveDocument}
+                                    addDocument={this.addDocument}
+                                    CollectionView={undefined}
+                                    ScreenToLocalTransform={this.sidebarScreenToLocal}
+                                    renderDepth={this.props.renderDepth + 1}
+                                    ContainingCollectionDoc={this.props.ContainingCollectionDoc} />
+                            }
+                        </div>
+                        {this.props.isSelected() ? <div className="formattedTextBox-sidebar-handle" style={{ left: `calc(100% - ${this.sidebarWidthPercent} - 5px)` }} onPointerDown={this.sidebarDown} /> : (null)}
+                    </>}
                     {!this.layoutDoc._showAudio ? (null) :
                         <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
                             <FontAwesomeIcon className="formattedTextBox-audioFont"

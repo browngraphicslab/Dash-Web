@@ -32,6 +32,7 @@ import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextField } from '../../../fields/RichTextField';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
+import { DocumentManager } from '../../util/DocumentManager';
 
 export interface TreeViewProps {
     document: Doc;
@@ -176,7 +177,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 2000, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 500, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -253,7 +254,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     const added = Doc.AddDocToList(this.dataDoc, this.fieldKey, doc);
                     added && (doc.context = this.doc.context);
                     return added;
-                }
+                };
                 addDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce(
                     (flg: boolean, doc) => flg && localAdd(doc), true) || parentAddDoc(doc);
             }
@@ -308,7 +309,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     const added = Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                     added && (doc.context = this.doc.context);
                     return added;
-                }
+                };
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
@@ -357,7 +358,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 const added = Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
                 added && (doc.context = this.doc.context);
                 return added;
-            }
+            };
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
@@ -552,9 +553,10 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             }
         } else this._editMaxWidth = "";
+        const selected = SelectionManager.IsSelected(DocumentManager.Instance.getFirstDocumentView(this.doc));
         return this.doc.treeViewHideTitle || (this.outlineMode) ?
             !StrCast(Doc.LayoutField(this.doc)).includes("CollectionView") ? this.renderContent :
-                <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
+                <div className={`treeViewItem-container${selected ? "-active" : ""}`} ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
                     onKeyDown={e => {
                         e.stopPropagation();
                         e.key === "Backspace" && this.doc.text && !(this.doc.text as RichTextField)?.Text && UndoManager.RunInBatch(() => this.props.removeDoc?.(this.doc), "delete");
@@ -563,18 +565,9 @@ class TreeView extends React.Component<TreeViewProps> {
                         e.key === "Tab" && setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
                     }}
                 >
-                    <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
-                        if (this.props.active(true)) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }
-                    }}
-                        onPointerDown={e => {
-                            if (this.props.active(true)) {
-                                e.stopPropagation();
-                                e.preventDefault();
-                            }
-                        }}
+                    <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }}
+                        onClick={e => { if (this.props.active(true)) { e.stopPropagation(); e.preventDefault(); } }}
+                        onPointerDown={e => { if (this.props.active(true)) { e.stopPropagation(); e.preventDefault(); } }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                         {this.outlineMode ? this.renderOutlineBullet : this.renderBullet}
                         <div ref={this._dref} style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}>
@@ -901,10 +894,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         bullet.context = this.doc;
         this.addDoc(bullet, childDocs.length ? childDocs[0] : undefined, true);
         setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
-    })
+    });
 
-    editableTitle(childDocs: Doc[]) {
-        return <EditableView
+    editableTitle = (childDocs: Doc[]) => {
+        return !this.dataDoc ? (null) : <EditableView
             contents={this.dataDoc.title}
             editing={false}
             display={"block"}
@@ -913,7 +906,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             GetValue={() => StrCast(this.dataDoc.title)}
             SetValue={undoBatch((value: string, shift: boolean, enter: boolean) => {
                 if (this.props.Document.treeViewOutlineMode && enter) {
-                    this.makeTextCollection(childDocs)
+                    this.makeTextCollection(childDocs);
                 }
                 return Doc.SetInPlace(this.dataDoc, "title", value, false);
             })} />;
@@ -927,7 +920,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         return <div style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
             onKeyDown={e => {
                 e.stopPropagation();
-                e.key === "Enter" && this.makeTextCollection(childDocs)
+                e.key === "Enter" && this.makeTextCollection(childDocs);
             }}>
             <ContentFittingDocumentView
                 Document={this.doc}
@@ -937,7 +930,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 renderDepth={this.props.renderDepth + 1}
                 rootSelected={returnTrue}
                 treeViewDoc={undefined}
-                dontRegisterView={true}
+                //dontRegisterView={true}
                 backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
@@ -957,11 +950,11 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
             />
-        </div>
+        </div>;
     }
 
-    onChildClick = () => { return this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick); }
-    whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); }
+    onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
+    whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
     render() {
         TraceMobx();

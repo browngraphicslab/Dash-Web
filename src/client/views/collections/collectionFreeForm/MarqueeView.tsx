@@ -23,6 +23,7 @@ import { CollectionView, CollectionViewType } from "../CollectionView";
 import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { Id } from "../../../../fields/FieldSymbols";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -31,7 +32,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Doc[]) => void;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    nudge: (x: number, y: number) => boolean;
+    nudge?: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
@@ -76,7 +77,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _fitWidth: true, _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -131,8 +132,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const slide = Doc.copyDragFactory(Doc.UserDoc().emptySlide as Doc)!;
                 slide.x = x;
                 slide.y = y;
+                FormattedTextBox.SelectOnLoad = slide[Id];
                 this.props.addDocument(slide);
-                setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
+                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";

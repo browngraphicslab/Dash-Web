@@ -1449,8 +1449,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             let count = 0;
             const setupProgressivize = (doc: Doc) => {
                 CollectionFreeFormDocumentView.setupKeyframes([doc], count++, true);
-                targetDoc.treeViewOutlineMode && DocListCast(doc[Doc.LayoutFieldKey(doc)]).forEach(d => setupProgressivize(d));
-            }
+                targetDoc.treeViewOutlineMode && DocListCast(doc[Doc.LayoutFieldKey(doc)]).forEach(setupProgressivize);
+            };
             setupProgressivize(targetDoc);
             targetDoc.lastFrame = count;
         } else {

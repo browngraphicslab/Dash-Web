@@ -68,7 +68,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
             return true;
         }
         return false;
-    }
+    };
 
     //History commands
     bind("Mod-z", undo);
