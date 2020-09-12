@@ -4,7 +4,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -340,18 +340,22 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
     }
 
-    lightbox = (images: string[]) => {
+    lightbox = (images: { image: string, title: string, caption: string }[]) => {
         if (!images.length) return (null);
-        const mainPath = path.extname(images[this._curLightboxImg]);
-        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length]);
-        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length]);
-        const main = images[this._curLightboxImg].replace(mainPath, "_o" + mainPath);
-        const next = images[(this._curLightboxImg + 1) % images.length].replace(nextPath, "_o" + nextPath);
-        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].replace(prevPath, "_o" + prevPath);
+        const mainPath = path.extname(images[this._curLightboxImg].image);
+        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length].image);
+        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length].image);
+        const main = images[this._curLightboxImg].image.replace(mainPath, "_o" + mainPath);
+        const title = images[this._curLightboxImg].title;
+        const caption = images[this._curLightboxImg].caption;
+        const next = images[(this._curLightboxImg + 1) % images.length].image.replace(nextPath, "_o" + nextPath);
+        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].image.replace(prevPath, "_o" + prevPath);
         return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
             mainSrc={main}
             nextSrc={next}
             prevSrc={prev}
+            imageTitle={title}
+            imageCaption={caption}
             onCloseRequest={action(() => this._isLightboxOpen = false)}
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
@@ -381,12 +385,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
-                Cast(d.data, ImageField) ?
-                    (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
-                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
-                    :
-                    ""))}
+            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => Cast(d.data, ImageField, null)).map(d =>
+                ({
+                    image: (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
+                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href,
+                    title: StrCast(d.title),
+                    caption: Field.toString(d.caption as Field)
+                })))}
         </div>);
     }
 }
