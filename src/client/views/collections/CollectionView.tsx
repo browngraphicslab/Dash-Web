@@ -1,21 +1,17 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate, AclAdmin } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
-import { RichTextField } from '../../../fields/RichTextField';
-import { listSpec } from '../../../fields/Schema';
-import { ComputedField, ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { BoolCast, Cast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyDoclist } from '../../../Utils';
+import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
+import { returnFalse, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -23,6 +19,7 @@ import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from '../ContextMenuItem';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { Touchable } from '../Touchable';
 import { CollectionCarousel3DView } from './CollectionCarousel3DView';
@@ -37,13 +34,10 @@ import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultir
 import { CollectionPileView } from './CollectionPileView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
-import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { table } from 'console';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -93,8 +87,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     _isChildActive = false;   //TODO should this be observable?
-    get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); }
-    set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; }
+    get _isLightboxOpen() { return BoolCast(this.props.Document._isLightboxOpen); }
+    set _isLightboxOpen(value) { this.props.Document._isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
@@ -286,7 +280,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
-        addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
+        subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 
         const existingVm = ContextMenu.Instance.findByDescription(category);
         const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
@@ -363,17 +357,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
 
-    get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
-    set _facetWidth(value) { this.props.Document._facetWidth = value; }
-
     bodyPanelWidth = () => this.props.PanelWidth();
-    facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
-    onPointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._facetWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
-            return false;
-        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
-    }
 
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     @computed get childLayoutString() { return StrCast(this.props.Document.childLayoutString); }
@@ -396,9 +380,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
-                {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            </div>
+            {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
                 Cast(d.data, ImageField) ?
                     (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?

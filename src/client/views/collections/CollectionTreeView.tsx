@@ -903,8 +903,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
     });
 
-    editableTitle(childDocs: Doc[]) {
-        return <EditableView
+    editableTitle = (childDocs: Doc[]) => {
+        return !this.dataDoc ? (null) : <EditableView
             contents={this.dataDoc.title}
             editing={false}
             display={"block"}
