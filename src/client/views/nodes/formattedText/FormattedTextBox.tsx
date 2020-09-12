@@ -1492,8 +1492,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 }, 10);
             } else {
-                this.layoutDoc._height = newHeight;
-                this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                try {
+                    this.layoutDoc._height = newHeight;
+                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
         }
     }
