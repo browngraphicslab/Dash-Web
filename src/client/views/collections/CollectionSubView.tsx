@@ -283,7 +283,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 }
                             });
                         } else {
-                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
+                            this.addDocument(Docs.Create.WebDocument(href, { ...options, _fitWidth: true, title: href }));
                         }
                     } else if (text) {
                         this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 100, _height: 25 }));
@@ -396,6 +396,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList, {
                         ...options,
+                        _fitWidth: true,
                         title: uriList.split("#annotations:")[0],
                         _width: 400,
                         _height: 512,
