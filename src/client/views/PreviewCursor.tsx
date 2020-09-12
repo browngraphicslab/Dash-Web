@@ -22,7 +22,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _getTransform: () => Transform;
     static _addDocument: (doc: Doc | Doc[]) => void;
     static _addLiveTextDoc: (doc: Doc) => void;
-    static _nudge: (x: number, y: number) => boolean;
+    static _nudge?: (x: number, y: number) => boolean;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     constructor(props: any) {

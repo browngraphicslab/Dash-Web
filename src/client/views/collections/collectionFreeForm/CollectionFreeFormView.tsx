@@ -792,7 +792,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay) return;
+        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay || this.props.Document.treeViewOutlineMode) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -1369,7 +1369,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     _nudgeTime = 0;
     nudge = action((x: number, y: number) => {
-        if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) { // bcz: this isn't ideal, but want to try it out...
+        if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ||
+            this.props.ContainingCollectionDoc._panX !== undefined) { // bcz: this isn't ideal, but want to try it out...
             this.setPan(NumCast(this.layoutDoc._panX) + this.props.PanelWidth() / 2 * x / this.zoomScaling(),
                 NumCast(this.layoutDoc._panY) + this.props.PanelHeight() / 2 * (-y) / this.zoomScaling(), "transform 500ms", true);
             this._nudgeTime = Date.now();
@@ -1381,7 +1382,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
-            nudge={this.nudge}
+            nudge={this.isAnnotationOverlay ? undefined : this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
             selectDocuments={this.selectDocuments}

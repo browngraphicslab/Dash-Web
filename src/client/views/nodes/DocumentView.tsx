@@ -835,7 +835,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-            this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
         });
     }
 
@@ -912,7 +912,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || (!this.isSelected() && this.layoutDoc.hideLinkButton) || this.props.dontRegisterView ? (null) :
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );

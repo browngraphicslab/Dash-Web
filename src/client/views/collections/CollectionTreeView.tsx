@@ -32,6 +32,7 @@ import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextField } from '../../../fields/RichTextField';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
+import { DocumentManager } from '../../util/DocumentManager';
 
 export interface TreeViewProps {
     document: Doc;
@@ -176,7 +177,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 2000, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 500, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -552,9 +553,10 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             }
         } else this._editMaxWidth = "";
+        const selected = SelectionManager.IsSelected(DocumentManager.Instance.getFirstDocumentView(this.doc));
         return this.doc.treeViewHideTitle || (this.outlineMode) ?
             !StrCast(Doc.LayoutField(this.doc)).includes("CollectionView") ? this.renderContent :
-                <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
+                <div className={`treeViewItem-container${selected ? "-active" : ""}`} ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
                     onKeyDown={e => {
                         e.stopPropagation();
                         e.key === "Backspace" && this.doc.text && !(this.doc.text as RichTextField)?.Text && UndoManager.RunInBatch(() => this.props.removeDoc?.(this.doc), "delete");
@@ -563,18 +565,9 @@ class TreeView extends React.Component<TreeViewProps> {
                         e.key === "Tab" && setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
                     }}
                 >
-                    <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
-                        if (this.props.active(true)) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }
-                    }}
-                        onPointerDown={e => {
-                            if (this.props.active(true)) {
-                                e.stopPropagation();
-                                e.preventDefault();
-                            }
-                        }}
+                    <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }}
+                        onClick={e => { if (this.props.active(true)) { e.stopPropagation(); e.preventDefault(); } }}
+                        onPointerDown={e => { if (this.props.active(true)) { e.stopPropagation(); e.preventDefault(); } }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                         {this.outlineMode ? this.renderOutlineBullet : this.renderBullet}
                         <div ref={this._dref} style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}>
