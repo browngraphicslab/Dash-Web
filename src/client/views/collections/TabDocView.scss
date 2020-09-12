@@ -1,6 +1,7 @@
 input.lm_title:focus {
     max-width: max-content !important;
 }
+.miniMap-hidden,
 .miniMap {
     position: absolute;
     overflow: hidden;
@@ -8,6 +9,9 @@ input.lm_title:focus {
     bottom: 10;
     border: solid 1px;
     box-shadow: black 0.4vw 0.4vw 0.8vw;
+    width: 100%;
+    height: 100%;
+    transition: all 0.5s;
 
     .miniOverlay {
         width: 100%;
@@ -18,5 +22,19 @@ input.lm_title:focus {
             background: #25252525;
             position: absolute;
         }
+    }
+}
+.miniMap-hidden {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    transform: translate(20px, 20px) rotate(45deg);
+    border-radius: 30px;
+    > svg {
+        margin-top: 3px;
+        transform: translate(0px, 7px);
     }
 }

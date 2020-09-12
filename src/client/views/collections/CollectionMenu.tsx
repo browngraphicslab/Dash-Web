@@ -561,11 +561,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.document._currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
-    @undoBatch
-    @action
-    miniMap = (): void => {
-        this.document.hideMinimap = !this.document.hideMinimap;
-    }
 
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
@@ -849,13 +844,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                {this.props.docView.props.renderDepth !== 0 || this.isText || this.props.isDoc ? (null) :
-                    <Tooltip key="map" title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
-                        <div className="backKeyframe" onClick={this.miniMap} style={{ marginRight: "5px" }}>
-                            <FontAwesomeIcon icon={"map"} size={"lg"} />
-                        </div>
-                    </Tooltip>
-                }
                 {!this.isText && !this.props.isDoc ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
                     <div className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
