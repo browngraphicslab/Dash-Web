@@ -602,6 +602,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch @action
+    toggleLockInBack = () => {
+        this.rootDoc["_isBackground-canClick"] = !this.rootDoc["_isBackground-canClick"];
+        if (this.rootDoc["_isBackground-canClick"]) this.rootDoc.zIndex = 0;
+    }
+
+    @undoBatch @action
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean): void => {
         this.Document.ignoreClick = false;
         this.Document.isLinkButton = !this.Document.isLinkButton;
@@ -764,7 +770,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
         optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
-        optionItems.push({ description: "Lock in Back", event: () => this.rootDoc["_isBackground-canClick"] = !this.rootDoc["_isBackground-canClick"], icon: "expand-arrows-alt" });
+        optionItems.push({ description: this.rootDoc["_isBackground-canClick"] ? "Unlock from Back" : "Lock in Back", event: this.toggleLockInBack, icon: "expand-arrows-alt" });
         !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
