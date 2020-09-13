@@ -742,8 +742,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
                 const annos = DocListCast(selectedDoc["data-annotations"]);
                 if (Field.toString(selectedDoc.data as Field) === Field.toString(new WebField(URLy))) {
-                    Doc.GetProto(selectedDoc).data = undefined;
-                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 0);
+                    Doc.GetProto(selectedDoc).data = new WebField(new URL("http://cs.brown.edu/~avd"));
+                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 100);
                 } else {
                     if (url) {
                         Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(annos);
