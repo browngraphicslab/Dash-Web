@@ -83,7 +83,7 @@ export class MainView extends React.Component {
     propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth || 0));
 
     componentDidMount() {
-        document.getElementById("root")?.addEventListener("scroll", e => document.getElementById("root")!.scrollTop = 0);
+        document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
@@ -590,7 +590,7 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => document.getElementById("root")!.scrollTop = 0} ref={this._mainViewRef}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)} ref={this._mainViewRef}>
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />

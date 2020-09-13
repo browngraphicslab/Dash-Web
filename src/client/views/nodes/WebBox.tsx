@@ -107,10 +107,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scrollTop = e.target?.children?.[0].scrollTop;
-        const scrollLeft = e.target?.children?.[0].scrollLeft;
-        this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-        this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        if (e.target?.children) {
+            e.target.children[0].scrollLeft = 0;
+            const scrollTop = e.target.children[0].scrollTop;
+            const scrollLeft = e.target.children[0].scrollLeft;
+            this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+            this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        }
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
