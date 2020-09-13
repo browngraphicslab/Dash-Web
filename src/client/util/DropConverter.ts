@@ -60,7 +60,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         if (doc.type === DocumentType.FONTICON || StrCast(Doc.Layout(doc).layout).includes("FontIconBox")) {
             //dbox = Doc.MakeAlias(doc);  // don't need to do anything if dropping an icon doc onto an icon bar since there should be no layout data for an icon
         } else if (!doc.onDragStart && !doc.isButtonBar) {
-            const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
+            const layoutDoc = doc;// doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
             if (layoutDoc.type !== DocumentType.FONTICON) {
                 !layoutDoc.isTemplateDoc && makeTemplate(layoutDoc);
             }

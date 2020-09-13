@@ -64,6 +64,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
     xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
     yMargin?: number;
+    dontSelectOnLoad?: boolean; // suppress selecting the text box when loaded
 }
 export const GoogleRef = "googleDocId";
 
@@ -79,6 +80,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static Instance: FormattedTextBox;
     public ProseRef?: HTMLDivElement;
     public get EditorView() { return this._editorView; }
+    private _boxRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
@@ -556,7 +558,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     sidebarMove = (e: PointerEvent, down: number[], delta: number[]) => {
         const bounds = this.CurrentDiv.getBoundingClientRect();
-        this.layoutDoc._sidebarWidthPercent = "" + 100 * (1 - (e.clientX - bounds.left) / bounds.width) + "%";
+        this.layoutDoc._sidebarWidthPercent = "" + 100 * Math.max(0, (1 - (e.clientX - bounds.left) / bounds.width)) + "%";
         return false;
     }
     @undoBatch
@@ -1144,7 +1146,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
 
         const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
-        if (selectOnLoad && !this.props.dontRegisterView) {
+        if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
             if (FormattedTextBox.SelectOnLoadChar) {
@@ -1314,7 +1316,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             if (!node && this.ProseRef) {
                 const lastNode = this.ProseRef.children[this.ProseRef.children.length - 1].children[this.ProseRef.children[this.ProseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
-                if (e.clientY > lastNode?.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
+                const boundsRect = lastNode?.getBoundingClientRect();
+                if (e.clientX > boundsRect.left && e.clientX < boundsRect.right &&
+                    e.clientY > boundsRect.bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
+                    this._editorView?.focus();
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
             } else if ([this._editorView!.state.schema.nodes.ordered_list, this._editorView!.state.schema.nodes.listItem].includes(node?.type) &&
@@ -1473,7 +1478,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     @action
     tryUpdateHeight(limitHeight?: number) {
-        let scrollHeight = this._ref.current?.scrollHeight;
+        let scrollHeight = this.ProseRef?.scrollHeight || 0;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
@@ -1493,14 +1498,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }, 10);
             } else {
                 try {
-                    this.layoutDoc._height = newHeight;
+                    const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
+                    const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
+                    this.rootDoc._height = newHeight + outer;
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
         }
     }
 
-    @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "20%"); }
+    @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
     sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
@@ -1516,7 +1523,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPad = this.props.isSelected() && !this.layoutDoc._singleLine ? -10 : 0;
         const selclass = this.props.isSelected() && !this.layoutDoc._singleLine ? "-selected" : "";
         return (
-            <div className={"formattedTextBox-cont"}
+            <div className={"formattedTextBox-cont"} ref={this._boxRef}
                 style={{
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
@@ -1594,7 +1601,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                                     ContainingCollectionDoc={this.props.ContainingCollectionDoc} />
                             }
                         </div>
-                        {this.props.isSelected() ? <div className="formattedTextBox-sidebar-handle" style={{ left: `calc(100% - ${this.sidebarWidthPercent} - 5px)` }} onPointerDown={this.sidebarDown} /> : (null)}
+                        {this.props.isSelected() ? <div className="formattedTextBox-sidebar-handle" style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} - 5px))` }} onPointerDown={this.sidebarDown} /> : (null)}
                     </>}
                     {!this.layoutDoc._showAudio ? (null) :
                         <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >

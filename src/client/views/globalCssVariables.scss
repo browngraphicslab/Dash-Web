@@ -38,10 +38,6 @@ $MINIMIZED_ICON_SIZE:25;
 $MAX_ROW_HEIGHT: 44px;
 $DFLT_IMAGE_NATIVE_DIM: 900px;
 $MENU_PANEL_WIDTH: 60px;
-:root {
-    --flyoutHandleWidth: 28px;
-    --menuPanelWidth: 60px;
-}
 
 :export {
     contextMenuZindex: $contextMenu-zindex;

@@ -47,7 +47,7 @@ export class CurrentUserUtils {
 
     @observable public static propertiesWidth: number = 0;
 
-    // sets up the default User Templates - slideView, queryView, descriptionView
+    // sets up the default User Templates - slideView,  headerView
     static setupUserTemplateButtons(doc: Doc) {
         // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
         if (doc["template-mobile-button"] === undefined) {
@@ -85,29 +85,29 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
-            descriptionTemplate.system = true;
-            descriptionTemplate[DataSym].layout =
+        if (doc["template-button-header"] === undefined) {
+            const headerTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            headerTemplate.system = true;
+            headerTemplate[DataSym].layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
-            (descriptionTemplate.proto as Doc).isTemplateDoc = makeTemplate(descriptionTemplate.proto as Doc, true, "descriptionView");
+            (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
 
-            doc["template-button-description"] = CurrentUserUtils.ficon({
+            doc["template-button-header"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
+                dragFactory: new PrefetchProxy(headerTemplate) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "header view", icon: "window-maximize", system: true
             });
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
-            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
             linkTemplate.system = true;
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} height='{this._headerHeight||75}px' ignoreAutoHeight={'true'} background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             (linkTemplate.proto as Doc).isTemplateDoc = makeTemplate(linkTemplate.proto as Doc, true, "linkView");
@@ -190,9 +190,9 @@ export class CurrentUserUtils {
                 onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F", system: true
             });
 
-            const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true, system: true });
-            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true, system: true });
-            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350, _autoHeight: true, system: true });
+            const details = TextDocument("", { title: "details", _height: 200, _autoHeight: true, system: true });
+            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 75, _autoHeight: true, system: true });
+            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 150, _autoHeight: true, system: true });
 
             const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
             const detailedTemplate = {
@@ -253,7 +253,7 @@ export class CurrentUserUtils {
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
-            doc["template-button-description"] as Doc,
+            doc["template-button-header"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-simple"] as Doc,
@@ -468,7 +468,6 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
-            { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },

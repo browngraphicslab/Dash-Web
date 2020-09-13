@@ -49,7 +49,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
 
     /// bcz; Argh!!  replace with an onEnter func that conditionally handles Enter 
     const addTextBox = (below: boolean, force?: boolean) => {
-        if (props.LayoutTemplateString) return true;
+        if (props.Document.treeViewOutlineMode) return true;  // bcz: Arghh .. need to determine if this is an treeViewOutlineBox in which case Enter's are ignored..
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (force || props.Document._singleLine) {

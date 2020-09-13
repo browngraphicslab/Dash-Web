@@ -533,7 +533,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         if (this.selectedDoc) {
             const layoutField = Doc.LayoutField(this.selectedDoc);
             const layoutStr = this.selectedDocumentView?.props.LayoutTemplateString || StrCast(layoutField);
-            return layoutStr.includes("FormattedText") || StrCast((layoutField as Doc)?.layout).includes("FormattedText");
+            return (document.activeElement as any)?.className.includes("ProseMirror") || layoutStr.includes("FormattedText") || StrCast((layoutField as Doc)?.layout).includes("FormattedText");
         }
         else return false;
     }
