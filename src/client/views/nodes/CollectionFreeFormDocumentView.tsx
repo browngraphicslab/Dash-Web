@@ -247,6 +247,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     render() {
         TraceMobx();
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document, this.props.renderDepth);
+        const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
@@ -255,7 +256,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document, this.props.renderDepth)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc._isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc._isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
+                borderRadius: borderRounding,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
