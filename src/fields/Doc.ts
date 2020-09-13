@@ -782,6 +782,7 @@ export namespace Doc {
         if (doc) {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
+            delegate.isPrototype = true;
             delegate.author = Doc.CurrentUserEmail;
             title && (delegate.title = title);
             return delegate;
@@ -1134,6 +1135,14 @@ export namespace Doc {
         }
         return ndoc;
     }
+    export function delegateDragFactory(dragFactory: Doc) {
+        const ndoc = Doc.MakeDelegate(dragFactory);
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.GetProto(ndoc).title = ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString();
+        }
+        return ndoc;
+    }
 
 
     export namespace Get {
@@ -1284,6 +1293,7 @@ Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTempla
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) { return Doc.copyDragFactory(dragFactory); });
+Scripting.addGlobal(function delegateDragFactory(dragFactory: Doc) { return Doc.delegateDragFactory(dragFactory); });
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });

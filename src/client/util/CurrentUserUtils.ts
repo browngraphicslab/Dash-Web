@@ -85,23 +85,6 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-header"] === undefined) {
-            const headerTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
-            headerTemplate.system = true;
-            headerTemplate[DataSym].layout =
-                "<div>" +
-                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
-                "</div>";
-            (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
-
-            doc["template-button-header"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(headerTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "header view", icon: "window-maximize", system: true
-            });
-        }
-
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
             const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
             linkTemplate.system = true;
@@ -253,7 +236,6 @@ export class CurrentUserUtils {
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
-            doc["template-button-header"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-simple"] as Doc,
@@ -426,6 +408,17 @@ export class CurrentUserUtils {
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
+        if (doc.emptyHeader === undefined) {
+            const headerTemplate = Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            headerTemplate[DataSym].layout =
+                "<div>" +
+                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
+                "</div>";
+            (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
+            doc.emptyHeader = headerTemplate;
+            ((doc.emptyHeader as Doc).proto as Doc)["dragFactory-count"] = 0;
+        }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
@@ -471,6 +464,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a custom header note document, drag for a custom header note", title: "Custom", icon: "window-maximize", click: 'openOnRight(delegateDragFactory(this.dragFactory))', drag: 'delegateDragFactory(this.dragFactory)', dragFactory: doc.emptyHeader as Doc, noviceMode: true },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
         ];
 

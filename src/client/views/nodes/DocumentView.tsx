@@ -987,6 +987,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     yMargin={10}
                     xMargin={10}
                     hideOnLeave={true}
+                    dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}
                     ChromeHeight={this.chromeHeight}

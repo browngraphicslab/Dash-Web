@@ -324,7 +324,7 @@ export class RichTextRules {
                     this.Document[DataSym]["#" + tag] = "#" + tag;
                     const tags = StrCast(this.Document.tags, ":");
                     if (!tags.includes(`#${tag}:`)) {
-                        this.Document[DataSym].tags = `"${tags + "#" + tag + ':'}"`;
+                        this.Document[DataSym].tags = `${tags + "#" + tag + ':'}`;
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" + tag });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
