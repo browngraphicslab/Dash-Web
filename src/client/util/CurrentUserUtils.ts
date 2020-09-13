@@ -96,7 +96,7 @@ export class CurrentUserUtils {
             (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
 
             doc["template-button-header"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(headerTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "header view", icon: "window-maximize", system: true
             });
