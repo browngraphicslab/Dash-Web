@@ -226,7 +226,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get menuButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`Open Context Menu`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => this.openContextMenu(e)}>
+            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "context-menu" }} onClick={e => this.openContextMenu(e)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="bars" />
             </div></Tooltip >;
     }
@@ -235,7 +235,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get moreButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${CurrentUserUtils.propertiesWidth > 0 ? "Close" : "Open"} Properties Panel`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={action(e =>
+            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "e-resize" }} onClick={action(e =>
                 CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h" />
             </div></Tooltip >;

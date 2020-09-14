@@ -430,7 +430,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get aliasButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias}>
+            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "copy" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;
