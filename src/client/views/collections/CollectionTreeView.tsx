@@ -525,7 +525,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.containingCollection}
             />;
         return <>
-            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
+            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title"
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
@@ -846,40 +846,24 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.doc === CurrentUserUtils.MyDashboards) {
-            ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => CurrentUserUtils.createNewDashboard(Doc.UserDoc()), icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
-            e.stopPropagation();
-            e.preventDefault();
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myRecentlyClosedDocs) {
-            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosedDocs = new List<Doc>(), icon: "plus" });
-            e.stopPropagation();
-            e.preventDefault();
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else {
+        if (!Doc.UserDoc().noviceMode) {
             const layoutItems: ContextMenuProps[] = [];
             layoutItems.push({ description: (this.doc.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.doc.treeViewPreventOpen = !this.doc.treeViewPreventOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.doc.treeViewHideHeaderFields = !this.doc.treeViewHideHeaderFields, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTitle = !this.doc.treeViewHideTitle, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideLinkLines ? "Show" : "Hide") + " Link Lines", event: () => this.doc.treeViewHideLinkLines = !this.doc.treeViewHideLinkLines, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.doc, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit" });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
         }
-        const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
-        const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-        onClicks.push({
-            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.doc, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
-        });
-        onClicks.push({
-            description: `${this.props.Document.treeViewOutlineMode ? "Delay " : "Immediate "} Title Editing`, event: () => UndoManager.RunInBatch(() => this.props.Document.treeViewOutlineMode = !this.props.Document.treeViewOutlineMode, "edit onCheckedClick"), icon: "edit"
-        });
-        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
 
     @computed get renderClearButton() {
-        return <div id="toolbar" key="toolbar">
+        return <div key="toolbar">
             <button className="toolbar-button round-button" title="Empty"
                 onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
                 <FontAwesomeIcon icon={"trash"} size="sm" />
@@ -973,7 +957,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
         return !childDocs ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
-                <div className="collectionTreeView-dropTarget" id="body"
+                <div className="collectionTreeView-dropTarget"
                     style={{
                         background: backgroundColor,
                         paddingLeft: `${NumCast(this.doc._xPadding, 10)}px`,

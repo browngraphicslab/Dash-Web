@@ -779,7 +779,7 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
@@ -794,7 +794,7 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }

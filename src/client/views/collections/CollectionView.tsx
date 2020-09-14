@@ -282,10 +282,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
         subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 
-        const existingVm = ContextMenu.Instance.findByDescription(category);
-        const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-        catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
-        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
+        if (!Doc.IsSystem(this.props.Document)) {
+            const existingVm = ContextMenu.Instance.findByDescription(category);
+            const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+            catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
+            !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
+        }
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -329,7 +331,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     icon: "edit",
                     event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
+            !Doc.IsSystem(this.props.Document) && !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
 
             if (!Doc.UserDoc().noviceMode) {
                 const more = cm.findByDescription("More...");
