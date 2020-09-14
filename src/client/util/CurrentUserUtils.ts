@@ -409,11 +409,11 @@ export class CurrentUserUtils {
             doc.emptySlide = textDoc;
         }
         if (doc.emptyHeader === undefined) {
-            const headerTemplate = Docs.Create.TextDocument(" ", { title: "header", target: doc, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            const headerTemplate = Docs.Create.TextDocument(" ", { title: "header", target: doc, _headerHeight: 44, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} height='{this._headerHeight||75}px' background='{this._headerColor||this.target.userColor||`orange`}' fieldKey={'header'}/>" +
-                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
+                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
+                "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
                 "</div>";
             (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
             doc.emptyHeader = headerTemplate;

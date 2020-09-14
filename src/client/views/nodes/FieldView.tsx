@@ -59,6 +59,7 @@ export interface FieldViewProps {
     ChromeHeight?: () => number;
     childLayoutTemplate?: () => Opt<Doc>;
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
+    fontSize?: number;
     height?: number;
     width?: number;
     background?: string;

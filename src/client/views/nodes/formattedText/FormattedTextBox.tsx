@@ -1536,17 +1536,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     transformOrigin: "top left",
                     width: `${100 / scale}%`,
                     height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
-                    ...this.styleFromLayoutString(scale)
+                    ...this.styleFromLayoutString(scale)   // this converts any expressions in the format string to style props.  e.g., <FormattedTextBox height='{this._headerHeight}px' >
                 }}>
                 <div className={`formattedTextBox-cont`} ref={this._ref}
                     style={{
                         overflow: this.layoutDoc._autoHeight ? "hidden" : undefined,
                         width: "100%",
-                        height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
+                        height: this.props.height || (this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined),
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
-                        fontSize: Cast(this.layoutDoc._fontSize, "string", null),
+                        fontSize: this.props.fontSize || Cast(this.layoutDoc._fontSize, "string", null),
                         fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                     }}

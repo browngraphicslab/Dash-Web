@@ -57,6 +57,8 @@ const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 export interface DocumentOptions {
     system?: boolean;
     _autoHeight?: boolean;
+    _headerHeight?: number; // height of header of custom notes
+    _headerFontSize?: number; // font size of header of custom notes
     _panX?: number;
     _panY?: number;
     _width?: number;
