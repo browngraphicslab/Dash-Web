@@ -55,7 +55,8 @@ export class SettingsManager extends React.Component<{}> {
     @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value);
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
-    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
+    @undoBatch switchActiveBackgroundColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
+    @undoBatch switchUserColor = action((color: ColorState) => Doc.UserDoc().userColor = String(color.hex));
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;
@@ -67,13 +68,20 @@ export class SettingsManager extends React.Component<{}> {
     });
 
     @computed get preferencesContent() {
-        const colorBox = <SketchPicker onChange={this.switchColor} color={StrCast(this.backgroundColor)}
+        const colorBox = (func: (color: ColorState) => void) => <SketchPicker onChange={func} color={StrCast(this.backgroundColor)}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']} />;
 
         const colorFlyout = <div className="colorFlyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox(this.switchActiveBackgroundColor)}>
+                <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }} onPointerDown={e => e.stopPropagation()} >
+                    <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
+                </div>
+            </Flyout>
+        </div>;
+        const userColorFlyout = <div className="colorFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox(this.switchUserColor)}>
                 <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }} onPointerDown={e => e.stopPropagation()} >
                     <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
                 </div>
@@ -87,6 +95,10 @@ export class SettingsManager extends React.Component<{}> {
             <div className="preferences-color">
                 <div className="preferences-color-text">Back. Color</div>
                 {colorFlyout}
+            </div>
+            <div className="preferences-color">
+                <div className="preferences-color-text">User Color</div>
+                {userColorFlyout}
             </div>
             <div className="preferences-font">
                 <div className="preferences-font-text">Font</div>
