@@ -409,10 +409,29 @@ export class CurrentUserUtils {
             doc.emptySlide = textDoc;
         }
         if (doc.emptyHeader === undefined) {
-            const headerTemplate = Docs.Create.TextDocument(" ", { title: "header", target: doc, _headerHeight: 44, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            const json = {
+                doc: {
+                    type: "doc",
+                    content: [
+                        {
+                            type: "paragraph", attrs: {}, content: [{
+                                type: "dashField",
+                                attrs: { fieldKey: "author", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }, {
+                                type: "dashField",
+                                attrs: { fieldKey: "creationDate", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }]
+                        }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", target: doc, _headerHeight: 24, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
+                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
                 "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
                 "</div>";
             (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");

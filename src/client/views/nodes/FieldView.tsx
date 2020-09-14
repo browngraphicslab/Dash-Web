@@ -60,6 +60,7 @@ export interface FieldViewProps {
     childLayoutTemplate?: () => Opt<Doc>;
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
     fontSize?: number;
+    pointerEvents?: string;
     height?: number;
     width?: number;
     background?: string;

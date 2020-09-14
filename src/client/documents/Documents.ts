@@ -673,6 +673,9 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
+        export function RTFDocument(field: RichTextField, options: DocumentOptions = {}, fieldKey: string = "text") {
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
+        }
         export function TextDocument(text: string, options: DocumentOptions = {}, fieldKey: string = "text") {
             const rtf = {
                 doc: {

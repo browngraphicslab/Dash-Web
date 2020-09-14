@@ -104,7 +104,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         styleFromLayoutString = (scale: number) => {
             const style: { [key: string]: any } = {};
-            const divKeys = ["width", "height", "fontSize", "left", "background", "top", "position"];
+            const divKeys = ["width", "height", "fontSize", "left", "background", "top", "pointerEvents", "position"];
             const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a property expression string:  { script }  into a value
                 return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
             };
