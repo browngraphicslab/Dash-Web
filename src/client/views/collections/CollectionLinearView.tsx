@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
 import { Tooltip } from '@material-ui/core';
 import { all } from 'bluebird';
+import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -132,15 +133,15 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
-                        const deltaSize = nativeWidth * .15 / 2;
                         const scalable = pair.layout.onClick || pair.layout.onDragStart;
                         return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 pointerEvents: "all",
-                                width: scalable ? (nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize) : undefined,
-                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
+                                minWidth: 30,
+                                width: nested ? pair.layout[WidthSym]() : this.dimension(),
+                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension(),
                             }}  >
-                            <DocumentView
+                            <ContentFittingDocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
                                 LibraryPath={this.props.LibraryPath}
@@ -153,8 +154,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
-                                PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
-                                PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
+                                PanelWidth={nested ? pair.layout[WidthSym] : this.dimension}
+                                PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}
                                 renderDepth={this.props.renderDepth + 1}
                                 focus={emptyFunction}
                                 backgroundColor={this.props.backgroundColor}
