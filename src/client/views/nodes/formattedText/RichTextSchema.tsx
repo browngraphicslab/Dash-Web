@@ -177,17 +177,6 @@ export class DashDocView {
 
             this._renderDisposer?.();
             this._renderDisposer = reaction(() => {
-                // if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                //     finalLayout.rootDocument = dashDoc.aliasOf; // bcz: check on this ... why is it here?
-                // }
-                const layoutKey = StrCast(finalLayout.layoutKey);
-                const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
-                if (finalLayout !== dashDoc && finalKey) {
-                    const finalLayoutField = finalLayout[finalKey];
-                    if (finalLayoutField instanceof ObjectField) {
-                        finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
-                    }
-                }
                 return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };
             },
                 (res) => doReactRender(res.finalLayout, res.resolvedDataDoc),

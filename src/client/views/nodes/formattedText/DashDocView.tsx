@@ -132,14 +132,6 @@ export class DashDocView extends React.Component<IDashDocView> {
                 if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
                     finalLayout.rootDocument = dashDoc.aliasOf;
                 }
-                const layoutKey = StrCast(finalLayout.layoutKey);
-                const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
-                if (finalLayout !== dashDoc && finalKey) {
-                    const finalLayoutField = finalLayout[finalKey];
-                    if (finalLayoutField instanceof ObjectField) {
-                        finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
-                    }
-                }
                 this._finalLayout = finalLayout;
                 this._resolvedDataDoc = Cast(finalLayout.resolvedDataDoc, Doc, null);
                 return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };

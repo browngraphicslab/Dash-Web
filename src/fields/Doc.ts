@@ -507,7 +507,9 @@ export namespace Doc {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         alias.aliasOf = doc;
-        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        if (doc !== Doc.GetProto(doc)) {
+            alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        }
         alias.author = Doc.CurrentUserEmail;
         alias[AclSym] = doc[AclSym];
 
@@ -782,7 +784,6 @@ export namespace Doc {
         if (doc) {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
-            delegate.isPrototype = true;
             delegate.author = Doc.CurrentUserEmail;
             title && (delegate.title = title);
             return delegate;
@@ -841,14 +842,6 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
-        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
-        }
-        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
-        }
-
         // get the layout string that the template uses to specify its layout
         const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
 
@@ -1137,6 +1130,7 @@ export namespace Doc {
     }
     export function delegateDragFactory(dragFactory: Doc) {
         const ndoc = Doc.MakeDelegate(dragFactory);
+        ndoc.isPrototype = true;
         if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.GetProto(ndoc).title = ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString();

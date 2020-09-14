@@ -238,20 +238,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
             const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
-            const curTemp = Cast(this.layoutDoc[this.props.fieldKey + "-textTemplate"], RichTextField);               // the actual text in the text box
+            const curTemp = Cast(this.layoutDoc[this.props.fieldKey], RichTextField);               // the actual text in the text box
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
+            const removeSelection = (json: string | undefined) => {
+                return json?.indexOf("\"storedMarks\"") === -1 ? json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
+            }
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
-                if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
+                if (!this._applyingChange && removeSelection(json) !== removeSelection(curProto?.Data)) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || json.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                        if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
+                        if (removeSelection(json) !== removeSelection(curLayout?.Data)) {
                             if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
                                 timeStamp = setTimeout(() => this.pause(), 10 * 1000); // 10 seconds delay for time stamp
                             }
@@ -824,10 +827,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._disposers.editorState = reaction(
             () => {
                 if (!this.dataDoc || !this.layoutDoc) return undefined;
-                if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey + "-textTemplate"]) {
+                if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
-                return Cast(this.layoutDoc[this.props.fieldKey + "-textTemplate"], RichTextField, null)?.Data;
+                return Cast(this.layoutDoc[this.props.fieldKey], RichTextField, null)?.Data;
             },
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
@@ -837,7 +840,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.tryUpdateHeight();
                     }
                 }
-            }
+            },
         );
         this._disposers.pullDoc = reaction(
             () => this.props.Document[Pulls],
@@ -1109,8 +1112,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     private setupEditor(config: any, fieldKey: string) {
         const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
-        const useTemplate = !curText?.Text && this.layoutDoc[this.props.fieldKey + "-textTemplate"];
-        const rtfField = Cast((useTemplate && this.layoutDoc[this.props.fieldKey + "-textTemplate"]) || this.dataDoc[fieldKey], RichTextField);
+        const rtfField = Cast((!curText?.Text && this.layoutDoc[this.props.fieldKey]) || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
             this._editorView?.destroy();
@@ -1149,8 +1151,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
-            if (FormattedTextBox.SelectOnLoadChar) {
-                FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
+            if (FormattedTextBox.SelectOnLoadChar && this._editorView) {
+                const $from = this._editorView.state.selection.anchor ? this._editorView.state.doc.resolve(this._editorView.state.selection.anchor - 1) : undefined;
+                const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
+                const curMarks = this._editorView!.state.storedMarks ?? $from?.marksAcross(this._editorView.state.selection.$head) ?? [];
+                const storedMarks = [...curMarks.filter(m => m.type !== mark.type), mark];
+                this._editorView.dispatch(this._editorView!.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar).setStoredMarks(storedMarks));
                 FormattedTextBox.SelectOnLoadChar = "";
             } else if (curText?.Text) {
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
