@@ -136,8 +136,8 @@
 .treeViewItem-header {
     border: transparent 1px solid;
     display: flex;
-    align-items: center;
-            ::-webkit-scrollbar {
+    //align-items: center;
+    ::-webkit-scrollbar {
             display: none;
     }
     .formattedTextBox-cont {

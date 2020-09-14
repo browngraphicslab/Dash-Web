@@ -616,15 +616,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const appearance = cm.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
-        this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
+        // this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
         Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         appearanceItems.push({
-            description: "Convert to be a template style", event: () => {
+            description: "Make Default Layout", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
                     const title = StrCast(this.rootDoc.title);
                     this.rootDoc.title = "text";
                     this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
-                } else {
+                } else if (!this.rootDoc.isTemplateDoc) {
                     const title = StrCast(this.rootDoc.title);
                     this.rootDoc.title = "text";
                     this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
@@ -640,6 +640,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
                     }, 10);
                 }
+                Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });

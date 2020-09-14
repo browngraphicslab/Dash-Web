@@ -190,7 +190,8 @@ export interface DocumentOptions {
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
-    treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
+    treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
+    treeViewHideHeader?: boolean; // whether to hide the header for a document in a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
