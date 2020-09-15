@@ -31,6 +31,8 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 
+
+const headerViewVersion = "0.1";
 export class CurrentUserUtils {
     private static curr_id: string;
     //TODO tfs: these should be temporary...
@@ -44,7 +46,6 @@ export class CurrentUserUtils {
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestDashboard: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
-
     @observable public static propertiesWidth: number = 0;
 
     // sets up the default User Templates - slideView,  headerView
@@ -408,7 +409,7 @@ export class CurrentUserUtils {
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
-        if (doc.emptyHeader === undefined || (doc.emptyHeader as Doc).version !== "0") {
+        if ((doc.emptyHeader as Doc)?.version !== headerViewVersion) {
             const json = {
                 doc: {
                     type: "doc",
@@ -428,9 +429,9 @@ export class CurrentUserUtils {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: "0", target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
-                "<div>" +
+                "<div style={'height:100%'}>" +
                 "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
                 "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
                 "</div>";
@@ -1003,7 +1004,7 @@ export class CurrentUserUtils {
 
         // uncomment this to setup a default note style that uses the custom header layout
         PromiseValue(doc.emptyHeader).then(factory => {
-            if (Cast(doc.defaultTextLayout, Doc, null)?.version !== "0") {
+            if (Cast(doc.defaultTextLayout, Doc, null)?.version !== headerViewVersion) {
                 const deleg = Doc.delegateDragFactory(factory as Doc);
                 deleg.title = "header";
                 doc.defaultTextLayout = new PrefetchProxy(deleg);
