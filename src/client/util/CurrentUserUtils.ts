@@ -503,7 +503,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory, noviceMode, clickFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 35, _height: 35,
             icon,
             title,
             toolTip,

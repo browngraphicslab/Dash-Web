@@ -1233,7 +1233,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
-        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
+        !Doc.UserDoc().noviceMode && Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         !Doc.UserDoc().noviceMode ? appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" }) : null;
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
@@ -1253,7 +1253,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Move Items Out of Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
-        optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
+        this.props.renderDepth && optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
@@ -1262,7 +1262,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         const mores = ContextMenu.Instance.findByDescription("More...");
         const moreItems = mores && "subitems" in mores ? mores.subitems : [];
-        moreItems.push({ description: "Import document", icon: "upload", event: ({ x, y }) => this.importDocument(x, y) });
+        moreItems.push({ description: "Export collection", icon: "download", event: async () => Doc.Zip(this.props.Document) });
+        moreItems.push({ description: "Import exported collection", icon: "upload", event: ({ x, y }) => this.importDocument(x, y) });
         !mores && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "eye" });
     }
 

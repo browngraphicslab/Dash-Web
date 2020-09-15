@@ -783,7 +783,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         const appearance = cm.findByDescription("UI Controls...");
         const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
-        templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
+        !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
         DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
         !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
@@ -793,11 +793,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
-                optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
-                optionItems.push({ description: this.rootDoc["_isBackground-canClick"] ? "Unlock from Back" : "Lock in Back", event: this.toggleLockInBack, icon: "expand-arrows-alt" });
                 !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+
+                const zorders = cm.findByDescription("ZOrder...");
+                const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
+                zorderItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
+                zorderItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+                zorderItems.push({ description: this.rootDoc["_isBackground-canClick"] ? "Unlock from Back" : "Lock in Back", event: this.toggleLockInBack, icon: "expand-arrows-alt" });
+                !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
                 onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
                 onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
@@ -817,7 +821,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const funcs: ContextMenuProps[] = [];
-        if (this.layoutDoc.onDragStart) {
+        if (!Doc.UserDoc().noviceMode && this.layoutDoc.onDragStart) {
             funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
             funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
             funcs.push({ description: "Drag Document", icon: "edit", event: () => this.layoutDoc.onDragStart = undefined });
@@ -844,7 +848,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);
-        if ((collectionAcl === AclAdmin || collectionAcl === AclEdit) && this.props.removeDocument) {
+        if (this.props.removeDocument) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
             moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
         }
 

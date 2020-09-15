@@ -286,7 +286,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             const existingVm = ContextMenu.Instance.findByDescription(category);
             const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
-            catItems.push({ description: "Export collection", icon: "download", event: async () => Doc.Zip(this.props.Document) });
             !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
         }
     }
