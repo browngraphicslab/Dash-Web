@@ -51,6 +51,7 @@ import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { FilterBox } from "../views/nodes/FilterBox";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -1084,7 +1085,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(CurrentUserUtils.MyItemCreators?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map(dragDoc => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: undoBatch((args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);

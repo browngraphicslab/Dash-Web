@@ -1516,7 +1516,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     // }
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    this.rootDoc._height = newHeight + outer;
+                    this.rootDoc._height = newHeight + outer;//Math.max(newHeight, newHeight + outer);
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }

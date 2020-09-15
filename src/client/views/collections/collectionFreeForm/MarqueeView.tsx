@@ -24,6 +24,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { Id } from "../../../../fields/FieldSymbols";
+import { copyDragFactory } from "../../../util/CurrentUserUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -129,7 +130,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 // e.stopPropagation();
 
                 e.preventDefault();
-                const slide = Doc.copyDragFactory(Doc.UserDoc().emptySlide as Doc)!;
+                const slide = copyDragFactory(Doc.UserDoc().emptySlide as Doc)!;
                 slide.x = x;
                 slide.y = y;
                 FormattedTextBox.SelectOnLoad = slide[Id];

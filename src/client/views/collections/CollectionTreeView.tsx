@@ -20,7 +20,7 @@ import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocFocusFunc } from '../nodes/DocumentView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { Templates } from '../Templates';
 import { CollectionSubView } from "./CollectionSubView";
@@ -145,13 +145,11 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     componentWillUnmount() {
-        console.log("DISMOUT" + this.doc.title);
         document.removeEventListener("pointermove", this.onDragMove, true);
         document.removeEventListener("pointermove", this.onDragUp, true);
     }
 
     onDragUp = (e: PointerEvent) => {
-        console.log("DUP" + this.doc.title);
         document.removeEventListener("pointerup", this.onDragUp, true);
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
@@ -163,7 +161,6 @@ class TreeView extends React.Component<TreeViewProps> {
             document.addEventListener("pointermove", this.onDragMove, true);
             document.removeEventListener("pointerup", this.onDragUp, true);
             document.addEventListener("pointerup", this.onDragUp, true);
-            console.log("DSTART" + this.doc.title);
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
@@ -171,7 +168,6 @@ class TreeView extends React.Component<TreeViewProps> {
         if (this._header?.current?.className !== "treeViewItem-header-editing") {
             this._header!.current!.className = "treeViewItem-header";
         }
-        console.log("DLEAVE" + this.doc.title);
         document.removeEventListener("pointerup", this.onDragUp, true);
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
@@ -595,7 +591,7 @@ class TreeView extends React.Component<TreeViewProps> {
                                 fitToBox={this.boundsOfCollectionDocument !== undefined}
                                 PanelWidth={this.rtfWidth}
                                 PanelHeight={this.rtfOutlineHeight}
-                                focus={returnFalse}
+                                focus={(doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => this.props.treeView.props.focus(this.props.treeView.props.Document)}
                                 ScreenToLocalTransform={this.docTransform}
                                 docFilters={returnEmptyFilter}
                                 searchFilterDocs={returnEmptyDoclist}
@@ -930,7 +926,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
-                focus={returnFalse}
+                focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}

@@ -1004,7 +1004,7 @@ export class CurrentUserUtils {
         // uncomment this to setup a default note style that uses the custom header layout
         PromiseValue(doc.emptyHeader).then(factory => {
             if (Cast(doc.defaultTextLayout, Doc, null)?.version !== "0") {
-                const deleg = Doc.delegateDragFactory(factory as Doc);
+                const deleg = makeDelegateDragFactory(factory as Doc);
                 deleg.title = "header";
                 doc.defaultTextLayout = new PrefetchProxy(deleg);
                 Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
@@ -1146,6 +1146,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
 
+    public static get MyItemCreators() { return Cast(Doc.UserDoc().myItemCreators, Doc, null); }
     public static get MySearchPanelDoc() { return Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null); }
     public static get ActiveDashboard() { return Cast(Doc.UserDoc().activeDashboard, Doc, null); }
     public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
@@ -1154,23 +1155,35 @@ export class CurrentUserUtils {
     public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
 }
 
+export function copyDragFactory(dragFactory: Doc) {
+    const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+    if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+        dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+        Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+    }
+    return ndoc;
+}
+export function makeDelegateDragFactory(dragFactory: Doc) {
+    const ndoc = Doc.MakeDelegate(dragFactory);
+    ndoc.isPrototype = true;
+    if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+        dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+        Doc.GetProto(ndoc).title = ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString();
+    }
+    return ndoc;
+}
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
-    const copy = Doc.copyDragFactory(dragFactory);
+    const copy = copyDragFactory(dragFactory);
     if (copy) {
         CollectionDockingView.AddSplit(copy, "right");
         const view = DocumentManager.Instance.getFirstDocumentView(copy);
         view && SelectionManager.SelectDoc(view, false);
     }
 });
-Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
-    "creates a snapshot copy of a dashboard");
-Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },
-    "creates a new dashboard when called");
-Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
-    "creates a new presentation when called");
-Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
-    "returns all the links to the document or its annotations", "(doc: any)");
-Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
-    "returns all the links directly to the document", "(doc: any)");
-Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
-    "imports files from device directly into the import sidebar");
+Scripting.addGlobal(function delegateDragFactory(dragFactory: Doc) { return makeDelegateDragFactory(dragFactory); });
+Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); }, "creates a snapshot copy of a dashboard");
+Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); }, "creates a new dashboard when called");
+Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); }, "creates a new presentation when called");
+Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); }, "returns all the links to the document or its annotations", "(doc: any)");
+Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); }, "returns all the links directly to the document", "(doc: any)");
+Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); }, "imports files from device directly into the import sidebar");
