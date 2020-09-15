@@ -848,7 +848,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);
-        if (this.props.removeDocument) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
+        if (this.props.removeDocument && !this.props.Document._stayInCollection) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
             moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
         }
 
