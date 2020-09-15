@@ -61,7 +61,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const titleEle = tab.titleElement[0];
             titleEle.size = StrCast(doc.title).length + 3;
             titleEle.value = doc.title;
-            titleEle.style["max-width"] = "100px";
             titleEle.onchange = (e: any) => {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
@@ -81,7 +80,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             };
 
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
-            tab.element[0].onclick = (e: any) => {
+            titleEle.onpointerdown = (e: any) => {
                 if (e.target.className !== "lm_close_tab" && this.view) {
                     SelectionManager.SelectDoc(this.view, false);
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
@@ -197,7 +196,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             this._isActive = this.props.glContainer.tab.isActive;
             (CollectionDockingView.Instance as any)._goldenLayout?.isInitialised && CollectionDockingView.Instance.stateChanged();
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
-            this._isActive && this.view && SelectionManager.SelectDoc(this.view, false);
+            // this._isActive && this.view && SelectionManager.SelectDoc(this.view, false);
         }
     }
 
@@ -339,7 +338,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => afterFocus?.();
+    focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
+        this.tab.header.parent.setActiveContentItem(this.tab.contentItem)
+        afterFocus?.();
+    }
     setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
     @computed get docView() {

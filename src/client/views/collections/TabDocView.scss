@@ -1,5 +1,13 @@
-input.lm_title:focus {
-    max-width: max-content !important;
+input.lm_title:focus,
+input.lm_title
+{
+    max-width: unset !important;
+    transition-delay: unset;
+    width: 100%;
+}
+input.lm_title {
+    transition-delay: 0.35s;
+    width: 100px;
 }
 .miniMap-hidden,
 .miniMap {
