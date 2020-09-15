@@ -353,7 +353,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     updateTitle = () => {
         if (!this.props.dontRegisterView &&  // (this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.dataDoc["title-custom"] &&
-            Doc.LayoutFieldKey(this.rootDoc) === this.fieldKey) {
+            (Doc.LayoutFieldKey(this.rootDoc) === this.fieldKey || this.fieldKey === "text")) {
             let node = this._editorView.state.doc;
             while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
