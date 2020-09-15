@@ -550,6 +550,8 @@ class TreeView extends React.Component<TreeViewProps> {
         </>;
     }
 
+    refocus = () => this.props.treeView.props.focus(this.props.treeView.props.Document);
+
     render() {
         TraceMobx();
         if (this.props.renderedIds.indexOf(this.doc[Id]) !== -1) return null;
@@ -595,7 +597,7 @@ class TreeView extends React.Component<TreeViewProps> {
                                 fitToBox={this.boundsOfCollectionDocument !== undefined}
                                 PanelWidth={this.rtfWidth}
                                 PanelHeight={this.rtfOutlineHeight}
-                                focus={returnFalse}
+                                focus={this.refocus}
                                 ScreenToLocalTransform={this.docTransform}
                                 docFilters={returnEmptyFilter}
                                 searchFilterDocs={returnEmptyDoclist}
@@ -930,7 +932,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
-                focus={returnFalse}
+                focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
