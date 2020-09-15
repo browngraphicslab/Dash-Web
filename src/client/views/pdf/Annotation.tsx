@@ -8,6 +8,7 @@ import { Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../field
 import { DocumentManager } from "../../util/DocumentManager";
 import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
+import { undoBatch } from "../../util/UndoManager";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -86,6 +87,14 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         group && this.props.pinToPres(group, isPinned);
     }
 
+    @undoBatch
+    makePushpin = action(() => {
+        const group = Cast(this.props.document.group, Doc, null);
+        group.isPushpin = !group.isPushpin;
+    })
+
+    isPushpin = () => Cast(this.props.document.group, Doc, null).isPushpin;
+
     @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 2 || e.ctrlKey) {
@@ -94,6 +103,8 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             PDFMenu.Instance.Pinned = false;
             PDFMenu.Instance.AddTag = this.addTag.bind(this);
             PDFMenu.Instance.PinToPres = this.pinToPres;
+            PDFMenu.Instance.MakePushpin = this.makePushpin;
+            PDFMenu.Instance.IsPushpin = this.isPushpin;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
             e.stopPropagation();
         }
