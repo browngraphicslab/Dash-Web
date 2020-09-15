@@ -1116,8 +1116,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
                     pointerEvents={this.backgroundActive || this.props.childPointerEvents ?
-                        true :
-                        (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
+                        "all" :
+                        (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this

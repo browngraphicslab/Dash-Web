@@ -123,8 +123,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         params: ["target", "source"], title: "item view",
         script: "self.target.childLayoutTemplate = getDocTemplate(self.source?.[0])",
         immediate: undoBatch((source: Doc[]) => {
-            if (source.length === 1 && source[0].type === DocumentType.RTF && Cast(source[0].text, RichTextField, null)?.Text) {
-                Doc.SetInPlace(this.target, "childLayoutString", Cast(source[0].text, RichTextField, null)?.Text, false);
+            let formatStr = source.length && Cast(source[0].text, RichTextField, null)?.Text;
+            try { formatStr && JSON.parse(formatStr); } catch (e) { formatStr = ""; }
+            if (source.length === 1 && formatStr) {
+                Doc.SetInPlace(this.target, "childLayoutString", formatStr, false);
             } else if (source.length) {
                 this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]);
             } else {

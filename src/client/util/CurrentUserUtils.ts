@@ -408,7 +408,7 @@ export class CurrentUserUtils {
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
-        if (doc.emptyHeader === undefined) {
+        if (doc.emptyHeader === undefined || (doc.emptyHeader as Doc).version !== "0") {
             const json = {
                 doc: {
                     type: "doc",
@@ -428,7 +428,7 @@ export class CurrentUserUtils {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", target: doc, _headerHeight: 24, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: "0", target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
@@ -1001,6 +1001,15 @@ export class CurrentUserUtils {
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
         doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
+        // uncomment this to setup a default note style that uses the custom header layout
+        PromiseValue(doc.emptyHeader).then(factory => {
+            if (Cast(doc.defaultTextLayout, Doc, null)?.version !== "0") {
+                const deleg = Doc.delegateDragFactory(factory as Doc);
+                deleg.title = "header";
+                doc.defaultTextLayout = new PrefetchProxy(deleg);
+                Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
+            }
+        });
         return doc;
     }
 

@@ -86,7 +86,9 @@
 }
 
 .formattedTextBox-inner-rounded, .formattedTextBox-inner-rounded-selected,
-.formattedTextBox-inner, .formattedTextBox-inner-selected {
+.formattedTextBox-inner, 
+.formattedTextBox-inner-minimal,
+.formattedTextBox-inner-selected {
     height: 100%;
     white-space: pre-wrap;
     .ProseMirror:hover {
@@ -426,6 +428,7 @@ footnote::after {
         left: 10%;
     }
 
+    .formattedTextBox-inner-minimal,
     .formattedTextBox-inner-rounded,
     .formattedTextBox-inner {
         height: 100%;

@@ -98,6 +98,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
     userDoc?: Doc; // the userDocument

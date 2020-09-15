@@ -145,15 +145,25 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     componentWillUnmount() {
+        console.log("DISMOUT" + this.doc.title);
         document.removeEventListener("pointermove", this.onDragMove, true);
+        document.removeEventListener("pointermove", this.onDragUp, true);
     }
 
+    onDragUp = (e: PointerEvent) => {
+        console.log("DUP" + this.doc.title);
+        document.removeEventListener("pointerup", this.onDragUp, true);
+        document.removeEventListener("pointermove", this.onDragMove, true);
+    }
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active(true) && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.removeEventListener("pointermove", this.onDragMove, true);
             document.addEventListener("pointermove", this.onDragMove, true);
+            document.removeEventListener("pointerup", this.onDragUp, true);
+            document.addEventListener("pointerup", this.onDragUp, true);
+            console.log("DSTART" + this.doc.title);
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
@@ -161,6 +171,8 @@ class TreeView extends React.Component<TreeViewProps> {
         if (this._header?.current?.className !== "treeViewItem-header-editing") {
             this._header!.current!.className = "treeViewItem-header";
         }
+        console.log("DLEAVE" + this.doc.title);
+        document.removeEventListener("pointerup", this.onDragUp, true);
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {

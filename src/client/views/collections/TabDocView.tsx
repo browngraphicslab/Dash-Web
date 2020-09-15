@@ -28,6 +28,7 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionViewType } from './CollectionView';
 import React = require("react");
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -330,9 +331,12 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         />
                     </div>
                 </div>}
-            <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
-                <FontAwesomeIcon icon={"globe-asia"} size="lg" />
-            </div>
+
+            <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                    <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+                </div>
+            </Tooltip>
         </>;
     }
     focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => afterFocus?.();
@@ -367,7 +371,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-                {this._document!._viewType !== CollectionViewType.Freeform ? (null) : this.renderMiniMap()}
+                {this._document._viewType !== CollectionViewType.Freeform ? (null) : this.renderMiniMap()}
             </>;
     }
 

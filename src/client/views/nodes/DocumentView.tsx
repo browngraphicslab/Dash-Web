@@ -79,7 +79,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    pointerEvents?: boolean;
+    pointerEvents?: string;
     focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -960,7 +960,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dontRegisterView={false}
                     forcedBackgroundColor={returnTransparent}
                     removeDocument={this.hideLinkAnchor}
-                    pointerEvents={false}
+                    pointerEvents={"none"}
                     LayoutTemplate={undefined}
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
@@ -1017,7 +1017,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>;
     }
     @computed get ignorePointerEvents() {
-        return this.props.pointerEvents === false ||
+        return this.props.pointerEvents === "none" ||
             (SnappingManager.GetIsDragging() && this.Document["_isBackground-canClick"]) ||
             (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
