@@ -112,7 +112,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
 
-        const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "default", background: backgroundColor === color ? "black" : backgroundColor, }}
+        const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "pointer", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
             <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
         </label>;
@@ -123,7 +123,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     {menuOpener}
                 </Tooltip>
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
+                    onChange={action(() => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), flexDirection: flexDir }}>
                     {this.childLayoutPairs.map((pair, ind) => {
