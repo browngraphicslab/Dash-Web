@@ -3204,7 +3204,7 @@
 				 * If this was the last content item, remove this node as well
 				 */
             } else if (!(this instanceof lm.items.Root) && this.config.isClosable === true) {
-                this.parent.removeChild(this);
+                if (!this.parent.parent.isRoot || this.parent.contentItems.length > 1) this.parent.removeChild(this); // bcz: added test for last stack
             }
         },
 
