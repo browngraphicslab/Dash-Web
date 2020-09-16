@@ -223,6 +223,7 @@ export namespace DragManager {
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
+        return true;
     }
 
     // drag a button template and drop a new button 

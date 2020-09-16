@@ -87,7 +87,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
-    backgroundColor?: (doc: Doc, renderDepth: number) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, renderDepth: number) => string | undefined;
     forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;

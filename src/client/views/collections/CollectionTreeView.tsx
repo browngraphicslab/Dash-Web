@@ -52,7 +52,7 @@ export interface TreeViewProps {
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
-    backgroundColor?: (doc: Doc, renderDepth: number) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, renderDepth: number) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -655,7 +655,7 @@ class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Doc, renderDepth: number) => string | undefined),
+        backgroundColor: undefined | ((document: Opt<Doc>, renderDepth: number) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
