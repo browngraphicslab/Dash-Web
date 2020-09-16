@@ -339,7 +339,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         </>;
     }
     focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
-        this.tab.header.parent.setActiveContentItem(this.tab.contentItem)
+        this.tab.header.parent.setActiveContentItem(this.tab.contentItem);
         afterFocus?.();
     }
     setView = action((view: DocumentView) => this._view = view);

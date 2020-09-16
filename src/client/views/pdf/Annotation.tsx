@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
+import { Cast, FieldValue, BoolCast, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
@@ -91,9 +91,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     makePushpin = action(() => {
         const group = Cast(this.props.document.group, Doc, null);
         group.isPushpin = !group.isPushpin;
-    })
+    });
 
-    isPushpin = () => Cast(this.props.document.group, Doc, null).isPushpin;
+    isPushpin = () => BoolCast(Cast(this.props.document.group, Doc, null).isPushpin);
 
     @action
     onPointerDown = (e: React.PointerEvent) => {

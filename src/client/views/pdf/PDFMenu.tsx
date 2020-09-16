@@ -109,8 +109,8 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
         this.highlightColor = Utils.colorString(col);
     }
 
-    @action keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._keyValue = e.currentTarget.value; }
-    @action valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._valueValue = e.currentTarget.value; }
+    @action keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._keyValue = e.currentTarget.value; };
+    @action valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._valueValue = e.currentTarget.value; };
     @action addTag = (e: React.PointerEvent) => {
         if (this._keyValue.length > 0 && this._valueValue.length > 0) {
             this._added = this.AddTag(this._keyValue, this._valueValue);
