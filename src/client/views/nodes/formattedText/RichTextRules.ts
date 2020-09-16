@@ -322,7 +322,7 @@ export class RichTextRules {
                     const tag = match[1];
                     if (!tag) return state.tr;
                     this.Document[DataSym]["#" + tag] = "#" + tag;
-                    const tags = StrCast(this.Document.tags, ":");
+                    const tags = StrCast(this.Document[DataSym].tags, ":");
                     if (!tags.includes(`#${tag}:`)) {
                         this.Document[DataSym].tags = `${tags + "#" + tag + ':'}`;
                     }

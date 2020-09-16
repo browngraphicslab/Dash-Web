@@ -41,18 +41,14 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
         dragFactory && this.props.addDocTab(dragFactory, "add:right");
     }
-    dragAsTemplate = (): void => {
-        this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
-    }
-    useAsPrototype = (): void => {
-        this.layoutDoc.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)');
-    }
+    dragAsTemplate = (): void => { this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)'); };
+    useAsPrototype = (): void => { this.layoutDoc.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'); };
 
     specificContextMenu = (): void => {
         const cm = ContextMenu.Instance;
         cm.addItem({ description: "Show Template", event: this.showTemplate, icon: "tag" });
-        cm.addItem({ description: "Use as Render Template", event: this.dragAsTemplate, icon: "tag" });
-        cm.addItem({ description: "Use as Prototype", event: this.useAsPrototype, icon: "tag" });
+        !Doc.UserDoc().noviceMode && cm.addItem({ description: "Use as Render Template", event: this.dragAsTemplate, icon: "tag" });
+        !Doc.UserDoc().noviceMode && cm.addItem({ description: "Use as Prototype", event: this.useAsPrototype, icon: "tag" });
     }
 
     componentWillUnmount() {
@@ -75,7 +71,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
             }}>
             <div className="menuButton-wrap">
                 {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={icon} color={color}
-                    size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
+                    size={this.layoutDoc.iconShape === "square" ? "sm" : "sm"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 {this.props.Document.watchedDocuments ? <FontIconBadge collection={Cast(this.props.Document.watchedDocuments, Doc, null)} /> : (null)}
             </div>

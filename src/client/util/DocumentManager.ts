@@ -160,8 +160,6 @@ export class DocumentManager {
                 docView.props.Document.hidden = !docView.props.Document.hidden;
             }
             else {
-                const contView = docContext && getFirstDocView(docContext, originatingDoc);
-                contView && contView.topMost && contView.select(false);  // bcz: change this to a function prop: popTab() that will make sure the tab for the document is topmost;
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);

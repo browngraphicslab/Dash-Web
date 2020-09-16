@@ -244,13 +244,13 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
                 const fromattrs = state.selection.$from.node().attrs;
                 if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                     const tonode = tx3.selection.$to.node();
-                    if (tx3.doc.nodeAt(tx3.selection.to - 1)) {
+                    if (tx3.selection.to && tx3.doc.nodeAt(tx3.selection.to - 1)) {
                         const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
                         splitMetadata(marks, tx4);
                         if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
                             dispatch(tx4);
                         }
-                    } else dispatch(tx3.insertText("\r"));
+                    } else dispatch(tx3.insertText("\r\n"));
                 })) {
                     return false;
                 }

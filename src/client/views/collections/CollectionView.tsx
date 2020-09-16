@@ -288,7 +288,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 
-        if (!Doc.IsSystem(this.props.Document)) {
+        if (!Doc.IsSystem(this.props.Document) && !this.props.Document.annotationOn) {
             const existingVm = ContextMenu.Instance.findByDescription(category);
             const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
             catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
@@ -319,25 +319,25 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 
-            const existingOnClick = cm.findByDescription("OnClick...");
-            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-            const funcs = [
-                { key: "onChildClick", name: "On Child Clicked" },
-                { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
-            funcs.map(func => onClicks.push({
-                description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    const alias = Doc.MakeAlias(this.props.Document);
-                    DocUtils.makeCustomViewClicked(alias, undefined, func.key);
-                    this.props.addDocTab(alias, "add:right");
-                }
-            }));
-            DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
-                onClicks.push({
-                    description: `Set child ${childClick.title}`,
-                    icon: "edit",
-                    event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+            if (!Doc.UserDoc().noviceMode && !this.props.Document.annotationOn) {
+                const existingOnClick = cm.findByDescription("OnClick...");
+                const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+                const funcs = [{ key: "onChildClick", name: "On Child Clicked" }, { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
+                funcs.map(func => onClicks.push({
+                    description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
+                        const alias = Doc.MakeAlias(this.props.Document);
+                        DocUtils.makeCustomViewClicked(alias, undefined, func.key);
+                        this.props.addDocTab(alias, "add:right");
+                    }
                 }));
-            !Doc.IsSystem(this.props.Document) && !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
+                DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
+                    onClicks.push({
+                        description: `Set child ${childClick.title}`,
+                        icon: "edit",
+                        event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                    }));
+                !Doc.IsSystem(this.props.Document) && !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
+            }
 
             if (!Doc.UserDoc().noviceMode) {
                 const more = cm.findByDescription("More...");

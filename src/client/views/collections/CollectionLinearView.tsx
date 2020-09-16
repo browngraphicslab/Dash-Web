@@ -1,24 +1,21 @@
+import { Tooltip } from '@material-ui/core';
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../fields/Doc';
-import { makeInterface } from '../../../fields/Schema';
-import { BoolCast, NumCast, StrCast, Cast, ScriptCast } from '../../../fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse, returnZero } from '../../../Utils';
-import { DragManager } from '../../util/DragManager';
-import { Transform } from '../../util/Transform';
-import "./CollectionLinearView.scss";
-import { CollectionViewType } from './CollectionView';
-import { CollectionSubView } from './CollectionSubView';
-import { DocumentView } from '../nodes/DocumentView';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
-import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
-import { Tooltip } from '@material-ui/core';
-import { all } from 'bluebird';
+import { makeInterface } from '../../../fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { emptyFunction, returnOne, returnTrue, Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { Transform } from '../../util/Transform';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
+import "./CollectionLinearView.scss";
+import { CollectionSubView } from './CollectionSubView';
+import { CollectionViewType } from './CollectionView';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;

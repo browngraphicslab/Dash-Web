@@ -3,7 +3,6 @@ import { observer } from "mobx-react";
 import { EditableView } from "../../views/EditableView";
 import { action, computed } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Doc } from "../../../fields/Doc";
 import { StrCast, BoolCast } from "../../../fields/Types";
 

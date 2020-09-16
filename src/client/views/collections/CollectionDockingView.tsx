@@ -375,8 +375,12 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             .off('click') //unbind the current click handler
             .click(action(() => {
                 //if (confirm('really close this?')) {
-                stack.remove();
-                stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
+                if (!stack.parent.parent.isRoot || stack.parent.contentItems.length > 1) {
+                    stack.remove();
+                    stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
+                } else {
+                    alert('cant delete the last stack');
+                }
             }));
         stack.header?.controlsContainer.find('.lm_popout') //get the close icon
             .off('click') //unbind the current click handler

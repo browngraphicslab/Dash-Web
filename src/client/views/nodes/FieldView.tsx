@@ -44,6 +44,7 @@ export interface FieldViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    LayoutTemplateString?: string;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation

@@ -353,7 +353,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     updateTitle = () => {
         if (!this.props.dontRegisterView &&  // (this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.dataDoc["title-custom"] &&
-            Doc.LayoutFieldKey(this.rootDoc) === this.fieldKey) {
+            (Doc.LayoutFieldKey(this.rootDoc) === this.fieldKey || this.fieldKey === "text")) {
             let node = this._editorView.state.doc;
             while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
@@ -586,7 +586,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        changeItems.push({ description: "plain", event: undoBatch(() => Doc.setNativeView(this.rootDoc)), icon: "eye" });
+        !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             highlighting.push({
@@ -617,8 +618,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
         // this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        appearanceItems.push({ description: "Reset default note style", event: () => this.rootDoc.layoutKey = "layout", icon: "eye" });
-        appearanceItems.push({
+        !Doc.UserDoc().noviceMode && appearanceItems.push({ description: "Reset default note style", event: () => this.rootDoc.layoutKey = "layout", icon: "eye" });
+        !Doc.UserDoc().noviceMode && appearanceItems.push({
             description: "Make Default Layout", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
                     const title = StrCast(this.rootDoc.title);
@@ -644,7 +645,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
-        appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
+        !Doc.UserDoc().noviceMode && appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
         cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = cm.findByDescription("Options...");
