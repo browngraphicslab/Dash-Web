@@ -675,6 +675,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
     get TextView() { return (this.view as any)?.TextView as FormattedTextBox; }
+    get TextViewFieldKey() { return this.TextView?.props.fieldKey; }
 
     createColorButton() {
         const self = this;

@@ -18,7 +18,7 @@
     .dashFieldView-labelSpan {
         position: relative;
         display: inline-block;
-        font-size: small;
+        font-weight: normal;
     }
     .dashFieldView-fieldSpan {
         min-width: 20px;
@@ -27,6 +27,7 @@
         position: relative;
         display: inline;
         background-color: rgba(155, 155, 155, 0.24);
+        font-weight: bold;
         span {
             min-width: 100%;
             display: inline-block;

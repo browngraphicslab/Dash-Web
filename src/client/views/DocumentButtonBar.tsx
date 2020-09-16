@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, StrCast } from "../../fields/Types";
-import { emptyFunction, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, setupMoveUpEvents, simulateMouseClick } from "../../Utils";
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { Docs } from '../documents/Documents';
@@ -153,7 +153,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         e.preventDefault();
                         let googleDoc = await Cast(dataDoc.googleDoc, Doc);
                         if (!googleDoc) {
-                            const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
+                            const options = { _width: 600, _fitWidth: true, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, useCors: false };
                             googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
                             dataDoc.googleDoc = googleDoc;
                         }
@@ -218,8 +218,16 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${isAnnotating ? "Exit" : "Enter"} annotation mode`}</div></>}>
             <div className="documentButtonBar-linker" style={{ backgroundColor: isAnnotating ? "white" : "", color: isAnnotating ? "black" : "white", }}
                 onClick={e => targetDoc.isAnnotating = !targetDoc.isAnnotating}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit"
-                />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="edit" />
+            </div></Tooltip >;
+    }
+
+    @computed
+    get menuButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`Open Context Menu`}</div></>}>
+            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "context-menu" }} onClick={e => this.openContextMenu(e)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="bars" />
             </div></Tooltip >;
     }
 
@@ -227,7 +235,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get moreButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${CurrentUserUtils.propertiesWidth > 0 ? "Close" : "Open"} Properties Panel`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={action(e =>
+            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "e-resize" }} onClick={action(e =>
                 CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h"
                 />
@@ -284,6 +292,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         </div>
                     </Flyout>
                 </div></Tooltip>;
+    }
+
+    openContextMenu = (e: React.MouseEvent) => {
+        let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
+        while (child.children.length) {
+            const next = Array.from(child.children).find(c => typeof (c.className) === "string");
+            if (next?.className.includes("documentView-node")) break;
+            if (next?.className.includes("dashFieldView")) break;
+            if (next) child = next;
+            else break;
+        }
+        simulateMouseClick(child, e.clientX, e.clientY - 30, e.screenX, e.screenY - 30);
     }
 
     render() {

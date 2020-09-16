@@ -107,10 +107,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scrollTop = e.target?.children?.[0].scrollTop;
-        const scrollLeft = e.target?.children?.[0].scrollLeft;
-        this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-        this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        if (e.target?.children) {
+            e.target.children[0].scrollLeft = 0;
+            const scrollTop = e.target.children[0].scrollTop;
+            const scrollLeft = e.target.children[0].scrollLeft;
+            this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+            this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        }
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -381,6 +384,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const cm = ContextMenu.Instance;
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.useCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.useCors = !this.layoutDoc.useCors, icon: "snowflake" });
+        funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : NumCast(this.layoutDoc._nativeWidth), icon: "snowflake" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
     }
@@ -413,7 +417,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
         return (<>
             <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !decInteracting ? "-interactive" : "")}
-                style={{ width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%" }}
+                style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || (Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%") }}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>

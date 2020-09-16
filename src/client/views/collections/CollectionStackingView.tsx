@@ -187,7 +187,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         const opacity = () => this.Document._currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
-            DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
+            DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             backgroundColor={this.props.backgroundColor}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}

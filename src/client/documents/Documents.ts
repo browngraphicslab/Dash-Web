@@ -57,6 +57,8 @@ const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
 export interface DocumentOptions {
     system?: boolean;
     _autoHeight?: boolean;
+    _headerHeight?: number; // height of header of custom notes
+    _headerFontSize?: number; // font size of header of custom notes
     _panX?: number;
     _panY?: number;
     _width?: number;
@@ -96,6 +98,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
     userDoc?: Doc; // the userDocument
@@ -189,7 +192,8 @@ export interface DocumentOptions {
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
-    treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
+    treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
+    treeViewHideHeader?: boolean; // whether to hide the header for a document in a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
@@ -668,6 +672,9 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
+        export function RTFDocument(field: RichTextField, options: DocumentOptions = {}, fieldKey: string = "text") {
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
+        }
         export function TextDocument(text: string, options: DocumentOptions = {}, fieldKey: string = "text") {
             const rtf = {
                 doc: {
@@ -761,7 +768,7 @@ export namespace Docs {
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", forceActive: true, _noAutoscroll: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -1050,7 +1057,7 @@ export namespace DocUtils {
                 });
             }
             ctor = Docs.Create.WebDocument;
-            options = { ...options, _nativeWidth: 850, _width: 400, _height: 512, title: path, };
+            options = { ...options, _fitWidth: true, _nativeWidth: 850, _width: 400, _height: 512, title: path, };
         }
         return ctor ? ctor(path, options) : undefined;
     }

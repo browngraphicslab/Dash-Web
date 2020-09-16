@@ -1,5 +1,5 @@
 import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
-import { Doc, DocListCast, Field } from "../../../../fields/Doc";
+import { Doc, DocListCast, Field, LayoutSym } from "../../../../fields/Doc";
 import { List } from "../../../../fields/List";
 import { listSpec } from "../../../../fields/Schema";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
@@ -70,7 +70,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             DocServer.GetRefField(this.props.docid).
                 then(action(async dashDoc => dashDoc instanceof Doc && (this._dashDoc = dashDoc)));
         } else {
-            this._dashDoc = this.props.tbox.props.DataDoc || this.props.tbox.dataDoc;
+            this._dashDoc = this.props.tbox.rootDoc;
         }
     }
     componentWillUnmount() {
@@ -92,7 +92,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 return <input
                     className="dashFieldView-fieldCheck"
                     type="checkbox" checked={boolVal}
-                    onChange={e => this._dashDoc![this._fieldKey] = e.target.checked}
+                    onChange={e => {
+                        if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = e.target.checked;
+                        this._dashDoc![this._fieldKey] = e.target.checked;
+                    }}
                 />;
             }
             else // field value is a string, so display it as an editable span
@@ -159,9 +162,16 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 } else if (nodeText.startsWith("=:=")) {
                     Doc.Layout(this._textBoxDoc)[this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(3));
                 } else {
-                    const splits = newText.split(this.multiValueDelimeter);
-                    if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
-                        this._dashDoc![this._fieldKey] = splits.length > 1 ? new List<string>(splits) : newText;
+                    if (Number(newText).toString() === newText) {
+                        if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = Number(newText);
+                        this._dashDoc![this._fieldKey] = Number(newText);
+                    } else {
+                        const splits = newText.split(this.multiValueDelimeter);
+                        if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
+                            const strVal = splits.length > 1 ? new List<string>(splits) : newText;
+                            if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = strVal;
+                            this._dashDoc![this._fieldKey] = strVal;
+                        }
                     }
                 }
             });

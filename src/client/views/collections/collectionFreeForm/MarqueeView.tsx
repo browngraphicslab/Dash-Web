@@ -31,7 +31,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Doc[]) => void;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    nudge: (x: number, y: number) => boolean;
+    nudge?: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
@@ -76,7 +76,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _fitWidth: true, _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -127,7 +127,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 });
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey) {
-                FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
+                FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.ChildLayoutString ? e.key : "";
                 const tbox = Docs.Create.TextDocument("", {
                     _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
                     _fontFamily: StrCast(Doc.UserDoc().fontFamily),

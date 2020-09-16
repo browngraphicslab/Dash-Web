@@ -519,7 +519,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             return <DocumentView {...this.props}
                 Document={mark}
                 focus={() => this.playLink(mark)}
-                pointerEvents={true}
+                pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
                 ContainingCollectionDoc={this.props.Document}
@@ -612,7 +612,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             backgroundColor={returnTransparent}
                                             ContentScaling={returnOne}
                                             forcedBackgroundColor={returnTransparent}
-                                            pointerEvents={false}
+                                            pointerEvents={"none"}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                         />

@@ -792,7 +792,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay) return;
+        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay || this.props.Document.treeViewOutlineMode) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -1116,8 +1116,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
                     pointerEvents={this.backgroundActive || this.props.childPointerEvents ?
-                        true :
-                        (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
+                        "all" :
+                        (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
@@ -1233,6 +1233,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
+        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         !Doc.UserDoc().noviceMode ? appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" }) : null;
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
@@ -1369,7 +1370,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     _nudgeTime = 0;
     nudge = action((x: number, y: number) => {
-        if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) { // bcz: this isn't ideal, but want to try it out...
+        if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ||
+            this.props.ContainingCollectionDoc._panX !== undefined) { // bcz: this isn't ideal, but want to try it out...
             this.setPan(NumCast(this.layoutDoc._panX) + this.props.PanelWidth() / 2 * x / this.zoomScaling(),
                 NumCast(this.layoutDoc._panY) + this.props.PanelHeight() / 2 * (-y) / this.zoomScaling(), "transform 500ms", true);
             this._nudgeTime = Date.now();
@@ -1381,7 +1383,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
-            nudge={this.nudge}
+            nudge={this.isAnnotationOverlay ? undefined : this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
             selectDocuments={this.selectDocuments}

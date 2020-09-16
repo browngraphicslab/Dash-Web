@@ -95,6 +95,15 @@
     padding-bottom: 2px;
 }
 
+.treeViewItem-container-active {
+    z-index: 100;
+    position: relative;;
+    .formattedTextbox-sidebar {
+        background-color: #ffff001f !important;
+        height: 500px !important;
+    }
+}
+
 .treeViewItem-openRight {
     display: none;
     height: 17px;
@@ -116,6 +125,17 @@
 .treeViewItem-header {
     border: transparent 1px solid;
     display: flex;
+    //align-items: center;
+    ::-webkit-scrollbar {
+            display: none;
+    }
+    .formattedTextBox-cont {
+        .formattedTextbox-sidebar {
+            overflow: visible !important;
+            border-left: unset;
+        }
+        overflow: visible !important;
+    }
 
     .editableView-container-editing-oneLine {
         min-width: 15px;

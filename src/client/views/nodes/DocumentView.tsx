@@ -78,7 +78,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    pointerEvents?: boolean;
+    pointerEvents?: string;
     focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -755,17 +755,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const appearance = cm.findByDescription("UI Controls...");
         const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
         templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
-        //DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
+        DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
         !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
-        const options = cm.findByDescription("Options...");
-        const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
-        optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
-        !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
-        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
-
         if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
+            const options = cm.findByDescription("Options...");
+            const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+            optionItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
+            optionItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+            optionItems.push({ description: this.rootDoc["_isBackground-canClick"] ? "Unlock from Back" : "Lock in Back", event: this.toggleLockInBack, icon: "expand-arrows-alt" });
+            !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
             onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
@@ -789,21 +790,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Download document", icon: "download", event: async () => Doc.Zip(this.props.Document) });
-        moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
-        //moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
-        //moreItems.push({ description: "Create an Alias", event: () => this.onCopy(), icon: "copy" });
-        if (!Doc.UserDoc().noviceMode) {
-            moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-            moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+        if (!Doc.IsSystem(this.rootDoc)) {
+            moreItems.push({ description: "Download document", icon: "download", event: async () => Doc.Zip(this.props.Document) });
+            moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
+            //moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+            if (!Doc.UserDoc().noviceMode) {
+                moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+                moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
 
-            if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-                moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-                moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-                moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+                if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+                    moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+                    moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+                    moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+                }
+                moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
+                Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc().myUserDoc, Doc, null)) && moreItems.push({ description: "Toggle Alternate Button Bar", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
             }
-            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-            Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc().myUserDoc, Doc, null)) && moreItems.push({ description: "Toggle Alternate Button Bar", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);
@@ -818,7 +820,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
         !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "add:right"), icon: "layer-group" });
         helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "add:right"), icon: "keyboard" });
-        helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
+        !Doc.UserDoc().novice && helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         runInAction(() => {
@@ -826,7 +828,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-            this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
         });
     }
 
@@ -903,7 +905,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) :
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
@@ -950,7 +952,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dontRegisterView={false}
                     forcedBackgroundColor={returnTransparent}
                     removeDocument={this.hideLinkAnchor}
-                    pointerEvents={false}
+                    pointerEvents={"none"}
                     LayoutTemplate={undefined}
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
@@ -978,6 +980,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     yMargin={10}
                     xMargin={10}
                     hideOnLeave={true}
+                    dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}
                     ChromeHeight={this.chromeHeight}
@@ -1006,7 +1009,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>;
     }
     @computed get ignorePointerEvents() {
-        return this.props.pointerEvents === false ||
+        return this.props.pointerEvents === "none" ||
+            (SnappingManager.GetIsDragging() && this.Document["_isBackground-canClick"]) ||
             (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }

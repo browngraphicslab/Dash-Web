@@ -45,6 +45,29 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
         keys[key] = cmd;
     }
 
+    /// bcz; Argh!!  replace with an onEnter func that conditionally handles Enter 
+    const addTextBox = (below: boolean, force?: boolean) => {
+        if (props.Document.treeViewOutlineMode) return true;  // bcz: Arghh .. need to determine if this is an treeViewOutlineBox in which case Enter's are ignored..
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.rootDocument || layoutDoc;
+        if (force || props.Document._singleLine) {
+            const layoutKey = StrCast(originalDoc.layoutKey);
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            const dataField = originalDoc[Doc.LayoutFieldKey(newDoc)];
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = dataField === undefined || Cast(dataField, listSpec(Doc), null)?.length !== undefined ? new List<Doc>([]) : undefined;
+            if (below) newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            else newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
+                newDoc[layoutKey] = originalDoc[layoutKey];
+            }
+            Doc.GetProto(newDoc).text = undefined;
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            props.addDocument(newDoc);
+            return true;
+        }
+        return false;
+    };
+
     //History commands
     bind("Mod-z", undo);
     bind("Shift-Mod-z", redo);
@@ -221,11 +244,13 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
                 const fromattrs = state.selection.$from.node().attrs;
                 if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                     const tonode = tx3.selection.$to.node();
-                    const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
-                    splitMetadata(marks, tx4);
-                    if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
-                        dispatch(tx4);
-                    }
+                    if (tx3.doc.nodeAt(tx3.selection.to - 1)) {
+                        const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
+                        splitMetadata(marks, tx4);
+                        if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
+                            dispatch(tx4);
+                        }
+                    } else dispatch(tx3.insertText("\r"));
                 })) {
                     return false;
                 }

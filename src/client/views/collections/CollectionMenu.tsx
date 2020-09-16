@@ -123,8 +123,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         params: ["target", "source"], title: "item view",
         script: "self.target.childLayoutTemplate = getDocTemplate(self.source?.[0])",
         immediate: undoBatch((source: Doc[]) => {
-            if (source.length === 1 && source[0].type === DocumentType.RTF && Cast(source[0].text, RichTextField, null)?.Text) {
-                Doc.SetInPlace(this.target, "childLayoutString", Cast(source[0].text, RichTextField, null)?.Text, false);
+            let formatStr = source.length && Cast(source[0].text, RichTextField, null)?.Text;
+            try { formatStr && JSON.parse(formatStr); } catch (e) { formatStr = ""; }
+            if (source.length === 1 && formatStr) {
+                Doc.SetInPlace(this.target, "childLayoutString", formatStr, false);
             } else if (source.length) {
                 this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]);
             } else {
@@ -435,7 +437,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get aliasButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias}>
+            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "copy" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;
@@ -538,8 +540,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get isText() {
         if (this.selectedDoc) {
             const layoutField = Doc.LayoutField(this.selectedDoc);
-            return StrCast(layoutField).includes("FormattedText") ||
-                (layoutField instanceof Doc && StrCast(layoutField.layout).includes("FormattedText"));
+            const layoutStr = this.selectedDocumentView?.props.LayoutTemplateString || StrCast(layoutField);
+            return (document.activeElement as any)?.className.includes("ProseMirror") || layoutStr.includes("FormattedText") || StrCast((layoutField as Doc)?.layout).includes("FormattedText");
         }
         else return false;
     }
@@ -753,8 +755,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
                 const annos = DocListCast(selectedDoc["data-annotations"]);
                 if (Field.toString(selectedDoc.data as Field) === Field.toString(new WebField(URLy))) {
-                    Doc.GetProto(selectedDoc).data = undefined;
-                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 0);
+                    Doc.GetProto(selectedDoc).data = new WebField(new URL("http://cs.brown.edu/~avd"));
+                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 100);
                 } else {
                     if (url) {
                         Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(annos);

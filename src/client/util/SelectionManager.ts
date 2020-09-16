@@ -73,8 +73,8 @@ export namespace SelectionManager {
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
     // reaction context.  Specifying the context with 'outsideReaction' allows an efficiency feature
     // to avoid unnecessary mobx invalidations when running inside a reaction.
-    export function IsSelected(doc: DocumentView, outsideReaction?: boolean): boolean {
-        return outsideReaction ?
+    export function IsSelected(doc: DocumentView | undefined, outsideReaction?: boolean): boolean {
+        return !doc ? false : outsideReaction ?
             manager.SelectedDocuments.get(doc) ? true : false : // get() accesses a hashtable -- setting anything in the hashtable generates a mobx invalidation for every get()
             computedFn(function isSelected(doc: DocumentView) {  // wraapping get() in a computedFn only generates mobx() invalidations when the return value of the function for the specific get parameters has changed
                 return manager.SelectedDocuments.get(doc) ? true : false;

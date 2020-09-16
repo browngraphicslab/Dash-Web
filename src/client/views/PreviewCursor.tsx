@@ -22,7 +22,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _getTransform: () => Transform;
     static _addDocument: (doc: Doc | Doc[]) => void;
     static _addLiveTextDoc: (doc: Doc) => void;
-    static _nudge: (x: number, y: number) => boolean;
+    static _nudge?: undefined | ((x: number, y: number) => boolean);
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     constructor(props: any) {
@@ -52,7 +52,7 @@ export class PreviewCursor extends React.Component<{}> {
                 else if (re.test(plain)) {
                     const url = plain;
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300, useCors: true, x: newPoint[0], y: newPoint[1]
+                        title: url, _fitWidth: true, _width: 500, _height: 300, useCors: true, x: newPoint[0], y: newPoint[1]
                     })))();
                 }
                 else if (plain.startsWith("__DashDocId(") || plain.startsWith("__DashCloneId(")) {
@@ -158,7 +158,7 @@ export class PreviewCursor extends React.Component<{}> {
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
         addDocument: (doc: Doc | Doc[]) => boolean,
-        nudge: (nudgeX: number, nudgeY: number) => boolean) {
+        nudge: undefined | ((nudgeX: number, nudgeY: number) => boolean)) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;

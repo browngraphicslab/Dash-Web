@@ -37,11 +37,7 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
         }
     });
     if (first) {
-        if (docs.length) { // bcz: feels hacky : if the root level document has items, it's not a field template, but we still want its caption to be a textTemplate
-            if (doc.caption instanceof RichTextField && !doc.caption.Empty()) {
-                doc["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
-            }
-        } else {
+        if (!docs.length) { // bcz: feels hacky : if the root level document has items, it's not a field template
             any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
         }
     }
@@ -60,7 +56,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         if (doc.type === DocumentType.FONTICON || StrCast(Doc.Layout(doc).layout).includes("FontIconBox")) {
             //dbox = Doc.MakeAlias(doc);  // don't need to do anything if dropping an icon doc onto an icon bar since there should be no layout data for an icon
         } else if (!doc.onDragStart && !doc.isButtonBar) {
-            const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
+            const layoutDoc = doc;// doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
             if (layoutDoc.type !== DocumentType.FONTICON) {
                 !layoutDoc.isTemplateDoc && makeTemplate(layoutDoc);
             }

@@ -34,7 +34,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     constructor(props: ContextMenuProps | SubmenuProps) {
         super(props);
         if ("subitems" in this.props) {
-            this.props.subitems.forEach(i => this._items.push(i));
+            this.props.subitems?.forEach(i => this._items.push(i));
         }
     }
 

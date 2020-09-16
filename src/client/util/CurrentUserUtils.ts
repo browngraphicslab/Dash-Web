@@ -31,6 +31,8 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 
+
+const headerViewVersion = "0.1";
 export class CurrentUserUtils {
     private static curr_id: string;
     //TODO tfs: these should be temporary...
@@ -44,10 +46,9 @@ export class CurrentUserUtils {
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestDashboard: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
-
     @observable public static propertiesWidth: number = 0;
 
-    // sets up the default User Templates - slideView, queryView, descriptionView
+    // sets up the default User Templates - slideView,  headerView
     static setupUserTemplateButtons(doc: Doc) {
         // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
         if (doc["template-mobile-button"] === undefined) {
@@ -85,29 +86,12 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
-            descriptionTemplate.system = true;
-            descriptionTemplate[DataSym].layout =
-                "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
-                "</div>";
-            (descriptionTemplate.proto as Doc).isTemplateDoc = makeTemplate(descriptionTemplate.proto as Doc, true, "descriptionView");
-
-            doc["template-button-description"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
-                dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
-            });
-        }
-
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
-            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
             linkTemplate.system = true;
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} height='{this._headerHeight||75}px' ignoreAutoHeight={'true'} background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             (linkTemplate.proto as Doc).isTemplateDoc = makeTemplate(linkTemplate.proto as Doc, true, "linkView");
@@ -190,9 +174,9 @@ export class CurrentUserUtils {
                 onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F", system: true
             });
 
-            const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true, system: true });
-            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true, system: true });
-            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350, _autoHeight: true, system: true });
+            const details = TextDocument("", { title: "details", _height: 200, _autoHeight: true, system: true });
+            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 75, _autoHeight: true, system: true });
+            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 150, _autoHeight: true, system: true });
 
             const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
             const detailedTemplate = {
@@ -253,7 +237,6 @@ export class CurrentUserUtils {
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
-            doc["template-button-description"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-simple"] as Doc,
@@ -418,6 +401,44 @@ export class CurrentUserUtils {
             doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _width: 500, _height: 800, title: "Untitled Tab", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
+        if (doc.emptySlide === undefined) {
+            const textDoc = Docs.Create.TextDocument("Slide", { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            Doc.GetProto(textDoc).layout = CollectionView.LayoutString("data");
+            Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
+            Doc.GetProto(textDoc).data = new List<Doc>([]);
+            FormattedTextBox.SelectOnLoad = textDoc[Id];
+            doc.emptySlide = textDoc;
+        }
+        if ((doc.emptyHeader as Doc)?.version !== headerViewVersion) {
+            const json = {
+                doc: {
+                    type: "doc",
+                    content: [
+                        {
+                            type: "paragraph", attrs: {}, content: [{
+                                type: "dashField",
+                                attrs: { fieldKey: "author", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }, {
+                                type: "dashField",
+                                attrs: { fieldKey: "creationDate", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }]
+                        }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            headerTemplate[DataSym].layout =
+                "<div style={'height:100%'}>" +
+                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
+                "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
+                "</div>";
+            (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
+            doc.emptyHeader = headerTemplate;
+            ((doc.emptyHeader as Doc).proto as Doc)["dragFactory-count"] = 0;
+        }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
@@ -445,7 +466,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _fitWidth: true, isTemplateDoc: true, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
@@ -459,10 +480,10 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
-            { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a custom header note document, drag for a custom header note", title: "Custom", icon: "window-maximize", click: 'openOnRight(delegateDragFactory(this.dragFactory))', drag: 'delegateDragFactory(this.dragFactory)', dragFactory: doc.emptyHeader as Doc, noviceMode: true },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
         ];
 
@@ -777,7 +798,7 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
@@ -792,7 +813,7 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
@@ -941,6 +962,7 @@ export class CurrentUserUtils {
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
+        doc.userColor = "orange";
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
@@ -979,6 +1001,15 @@ export class CurrentUserUtils {
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
         doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
+        // uncomment this to setup a default note style that uses the custom header layout
+        PromiseValue(doc.emptyHeader).then(factory => {
+            if (Cast(doc.defaultTextLayout, Doc, null)?.version !== headerViewVersion) {
+                const deleg = Doc.delegateDragFactory(factory as Doc);
+                deleg.title = "header";
+                doc.defaultTextLayout = new PrefetchProxy(deleg);
+                Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
+            }
+        });
         return doc;
     }
 

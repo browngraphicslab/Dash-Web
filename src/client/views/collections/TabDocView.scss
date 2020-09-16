@@ -20,3 +20,18 @@ input.lm_title:focus {
         }
     }
 }
+.miniMap-hidden {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    background: white;
+    transform: translate(20px, 20px) rotate(45deg);
+    border-radius: 30px;
+    padding: 2px;
+    > svg {
+        margin-top: 3px;
+        transform: translate(0px, 7px);
+    }
+}
