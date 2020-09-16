@@ -964,6 +964,7 @@ export class CurrentUserUtils {
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.userColor = "orange";
+        doc._raiseWhenDragged = true;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");

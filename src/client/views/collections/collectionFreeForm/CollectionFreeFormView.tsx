@@ -217,7 +217,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [NumCast(layoutDoc._nativeWidth), NumCast(layoutDoc._nativeHeight)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            d._isBackground === undefined && !d["_isBackground-canClick"] && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !d._isBackground && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
@@ -839,7 +839,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     bringToFront = action((doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack || doc._isBackground || doc["_isBackground-canClick"]) {
+        if (sendToBack || doc._isBackground) {
             doc.zIndex = 0;
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;

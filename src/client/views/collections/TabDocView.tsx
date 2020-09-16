@@ -243,7 +243,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @computed get tabColor() { return StrCast(this._document!._backgroundColor, StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!, 0))); }
+    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -280,7 +280,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         CollectionView={undefined}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
+                        ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                         noOverlay={true} // don't render overlay Docs since they won't scale
                         active={returnTrue}
                         select={emptyFunction}
