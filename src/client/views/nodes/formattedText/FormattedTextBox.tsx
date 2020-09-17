@@ -1233,7 +1233,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
-            FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
+            const target = (e.target as any).parentElement; // hrefs are store don the database of the <a> node that wraps the hyerlink <span>
+            FormattedTextBoxComment.update(editor, undefined, target?.dataset?.targethrefs);
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1487,7 +1488,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
-        if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+        if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
@@ -1506,18 +1507,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }, 10);
             } else {
                 try {
-                    // let ele = this._boxRef.current;
-                    // while (ele && ele.className !== "documentView-contentsView") ele = ele.parentElement as any;
-                    // if (ele) {
-                    //     const docHeight = Number(getComputedStyle(ele).height.replace("px", ""));
-                    //     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
-                    //     const outer = docHeight - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    //     this.rootDoc._height = newHeight + outer;
-                    //     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
-                    // }
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    this.rootDoc._height = newHeight + outer;
+                    this.rootDoc._height = newHeight + Math.max(0, outer);
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
