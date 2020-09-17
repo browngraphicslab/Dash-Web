@@ -1,17 +1,16 @@
-import { action, computed, observable } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { HeightSym, Opt, WidthSym, Doc } from "../../../fields/Doc";
-import { ScriptField } from "../../../fields/ScriptField";
+import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { NumCast, StrCast } from "../../../fields/Types";
-import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { CollectionSubView } from "./CollectionSubView";
-import "./CollectionPileView.scss";
-import React = require("react");
-import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { SnappingManager } from "../../util/SnappingManager";
+import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
+import { SelectionManager } from "../../util/SelectionManager";
+import { SnappingManager } from "../../util/SnappingManager";
+import { UndoManager } from "../../util/UndoManager";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import "./CollectionPileView.scss";
+import { CollectionSubView } from "./CollectionSubView";
+import React = require("react");
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
