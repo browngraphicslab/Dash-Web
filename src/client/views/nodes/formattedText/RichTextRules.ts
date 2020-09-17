@@ -304,7 +304,7 @@ export class RichTextRules {
                     const fieldKey = match[1] || "";
                     const fieldParam = match[2]?.replace("…", "...") || "";
                     const rawdocid = match[3]?.substring(1);
-                    const docid = (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "*" + rawdocid : rawdocid).replace(".", "_");
+                    const docid = (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "@" + rawdocid : rawdocid).replace(".", "_");
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
