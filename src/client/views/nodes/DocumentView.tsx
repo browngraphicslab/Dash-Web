@@ -118,10 +118,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
+    public get LayoutFieldKey() { return StrCast(this.props.layoutKey, Doc.LayoutFieldKey(this.layoutDoc)); }
+    @computed get ShowTitle() {
+        return StrCast(this.layoutDoc._showTitle,
+            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc ?
+                (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
+                undefined);
+    }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeWidth"], (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0))); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? Doc.LayoutFieldKey(this.layoutDoc) + "-" : "_") + "nativeHeight"], (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0))); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? this.LayoutFieldKey + "-" : "_") + "nativeWidth"], (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0))); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? this.LayoutFieldKey + "-" : "_") + "nativeHeight"], (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0))); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
@@ -737,8 +744,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.bringToFront(this.props.Document, true);
             const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
             const hgt = this.Document[HeightSym]();
-            this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeWidth"] = wid;
-            this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeHeight"] = hgt;
+            this.props.Document[DataSym][this.LayoutFieldKey + "-nativeWidth"] = wid;
+            this.props.Document[DataSym][this.LayoutFieldKey + "-nativeHeight"] = hgt;
         }
     }
 
@@ -887,8 +894,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
-        const showTitle = StrCast(this.layoutDoc._showTitle);
-        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
+        const excluded = ["PresBox", "FormattedTextBox", "FontIconBox"];
+        const showTextTitle = this.ShowTitle && !excluded.includes(StrCast(this.layoutDoc.layout)) ? this.ShowTitle : undefined;
         return showTextTitle ? 25 : 1;
     }
 
@@ -1014,10 +1021,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>;
         }
 
-        const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
-        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
+        const showTextTitle = this.ShowTitle && this.rootDoc.type === DocumentType.RTF ? this.ShowTitle : undefined;
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
@@ -1033,19 +1039,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     onClick={this.onClickFunc}
                     layoutKey={this.finalLayoutKey} />
             </div>);
-        const titleView = (!showTitle ? (null) :
+        const titleView = (!this.ShowTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: showTextTitle ? "relative" : "absolute",
+                background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.UserDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={(this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
-                    display={"block"} height={72} fontSize={12}
-                    GetValue={() => (this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
-                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[showTitle] = value) ? true : true)}
+                    contents={this.ShowTitle.split(";").map(field => field + ":" + (this.props.DataDoc || this.props.Document)[field]?.toString()).join(" ")}
+                    display={"block"} fontSize={10}
+                    GetValue={() => ""}
+                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true)}
                 />
             </div>);
-        return !showTitle && !showCaption ?
+        return !this.ShowTitle && !showCaption ?
             this.contents :
             <div className="documentView-styleWrapper" >
                 {this.Document.type !== DocumentType.RTF ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}

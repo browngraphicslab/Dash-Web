@@ -51,6 +51,7 @@ const storage = "data";
 interface ValidatedUser {
     user: User;
     notificationDoc: Doc;
+    userColor: string;
 }
 
 
@@ -58,7 +59,7 @@ interface ValidatedUser {
 export class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false; // whether the SharingManager modal is open or not
-    @observable private users: ValidatedUser[] = []; // the list of users with notificationDocs
+    @observable public users: ValidatedUser[] = []; // the list of users with notificationDocs
     @observable private targetDoc: Doc | undefined; // the document being shared
     @observable private targetDocView: DocumentView | undefined; // the DocumentView of the document being shared
     // @observable private copied = false;
@@ -129,9 +130,10 @@ export class SharingManager extends React.Component<{}> {
                     const userDocument = await DocServer.GetRefField(user.userDocumentId);
                     if (userDocument instanceof Doc) {
                         const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
+                        const userColor = StrCast(userDocument.userColor);
                         runInAction(() => {
                             if (notificationDoc instanceof Doc) {
-                                this.users.push({ user, notificationDoc });
+                                this.users.push({ user, notificationDoc, userColor });
                             }
                         });
                     }

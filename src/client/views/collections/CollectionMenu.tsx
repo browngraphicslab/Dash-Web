@@ -98,7 +98,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
         return this.getElement(!this.SelectedCollection ? [button] :
             [<CollectionViewBaseChrome key="chrome"
                 docView={this.SelectedCollection}
-                fieldKey={Doc.LayoutFieldKey(this.SelectedCollection?.props.Document)}
+                fieldKey={this.SelectedCollection.LayoutFieldKey}
                 type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
                 prop,
                 button]);
@@ -521,7 +521,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     get document() { return this.props.docView.props.Document; }
     @computed get dataField() {
-        return this.document[Doc.LayoutFieldKey(this.document)];
+        return this.document[this.props.docView.LayoutFieldKey];
     }
     @computed get childDocs() {
         return DocListCast(this.dataField);

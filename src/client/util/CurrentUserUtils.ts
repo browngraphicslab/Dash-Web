@@ -271,8 +271,7 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-notes"] === undefined) {
-            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc,
-            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
+            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc], // doc["template-note-Todo"] as any as Doc],
                 { title: "Note Layouts", _height: 75, system: true }));
         } else {
             const curNoteTypes = Cast(doc["template-notes"], Doc, null);
@@ -943,7 +942,7 @@ export class CurrentUserUtils {
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
-        doc.userColor = "orange";
+        doc.userColor = doc.userColor || "#12121233";
         doc._raiseWhenDragged = true;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
@@ -984,14 +983,14 @@ export class CurrentUserUtils {
         doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
         // uncomment this to setup a default note style that uses the custom header layout
-        PromiseValue(doc.emptyHeader).then(factory => {
-            if (Cast(doc.defaultTextLayout, Doc, null)?.version !== headerViewVersion) {
-                const deleg = Doc.delegateDragFactory(factory as Doc);
-                deleg.title = "header";
-                doc.defaultTextLayout = new PrefetchProxy(deleg);
-                Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
-            }
-        });
+        // PromiseValue(doc.emptyHeader).then(factory => {
+        //     if (Cast(doc.defaultTextLayout, Doc, null)?.version !== headerViewVersion) {
+        //         const deleg = Doc.delegateDragFactory(factory as Doc);
+        //         deleg.title = "header";
+        //         doc.defaultTextLayout = new PrefetchProxy(deleg);
+        //         Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
+        //     }
+        // });
         return doc;
     }
 
@@ -1126,6 +1125,20 @@ export class CurrentUserUtils {
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
+    }
+
+    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number) {
+        const tbox = Docs.Create.TextDocument("", {
+            _width: width || 200, _height: height || 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
+        });
+        const template = FormattedTextBox.DefaultLayout;
+        if (template instanceof Doc) {
+            tbox._width = NumCast(template._width);
+            tbox.layoutKey = "layout_" + StrCast(template.title);
+            Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
+        }
+        return tbox;
     }
 
     public static get MySearchPanelDoc() { return Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null); }

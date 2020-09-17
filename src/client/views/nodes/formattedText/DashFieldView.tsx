@@ -1,5 +1,5 @@
-import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
-import { Doc, DocListCast, Field, LayoutSym } from "../../../../fields/Doc";
+import { IReactionDisposer, observable, computed, action } from "mobx";
+import { Doc, DocListCast, Field } from "../../../../fields/Doc";
 import { List } from "../../../../fields/List";
 import { listSpec } from "../../../../fields/Schema";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";

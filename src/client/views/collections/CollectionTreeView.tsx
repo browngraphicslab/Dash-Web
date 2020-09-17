@@ -533,7 +533,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.containingCollection}
             />;
         return <>
-            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title"
+            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,

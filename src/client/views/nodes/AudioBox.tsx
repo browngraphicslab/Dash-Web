@@ -26,6 +26,7 @@ import { Scripting } from "../../util/Scripting";
 import Waveform from "react-audio-waveform";
 import axios from "axios";
 import { SnappingManager } from "../../util/SnappingManager";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -292,11 +293,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // creates a text document for dictation
     onFile = (e: any) => {
-        const newDoc = Docs.Create.TextDocument("", {
-            _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: "", _chromeStatus: "disabled",
-            x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
-            _width: NumCast(this.props.Document._width), _height: 2 * NumCast(this.props.Document._height)
-        });
+        const newDoc = CurrentUserUtils.GetNewTextDoc("", NumCast(this.props.Document.x), NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
+            NumCast(this.props.Document._width), 2 * NumCast(this.props.Document._height));
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
         Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
         Doc.GetProto(newDoc).audioState = ComputedField.MakeFunction("self.recordingSource.audioState");

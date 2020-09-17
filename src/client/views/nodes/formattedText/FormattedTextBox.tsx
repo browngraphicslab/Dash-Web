@@ -15,7 +15,7 @@ import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, Wid
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
-import { Id } from '../../../../fields/FieldSymbols';
+import { Id, Copy } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
 import { RichTextField } from "../../../../fields/RichTextField";
@@ -577,6 +577,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const cm = ContextMenu.Instance;
 
         const changeItems: ContextMenuProps[] = [];
+        changeItems.push({ description: "plain", event: undoBatch(() => Doc.setNativeView(this.rootDoc)), icon: "eye" });
         const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
         DocListCast(noteTypesDoc?.data).forEach(note => {
             changeItems.push({
@@ -586,7 +587,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "plain", event: undoBatch(() => Doc.setNativeView(this.rootDoc)), icon: "eye" });
         !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
@@ -618,7 +618,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
         // this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        !Doc.UserDoc().noviceMode && appearanceItems.push({ description: "Reset default note style", event: () => this.rootDoc.layoutKey = "layout", icon: "eye" });
         !Doc.UserDoc().noviceMode && appearanceItems.push({
             description: "Make Default Layout", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
@@ -639,6 +638,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.rootDoc._width = this.layoutDoc._width || 300;  // are stored on the template, since we're getting rid of the old template
                         this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
                         this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                        this.rootDoc.backgroundColor = Cast(this.layoutDoc.backgroundColor, "string", null);
+                        this.rootDoc.header = Cast(this.layoutDoc.header, RichTextField, null)?.[Copy]();
                     }, 10);
                 }
                 Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc);

@@ -1012,7 +1012,7 @@ export namespace DocUtils {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
             layout = CollectionView.LayoutString;
         } else {
-            created = Docs.Create.TextDocument("", { ...{ _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+            created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
             layout = FormattedTextBox.LayoutString;
         }
         if (created) {
@@ -1072,7 +1072,7 @@ export namespace DocUtils {
                 description: ":" + StrCast(note.title),
                 event: undoBatch((args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
-                        _width: 200, x, y, _autoHeight: note._autoHeight !== false, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
                         title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
                     });
                     textDoc.layoutKey = "layout_" + note.title;

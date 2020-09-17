@@ -15,6 +15,7 @@ import { Utils } from '../../Utils';
 import { Networking } from '../Network';
 import { Upload } from '../../server/SharedMediaTypes';
 import { basename } from 'path';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -82,15 +83,7 @@ export class PreviewCursor extends React.Component<{}> {
                 else {
                     // creates text document
                     FormattedTextBox.PasteOnLoad = e;
-                    undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
-                        _width: 500,
-                        limitHeight: 400,
-                        _autoHeight: true,
-                        _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
-                        x: newPoint[0],
-                        y: newPoint[1],
-                        title: "-pasted text-"
-                    })))();
+                    UndoManager.RunInBatch(() => PreviewCursor._addLiveTextDoc(CurrentUserUtils.GetNewTextDoc("-pasted text-", newPoint[0], newPoint[1], 500)), "paste");
                 }
             } else
                 //pasting in images

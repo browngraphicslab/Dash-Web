@@ -949,7 +949,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
-            layoutKey: undefined,
+            layoutKey: StrCast(this.props.Document.childLayoutKey),
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
