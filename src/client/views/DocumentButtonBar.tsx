@@ -23,7 +23,6 @@ import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
-import { Template, Templates } from "./Templates";
 import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -255,9 +254,11 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div></Tooltip>;
     }
     @observable _aliasDown = false;
-    onAliasButtonDown = (e: React.PointerEvent): void => {
+    onAliasButtonDown = action((e: React.PointerEvent): void => {
+        this.props.views()[0]?.select(false);
+        this._tooltipOpen = false;
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    }
+    })
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.view0!;
@@ -274,23 +275,28 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return false;
     }
 
+    _ref = React.createRef<HTMLDivElement>();
+    @observable _tooltipOpen: boolean = false;
     @computed
     get templateButton() {
         const view0 = this.view0;
-        const templates: Map<Template, boolean> = new Map();
+        const templates: Map<string, boolean> = new Map();
         const views = this.props.views();
-        Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        Array.from(["Caption", "Title", "TitleHover"]).map(template =>
+            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template] ? true : false, false as boolean)));
         return !view0 ? (null) :
-            <Tooltip title={<><div className="dash-tooltip">Tap: Customize layout.  Drag: Create alias</div></>}>
-                <div className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+            <Tooltip title={<div className="dash-tooltip">CustomizeLayout</div>} open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} placement="bottom">
+                <div className="documentButtonBar-linkFlyout" ref={this._dragRef}
+                    onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))} >
+
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                        content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                        content={!this._aliasDown ? (null) : <div ref={this._ref}> <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} /></div>}>
                         <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
                             {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
                         </div>
                     </Flyout>
-                </div></Tooltip>;
+                </div>
+            </Tooltip>;
     }
 
     openContextMenu = (e: React.MouseEvent) => {
@@ -315,13 +321,13 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
             </div>
-            {DocumentLinksButton.StartLink || !Doc.UserDoc()["documentLinksButton-hideEnd"] ? <div className="documentButtonBar-button">
+            {DocumentLinksButton.StartLink || !Doc.UserDoc()["documentLinksButton-fullMenu"] ? <div className="documentButtonBar-button">
                 <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
             </div> : (null)}
-            {/* <div className="documentButtonBar-button">
+            {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>
-            <div className="documentButtonBar-button">
+            /*<div className="documentButtonBar-button">
                 {this.metadataButton}
             </div>
             <div className="documentButtonBar-button">
@@ -330,7 +336,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            {!Doc.UserDoc()["documentLinksButton-hideEnd"] ? (null) : <div className="documentButtonBar-button">
+            {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
             </div>}
             {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
@@ -345,9 +351,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.menuButton}
             </div>
-            <div className="documentButtonBar-button">
+            {/* {Doc.UserDoc().noviceMode ? (null) : <div className="documentButtonBar-button">
                 {this.moreButton}
-            </div>
+            </div>} */}
         </div>;
     }
 }

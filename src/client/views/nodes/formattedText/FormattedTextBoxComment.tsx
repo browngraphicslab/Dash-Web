@@ -110,7 +110,7 @@ export class FormattedTextBoxComment {
                         if (FormattedTextBoxComment._deleteRef?.contains(e.target as any)) {
                             this.deleteLink();
                         } else if (FormattedTextBoxComment._nextRef?.contains(e.target as any)) {
-                            FormattedTextBoxComment.showPreview(FormattedTextBoxComment._lastView!, FormattedTextBoxComment._lastState, FormattedTextBoxComment._hrefs?.[(++FormattedTextBoxComment._hrefInd) % FormattedTextBoxComment._hrefs?.length])
+                            FormattedTextBoxComment.showPreview(FormattedTextBoxComment._lastView!, FormattedTextBoxComment._lastState, FormattedTextBoxComment._hrefs?.[(++FormattedTextBoxComment._hrefInd) % FormattedTextBoxComment._hrefs?.length]);
                         } else {
                             FormattedTextBoxComment.linkDoc = undefined;
                             if (linkDoc.type !== DocumentType.LINK) {

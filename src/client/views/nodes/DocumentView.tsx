@@ -118,7 +118,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    public get LayoutFieldKey() { return StrCast(this.props.layoutKey, Doc.LayoutFieldKey(this.layoutDoc)); }
+    public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() {
         return StrCast(this.layoutDoc._showTitle,
             !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc ?
@@ -855,7 +855,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
                 }
                 moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-                Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc().myUserDoc, Doc, null)) && moreItems.push({ description: "Toggle Alternate Button Bar", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
             }
         }
 
