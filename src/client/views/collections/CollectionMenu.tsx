@@ -95,13 +95,13 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
             </button>
         </Tooltip>;
 
-        return this.getElement(!this.SelectedCollection ? [button] :
+        return this.getElement(!this.SelectedCollection ? [/*button*/] :
             [<CollectionViewBaseChrome key="chrome"
                 docView={this.SelectedCollection}
                 fieldKey={this.SelectedCollection.LayoutFieldKey}
                 type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
                 prop,
-                button]);
+                /*button*/]);
     }
 }
 
@@ -340,6 +340,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get viewModes() {
+        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
+            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
         return <div className="collectionViewBaseChrome-viewModes" >
             <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
                 <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
@@ -351,7 +353,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         onPointerDown={stopPropagation}
                         onChange={this.viewChanged}
                         value={StrCast(this.props.type)}>
-                        {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
+                        {Object.values(CollectionViewType).filter(type => !excludedViewTypes.includes(type)).map(type => (
                             <option
                                 key={Utils.GenerateGuid()}
                                 className="collectionViewBaseChrome-viewOption"
@@ -682,8 +684,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         <div className="color-previewII" style={{ backgroundColor: color }}>
                             {color === "" ? <p style={{ fontSize: 40, color: "red", marginTop: -10, marginLeft: -5, position: "fixed" }}>☒</p> : ""}
                         </div>
-                    </button>)}
-            </div>;
+                    </button >)}
+            </div >;
     }
     @computed get fillPicker() {
         const fillPicker = this.toggleButton("shape fill color", this._fillBtn, () => this._fillBtn = !this._fillBtn, "fill-drip",

@@ -267,19 +267,21 @@ export class RichTextRules {
             // [[fieldKey]] => show field   
             // [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\.\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
-                    const docid = match[3]?.substring(1);
+                    const rawdocid = match[3]?.substring(1);
+                    const docid = rawdocid ? (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "@" + rawdocid : rawdocid).replace(".", "_") : undefined;
                     const value = match[2]?.substring(1);
                     if (!fieldKey) {
+                        const linkId = Utils.GenerateGuid();
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
-                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, }, docid);
-                                DocUtils.Publish(target, docid, returnFalse, returnFalse);
-                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
+                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: rawdocid, _width: 500, _height: 500, }, docid);
+                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to", undefined, linkId);
                             });
-                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "add:right", title: docid, targetId: docid });
+                            const allLinks = [{ href: Utils.prepend("/doc/" + docid), title: docid, targetId: docid, linkId }];
+                            const link = state.schema.marks.linkAnchor.create({ allLinks, title: rawdocid, location: "add:right" });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
@@ -297,15 +299,16 @@ export class RichTextRules {
             // {{<layout>}} => show layout for this doc   
             // {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_@\.\? \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1] || "";
                     const fieldParam = match[2]?.replace("…", "...") || "";
-                    const docid = match[3]?.substring(1);
+                    const rawdocid = match[3]?.substring(1);
+                    const docid = rawdocid ? (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "@" + rawdocid : rawdocid).replace(".", "_") : undefined;
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
-                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500 }, docid);
+                            const docx = Docs.Create.FreeformDocument([], { title: rawdocid, _width: 500, _height: 500 }, docid);
                             DocUtils.Publish(docx, docid, returnFalse, returnFalse);
                         }
                     });
