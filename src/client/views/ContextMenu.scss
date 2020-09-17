@@ -11,6 +11,8 @@
     padding-bottom: 10px;
     border-radius: 15px;
     border: solid #BBBBBBBB 1px;
+    max-height: 550;
+    overflow-y: scroll;
 }
 
 // .contextMenu-item:first-child {
