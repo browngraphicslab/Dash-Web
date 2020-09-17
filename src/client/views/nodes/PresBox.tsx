@@ -30,6 +30,13 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { VideoBox } from "./VideoBox";
 
+export enum PresMovement {
+    Zoom = "zoom",
+    Pan = "pan",
+    Jump = "jump",
+    None = "none",
+}
+
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
 
@@ -105,6 +112,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
+        this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(async pres => {
             await Promise.all(pres!);
             if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
@@ -153,19 +161,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
         } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== 'auto') {
             if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
-            if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
+            // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
             activeItem.playNow = false;
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             const nextSelected = this.itemIndex + 1;
             if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
-            if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
+            // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
             const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
             // If next slide is audio / video 'Play automatically' then the next slide should be played
             if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
                 console.log('play next automatically');
                 if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-                if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+                // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
             } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
             this.gotoDocument(nextSelected, this.itemIndex);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
@@ -256,9 +264,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this.zoomProgressivizeNext(targetDoc);
             } else if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
-                if (curDoc.presNavButton && targetDoc) {
+                if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
                     await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
-                } else if (curDoc.presZoomButton && targetDoc) {
+                } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
                     //awaiting jump so that new scale can be found, since jumping is async
                     await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
                 }
@@ -507,33 +515,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     updateMovement = action((movement: any, activeItem: Doc, targetDoc: Doc) => {
         switch (movement) {
-            case 'zoom': //Pan and zoom
-                activeItem.presNavButton = false;
-                activeItem.presZoomButton = !activeItem.presZoomButton;
+            case PresMovement.Zoom: //Pan and zoom
                 targetDoc.presTransition = activeItem.presTransition;
-                if (activeItem.presZoomButton) activeItem.presMovement = 'zoom';
-                else activeItem.presMovement = 'none';
+                activeItem.presMovement = PresMovement.Zoom;
                 break;
-            case 'pan': //Pan
-                activeItem.presZoomButton = false;
-                activeItem.presNavButton = !activeItem.presNavButton;
+            case PresMovement.Pan: //Pan
                 targetDoc.presTransition = activeItem.presTransition;
-                if (activeItem.presNavButton) activeItem.presMovement = 'pan';
-                else activeItem.presMovement = 'none';
+                activeItem.presMovement = PresMovement.Pan;
                 break;
-            case 'jump': //Jump Cut
+            case PresMovement.Jump: //Jump Cut
                 activeItem.presTransition = targetDoc.presTransition;
                 targetDoc.presTransition = 0;
-                activeItem.presZoomButton = true;
-                activeItem.presSwitchButton = !activeItem.presSwitchButton;
-                if (activeItem.presSwitchButton) activeItem.presMovement = 'jump';
-                else activeItem.presMovement = 'none';
+                activeItem.presMovement = PresMovement.Jump;
                 break;
-            case 'none': default:
-                activeItem.presMovement = 'none';
-                activeItem.presZoomButton = false;
-                activeItem.presNavButton = false;
-                activeItem.presSwitchButton = false;
+            case PresMovement.None: default:
+                activeItem.presMovement = PresMovement.None;
                 break;
         }
     });
@@ -541,10 +537,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     setMovementName = action((movement: any, activeItem: Doc): string => {
         let output: string = 'none';
         switch (movement) {
-            case 'zoom': output = 'Zoom'; break; //Pan and zoom
-            case 'pan': output = 'Pan'; break; //Pan
-            case 'jump': output = 'Jump cut'; break; //Jump Cut
-            case 'none': output = 'None'; break; //None
+            case PresMovement.Zoom: output = 'Zoom'; break; //Pan and zoom
+            case PresMovement.Pan: output = 'Pan'; break; //Pan
+            case PresMovement.Jump: output = 'Jump cut'; break; //Jump Cut
+            case PresMovement.None: output = 'None'; break; //None
             default: output = 'Zoom'; activeItem.presMovement = 'zoom'; break; //default set as zoom
         }
         return output;
@@ -560,7 +556,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             } else if (doc.type === DocumentType.LABEL) {
                 const audio = Cast(doc.annotationOn, Doc, null) as Doc;
                 if (audio) {
-                    console.log("labelHA`");
                     audio.aliasOf instanceof Doc;
                     audio.presStartTime = NumCast(doc.audioStart);
                     audio.presEndTime = NumCast(doc.audioEnd);
@@ -570,9 +565,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     return false;
                 }
             } else {
-                console.log("alias2");
                 doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-                !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+                !this.childDocs.includes(doc) && (doc.presMovement = PresMovement.Zoom);
                 if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
             }
         });
@@ -847,13 +841,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             {this.setMovementName(activeItem.presMovement, activeItem)}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === 'none' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement('none', activeItem, targetDoc)}>None</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === 'zoom' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement('zoom', activeItem, targetDoc)}>Pan and Zoom</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === 'pan' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement('pan', activeItem, targetDoc)}>Pan</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === 'jump' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement('jump', activeItem, targetDoc)}>Jump cut</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None, activeItem, targetDoc)}>None</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom, activeItem, targetDoc)}>Pan and Zoom</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan, activeItem, targetDoc)}>Pan</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump, activeItem, targetDoc)}>Jump cut</div>
                             </div>
                         </div>
-                        <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === 'pan' || activeItem.presMovement === 'zoom' ? "inline-flex" : "none" }}>
+                        <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "inline-flex" : "none" }}>
                             <div className="presBox-subheading">Transition Speed</div>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
@@ -869,8 +863,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 </div>
                             </div>
                         </div>
-                        <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presMovement === 'pan' || activeItem.presMovement === 'zoom' ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
-                        <div className={`slider-headers ${activeItem.presMovement === 'pan' || activeItem.presMovement === 'zoom' ? "" : "none"}`}>
+                        <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
+                        <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
                             <div className="slider-text">Fast</div>
                             <div className="slider-text">Medium</div>
                             <div className="slider-text">Slow</div>
@@ -965,7 +959,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     applyTo = (array: Doc[]) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        array.forEach((doc, index) => {
+        array.forEach((doc) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc && targetDoc) {
@@ -973,6 +967,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 curDoc.presDuration = activeItem.presDuration;
                 tagDoc.presEffect = targetDoc.presEffect;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;
+                tagDoc.presMovement = targetDoc.presMovement;
                 curDoc.presMovement = activeItem.presMovement;
                 this.updateMovement(activeItem.presMovement, curDoc, tagDoc);
                 curDoc.presHideTillShownButton = activeItem.presHideTillShownButton;

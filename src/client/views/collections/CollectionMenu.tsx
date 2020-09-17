@@ -397,7 +397,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
             style={{ width: 19 }} />;
         const targetDoc = this.selectedDoc;
-        return (!targetDoc || targetDoc._viewType !== CollectionViewType.Freeform || targetDoc.type !== DocumentType.IMG) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
                 onClick={e => {
                     if (targetDoc) {

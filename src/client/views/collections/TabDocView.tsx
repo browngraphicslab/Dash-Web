@@ -22,7 +22,7 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
-import { PresBox } from '../nodes/PresBox';
+import { PresBox, PresMovement } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
@@ -122,15 +122,16 @@ export class TabDocView extends React.Component<TabDocViewProps> {
      **/
     @undoBatch
     @action
-    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
+    public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) TabDocView.UnpinDoc(doc);
         else {
             //add this new doc to props.Document
             const curPres = CurrentUserUtils.ActivePresentation;
+            const curPresDocView = await DocumentManager.Instance.getDocumentView(curPres);
             if (curPres) {
                 const pinDoc = Doc.MakeAlias(doc);
                 pinDoc.presentationTargetDoc = doc;
-                pinDoc.presZoomButton = true;
+                pinDoc.presMovement = PresMovement.Zoom;
                 pinDoc.context = curPres;
                 Doc.AddDocToList(curPres, "data", pinDoc);
                 if (pinDoc.type === "audio" && !audioRange) {
@@ -138,9 +139,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     pinDoc.presEndTime = doc.duration;
                 }
                 if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-                if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                    CollectionDockingView.AddSplit(curPres, "right");
-                }
+                setTimeout(() => {
+                    if (!curPresDocView) {
+                        CollectionDockingView.AddSplit(curPres, "right");
+                    }
+                }, 50);
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
             }
         }
