@@ -752,6 +752,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onContextMenu = (e?: React.MouseEvent, pageX?: number, pageY?: number) => {
+        if (e && this.rootDoc._hideContextMenu && Doc.UserDoc().noviceMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+        }
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (e) {
             if (e.button === 0 && !e.ctrlKey || e.isDefaultPrevented()) {

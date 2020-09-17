@@ -13,7 +13,7 @@ import { GetEffectiveAcl } from '../../fields/util';
 import { emptyFunction, returnFalse, setupMoveUpEvents, simulateMouseClick, returnVal } from "../../Utils";
 import { DocUtils, Docs } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
-import { DragManager } from "../util/DragManager";
+import { DragManager, dropActionType } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { SnappingManager } from '../util/SnappingManager';
 import { undoBatch, UndoManager } from "../util/UndoManager";
@@ -137,8 +137,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
+        dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
+        dragData.dropAction = dragDocView.props.Document.dropAction as dropActionType;
         this.Interacting = true;
         this._hidden = true;
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
@@ -578,20 +579,25 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return (null);
         }
         const canDelete = SelectionManager.SelectedDocuments().some(docView => {
-            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]);
-            return collectionAcl === AclAdmin || collectionAcl === AclEdit;
+            const collectionAcl = docView.props.ContainingCollectionView ? GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]) : AclEdit;
+            return !docView.props.Document._stayInCollection && (collectionAcl === AclAdmin || collectionAcl === AclEdit);
         });
-        const minimal = bounds.r - bounds.x < 100 ? true : false;
-        const closeIcon = canDelete ? (
+        const canOpen = SelectionManager.SelectedDocuments().some(docView => !docView.props.Document._stayInCollection);
+        const closeIcon = !canDelete ? (null) : (
             <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
                 <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
-                </div></Tooltip>) : (null);
+                </div></Tooltip>);
+
+        const openIcon = !canOpen ? (null) : <Tooltip title={<div className="dash-tooltip">Open In a New Pane</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
+            {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
+        </div>
+        </Tooltip>;
 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                 onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
-            <div className="documentDecorations-title" style={{ gridColumnEnd: minimal ? 4 : 5 }} key="title" onPointerDown={this.onTitleDown} >
+            <div className="documentDecorations-title" style={{ gridColumnEnd: 5 }} key="title" onPointerDown={this.onTitleDown} >
                 <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
             </div>;
 
@@ -627,14 +633,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }}>
                     {closeIcon}
                     {Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) : titleArea}
-                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || minimal || Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) :
+                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
                             </div></Tooltip>}
-                    <Tooltip title={<div className="dash-tooltip">Open In a New Pane</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
-                        {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
-                    </div></Tooltip>
+                    {openIcon}
                     <div className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                     <div className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                     <div className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
@@ -654,9 +658,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
 
                 </div >
-                <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
+                {seldoc?.Document.type === DocumentType.FONTICON ? (null) : <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                     <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
-                </div>
+                </div>}
             </>}
         </div >
         );

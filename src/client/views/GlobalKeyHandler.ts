@@ -113,7 +113,7 @@ export class KeyManager {
                 }
 
                 const selected = SelectionManager.SelectedDocuments().slice();
-                UndoManager.RunInBatch(() => selected.map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+                UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
             case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left"); break;

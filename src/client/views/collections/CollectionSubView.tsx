@@ -1,5 +1,4 @@
 import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
-import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
 import { Id, ToString } from "../../../fields/FieldSymbols";
@@ -220,15 +219,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (docDragData) {
                 let added = false;
                 const dropAction = docDragData.dropAction || docDragData.userDropAction;
-                if ((!dropAction || dropAction === "move") && docDragData.moveDocument) {
+                const targetDocments = DocListCast(this.dataDoc[this.props.fieldKey]);
+                const someMoved = !docDragData.userDropAction && docDragData.draggedDocuments.some(drag => targetDocments.includes(drag));
+                if (someMoved) docDragData.droppedDocuments = docDragData.droppedDocuments.map((drop, i) => targetDocments.includes(docDragData.draggedDocuments[i]) ? docDragData.draggedDocuments[i] : drop);
+                if ((!dropAction || dropAction === "move" || someMoved) && docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                    const res = addedDocs.length ? this.addDocument(addedDocs) : true;
                     if (movedDocs.length) {
                         const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey || !this.props.isAnnotationOverlay ||
                             Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
-                    } else added = res;
+                    } else {
+                        ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
+                        added = addedDocs.length ? this.addDocument(addedDocs) : true;
+                    }
                     added && e.stopPropagation();
                     return added;
                 } else {

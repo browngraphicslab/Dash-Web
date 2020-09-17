@@ -91,16 +91,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
-            const dragHdl = document.createElement("span");
-            dragHdl.className = "collectionDockingView-gear";
-            dragHdl.style.position = "relative";
-            dragHdl.style.paddingLeft = "0px";
-            dragHdl.style.paddingRight = "12px";
+            const dragHdl = document.createElement("div");
+            dragHdl.className = "lm_drag_tab";
             tab._disposers.buttonDisposer = reaction(() => this.view, view =>
                 view && [ReactDOM.render(<span className="tabDocView-drag" onPointerDown={dragBtnDown}><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, dragHdl), tab._disposers.buttonDisposer?.()],
                 { fireImmediately: true });
             tab.reactComponents = [dragHdl];
-            tab.element.append(dragHdl);
+            tab.closeElement.before(dragHdl);
 
             // highlight the tab when the tab document is brushed in any part of the UI
             tab._disposers.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {

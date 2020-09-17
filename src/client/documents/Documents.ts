@@ -92,6 +92,7 @@ export interface DocumentOptions {
     y?: number;
     z?: number;
     author?: string;
+    _hideContextMenu?: boolean; // whether the context menu can be shown
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
     targetDropAction?: dropActionType;
