@@ -639,7 +639,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
                         this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
                         this.rootDoc.backgroundColor = Cast(this.layoutDoc.backgroundColor, "string", null);
-                        this.rootDoc.header = Cast(this.layoutDoc.header, RichTextField, null)?.[Copy]();
                     }, 10);
                 }
                 Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc);
