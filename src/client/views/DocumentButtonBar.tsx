@@ -309,7 +309,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     render() {
         if (!this.view0) return (null);
 
-        const isText = this.view0.props.Document[Doc.LayoutFieldKey(this.view0.props.Document)] instanceof RichTextField;
+        const isText = this.view0.props.Document[this.view0.LayoutFieldKey] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">

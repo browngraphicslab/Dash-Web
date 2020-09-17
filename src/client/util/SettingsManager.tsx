@@ -52,7 +52,7 @@ export class SettingsManager extends React.Component<{}> {
     }
 
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
-    @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value);
+    @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value ? "title" : undefined);
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
     @undoBatch switchActiveBackgroundColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
@@ -109,8 +109,8 @@ export class SettingsManager extends React.Component<{}> {
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
                 <div>
-                    <div className="preferences-check">Show title</div>
-                    <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = !Doc.UserDoc().showTitle} checked={BoolCast(Doc.UserDoc().showTitle)} />
+                    <div className="preferences-check">Show header</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = Doc.UserDoc().showTitle ? undefined : "creationDate"} checked={Doc.UserDoc().showTitle !== undefined} />
                 </div>
                 <div>
                     <div className="preferences-check">Alt Buttons</div>
@@ -118,9 +118,9 @@ export class SettingsManager extends React.Component<{}> {
                         checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
                 </div>
                 <div>
-                    Autoscroll
-                    <input type="checkbox" onChange={e => Doc.UserDoc()._noAutoscroll = !Doc.UserDoc()._noAutoscroll}
-                        checked={!BoolCast(Doc.UserDoc()._noAutoscroll)} />
+                    <div className="preferences-check">Raise on drag</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc()._raiseWhenDragged = !Doc.UserDoc()._raiseWhenDragged}
+                        checked={BoolCast(Doc.UserDoc()._raiseWhenDragged)} />
                 </div>
             </div>
         </div>;

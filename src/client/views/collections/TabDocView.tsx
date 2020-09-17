@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { clamp } from 'lodash';
@@ -10,7 +12,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -22,13 +24,11 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
-import "./TabDocView.scss";
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionViewType } from './CollectionView';
+import "./TabDocView.scss";
 import React = require("react");
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Tooltip } from '@material-ui/core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -72,11 +72,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     tab.setActive(true);
                 }
             };
-            const onPointerDown = (e: React.PointerEvent) => {
-                setupMoveUpEvents(this, e, (e) => {
-                    !e.defaultPrevented && DragManager.StartDocumentDrag([dragHdl], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY);
-                    return !e.defaultPrevented;
-                }, returnFalse, emptyFunction);
+            const dragBtnDown = (e: React.PointerEvent) => {
+                setupMoveUpEvents(this, e, e => !e.defaultPrevented && DragManager.StartDocumentDrag([dragHdl], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY), returnFalse, emptyFunction);
             };
 
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
@@ -94,20 +91,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
-            const dragHdl = document.createElement("span");
-            dragHdl.className = "collectionDockingView-gear";
-            dragHdl.style.position = "relative";
-            dragHdl.style.paddingLeft = "0px";
-            dragHdl.style.paddingRight = "12px";
-            tab._disposers.buttonDisposer = reaction(() => this.view, (view) => view &&
-                [ReactDOM.render(
-                    <span title="Drag as document" className="collectionDockingView-drag" onPointerDown={onPointerDown} >
-                        <CollectionDockingViewMenu views={() => [view]} Stack={stack} />
-                    </span>, dragHdl),
-                tab._disposers.buttonDisposer?.()],
+            const dragHdl = document.createElement("div");
+            dragHdl.className = "lm_drag_tab";
+            tab._disposers.buttonDisposer = reaction(() => this.view, view =>
+                view && [ReactDOM.render(<span className="tabDocView-drag" onPointerDown={dragBtnDown}><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, dragHdl), tab._disposers.buttonDisposer?.()],
                 { fireImmediately: true });
             tab.reactComponents = [dragHdl];
-            tab.element.append(dragHdl);
+            tab.closeElement.before(dragHdl);
 
             // highlight the tab when the tab document is brushed in any part of the UI
             tab._disposers.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
@@ -126,6 +116,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 });
         }
     }
+
     /**
      * Adds a document to the presentation view
      **/
@@ -154,13 +145,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             }
         }
     }
+
     /**
      * Adds a document to the presentation view
      **/
     @undoBatch
     @action
     public static UnpinDoc(doc: Doc) {
-        //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
             const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
@@ -169,20 +160,18 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     componentDidMount() {
-        const color = () => StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white");
         const selected = () => SelectionManager.SelectedDocuments().some(v => v.props.Document === this._document);
-        const updateTabColor = () => this.tab?.titleElement[0] && (this.tab.titleElement[0].style.backgroundColor = selected() ? color() : "");
-        const observer = new _global.ResizeObserver(action((entries: any) => {
+        new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
                 this._panelHeight = entry.contentRect.height;
             }
-            updateTabColor();
-        }));
-        observer.observe(this.props.glContainer._element[0]);
+        })).observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: color() }), updateTabColor, { fireImmediately: true });
+        this._tabReaction = reaction(() => ({ selected: selected(), color: this.tabColor, title: this.tab.titleElement[0] }),
+            ({ selected, color, title }) => title && (title.style.backgroundColor = selected ? color : ""),
+            { fireImmediately: true });
     }
 
     componentWillUnmount() {
@@ -196,30 +185,23 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             this._isActive = this.props.glContainer.tab.isActive;
             (CollectionDockingView.Instance as any)._goldenLayout?.isInitialised && CollectionDockingView.Instance.stateChanged();
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
-            // this._isActive && this.view && SelectionManager.SelectDoc(this.view, false);
         }
     }
 
-    get layoutDoc() { return this._document && Doc.Layout(this._document); }
     nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
     panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
         (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
     panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
     nativeWidth = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeWidth) || this._panelWidth : 0;
     nativeHeight = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeHeight) || this._panelHeight : 0;
-
     contentScaling = () => {
-        const nativeH = this.nativeHeight();
-        const nativeW = this.nativeWidth();
+        const nativeH = NumCast(this.layoutDoc?._nativeHeight);
+        const nativeW = NumCast(this.layoutDoc?._nativeWidth);
         let scaling = 1;
-        if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
-            scaling = 1;
-        } else if (NumCast(this.layoutDoc?._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
-            this._panelHeight / NumCast(this.layoutDoc?._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc?._nativeWidth))) {
-            scaling = this._panelWidth / NumCast(this.layoutDoc?._nativeWidth);
+        if (nativeW && (this.layoutDoc?._fitWidth || this._panelHeight / nativeH > this._panelWidth / nativeW)) {
+            scaling = this._panelWidth / nativeW;  // width-limited or fitWidth
         } else if (nativeW && nativeH) {
-            const wscale = this.panelWidth() / nativeW;
-            scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
+            scaling = this._panelHeight / nativeH; // height-limited
         }
         return scaling;
     }
@@ -234,6 +216,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
     @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
+    @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
     //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
@@ -244,10 +227,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
-        if (doc._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
-        const locationFields = location.split(":");
+        const locationFields = doc._viewType === CollectionViewType.Docking ? ["dashboard"] : location.split(":");
         const locationParams = locationFields.length > 1 ? locationFields[1] : "";
         switch (locationFields[0]) {
+            case "dashboard": return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
@@ -257,42 +240,44 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @computed get renderContentBounds() {
+    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0))); }
+    @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
         const ybounds = bounds[3] - bounds[1];
         const dim = Math.max(xbounds, ybounds);
         return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
     }
-    @computed get miniLeft() { return 50 + (NumCast(this._document?._panX) - this.renderContentBounds.cx) / this.renderContentBounds.dim * 100 - this.miniWidth / 2; }
-    @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.dim * 100 - this.miniHeight / 2; }
-    @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
-    @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
     childLayoutTemplate = () => Cast(this._document?.childLayoutTemplate, Doc, null);
     returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
     miniDown = (e: React.PointerEvent) => {
-        this._document && setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._document!._panX = clamp(NumCast(this._document!._panX) + delta[0] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.l, this.renderContentBounds.l + this.renderContentBounds.dim);
-            this._document!._panY = clamp(NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.t, this.renderContentBounds.t + this.renderContentBounds.dim);
+        const doc = this._document;
+        const miniSize = this.returnMiniSize();
+        doc && setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            doc._panX = clamp(NumCast(doc._panX) + delta[0] / miniSize * this.renderBounds.dim, this.renderBounds.l, this.renderBounds.l + this.renderBounds.dim);
+            doc._panY = clamp(NumCast(doc._panY) + delta[1] / miniSize * this.renderBounds.dim, this.renderBounds.t, this.renderBounds.t + this.renderBounds.dim);
             return false;
         }), emptyFunction, emptyFunction);
     }
-    getCurrentFrame = (): number => {
-        const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
-        return Cast(presTargetDoc._currentFrame, "number", null);
+    getCurrentFrame = () => {
+        return NumCast(Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null)._currentFrame);
     }
-
     renderMiniMap() {
+        const miniWidth = this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniHeight = this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniLeft = 50 + (NumCast(this._document?._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
+        const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
+        const miniSize = this.returnMiniSize();
         return <>
             {this._document?.hideMinimap ? (null) :
-                <div className="miniMap" style={{ width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor, StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!, 0))), }}>
+                <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
                     <CollectionFreeFormView
                         Document={this._document!}
                         LibraryPath={emptyPath}
                         CollectionView={undefined}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
+                        ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                         noOverlay={true} // don't render overlay Docs since they won't scale
                         active={returnTrue}
                         select={emptyFunction}
@@ -321,13 +306,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         fitToBox={true}
                     />
                     <div className="miniOverlay" onPointerDown={this.miniDown} >
-                        <div className="miniThumb" style={{
-                            width: `${this.miniWidth}% `,
-                            height: `${this.miniHeight}% `,
-                            left: `${this.miniLeft}% `,
-                            top: `${this.miniTop}% `,
-                        }}
-                        />
+                        <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
                     </div>
                 </div>}
 

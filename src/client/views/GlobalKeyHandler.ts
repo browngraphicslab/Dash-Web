@@ -113,7 +113,7 @@ export class KeyManager {
                 }
 
                 const selected = SelectionManager.SelectedDocuments().slice();
-                UndoManager.RunInBatch(() => selected.map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+                UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
             case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left"); break;
@@ -257,7 +257,7 @@ export class KeyManager {
                 let count = 1;
                 const list: Doc[] = [];
                 const targetDataDoc = Doc.GetProto(first.props.Document);
-                const fieldKey = Doc.LayoutFieldKey(first.props.Document);
+                const fieldKey = first.LayoutFieldKey;
                 const docList = DocListCast(targetDataDoc[fieldKey]);
                 docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
                     count++;

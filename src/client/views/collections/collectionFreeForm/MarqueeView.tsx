@@ -23,6 +23,8 @@ import { CollectionView, CollectionViewType } from "../CollectionView";
 import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { Id } from "../../../../fields/FieldSymbols";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -128,20 +130,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.ChildLayoutString ? e.key : "";
-                const tbox = Docs.Create.TextDocument("", {
-                    _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
-                    _fontFamily: StrCast(Doc.UserDoc().fontFamily),
-                    _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
-                    title: "-typed text-"
-                });
-                const template = FormattedTextBox.DefaultLayout;
-                if (template instanceof Doc) {
-                    tbox._width = NumCast(template._width);
-                    tbox.layoutKey = "layout_" + StrCast(template.title);
-                    Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
-                }
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
-                this.props.addLiveTextDocument(tbox);
+                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100));
                 e.stopPropagation();
             }
     }
@@ -530,7 +520,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
         const portal = Doc.MakeAlias(summary);
         Doc.GetProto(summary)[Doc.LayoutFieldKey(summary) + "-annotations"] = new List<Doc>(selected);
         Doc.GetProto(summary).layout_portal = CollectionView.LayoutString(Doc.LayoutFieldKey(summary) + "-annotations");

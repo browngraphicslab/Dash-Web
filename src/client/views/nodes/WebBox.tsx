@@ -32,6 +32,7 @@ import "./WebBox.scss";
 import "../pdf/PDFViewer.scss";
 import React = require("react");
 import { Tooltip } from '@material-ui/core';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -496,16 +497,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         e.preventDefault();
         e.stopPropagation();
 
-        const clipDoc = Doc.MakeAlias(this.dataDoc);
-        clipDoc._fitWidth = true;
-        clipDoc._width = this.marqueeWidth();
-        clipDoc._height = this.marqueeHeight();
-        clipDoc._scrollTop = this.marqueeY();
-        const targetDoc = Docs.Create.TextDocument("", { _width: 125, _height: 125, title: "Note linked to " + this.props.Document.title });
-        Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
-        clipDoc.rootDocument = targetDoc;
-        targetDoc.layoutKey = "layout";
-        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
+        const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 125, 125);
+        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.35)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {

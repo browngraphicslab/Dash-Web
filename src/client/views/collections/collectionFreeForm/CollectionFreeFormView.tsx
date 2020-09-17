@@ -217,7 +217,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [NumCast(layoutDoc._nativeWidth), NumCast(layoutDoc._nativeHeight)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            d._isBackground === undefined && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !d._isBackground && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
@@ -372,12 +372,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Doc) => {
+    getClusterColor = (doc: Opt<Doc>) => {
         let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
-        const cluster = NumCast(doc.cluster);
+        const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
-                setTimeout(() => this.updateCluster(doc), 0);
+                setTimeout(() => doc && this.updateCluster(doc), 0);
             } else {
                 // choose a cluster color from a palette
                 const colors = ["#da42429e", "#31ea318c", "rgba(197, 87, 20, 0.55)", "#4a7ae2c4", "rgba(216, 9, 255, 0.5)", "#ff7601", "#1dffff", "yellow", "rgba(27, 130, 49, 0.55)", "rgba(0, 0, 0, 0.268)"];
@@ -949,7 +949,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
-            layoutKey: undefined,
+            layoutKey: StrCast(this.props.Document.childLayoutKey),
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
