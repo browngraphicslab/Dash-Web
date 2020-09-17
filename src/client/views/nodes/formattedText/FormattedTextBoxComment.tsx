@@ -23,7 +23,6 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import { schema } from "./schema_rts";
 import React = require("react");
-import { observer } from "mobx-react";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -95,7 +94,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "200px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "400px";
             FormattedTextBoxComment.tooltip.style.maxHeight = "235px";
             FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
@@ -235,9 +234,10 @@ export class FormattedTextBoxComment {
                 FormattedTextBoxComment.tooltipText.style.width = "100%";
                 FormattedTextBoxComment.tooltipText.style.height = "100%";
                 FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
+                FormattedTextBoxComment.tooltipText.style.cursor = "pointer";
                 FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
 
-                FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
+                FormattedTextBoxComment.tooltipText.textContent = "URL: " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;
                 if (href.startsWith("https://en.wikipedia.org/wiki/")) {
                     wiki().page(href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
