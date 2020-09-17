@@ -113,9 +113,9 @@ export class SettingsManager extends React.Component<{}> {
                     <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = Doc.UserDoc().showTitle ? undefined : "creationDate"} checked={Doc.UserDoc().showTitle !== undefined} />
                 </div>
                 <div>
-                    <div className="preferences-check">Alt Buttons</div>
-                    <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"]}
-                        checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
+                    <div className="preferences-check">Full Toolbar</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-fullMenu"] = !Doc.UserDoc()["documentLinksButton-fullMenu"]}
+                        checked={BoolCast(Doc.UserDoc()["documentLinksButton-fullMenu"])} />
                 </div>
                 <div>
                     <div className="preferences-check">Raise on drag</div>

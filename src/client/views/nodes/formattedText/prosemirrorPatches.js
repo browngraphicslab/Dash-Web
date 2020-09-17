@@ -146,7 +146,9 @@ function isInSetWithAttrs(mark, set, attrs) {
     for (var i = 0; i < set.length; i++) {
         if (set[i].type == mark) {
             if (Array.from(Object.keys(attrs)).reduce((p, akey) => {
-                return p && JSON.stringify(set[i].attrs[akey]) === JSON.stringify(attrs[akey]);
+                if (p && JSON.stringify(set[i].attrs[akey]) === JSON.stringify(attrs[akey])) return true;
+                set[i].attrs.allLinks = Array.from(set[i].attrs.allLinks).filter(a => !Array.from(attrs.allLinks.map(al => al.targetId)).includes(a.targetId) || !Array.from(attrs.allLinks.map(al => al.linkId).includes(a.linkId)))
+                return false;
             }, true)) {
                 return set[i];
             }
@@ -178,7 +180,7 @@ function removeMarkWithAttrs(tr, from, to, mark, attrs) {
                 var style = toRemove[i], found$1 = (void 0);
                 for (var j = 0; j < matched.length; j++) {
                     var m = matched[j];
-                    if (m.step == step - 1 && style.eq(matched[j].style)) { found$1 = m; }
+                    if (m.step == step - 1 /*&& style.eq(matched[j].style)*/) { found$1 = m; }  // bcz: not sure what this is even trying to do, but style.eq doesn't seem to exist anymore
                 }
                 if (found$1) {
                     found$1.to = end;

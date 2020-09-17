@@ -1,10 +1,8 @@
 import { action, observable, runInAction, ObservableSet, trace, computed } from "mobx";
 import { observer } from "mobx-react";
-import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { Template } from "./Templates";
 import React = require("react");
 import { Doc, DocListCast } from "../../fields/Doc";
 import { Docs, DocUtils, } from "../documents/Documents";
@@ -18,13 +16,13 @@ import { List } from "../../fields/List";
 import { TraceMobx } from "../../fields/util";
 
 @observer
-class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
+class TemplateToggle extends React.Component<{ template: string, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: string) => void }> {
     render() {
         if (this.props.template) {
             return (
                 <li className="templateToggle">
                     <input type="checkbox" checked={this.props.checked} onChange={(event) => this.props.toggle(event, this.props.template)} />
-                    {this.props.template.Name}
+                    {this.props.template}
                 </li>
             );
         } else {
@@ -46,7 +44,7 @@ class OtherToggle extends React.Component<{ checked: boolean, name: string, togg
 
 export interface TemplateMenuProps {
     docViews: DocumentView[];
-    templates: Map<Template, boolean>;
+    templates: Map<string, boolean>;
 }
 
 
@@ -69,8 +67,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     @undoBatch
     @action
-    toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        this.props.docViews.forEach(d => Doc.Layout(d.layoutDoc)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
+    toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: string): void => {
+        this.props.docViews.forEach(d => Doc.Layout(d.layoutDoc)["_show" + template] = event.target.checked ? template.toLowerCase() : "");
     }
 
     @action
@@ -113,21 +111,21 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
         const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
-        const addedTypes = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
+        const addedTypes = Doc.UserDoc().noviceMode ? [] : DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
-        //this.props.templates.forEach((checked, template) =>
-        //    templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
-        //templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
-        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        this.props.templates.forEach((checked, template) =>
+            templateMenu.push(<TemplateToggle key={template} template={template} checked={checked} toggle={this.toggleTemplate} />));
+        templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
+        !Doc.UserDoc().noviceMode && templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         addedTypes.concat(noteTypes).map(template => template.treeViewChecked = this.templateIsUsed(firstDoc, template));
         this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
             <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         return <ul className="template-list" style={{ display: "block" }}>
-            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
+            {Doc.UserDoc().noviceMode ? (null) : <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />}
             {templateMenu}
-            <CollectionTreeView
+            {Doc.UserDoc().noviceMode ? (null) : <CollectionTreeView
                 Document={Doc.UserDoc().templateDocs as Doc}
                 CollectionView={undefined}
                 ContainingCollectionDoc={undefined}
@@ -158,7 +156,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 fieldKey={"data"}
                 moveDocument={returnFalse}
                 removeDocument={returnFalse}
-                addDocument={returnFalse} />
+                addDocument={returnFalse} />}
         </ul>;
     }
 }
