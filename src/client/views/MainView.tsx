@@ -212,7 +212,7 @@ export class MainView extends React.Component {
             }));
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
-            { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+            { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0" });
         CollectionDockingView.AddSplit(pres, "right");
         this.userDoc.activePresentation = pres;
         Doc.AddDocToList(this.userDoc.myPresentations as Doc, "data", pres);

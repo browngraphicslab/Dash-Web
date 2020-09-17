@@ -728,10 +728,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.childDocs.forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc?.context, Doc, null);
+            const width = NumCast(tagDoc._width) / 10;
+            const height = Math.max(NumCast(tagDoc._height) / 10, 15);
+            const edge = Math.max(width, height);
+            const fontSize = edge * 0.8;
             // Case A: Document is contained within the colleciton
             if (this.rootDoc.presCollection === srcContext) {
                 order.push(
-                    <div className="pathOrder" style={{ top: NumCast(tagDoc.y), left: NumCast(tagDoc.x) }}>
+                    <div className="pathOrder" style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
                         <div className="pathOrder-frame">{index + 1}</div>
                     </div>);
                 // Case B: Document is not inside of the collection
@@ -775,6 +779,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 stroke: "#69a6db",
                 strokeWidth: 5,
                 strokeDasharray: '10 5',
+                boxShadow: '0px 4px 4px rgba(0, 0, 0, 0.25)',
             }}
             fill="none"
             markerStart="url(#markerSquare)"
