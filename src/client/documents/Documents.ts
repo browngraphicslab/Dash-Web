@@ -92,6 +92,7 @@ export interface DocumentOptions {
     y?: number;
     z?: number;
     author?: string;
+    _hideContextMenu?: boolean; // whether the context menu can be shown
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
     targetDropAction?: dropActionType;
@@ -133,7 +134,7 @@ export interface DocumentOptions {
     opacity?: number;
     defaultBackgroundColor?: string;
     _isBackground?: boolean;
-    "_isBackground-canClick"?: boolean; // a background document that you can still click on to edit its contents
+    _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;

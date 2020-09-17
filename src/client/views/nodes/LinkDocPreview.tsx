@@ -16,7 +16,7 @@ interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    backgroundColor: (doc: Doc, renderDepth: number) => string;
+    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => string;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }

@@ -45,10 +45,12 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     useAsPrototype = (): void => { this.layoutDoc.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'); };
 
     specificContextMenu = (): void => {
-        const cm = ContextMenu.Instance;
-        cm.addItem({ description: "Show Template", event: this.showTemplate, icon: "tag" });
-        !Doc.UserDoc().noviceMode && cm.addItem({ description: "Use as Render Template", event: this.dragAsTemplate, icon: "tag" });
-        !Doc.UserDoc().noviceMode && cm.addItem({ description: "Use as Prototype", event: this.useAsPrototype, icon: "tag" });
+        if (!Doc.UserDoc().noviceMode) {
+            const cm = ContextMenu.Instance;
+            cm.addItem({ description: "Show Template", event: this.showTemplate, icon: "tag" });
+            cm.addItem({ description: "Use as Render Template", event: this.dragAsTemplate, icon: "tag" });
+            cm.addItem({ description: "Use as Prototype", event: this.useAsPrototype, icon: "tag" });
+        }
     }
 
     componentWillUnmount() {

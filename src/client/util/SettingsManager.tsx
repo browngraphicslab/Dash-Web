@@ -118,9 +118,9 @@ export class SettingsManager extends React.Component<{}> {
                         checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
                 </div>
                 <div>
-                    Autoscroll
-                    <input type="checkbox" onChange={e => Doc.UserDoc()._noAutoscroll = !Doc.UserDoc()._noAutoscroll}
-                        checked={!BoolCast(Doc.UserDoc()._noAutoscroll)} />
+                    <div className="preferences-check">Raise on drag</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc()._raiseWhenDragged = !Doc.UserDoc()._raiseWhenDragged}
+                        checked={BoolCast(Doc.UserDoc()._raiseWhenDragged)} />
                 </div>
             </div>
         </div>;

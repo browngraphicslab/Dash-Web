@@ -94,13 +94,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             });
             let newFacet: Opt<Doc>;
             if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
-                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
@@ -118,7 +118,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
-                const capturedVariables = { layoutDoc: targetDoc, dataDoc: (targetDoc.data as any)[0][DataSym] };
+                const capturedVariables = { layoutDoc: targetDoc, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
             }
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);

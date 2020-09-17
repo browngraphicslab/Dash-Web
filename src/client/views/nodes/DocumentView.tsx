@@ -87,7 +87,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
-    backgroundColor?: (doc: Doc, renderDepth: number) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, renderDepth: number) => string | undefined;
     forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
@@ -303,7 +303,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !this.props.Document._isBackground && !this.props.Document["_isBackground-canClick"] && this.props.bringToFront(this.props.Document);
+            !this.props.Document._isBackground && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -602,9 +602,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch @action
-    toggleLockInBack = () => {
-        this.rootDoc["_isBackground-canClick"] = !this.rootDoc["_isBackground-canClick"];
-        if (this.rootDoc["_isBackground-canClick"]) this.rootDoc.zIndex = 0;
+    toggleRaiseWhenDragged = () => {
+        this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined;
     }
 
     @undoBatch @action
@@ -753,6 +752,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onContextMenu = (e?: React.MouseEvent, pageX?: number, pageY?: number) => {
+        if (e && this.rootDoc._hideContextMenu && Doc.UserDoc().noviceMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+        }
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (e) {
             if (e.button === 0 && !e.ctrlKey || e.isDefaultPrevented()) {
@@ -790,18 +794,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+
+            const zorders = cm.findByDescription("ZOrder...");
+            const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
+            zorderItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: this.toggleRaiseWhenDragged, icon: "expand-arrows-alt" });
+            !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
+
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
                 !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
-
-                const zorders = cm.findByDescription("ZOrder...");
-                const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
-                zorderItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
-                zorderItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
-                zorderItems.push({ description: this.rootDoc["_isBackground-canClick"] ? "Unlock from Back" : "Lock in Back", event: this.toggleLockInBack, icon: "expand-arrows-alt" });
-                !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
                 onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
                 onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
@@ -1049,7 +1054,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === "none" ||
-            (SnappingManager.GetIsDragging() && this.Document["_isBackground-canClick"]) ||
             (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }

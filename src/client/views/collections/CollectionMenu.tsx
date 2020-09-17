@@ -417,7 +417,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         if (this._dragRef.current && this.selectedDoc) {
             const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
             const [left, top] = [e.clientX, e.clientY];
-            dragData.dropAction = "alias";
+            dragData.defaultDropAction = "alias";
             DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
                 offsetX: dragData.offset[0],
                 offsetY: dragData.offset[1],
