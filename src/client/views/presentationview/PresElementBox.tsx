@@ -265,7 +265,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.indexInPres + 1}.`}
                     </div>
                     <div ref={this._dragRef} className="presElementBox-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
-                        <EditableView ref={this._titleRef}
+                        <EditableView
+                            ref={this._titleRef}
                             contents={this.rootDoc.title}
                             GetValue={() => StrCast(this.rootDoc.title)}
                             SetValue={action((value: string) => {
