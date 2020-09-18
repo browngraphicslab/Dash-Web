@@ -24,8 +24,7 @@ export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     render() {
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 19, transform: 'translate(-2px, -2px)' }} />;
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 19, transform: 'translate(-2px, -2px)' }} />;
         const buttons = [
             <Tooltip key="group" title={<><div className="dash-tooltip">Create a Collection</div></>} placement="bottom">
                 <button

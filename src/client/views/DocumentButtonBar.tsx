@@ -195,8 +195,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
 
     @computed
     get pinWithViewButton() {
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 17, transform: 'translate(0, 1px)' }} />;
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
             <div className="documentButtonBar-linker"

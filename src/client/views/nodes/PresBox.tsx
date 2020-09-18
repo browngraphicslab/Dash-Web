@@ -996,8 +996,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get optionsDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 16, filter: 'invert(1)' }} />;
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin:"auto", width: 16, filter: 'invert(1)' }} />;
         if (activeItem && targetDoc) {
             return (
                 <div>
