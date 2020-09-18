@@ -24,6 +24,7 @@ import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
+import { PresBox } from './nodes/PresBox';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -184,20 +185,37 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        // More than 1 document selected then all must be in presentation for isPinned to be true (then it will unpin all)
-        if (SelectionManager.SelectedDocuments().length > 1) {
-            SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
-                if (Doc.isDocPinned(docView.props.Document)) isPinned = true;
-                else isPinned = false;
-            });
-        }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
-                style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
-                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, isPinned))}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
-                />
+                style={{ color: "white" }}
+                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false))}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div></Tooltip>;
+    }
+
+    @computed
+    get pinWithViewButton() {
+        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
+            style={{ width: 17, transform: 'translate(0, 1px)' }} />;
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
+            <div className="documentButtonBar-linker"
+                onClick={e => {
+                    if (targetDoc) {
+                        TabDocView.PinDoc(targetDoc, false);
+                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                        const x = targetDoc._panX;
+                        const y = targetDoc._panY;
+                        const scale = targetDoc._viewScale;
+                        activeDoc.presPinView = true;
+                        activeDoc.presPinViewX = x;
+                        activeDoc.presPinViewY = y;
+                        activeDoc.presPinViewScale = scale;
+                    }
+                }}>
+                {presPinWithViewIcon}
+            </div>
+        </Tooltip>;
     }
 
     @computed
@@ -236,7 +254,8 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${CurrentUserUtils.propertiesWidth > 0 ? "Close" : "Open"} Properties Panel`}</div></>}>
             <div className="documentButtonBar-linker" style={{ color: "white", cursor: "e-resize" }} onClick={action(e =>
                 CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h" />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h"
+                />
             </div></Tooltip >;
     }
 
@@ -258,7 +277,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         this.props.views()[0]?.select(false);
         this._tooltipOpen = false;
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    });
+    })
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.view0!;
@@ -336,6 +355,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
+            {/* <div className="documentButtonBar-button">
+                {this.pinWithViewButton}
+            </div> */}
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
             </div>}

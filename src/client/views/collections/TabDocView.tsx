@@ -22,7 +22,7 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
-import { PresBox } from '../nodes/PresBox';
+import { PresBox, PresMovement } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
@@ -122,27 +122,27 @@ export class TabDocView extends React.Component<TabDocViewProps> {
      **/
     @undoBatch
     @action
-    public static PinDoc(doc: Doc, unpin = false) {
-        if (unpin) TabDocView.UnpinDoc(doc);
-        else {
-            //add this new doc to props.Document
-            const curPres = CurrentUserUtils.ActivePresentation;
-            if (curPres) {
-                const pinDoc = Doc.MakeAlias(doc);
-                pinDoc.presentationTargetDoc = doc;
-                pinDoc.presZoomButton = true;
-                pinDoc.context = curPres;
-                Doc.AddDocToList(curPres, "data", pinDoc);
-                if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-                if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                    CollectionDockingView.AddSplit(curPres, "right");
-                }
-                DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
-                setTimeout(() => {
-                    curPres._itemIndex = DocListCast(curPres.data).length - 1;
-                    doc.treeViewOutlineMode && PresBox.Instance.progressivizeChild(null as any);
-                }, 100);
+    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
+        if (unpin) console.log('remove unpin');
+        //add this new doc to props.Document
+        const curPres = CurrentUserUtils.ActivePresentation;
+        if (curPres) {
+            const pinDoc = Doc.MakeAlias(doc);
+            pinDoc.presentationTargetDoc = doc;
+            pinDoc.title = doc.title;
+            pinDoc.presMovement = PresMovement.Zoom;
+            pinDoc.context = curPres;
+            Doc.AddDocToList(curPres, "data", pinDoc);
+            if (pinDoc.type === "audio" && !audioRange) {
+                pinDoc.presStartTime = 0;
+                pinDoc.presEndTime = doc.duration;
             }
+            if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
+            const curPresDocView = DocumentManager.Instance.getDocumentView(curPres);
+            if (!curPresDocView) {
+                CollectionDockingView.AddSplit(curPres, "right");
+            }
+            DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
         }
     }
 
@@ -318,7 +318,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         </>;
     }
     focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
-        this.tab.header.parent.setActiveContentItem(this.tab.contentItem);
+        // this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         afterFocus?.();
     }
     setView = action((view: DocumentView) => this._view = view);
