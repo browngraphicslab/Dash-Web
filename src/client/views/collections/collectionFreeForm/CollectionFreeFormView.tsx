@@ -1595,13 +1595,17 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             <div key="presorder">{PresBox.Instance.order}</div>
             <svg key="svg" className={presPaths}>
                 <defs>
-                    <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
+                    <marker id="markerSquare" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
                         orient="auto" overflow="visible">
-                        <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
+                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="white" fillOpacity="0.8" />
                     </marker>
-                    <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
+                    <marker id="markerSquareFilled" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
                         orient="auto" overflow="visible">
-                        <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
+                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="#69a6db" />
+                    </marker>
+                    <marker id="markerArrow" markerWidth="3" markerHeight="3" refX="2" refY="4"
+                        orient="auto" overflow="visible">
+                        <path d="M2,2 L2,6 L6,4 L2,2 Z" stroke="#69a6db" strokeLinejoin="round" strokeWidth="1" fill="white" fillOpacity="0.8" />
                     </marker>
                 </defs>
                 {PresBox.Instance.paths}

@@ -67,10 +67,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
     @observable private progressivizeTools: boolean = false;
-    @observable private playTools: boolean = false;
     @observable private presentTools: boolean = false;
     @observable private pathBoolean: boolean = false;
-    @observable private expandBoolean: boolean = false;
     @observable private openMovementDropdown: boolean = false;
     @observable private openEffectDropdown: boolean = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
@@ -796,9 +794,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 boxShadow: '0px 4px 4px rgba(0, 0, 0, 0.25)',
             }}
             fill="none"
-            markerStart="url(#markerSquare)"
+            markerStart="url(#markerArrow)"
             markerMid="url(#markerSquare)"
-            markerEnd="url(#markerArrow)"
+            markerEnd="url(#markerSquareFilled)"
         />);
     }
 
