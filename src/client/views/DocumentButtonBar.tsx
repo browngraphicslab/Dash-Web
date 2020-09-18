@@ -185,13 +185,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        // More than 1 document selected then all must be in presentation for isPinned to be true (then it will unpin all)
-        if (SelectionManager.SelectedDocuments().length > 1) {
-            SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
-                if (Doc.isDocPinned(docView.props.Document)) isPinned = true;
-                else isPinned = false;
-            });
-        }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
@@ -284,7 +277,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         this.props.views()[0]?.select(false);
         this._tooltipOpen = false;
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    });
+    })
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.view0!;

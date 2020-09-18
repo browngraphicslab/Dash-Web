@@ -37,6 +37,15 @@ export enum PresMovement {
     None = "none",
 }
 
+export enum PresEffect {
+    Fade = "fade",
+    Flip = "flip",
+    Rotate = "rotate",
+    Bounce = "bounce",
+    Roll = "roll",
+    None = "none",
+}
+
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
 
@@ -86,8 +95,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
     @computed get selectedDocumentView() {
-        if (PresBox.Instance && PresBox.Instance._selectedArray.length) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -140,16 +149,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const curFrame = NumCast(targetDoc._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
-        if (activeItem.presPinView) {
-            const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
-            bestTarget && runInAction(() => {
-                bestTarget!._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
-            });
-            setTimeout(() => targetDoc._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
-        }
         // Case 1: There are still other frames and should go through all frames before going to next slide
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
-            console.log('next frame');
             targetDoc._viewTransition = "all 1s";
             setTimeout(() => targetDoc._viewTransition = undefined, 1010);
             // targetDoc._currentFrame = curFrame + 1;
@@ -165,6 +166,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             activeItem.playNow = false;
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
+            if (activeNext.presPinView) setTimeout(() => this.selectPres(), 0);
+            else this.selectPres();
             const nextSelected = this.itemIndex + 1;
             if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
             // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
@@ -196,6 +199,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
+        if (prevItem.presPinView) setTimeout(() => this.selectPres(), 0);
+        else this.selectPres();
         if (lastFrame !== undefined && curFrame >= 1) {
             this.prevKeyframe(targetDoc, activeItem);
         } else if (activeItem) {
@@ -213,7 +218,25 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
+            const activeItem: Doc = this.activeItem;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+            if (activeItem.presPinView) {
+                const bestTarget = DocumentManager.Instance.getFirstDocumentView(presTargetDoc)?.props.Document;
+                bestTarget && runInAction(() => {
+                    if (activeItem.presMovement === PresMovement.Jump) {
+                        bestTarget!._viewTransition = '0s';
+                    } else {
+                        bestTarget!._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
+                        setTimeout(() => bestTarget!._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
+                    }
+                });
+            } else {
+                presTargetDoc && runInAction(() => {
+                    if (activeItem.presMovement === PresMovement.Jump) presTargetDoc.focusSpeed = 0;
+                    else presTargetDoc.focusSpeed = activeItem.presTransition ? activeItem.presTransition : 500;
+                });
+                setTimeout(() => presTargetDoc.focusSpeed = 500, this.activeItem.presTransition ? NumCast(this.activeItem.presTransition) + 10 : 510);
+            }
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
@@ -239,7 +262,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
         const collectionDocView = presCollection ? await DocumentManager.Instance.getDocumentView(presCollection) : undefined;
         this.turnOffEdit();
-
         if (this.itemIndex >= 0) {
             if (srcContext && targetDoc) {
                 this.layoutDoc.presCollection = srcContext;
@@ -378,13 +400,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         let activeItem: Doc = this.activeItem;
         let targetDoc: Doc = this.targetDoc;
-        let duration = NumCast(activeItem.presDuration) + NumCast(targetDoc.presTransition);
+        let duration = NumCast(activeItem.presDuration) + NumCast(activeItem.presTransition);
         const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
         const load = async () => { // Wrap the loop into an async function for this to work
             for (var i = startSlide; i < this.childDocs.length; i++) {
                 activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
                 targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-                duration = NumCast(activeItem.presDuration) + NumCast(targetDoc.presTransition);
+                duration = NumCast(activeItem.presDuration) + NumCast(activeItem.presTransition);
                 if (duration <= 100) { duration = 2500; }
                 if (NumCast(targetDoc.lastFrame) > 0) {
                     for (var f = 0; f < NumCast(targetDoc.lastFrame); f++) {
@@ -516,16 +538,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateMovement = action((movement: any, activeItem: Doc, targetDoc: Doc) => {
         switch (movement) {
             case PresMovement.Zoom: //Pan and zoom
-                targetDoc.presTransition = activeItem.presTransition;
                 activeItem.presMovement = PresMovement.Zoom;
                 break;
             case PresMovement.Pan: //Pan
-                targetDoc.presTransition = activeItem.presTransition;
                 activeItem.presMovement = PresMovement.Pan;
                 break;
             case PresMovement.Jump: //Jump Cut
-                activeItem.presTransition = targetDoc.presTransition;
-                targetDoc.presTransition = 0;
+                activeItem.presJump = true;
                 activeItem.presMovement = PresMovement.Jump;
                 break;
             case PresMovement.None: default:
@@ -617,7 +636,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     selectElement = (doc: Doc) => {
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
-        this.selectPres();
+        if (doc.presPinView) setTimeout(() => this.selectPres(), 0);
+        else this.selectPres();
     }
 
     //Command click
@@ -674,7 +694,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             handled = true;
         } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
             if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
-            else this.layoutDoc.presStatus = "manual"; if (this._presTimer) clearTimeout(this._presTimer);
+            else this.next();
             handled = true;
         } if (e.keyCode === 8) { // delete selected items
             if (this.layoutDoc.presStatus === "edit") {
@@ -811,7 +831,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 10000) timeInMS = 10000;
-        if (this.targetDoc) this.targetDoc.presTransition = timeInMS;
+        if (this.activeItem) this.activeItem.presTransition = timeInMS;
     }
 
     // Converts seconds to ms and updates presDuration
@@ -828,7 +848,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         if (activeItem && targetDoc) {
-            const transitionSpeed = targetDoc.presTransition ? NumCast(targetDoc.presTransition) / 1000 : 0.5;
+            const transitionSpeed = activeItem.presTransition ? NumCast(activeItem.presTransition) / 1000 : 0.5;
             let duration = activeItem.presDuration ? NumCast(activeItem.presDuration) / 1000 : 2;
             if (activeItem.type === DocumentType.AUDIO) duration = NumCast(activeItem.duration);
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
@@ -963,7 +983,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc && targetDoc) {
-                tagDoc.presTransition = targetDoc.presTransition;
+                curDoc.presTransition = activeItem.presTransition;
                 curDoc.presDuration = activeItem.presDuration;
                 tagDoc.presEffect = targetDoc.presEffect;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;

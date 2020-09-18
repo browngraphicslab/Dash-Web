@@ -110,10 +110,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setupScroll(doc: Doc, timecode: number) {
         const scrollList = new List<number>();
-        scrollList[timecode] = NumCast(doc._scrollTop);
+        scrollList[timecode] = NumCast(doc._scrollY);
         doc["scroll-indexed"] = scrollList;
         doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
-        doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+        doc._scrollY = ComputedField.MakeInterpolated("scroll", "activeFrame");
     }
 
 

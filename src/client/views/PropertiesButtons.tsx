@@ -20,6 +20,8 @@ import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import './PropertiesButtons.scss';
 import React = require("react");
 import { CollectionViewType } from './collections/CollectionView';
+import { PresBox } from './nodes/PresBox';
+import { DocumentManager } from '../util/DocumentManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -55,9 +57,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else return undefined;
+        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        return undefined;
     }
 
     @computed get onClick() { return this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing"; }

@@ -15,7 +15,7 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { PresBox } from "../nodes/PresBox";
+import { PresBox, PresMovement } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
@@ -118,12 +118,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10 }
         else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
-        return "D: " + durationInS + "s";
+        return this.rootDoc.presMovement === PresMovement.Jump ? (null) : "D: " + durationInS + "s";
     }
 
     @computed get transition() {
         let transitionInS: number;
-        if (this.targetDoc.presTransition) transitionInS = NumCast(this.targetDoc.presTransition) / 1000;
+        if (this.rootDoc.presTransition) transitionInS = NumCast(this.rootDoc.presTransition) / 1000;
         else transitionInS = 0.5;
         return "M: " + transitionInS + "s";
     }
@@ -205,7 +205,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @action
     toggleProperties = () => {
         if (CurrentUserUtils.propertiesWidth < 5) {
-            CurrentUserUtils.propertiesWidth = 250;
+            action(() => (CurrentUserUtils.propertiesWidth = 250));
         }
     }
 
