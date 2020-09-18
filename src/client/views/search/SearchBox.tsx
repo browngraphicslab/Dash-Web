@@ -530,10 +530,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                         style={{ cursor: "hand", color: "black", padding: 1, position: "relative" }} /></div>
                                 </Tooltip>
                             </div>
-                            <div style={{ position: "absolute", left: 200, width: 30, zIndex: 9000, color: "grey", background: "white", }}>
+                            <div style={{ position: "absolute", left: 220, width: 30, zIndex: 9000, color: "grey", background: "white", }}>
                                 {`${this._results.length}` + " of " + `${this.realTotalResults}`}
                             </div>
-                            <div style={{ cursor: "default", left: 235, position: "absolute", }}>
+                            {/* <div style={{ cursor: "default", left: 235, position: "absolute", }}>
                                 <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} >
                                     <div>
                                         <FontAwesomeIcon icon={"filter"} size="lg"
@@ -542,7 +542,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                             onClick={action(() => this.setSearchFilter(this.currentSelectedCollection, this.filter ? undefined : this.docsforfilter))} />
                                     </div>
                                 </Tooltip>
-                            </div>
+                            </div> */}
                             {this.scopeButtons}
                         </div>
                     </div >

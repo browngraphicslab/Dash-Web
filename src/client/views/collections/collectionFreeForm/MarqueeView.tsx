@@ -25,6 +25,7 @@ import "./MarqueeView.scss";
 import React = require("react");
 import { Id } from "../../../../fields/FieldSymbols";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { PresMovement } from "../../nodes/PresBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -394,7 +395,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (curPres) {
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
-            pinDoc.presZoomButton = true;
+            pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;

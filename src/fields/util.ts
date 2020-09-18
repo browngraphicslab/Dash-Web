@@ -111,7 +111,7 @@ export function makeEditable() {
     _setter = _setterImpl;
 }
 var _overrideAcl = false;
-export function OVERRIDE_ACL(val: boolean) {
+export function OVERRIDE_acl(val: boolean) {
     _overrideAcl = val;
 }
 
@@ -168,7 +168,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
 
         if (currentUserGroups.includes("Admin")) return AclAdmin;
 
-        // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
+        // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
         let effectiveAcl = AclPrivate;
@@ -198,11 +198,11 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
 }
 /**
  * Recursively distributes the access right for a user across the children of a document and its annotations.
- * @param key the key storing the access right (e.g. ACL-groupname)
+ * @param key the key storing the access right (e.g. acl-groupname)
  * @param acl the access right being stored (e.g. "Can Edit")
  * @param target the document on which this access right is being set
- * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the ACLs from the collection)
- * inheritingFromCollection is not currently being used but could be used if ACL assignment defaults change
+ * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the acls from the collection)
+ * inheritingFromCollection is not currently being used but could be used if acl assignment defaults change
  */
 export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
 
@@ -271,8 +271,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
-    if (typeof prop === "string" && prop.startsWith("ACL") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
-    // if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
+    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {

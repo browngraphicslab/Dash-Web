@@ -369,9 +369,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else { return undefined; }
+        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get notACollection() {
@@ -387,12 +385,37 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const targetDoc = this.selectedDoc;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
-            <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderRight: "1px solid gray" }}
+            <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderLeft: "1px solid gray" }}
                 onClick={e => TabDocView.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
             </button>
         </Tooltip>;
     }
+
+    @computed
+    get pinWithViewButton() {
+        const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
+        const targetDoc = this.selectedDoc;
+        return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+            <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
+                onClick={e => {
+                    if (targetDoc) {
+                        TabDocView.PinDoc(targetDoc, false);
+                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                        const x = targetDoc._panX;
+                        const y = targetDoc._panY;
+                        const scale = targetDoc._viewScale;
+                        activeDoc.presPinView = true;
+                        activeDoc.presPinViewX = x;
+                        activeDoc.presPinViewY = y;
+                        activeDoc.presPinViewScale = scale;
+                    }
+                }}>
+                {presPinWithViewIcon}
+            </button>
+        </Tooltip>;
+    }
+
 
     @undoBatch
     onAlias = () => {
@@ -449,33 +472,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </Tooltip>;
     }
 
-    @computed
-    get pinWithViewButton() {
-        const targetDoc = this.selectedDoc;
-        if (targetDoc) {
-            const x = targetDoc._panX;
-            const y = targetDoc._panY;
-            const scale = targetDoc._viewScale;
-        }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
-            <button className="antidmodeMenu-button" style={{ borderRight: "1px solid gray" }}
-                onClick={e => {
-                    if (targetDoc) {
-                        TabDocView.PinDoc(targetDoc, false);
-                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                        const x = targetDoc._panX;
-                        const y = targetDoc._panY;
-                        const scale = targetDoc._viewScale;
-                        activeDoc.presPinView = true;
-                        activeDoc.presPinViewX = x;
-                        activeDoc.presPinViewY = y;
-                        activeDoc.presPinViewScale = scale;
-                    }
-                }}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-marker" />
-            </button>
-        </Tooltip>;
-    }
 
 
     render() {
@@ -485,8 +481,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <div className="collectionViewBaseChrome">
                         {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {!this._buttonizableCommands ? (null) : this.templateChrome}
-
-
                         {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
                                 <button className={"antimodeMenu-button"} key="float"
@@ -497,7 +491,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             </Tooltip>}
                         {this.notACollection ? (null) : this.lightboxButton}
                         {this.aliasButton}
-                        {this.pinButton}
+                        {/* {this.pinButton} */}
                         {this.pinWithViewButton}
                     </div>
                     {this.subChrome}
@@ -899,14 +893,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
             if (docs instanceof Doc) {
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "acl" && key[0] !== "_"));
                 return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
                 const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
+                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "acl" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }

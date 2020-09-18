@@ -121,7 +121,7 @@ const AclMap = new Map<string, symbol>([
 export function fetchProto(doc: Doc) {
     const permissions: { [key: string]: symbol } = {};
 
-    Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+    Object.keys(doc).filter(key => key.startsWith("acl")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
 
     if (Object.keys(permissions).length) doc[AclSym] = permissions;
 
@@ -253,7 +253,7 @@ export class Doc extends RefField {
                     const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
-                    if (fKey.startsWith("ACL")) {
+                    if (fKey.startsWith("acl")) {
                         fetchProto(this);
                     }
                     this[UpdatingFromServer] = false;
@@ -261,7 +261,7 @@ export class Doc extends RefField {
                         DocServer.GetRefField(this[Id], true);
                     }
                 };
-                if (sameAuthor || fKey.startsWith("ACL") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
@@ -775,7 +775,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
-        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
+        Doc.UserDoc().defaultAclPrivate && (copy["acl-Public"] = "Not Shared");
         return copy;
     }
 
@@ -803,7 +803,7 @@ export namespace Doc {
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
-            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
+            Doc.UserDoc().defaultAclPrivate && (applied["acl-Public"] = "Not Shared");
             return applied;
         }
         return undefined;

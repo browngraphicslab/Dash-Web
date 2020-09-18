@@ -65,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
+            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollY, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
@@ -83,7 +83,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         hindexed[timecode] = h as any as number;
         windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
-        scrollIndexed[timecode] = scroll as any as number;
+        if (scroll) scrollIndexed[timecode] = scroll as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
         d["h-indexed"] = new List<number>(hindexed);
@@ -110,10 +110,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setupScroll(doc: Doc, timecode: number) {
         const scrollList = new List<number>();
-        scrollList[timecode] = NumCast(doc._scrollTop);
+        scrollList[timecode] = NumCast(doc._scrollY);
         doc["scroll-indexed"] = scrollList;
         doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
-        doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+        doc._scrollY = ComputedField.MakeInterpolated("scroll", "activeFrame");
     }
 
 

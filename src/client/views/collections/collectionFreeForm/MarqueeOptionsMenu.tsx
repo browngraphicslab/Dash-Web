@@ -24,6 +24,7 @@ export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     render() {
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 19, transform: 'translate(-2px, -2px)' }} />;
         const buttons = [
             <Tooltip key="group" title={<><div className="dash-tooltip">Create a Collection</div></>} placement="bottom">
                 <button
@@ -53,12 +54,11 @@ export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
                     <FontAwesomeIcon icon="font" size="lg" />
                 </button>
             </Tooltip>,
-            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin to presentation with selected view</div></>} placement="bottom">
+            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin with selected view</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
                     onPointerDown={this.pinWithView}>
-                    <FontAwesomeIcon icon="map-pin" size="lg" />
-                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(-4px, -22px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
+                    <>{presPinWithViewIcon}</>
                 </button>
             </Tooltip>,
         ];

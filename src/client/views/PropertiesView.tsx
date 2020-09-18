@@ -43,10 +43,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
-    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
+    @computed get selectedDoc() { console.log(this.selectedDocumentView?.rootDoc.title); return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (PresBox.Instance?._selectedArray.length) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -168,7 +168,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate", "tags"];
             const noviceLayoutFields = ["_curPage"];
-            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL"))),
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("acl"))),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
                 const docvals = new Set<any>();
@@ -416,13 +416,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         //     if (Doc.UserDoc().sidebarUsersDisplayed) {
         //         for (const [name, value] of Object.entries(sidebarUsersDisplayed!)) {
-        //             if (value === true && !this.selectedDoc![`ACL-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
+        //             if (value === true && !this.selectedDoc![`acl-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
         //         }
         //     }
         // })
 
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.every(doc => doc["ACL-Public"] === docs[0]["ACL-Public"]) ? (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None) : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.every(doc => doc["acl-Public"] === docs[0]["acl-Public"]) ? (AclMap.get(target[AclSym]?.["acl-Public"]) || SharingPermissions.None) : "-multiple-"));
         tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-"));
         if (Doc.CurrentUserEmail !== target.author && docs.every(doc => doc.author === docs[0].author)) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
 
@@ -1012,6 +1012,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const type = PresBox.Instance.activeItem?.type;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -1038,7 +1039,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => this.openPresProgressivize = !this.openPresProgressivize)}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
@@ -1051,7 +1052,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
