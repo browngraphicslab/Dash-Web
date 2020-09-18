@@ -518,7 +518,8 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
-export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number, rightClick = true) {
+export function simulateMouseClick(element: Element | null | undefined, x: number, y: number, sx: number, sy: number, rightClick = true) {
+    if (!element) return;
     ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
         new PointerEvent(event, {
             view: window,
