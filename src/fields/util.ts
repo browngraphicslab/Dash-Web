@@ -204,7 +204,10 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
  * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the acls from the collection)
  * inheritingFromCollection is not currently being used but could be used if acl assignment defaults change
  */
-export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
+export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean, visited?: Doc[]) {
+    if (!visited) visited = [] as Doc[];
+    if (visited.includes(target)) return;
+    visited.push(target);
 
     const HierarchyMapping = new Map<string, number>([
         ["Not Shared", 0],
@@ -232,29 +235,29 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         const aliases = DocListCast(dataDoc.aliases);
         if (aliases.length) {
             aliases.map(alias => {
-                alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection);
+                alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection, visited);
             });
         }
 
         // maps over the children of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
             if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection);
+                distributeAcls(key, acl, d, inheritingFromCollection, visited);
             }
             const data = d[DataSym];
             if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, data, inheritingFromCollection);
+                distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
 
         // maps over the annotations of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
             if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection);
+                distributeAcls(key, acl, d, inheritingFromCollection, visited);
             }
             const data = d[DataSym];
             if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, data, inheritingFromCollection);
+                distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
     }
