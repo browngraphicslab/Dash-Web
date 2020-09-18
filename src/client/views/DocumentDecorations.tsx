@@ -171,19 +171,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
-                if (e.ctrlKey) {
+                if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
                     const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
                     alias.context = undefined;
                     //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
                     CollectionDockingView.AddSplit(alias, "right");
-                } else if (e.shiftKey) {
+                } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
                     const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
                     alias.context = undefined;
                     alias.x = -alias[WidthSym]() / 2;
                     alias.y = -alias[HeightSym]() / 2;
                     //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
                     CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
-                } else {
+                } else {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(selectedDocs[0].props.Document, "right");
                 }
             }
@@ -589,7 +589,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
                 </div></Tooltip>);
 
-        const openIcon = !canOpen ? (null) : <Tooltip title={<div className="dash-tooltip">Open In a New Pane</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
+        const openIcon = !canOpen ? (null) : <Tooltip title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
             {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
         </div>
         </Tooltip>;

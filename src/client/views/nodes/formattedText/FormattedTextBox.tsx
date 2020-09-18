@@ -949,7 +949,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
-        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight, 0)));
+        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight)));
     }
 
     pushToGoogleDoc = async () => {
