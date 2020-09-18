@@ -895,7 +895,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get showOverlappingTitle() {
         const excluded = ["PresBox", /* "FormattedTextBox", */ "FontIconBox"]; // bcz: shifting the title for texst causes problems with collaborative use when some people see titles, and others don't
-        return this.ShowTitle && !excluded.includes(StrCast(this.layoutDoc.layout)) ? this.ShowTitle : undefined;
+        return !excluded.includes(StrCast(this.layoutDoc.layout));
     }
     chromeHeight = () => this.showOverlappingTitle ? 1 : 25;
 
