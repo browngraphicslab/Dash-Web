@@ -169,7 +169,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         })).observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ selected: selected(), color: this.tabColor, title: this.tab.titleElement[0] }),
+        this._tabReaction = reaction(() => ({ selected: selected(), color: this.tabColor, title: this.tab?.titleElement[0] }),
             ({ selected, color, title }) => title && (title.style.backgroundColor = selected ? color : ""),
             { fireImmediately: true });
     }
@@ -318,7 +318,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         </>;
     }
     focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
-        // this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
+        if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
+            this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
+        }
         afterFocus?.();
     }
     setView = action((view: DocumentView) => this._view = view);
