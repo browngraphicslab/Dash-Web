@@ -434,21 +434,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
-            if (e.ctrlKey && !element.props.Document._nativeHeight) element.toggleNativeDimensions();
+        SelectionManager.SelectedDocuments().forEach(action((docView: DocumentView) => {
+            if (e.ctrlKey && !docView.props.Document._nativeHeight) docView.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = Document(element.rootDoc);
-                let nwidth = returnVal(element.NativeWidth?.(), doc._nativeWidth);
-                let nheight = returnVal(element.NativeHeight?.(), doc._nativeHeight);
+                const doc = Document(docView.rootDoc);
+                let nwidth = returnVal(docView.NativeWidth?.(), doc._nativeWidth);
+                let nheight = returnVal(docView.NativeHeight?.(), doc._nativeHeight);
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;
-                const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
+                const scale = docView.props.ScreenToLocalTransform().Scale * docView.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (e.ctrlKey || (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                    if (e.ctrlKey || (!dragBottom || !docView.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
                         if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                         else dW = dH * nwidth / nheight;
                     }
@@ -458,7 +458,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
-                const fieldKey = Doc.LayoutFieldKey(doc);
+                const fieldKey = docView.LayoutFieldKey;
                 if (fixedAspect && (!nwidth || !nheight)) {
                     doc[DataSym][fieldKey + "-nativeWidth"] = doc._nativeWidth = nwidth = doc._width || 0;
                     doc[DataSym][fieldKey + "-nativeHeight"] = doc._nativeHeight = nheight = doc._height || 0;
@@ -484,7 +484,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect || (dragBottom && (e.ctrlKey || element.layoutDoc._fitWidth))) {
+                        if (!fixedAspect || (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth))) {
                             doc[DataSym][fieldKey + "-nativeHeight"] = doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;

@@ -132,7 +132,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     addDocument = (value: string, shiftDown?: boolean) => {
         if (!value) return false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, title: value, _autoHeight: true });
+        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
@@ -265,7 +265,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
         ContextMenu.Instance.setDefaultItem("::", (name: string): void => {
             Doc.GetProto(this.props.parent.props.Document)[name] = "";
-            const created = Docs.Create.TextDocument("", { title: name, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 250, _autoHeight: true });
+            const created = Docs.Create.TextDocument("", { title: name, _width: 250, _autoHeight: true });
             if (created) {
                 if (this.props.parent.Document.isTemplateDoc) {
                     Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);

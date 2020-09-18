@@ -15,7 +15,7 @@ import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, Wid
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
-import { Id } from '../../../../fields/FieldSymbols';
+import { Id, Copy } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
 import { RichTextField } from "../../../../fields/RichTextField";
@@ -577,6 +577,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const cm = ContextMenu.Instance;
 
         const changeItems: ContextMenuProps[] = [];
+        changeItems.push({ description: "plain", event: undoBatch(() => Doc.setNativeView(this.rootDoc)), icon: "eye" });
         const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
         DocListCast(noteTypesDoc?.data).forEach(note => {
             changeItems.push({
@@ -586,7 +587,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "plain", event: undoBatch(() => Doc.setNativeView(this.rootDoc)), icon: "eye" });
         !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
@@ -618,7 +618,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
         // this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        !Doc.UserDoc().noviceMode && appearanceItems.push({ description: "Reset default note style", event: () => this.rootDoc.layoutKey = "layout", icon: "eye" });
         !Doc.UserDoc().noviceMode && appearanceItems.push({
             description: "Make Default Layout", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
@@ -639,6 +638,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.rootDoc._width = this.layoutDoc._width || 300;  // are stored on the template, since we're getting rid of the old template
                         this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
                         this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                        this.rootDoc.backgroundColor = Cast(this.layoutDoc.backgroundColor, "string", null);
                     }, 10);
                 }
                 Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc);
@@ -1233,7 +1233,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
-            FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
+            const target = (e.target as any).parentElement; // hrefs are store don the database of the <a> node that wraps the hyerlink <span>
+            FormattedTextBoxComment.update(editor, undefined, target?.dataset?.targethrefs);
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1487,7 +1488,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
-        if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+        if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
@@ -1506,18 +1507,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }, 10);
             } else {
                 try {
-                    // let ele = this._boxRef.current;
-                    // while (ele && ele.className !== "documentView-contentsView") ele = ele.parentElement as any;
-                    // if (ele) {
-                    //     const docHeight = Number(getComputedStyle(ele).height.replace("px", ""));
-                    //     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
-                    //     const outer = docHeight - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    //     this.rootDoc._height = newHeight + outer;
-                    //     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
-                    // }
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    this.rootDoc._height = newHeight + outer;
+                    this.rootDoc._height = newHeight + Math.max(0, outer);
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }

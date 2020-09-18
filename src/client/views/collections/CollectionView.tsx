@@ -270,15 +270,15 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
         subItems.push({ description: "Schema", event: () => func(CollectionViewType.Schema), icon: "th-list" });
         subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
-        subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
-        subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
+        !Doc.UserDoc().noviceMode && subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
+        subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
         subItems.push({ description: "Multicolumn", event: () => func(CollectionViewType.Multicolumn), icon: "columns" });
         subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
         subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });
         subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
         subItems.push({ description: "3D Carousel", event: () => func(CollectionViewType.Carousel3D), icon: "columns" });
-        subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
-        subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
+        !Doc.UserDoc().noviceMode && subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
+        !Doc.UserDoc().noviceMode && subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
         subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 

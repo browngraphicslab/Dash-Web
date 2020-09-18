@@ -22,7 +22,6 @@ import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentView } from '../nodes/DocumentView';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { Templates } from '../Templates';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { CollectionViewType, CollectionView } from './CollectionView';
@@ -185,7 +184,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10, templates: new List<string>([Templates.Title.Layout]) });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -533,7 +532,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.containingCollection}
             />;
         return <>
-            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title"
+            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,

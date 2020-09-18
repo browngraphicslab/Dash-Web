@@ -51,6 +51,7 @@ const storage = "data";
 interface ValidatedUser {
     user: User;
     notificationDoc: Doc;
+    userColor: string;
 }
 
 
@@ -58,7 +59,7 @@ interface ValidatedUser {
 export class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false; // whether the SharingManager modal is open or not
-    @observable private users: ValidatedUser[] = []; // the list of users with notificationDocs
+    @observable public users: ValidatedUser[] = []; // the list of users with notificationDocs
     @observable private targetDoc: Doc | undefined; // the document being shared
     @observable private targetDocView: DocumentView | undefined; // the DocumentView of the document being shared
     // @observable private copied = false;
@@ -129,9 +130,10 @@ export class SharingManager extends React.Component<{}> {
                     const userDocument = await DocServer.GetRefField(user.userDocumentId);
                     if (userDocument instanceof Doc) {
                         const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
+                        const userColor = StrCast(userDocument.userColor);
                         runInAction(() => {
                             if (notificationDoc instanceof Doc) {
-                                this.users.push({ user, notificationDoc });
+                                this.users.push({ user, notificationDoc, userColor });
                             }
                         });
                     }
@@ -443,7 +445,7 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`ACL-${user.email.replace('.', '_')}`) : true).map(({ user, notificationDoc }) => {
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`ACL-${user.email.replace('.', '_')}`) : true).map(({ user, notificationDoc, userColor }) => {
             const userKey = `ACL-${user.email.replace('.', '_')}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
@@ -459,7 +461,7 @@ export class SharingManager extends React.Component<{}> {
                             <select
                                 className={"permissions-dropdown"}
                                 value={permissions}
-                                onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
+                                onChange={e => this.setInternalSharing({ user, notificationDoc, userColor }, e.currentTarget.value)}
                             >
                                 {this.sharingOptions(uniform)}
                             </select>

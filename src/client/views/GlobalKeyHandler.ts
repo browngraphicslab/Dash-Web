@@ -257,7 +257,7 @@ export class KeyManager {
                 let count = 1;
                 const list: Doc[] = [];
                 const targetDataDoc = Doc.GetProto(first.props.Document);
-                const fieldKey = Doc.LayoutFieldKey(first.props.Document);
+                const fieldKey = first.LayoutFieldKey;
                 const docList = DocListCast(targetDataDoc[fieldKey]);
                 docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
                     count++;

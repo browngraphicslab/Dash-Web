@@ -934,7 +934,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     backgroundHalo = () => BoolCast(this.Document._useClusters);
-    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
+    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             addDocument: this.props.addDocument,
@@ -949,7 +949,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
-            layoutKey: undefined,
+            layoutKey: StrCast(this.props.Document.childLayoutKey),
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
