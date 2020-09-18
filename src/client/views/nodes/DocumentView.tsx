@@ -1045,10 +1045,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={this.ShowTitle.split(";").map(field => field + ":" + (this.props.DataDoc || this.props.Document)[field]?.toString()).join(" ")}
+                    contents={this.ShowTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
                     display={"block"} fontSize={10}
                     GetValue={() => ""}
-                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true)}
+                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true)}
                 />
             </div>);
         return !this.ShowTitle && !showCaption ?

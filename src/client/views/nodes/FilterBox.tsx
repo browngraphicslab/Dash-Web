@@ -47,7 +47,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
         const keys = new Set<string>(noviceFields);
         this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
-        return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("ACL")) || noviceFields.includes(key)).sort();
+        return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("acl")) || noviceFields.includes(key)).sort();
     }
     /**
      * Responds to clicking the check box in the flyout menu

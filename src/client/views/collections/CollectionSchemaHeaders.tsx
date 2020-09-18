@@ -299,7 +299,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 this.updateFilter();
                 let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
                 const blockedkeys = ["system", "title-custom", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
-                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
+                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("acl"));
                 if (keyOptions.length) {
                     this.onSelect(keyOptions[0]);
                 } else if (this._searchTerm !== "" && this.props.canAddNew) {
@@ -333,7 +333,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         const blockedkeys = ["proto", "x", "y", "zIndex", "_timeStampOnEnter", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
-        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
+        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("acl"));
 
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
