@@ -80,6 +80,7 @@ export interface DocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     pointerEvents?: string;
+    contentsPointerEvents?: string;
     focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -892,11 +893,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
-    chromeHeight = () => {
-        const excluded = ["PresBox", "FormattedTextBox", "FontIconBox"];
-        const showTextTitle = this.ShowTitle && !excluded.includes(StrCast(this.layoutDoc.layout)) ? this.ShowTitle : undefined;
-        return showTextTitle ? 25 : 1;
+    @computed get showOverlappingTitle() {
+        const excluded = ["PresBox", /* "FormattedTextBox", */ "FontIconBox"]; // bcz: shifting the title for texst causes problems with collaborative use when some people see titles, and others don't
+        return !excluded.includes(StrCast(this.layoutDoc.layout));
     }
+    chromeHeight = () => this.showOverlappingTitle ? 1 : 25;
 
     @computed get finalLayoutKey() {
         if (typeof this.props.layoutKey === "string") {
@@ -913,7 +914,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get contents() {
         const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();
-        return (<div className="documentView-contentsView" style={{ borderRadius: "inherit", width: "100%", height: "100%" }}>
+        return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any, borderRadius: "inherit", width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
                 searchFilterDocs={this.props.searchFilterDocs}
@@ -1022,7 +1023,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
-        const showTextTitle = this.ShowTitle && this.rootDoc.type === DocumentType.RTF ? this.ShowTitle : undefined;
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
@@ -1040,7 +1040,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!this.ShowTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
-                position: showTextTitle ? "relative" : "absolute",
+                position: this.showOverlappingTitle ? "absolute" : "relative",
                 background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.UserDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
@@ -1054,7 +1054,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return !this.ShowTitle && !showCaption ?
             this.contents :
             <div className="documentView-styleWrapper" >
-                {this.Document.type !== DocumentType.RTF ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
+                {this.showOverlappingTitle ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
                 {captionView}
             </div>;
     }

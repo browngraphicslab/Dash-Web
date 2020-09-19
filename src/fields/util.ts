@@ -232,12 +232,8 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         dataDocChanged = true;
 
         // maps over the aliases of the document
-        const aliases = DocListCast(dataDoc.aliases);
-        if (aliases.length) {
-            aliases.map(alias => {
-                alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection, visited);
-            });
-        }
+        const links = DocListCast(dataDoc.links);
+        links.forEach(alias => distributeAcls(key, acl, alias, inheritingFromCollection, visited));
 
         // maps over the children of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {

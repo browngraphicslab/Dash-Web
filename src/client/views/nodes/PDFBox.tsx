@@ -22,6 +22,7 @@ import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../fields/documentSchemas';
 import { CollectionViewType } from '../collections/CollectionView';
+import { TraceMobx } from '../../../fields/util';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -264,6 +265,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     _pdfjsRequested = false;
     render() {
+        TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) this._everActive = true;
         if (pdfUrl && this._everActive) {

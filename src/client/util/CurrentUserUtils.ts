@@ -871,7 +871,7 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc.mySharedDocs === undefined) {
-            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
@@ -879,7 +879,7 @@ export class CurrentUserUtils {
     static setupImportSidebar(doc: Doc) {
         if (doc.myImportDocs === undefined) {
             doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
-                title: "My ImportDocuments", forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true,
+                title: "My ImportDocuments", forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
                 childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
         }

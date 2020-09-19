@@ -269,46 +269,45 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
         return <>
-            {this._document?.hideMinimap ? (null) :
-                <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
-                    <CollectionFreeFormView
-                        Document={this._document!}
-                        LibraryPath={emptyPath}
-                        CollectionView={undefined}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
-                        noOverlay={true} // don't render overlay Docs since they won't scale
-                        active={returnTrue}
-                        select={emptyFunction}
-                        dropAction={undefined}
-                        isSelected={returnFalse}
-                        dontRegisterView={true}
-                        annotationsKey={""}
-                        fieldKey={Doc.LayoutFieldKey(this._document!)}
-                        bringToFront={emptyFunction}
-                        rootSelected={returnTrue}
-                        addDocument={returnFalse}
-                        moveDocument={returnFalse}
-                        removeDocument={returnFalse}
-                        ContentScaling={returnOne}
-                        PanelWidth={this.returnMiniSize}
-                        PanelHeight={this.returnMiniSize}
-                        ScreenToLocalTransform={this.ScreenToLocalTransform}
-                        renderDepth={0}
-                        whenActiveChanged={emptyFunction}
-                        focus={emptyFunction}
-                        backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
-                        addDocTab={this.addDocTab}
-                        pinToPres={TabDocView.PinDoc}
-                        docFilters={CollectionDockingView.Instance.docFilters}
-                        searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                        fitToBox={true}
-                    />
-                    <div className="miniOverlay" onPointerDown={this.miniDown} >
-                        <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
-                    </div>
-                </div>}
+            <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
+                <CollectionFreeFormView
+                    Document={this._document!}
+                    LibraryPath={emptyPath}
+                    CollectionView={undefined}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
+                    noOverlay={true} // don't render overlay Docs since they won't scale
+                    active={returnTrue}
+                    select={emptyFunction}
+                    dropAction={undefined}
+                    isSelected={returnFalse}
+                    dontRegisterView={true}
+                    annotationsKey={""}
+                    fieldKey={Doc.LayoutFieldKey(this._document!)}
+                    bringToFront={emptyFunction}
+                    rootSelected={returnTrue}
+                    addDocument={returnFalse}
+                    moveDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.returnMiniSize}
+                    PanelHeight={this.returnMiniSize}
+                    ScreenToLocalTransform={this.ScreenToLocalTransform}
+                    renderDepth={0}
+                    whenActiveChanged={emptyFunction}
+                    focus={emptyFunction}
+                    backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+                    addDocTab={this.addDocTab}
+                    pinToPres={TabDocView.PinDoc}
+                    docFilters={CollectionDockingView.Instance.docFilters}
+                    searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
+                    fitToBox={true}
+                />
+                <div className="miniOverlay" onPointerDown={this.miniDown} >
+                    <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
+                </div>
+            </div>
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                 <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
@@ -354,7 +353,12 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-                {this._document._viewType !== CollectionViewType.Freeform ? (null) : this.renderMiniMap()}
+                {this._document._viewType !== CollectionViewType.Freeform || this._document.hideMinimap ? (null) : this.renderMiniMap()}
+                <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                    <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                        <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+                    </div>
+                </Tooltip>
             </>;
     }
 

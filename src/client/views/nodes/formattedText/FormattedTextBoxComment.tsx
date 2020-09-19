@@ -100,7 +100,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
             FormattedTextBoxComment.tooltip.style.display = "none";
-            FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
+            // FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
             FormattedTextBoxComment.tooltip.onpointerdown = async (e: PointerEvent) => {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
@@ -211,7 +211,7 @@ export class FormattedTextBoxComment {
                 FormattedTextBoxComment.SetState(FormattedTextBoxComment.textBox, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
             }
             if (mark && child && ((nbef && naft) || !noselection)) {
-                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " date=" + (new Date(mark.attrs.modified * 5000)).toDateString();
+                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " on " + (new Date(mark.attrs.modified * 1000)).toLocaleString();
                 set = "";
                 FormattedTextBoxComment.tooltipInput.style.display = "";
             }

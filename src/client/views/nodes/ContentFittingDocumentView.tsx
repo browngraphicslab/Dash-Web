@@ -1,14 +1,10 @@
 import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Transform } from "nodemailer/lib/xoauth2";
-import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
-import { ScriptField } from "../../../fields/ScriptField";
+import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnVal, OmitKeys } from "../../../Utils";
-import { dropActionType } from "../../util/DragManager";
-import { CollectionView } from "../collections/CollectionView";
+import { emptyFunction, OmitKeys, returnVal } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 
