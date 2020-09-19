@@ -210,15 +210,12 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     choosePath(url: URL) {
         const lower = url.href.toLowerCase();
-        if (url.protocol === "data") {
-            return url.href;
-        } else if (url.href.indexOf(window.location.origin) === -1) {
-            return Utils.CorsProxy(url.href);
-        } else if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) {
-            return url.href;//Why is this here
-        }
+        if (url.protocol === "data") return url.href;
+        if (url.href.indexOf(window.location.origin) === -1) return Utils.CorsProxy(url.href);
+        if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) return url.href;  //Why is this here
+
         const ext = path.extname(url.href);
-        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.layoutDoc[WidthSym]() < 100 ? "_s" : "_m";
+        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.props.PanelWidth() < 100 ? "_s" : "_m";
         return url.href.replace(ext, this._curSuffix + ext);
     }
 
@@ -323,8 +320,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     @computed get nativeSize() {
         TraceMobx();
-        const pw = this.props.PanelWidth?.() || 50;
-        const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], pw);
+        const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], 500);
         const nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1);
         const nativeOrientation = NumCast(this.dataDoc[this.fieldKey + "-nativeOrientation"], 1);
         return { nativeWidth, nativeHeight, nativeOrientation };

@@ -334,7 +334,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const bounds = e.currentTarget.getBoundingClientRect();
             this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
             this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
-            this.Interacting = true;
+            this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
             SelectionManager.SelectedDocuments()[0].props.setupDragLines?.(e.ctrlKey || e.shiftKey);
         }
