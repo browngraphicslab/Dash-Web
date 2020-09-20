@@ -121,7 +121,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const bullet = TreeView.makeTextBullet();
         bullet.context = this.doc;
         this.addDoc(bullet, childDocs.length ? childDocs[0] : undefined, true);
-        setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
     });
 
     editableTitle = (childDocs: Doc[]) => {
