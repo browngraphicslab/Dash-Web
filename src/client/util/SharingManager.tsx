@@ -152,13 +152,13 @@ export class SharingManager extends React.Component<{}> {
 
         const target = targetDoc || this.targetDoc!;
         const key = StrCast(group.groupName).replace(".", "_");
-        const ACL = `ACL-${key}`;
+        const acl = `acl-${key}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
-            GetEffectiveAcl(doc) === AclAdmin && distributeAcls(ACL, permission as SharingPermissions, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            GetEffectiveAcl(doc) === AclAdmin && distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (key !== "Public") {
                 const members: string[] = JSON.parse(StrCast(group.members));
@@ -198,7 +198,7 @@ export class SharingManager extends React.Component<{}> {
         }
         else {
             docs.forEach(doc => {
-                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls("ACL-Public", permission, doc);
+                if (GetEffectiveAcl(doc) === AclAdmin) distributeAcls("acl-Public", permission, doc);
             });
         }
     }
@@ -225,9 +225,9 @@ export class SharingManager extends React.Component<{}> {
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
             DocListCast(group.docsShared).forEach(doc => {
-                const ACL = `ACL-${StrCast(group.groupName)}`;
+                const acl = `acl-${StrCast(group.groupName)}`;
 
-                distributeAcls(ACL, SharingPermissions.None, doc);
+                distributeAcls(acl, SharingPermissions.None, doc);
 
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
@@ -244,14 +244,14 @@ export class SharingManager extends React.Component<{}> {
         const { user, notificationDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');
-        const ACL = `ACL-${key}`;
+        const acl = `acl-${key}`;
 
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
-            GetEffectiveAcl(doc) === AclAdmin && distributeAcls(ACL, permission as SharingPermissions, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            GetEffectiveAcl(doc) === AclAdmin && distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, doc);
             else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (doc.aliasOf as Doc || doc));
@@ -445,8 +445,8 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`ACL-${user.email.replace('.', '_')}`) : true).map(({ user, notificationDoc, userColor }) => {
-            const userKey = `ACL-${user.email.replace('.', '_')}`;
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${user.email.replace('.', '_')}`) : true).map(({ user, notificationDoc, userColor }) => {
+            const userKey = `acl-${user.email.replace('.', '_')}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
 
@@ -503,7 +503,7 @@ export class SharingManager extends React.Component<{}> {
                         <span className={"padding"}>Me</span>
                         <div className="edit-actions">
                             <div className={"permissions-dropdown"}>
-                                {targetDoc?.[`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`]}
+                                {targetDoc?.[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`]}
                             </div>
                         </div>
                     </div>
@@ -514,12 +514,12 @@ export class SharingManager extends React.Component<{}> {
         const publicDoc = new Doc;
         publicDoc.groupName = "Public";
         // the list of groups shared with
-        const groupListMap = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`ACL-${StrCast(groupName).replace('.', '_')}`) : true);
+        const groupListMap = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${StrCast(groupName).replace('.', '_')}`) : true);
         groupListMap.unshift(publicDoc);
         const groupListContents = groupListMap.map(group => {
-            const groupKey = `ACL-${StrCast(group.groupName)}`;
+            const groupKey = `acl-${StrCast(group.groupName)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
-            const permissions = uniform ? StrCast(targetDoc?.[`ACL-${StrCast(group.groupName)}`]) : "-multiple-";
+            const permissions = uniform ? StrCast(targetDoc?.[`acl-${StrCast(group.groupName)}`]) : "-multiple-";
 
             return !permissions ? (null) : (
                 <div

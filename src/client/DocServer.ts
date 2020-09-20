@@ -42,7 +42,7 @@ export namespace DocServer {
     export var PlaygroundFields: string[];
     export function setPlaygroundFields(livePlaygroundFields: string[]) {
         DocServer.PlaygroundFields = livePlaygroundFields;
-        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.Playground));
     }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {

@@ -394,8 +394,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed
     get pinWithViewButton() {
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 19 }} />;
+        const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
         return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
@@ -894,14 +893,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
             if (docs instanceof Doc) {
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "acl" && key[0] !== "_"));
                 return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
                 const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
-                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key[0] !== "_"));
+                    (key[0]?.toUpperCase() === key[0] && key.substring(0, 3) !== "acl" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }

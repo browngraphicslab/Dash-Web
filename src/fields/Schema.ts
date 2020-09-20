@@ -52,7 +52,7 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
             return field;
         },
         set(target: any, prop, value, receiver) {
-            receiver.doc && (receiver.doc[prop] = value);  // receiver.doc may be undefined as the result of a change in ACLs
+            receiver.doc && (receiver.doc[prop] = value);  // receiver.doc may be undefined as the result of a change in acls
             return true;
         }
     });

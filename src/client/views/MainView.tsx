@@ -86,7 +86,7 @@ export class MainView extends React.Component {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 

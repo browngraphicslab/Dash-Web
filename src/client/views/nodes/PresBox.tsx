@@ -222,10 +222,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 const bestTarget = DocumentManager.Instance.getFirstDocumentView(presTargetDoc)?.props.Document;
                 bestTarget && runInAction(() => {
                     if (activeItem.presMovement === PresMovement.Jump) {
-                        bestTarget!._viewTransition = '0s';
+                        bestTarget._viewTransition = '0s';
                     } else {
-                        bestTarget!._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
-                        setTimeout(() => bestTarget!._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
+                        bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
+                        setTimeout(() => bestTarget._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
                     }
                 });
             } else {
@@ -301,10 +301,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
-                bestTarget!._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
-                bestTarget!._panX = activeItem.presPinViewX;
-                bestTarget!._panY = activeItem.presPinViewY;
-                bestTarget!._viewScale = activeItem.presPinViewScale;
+                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
+                bestTarget._panX = activeItem.presPinViewX;
+                bestTarget._panY = activeItem.presPinViewY;
+                bestTarget._viewScale = activeItem.presPinViewScale;
             });
             //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         }
@@ -571,7 +571,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this.childDocs.includes(doc)) {
                 if (docs.length === i + 1) return false;
             } else if (doc.type === DocumentType.LABEL) {
-                const audio = Cast(doc.annotationOn, Doc, null) as Doc;
+                const audio = Cast(doc.annotationOn, Doc, null);
                 if (audio) {
                     audio.aliasOf instanceof Doc;
                     audio.presStartTime = NumCast(doc.audioStart);
@@ -617,9 +617,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const list = this._selectedArray.map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            if (tagDoc) return (
-                <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>
-            ); else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>
+            if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
         return list;
     }
@@ -996,8 +995,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get optionsDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 16, filter: 'invert(1)' }} />;
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 16, filter: 'invert(1)' }} />;
         if (activeItem && targetDoc) {
             return (
                 <div>
@@ -1048,8 +1046,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         const scale = targetDoc._viewScale;
                                         activeItem.presPinViewX = x;
                                         activeItem.presPinViewY = y;
-                                        activeItem.presPinViewScale = scale
-                                    }}>Update</div> : (null)}
+                                        activeItem.presPinViewScale = scale;
+                                    }}>Update</div> : (null)};
                             </div>
                             <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>

@@ -47,7 +47,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
         const keys = new Set<string>(noviceFields);
         this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
-        return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("ACL")) || noviceFields.includes(key)).sort();
+        return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("acl")) || noviceFields.includes(key)).sort();
     }
     /**
      * Responds to clicking the check box in the flyout menu
@@ -193,6 +193,16 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 }
 
+Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
+    const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);
+    for (let i = 0; i < docFilters.length; i += 3) {
+        const [header, value, state] = docFilters.slice(i, i + 3);
+        if (header === facetHeader && value === facetValue) {
+            return state;
+        }
+    }
+    return undefined;
+});
 Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) {
     const allCollectionDocs = DocListCast(CollectionDockingView.Instance?.props.Document.allDocuments);
     const set = new Set<string>();

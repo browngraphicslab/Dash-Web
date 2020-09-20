@@ -215,6 +215,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
+            contentsPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
             parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
@@ -239,15 +240,16 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         const nw = NumCast(layoutDoc._nativeWidth) || NumCast(dataDoc?.[`${layoutField}-nativeWidth`]);
         const nh = NumCast(layoutDoc._nativeHeight) || NumCast(dataDoc?.[`${layoutField}-nativeHeight`]);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
+        const hllimit = NumCast(this.layoutDoc.childLimitHeight, -1);
         if (!layoutDoc._fitWidth && nw && nh) {
             const aspect = nw && nh ? nh / nw : 1;
             if (!(this.layoutDoc._columnsFill)) wid = Math.min(this.getDocWidth(d), wid);
-            return wid * aspect;
+            return Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, wid * aspect);
         }
         return layoutDoc._fitWidth ?
             (!nh ? this.props.PanelHeight() - 2 * this.yMargin :
                 Math.min(wid * nh / (nw || 1), this.layoutDoc._autoHeight ? 100000 : this.props.PanelHeight() - 2 * this.yMargin)) :
-            Math.max(20, layoutDoc[HeightSym]());
+            Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, Math.max(20, layoutDoc[HeightSym]()));
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

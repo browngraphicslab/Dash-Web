@@ -1,7 +1,7 @@
 import { runInAction } from "mobx";
 import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclAddonly } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
 import { InkField } from "../../fields/InkField";
 import { List } from "../../fields/List";
@@ -51,6 +51,7 @@ import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { FilterBox } from "../views/nodes/FilterBox";
+import { SharingPermissions } from "../../fields/util";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -110,6 +111,8 @@ export interface DocumentOptions {
     _viewScale?: number;
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
+    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" sidebar views that are intended to document "menus"
+    childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
@@ -598,7 +601,7 @@ export namespace Docs {
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
-            if (Doc.UserDoc()?.defaultAclPrivate) viewDoc["ACL-Public"] = dataDoc["ACL-Public"] = "Not Shared";
+            if (Doc.UserDoc()?.defaultAclPrivate) viewDoc["acl-Public"] = dataDoc["acl-Public"] = "Not Shared";
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -980,6 +983,7 @@ export namespace DocUtils {
         Doc.GetProto(linkDoc)["anchor2-useLinkSmallAnchor"] = target.doc.useLinkSmallAnchor;
         linkDoc.linkDisplay = true;
         linkDoc.hidden = true;
+        Doc.GetProto(linkDoc)["acl-Public"] = linkDoc["acl-Public"] = SharingPermissions.Add;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 

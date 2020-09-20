@@ -727,7 +727,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance?.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + ((this.props.isSelected() || this.props.isChildActive()) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {

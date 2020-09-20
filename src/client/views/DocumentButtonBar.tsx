@@ -184,7 +184,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
@@ -195,8 +195,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
 
     @computed
     get pinWithViewButton() {
-        const presPinWithViewIcon = <img src={`/assets/${"pinWithView.png"}`}
-            style={{ width: 17, transform: 'translate(0, 1px)' }} />;
+        const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
             <div className="documentButtonBar-linker"
@@ -277,7 +276,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         this.props.views()[0]?.select(false);
         this._tooltipOpen = false;
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    })
+    });
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.view0!;

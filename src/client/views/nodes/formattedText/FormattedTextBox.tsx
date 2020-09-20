@@ -22,7 +22,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast, BoolCast } from "../../../../fields/Types";
-import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_acl, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -794,9 +794,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
-            OVERRIDE_ACL(true);
+            OVERRIDE_acl(true);
             this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
-            OVERRIDE_ACL(false);
+            OVERRIDE_acl(false);
         }
     }
     componentDidMount() {
@@ -949,7 +949,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
-        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight, 0)));
+        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight)));
     }
 
     pushToGoogleDoc = async () => {
