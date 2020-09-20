@@ -267,7 +267,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     render() {
         TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
-        if (this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) this._everActive = true;
+        if (true) {//this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) {
+            this._everActive = true;
+        }
         if (pdfUrl && this._everActive) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;

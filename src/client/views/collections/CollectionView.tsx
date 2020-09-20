@@ -185,7 +185,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @action.bound
     removeDocument = (doc: any): boolean => {
         const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
-        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
+        const docAcl = GetEffectiveAcl(doc);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || docAcl === AclAdmin) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
@@ -193,8 +194,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             if (toRemove.length !== 0) {
                 const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                 toRemove.forEach(doc => {
-                    Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
-                    recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                    const ind = (targetDataDoc[this.props.fieldKey] as List<Doc>).indexOf(doc);
+                    (targetDataDoc[this.props.fieldKey] as List<Doc>).splice(ind, 0);
+                    if (ind !== -1) {
+                        Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
+                        recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                    }
                 });
                 return true;
             }
