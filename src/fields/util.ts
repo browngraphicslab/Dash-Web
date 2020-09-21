@@ -165,10 +165,9 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
+    if (currentUserGroups.includes("Admin")) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
-
-        if (currentUserGroups.includes("Admin")) return AclAdmin;
 
         // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
