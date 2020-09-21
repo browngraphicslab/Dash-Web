@@ -43,7 +43,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
-    @computed get selectedDoc() { console.log(this.selectedDocumentView?.rootDoc.title); return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
         if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
@@ -422,9 +422,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         // })
 
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.every(doc => doc["acl-Public"] === docs[0]["acl-Public"]) ? (AclMap.get(target[AclSym]?.["acl-Public"]) || SharingPermissions.None) : "-multiple-"));
-        tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-"));
-        if (Doc.CurrentUserEmail !== target.author && docs.every(doc => doc.author === docs[0].author)) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
+        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Public"] === docs[0]["acl-Public"]) ? (AclMap.get(target[AclSym]?.["acl-Public"]) || SharingPermissions.None) : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.filter(doc => doc).every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-"));
+        if (Doc.CurrentUserEmail !== target.author && docs.filter(doc => doc).every(doc => doc.author === docs[0].author)) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
@@ -905,36 +905,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                     <div className="propertiesView-acls-checkbox-text">Layout</div>
                                 </div>) : (null)}
                                 {this.sharingTable}
-                                {/* <div className="change-buttons">
-                            <button
-                                onPointerDown={action(() => this.addButtonPressed = !this.addButtonPressed)}
-                            >
-                                <FontAwesomeIcon icon={fa.faPlus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} />
-                            </button>
-                            <button
-                                id="sharingProperties-removeUser"
-                                onPointerDown={() => this.handleUserChange(this.selectedUser, false)}
-                                style={{ backgroundColor: this.selectedUser ? "#121721" : "#777777" }}
-                            ><FontAwesomeIcon icon={fa.faMinus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
-                            <button onClick={() => SharingManager.Instance.open(this.selectedDocumentView!)}><FontAwesomeIcon icon={fa.faCog} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
-                            {this.addButtonPressed ?
-                                // <input type="text" onKeyDown={this.handleKeyPress} /> :
-                                <select onChange={e => this.handleUserChange(e.target.value, true)}>
-                                    <option selected disabled hidden>
-                                        Add users
-                                    </option>
-                                    {SharingManager.Instance.users.map(user =>
-                                        (<option value={user.user.email}>
-                                            {user.user.email}
-                                        </option>)
-                                    )}
-                                    {GroupManager.Instance.getAllGroups().map(group =>
-                                        (<option value={StrCast(group.groupName)}>
-                                            {StrCast(group.groupName)}
-                                        </option>))}
-                                </select> :
-                                null}
-                        </div> */}
                             </div>}
                     </div>
 
@@ -1078,19 +1048,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
                     </div>
-                    {/* <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
-                            onPointerDown={acition(() => { this.openSharing = !this.openSharing; })}
-                            style={{ backgroundColor: this.openSharing ? "black" : "" }}>
-                            Sharing {"&"} Permissions
-                        <div className="propertiesView-sharing-title-icon">
-                                <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openSharing ? <div className="propertiesView-sharing-content">
-                            {this.sharingTable}
-                        </div> : null}
-                    </div> */}
                 </div>;
             }
         }
