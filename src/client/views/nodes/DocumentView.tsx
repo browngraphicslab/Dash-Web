@@ -1092,6 +1092,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
         if (this.props.Document.hidden) return (null);

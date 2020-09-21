@@ -246,6 +246,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
+        TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <div className="pdfBox-background"></div>
