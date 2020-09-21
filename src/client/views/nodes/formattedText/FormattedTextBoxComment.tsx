@@ -143,9 +143,12 @@ export class FormattedTextBoxComment {
 
     public static Hide() {
         FormattedTextBoxComment.textBox = undefined;
-        FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
-        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
         FormattedTextBoxComment.linkDoc = undefined;
+        FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
+        try {
+            ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+            FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
+        } catch (e) { }
     }
     public static SetState(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
@@ -228,17 +231,17 @@ export class FormattedTextBoxComment {
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
                 try {
                     ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+                    FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
                 } catch (e) { }
-                FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
                 FormattedTextBoxComment.tooltipText = document.createElement("div");
                 FormattedTextBoxComment.tooltipText.style.width = "100%";
                 FormattedTextBoxComment.tooltipText.style.height = "100%";
                 FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
                 FormattedTextBoxComment.tooltipText.style.cursor = "pointer";
-                FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
-
                 FormattedTextBoxComment.tooltipText.textContent = "URL: " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;
+                FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
+
                 if (href.startsWith("https://en.wikipedia.org/wiki/")) {
                     wiki().page(href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
                 } else {
