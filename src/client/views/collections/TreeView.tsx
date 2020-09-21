@@ -121,12 +121,16 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
     @undoBatch @action remove = (doc: Doc | Doc[], key: string) => {
         this.props.treeView.props.select(false);
-        return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
+        const ind = this.dataDoc[key].indexOf(doc);
+        const res = (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
+        res && ind > 0 && DocumentManager.Instance.getDocumentView(this.dataDoc[key][ind - 1], this.props.treeView.props.CollectionView)?.select(false);
+        return res;
     }
     @undoBatch @action removeDoc = (doc: Doc | Doc[]) => this.remove(doc, Doc.LayoutFieldKey(this.doc));
 
     constructor(props: any) {
         super(props);
+        console.log("Ttile = " + this.props.document.title);
         const titleScript = ScriptField.MakeScript(`{setInPlace(self, 'editTitle', '${this._uniqueId}'); documentView.select();} `, { documentView: "any" });
         const openScript = ScriptField.MakeScript(`openOnRight(self)`);
         const treeOpenScript = ScriptField.MakeScript(`self.treeViewOpen = !self.treeViewOpen`);
@@ -218,7 +222,6 @@ export class TreeView extends React.Component<TreeViewProps> {
         })}
         onClick={() => {
             SelectionManager.DeselectAll();
-            Doc.UserDoc().activeSelection = new List([this.doc]);
             return false;
         }}
         OnEmpty={undoBatch(() => this.props.treeView.doc.treeViewOutlineMode && this.props.removeDoc?.(this.doc))}
@@ -552,8 +555,9 @@ export class TreeView extends React.Component<TreeViewProps> {
                 : <div className={`treeView-container${selected ? "-active" : ""}`} ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
                     onKeyDown={e => {
                         e.stopPropagation();
+                        e.preventDefault();
                         switch (e.key) {
-                            case "Backspace": return this.doc.text && !(this.doc.text as RichTextField)?.Text && UndoManager.RunInBatch(() => this.props.removeDoc?.(this.doc), "delete");
+                            case "Backspace": return !(this.doc.text as RichTextField)?.Text && this.props.removeDoc?.(this.doc);
                             case "Enter": return UndoManager.RunInBatch(() => this.makeTextCollection(), "bullet");
                             case "Tab": setTimeout(() => RichTextMenu.Instance.TextView?.EditorView?.focus(), 150);
                                 return UndoManager.RunInBatch(() => e.shiftKey ? this.props.outdentDocument?.() : this.props.indentDocument?.(), "tab");

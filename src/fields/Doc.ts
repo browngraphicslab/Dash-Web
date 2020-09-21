@@ -24,6 +24,7 @@ import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
+import { SelectionManager } from "../client/util/SelectionManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -1295,8 +1296,8 @@ Scripting.addGlobal(function docList(field: any) { return DocListCast(field); })
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
-Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
-Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function undo() { SelectionManager.DeselectAll(); return UndoManager.Undo(); });
+Scripting.addGlobal(function redo() { SelectionManager.DeselectAll(); return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
@@ -1305,7 +1306,7 @@ Scripting.addGlobal(function activePresentationItem() {
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().activeSelection).
+    const docs = SelectionManager.SelectedDocuments().map(dv => dv.props.Document).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;

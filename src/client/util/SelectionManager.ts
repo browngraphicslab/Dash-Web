@@ -37,7 +37,6 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.clear();
                 manager.SelectedDocuments.set(docView, true);
             }
-            Doc.UserDoc().activeSelection = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         }
         @action
         DeselectDoc(docView: DocumentView): void {
@@ -45,7 +44,6 @@ export namespace SelectionManager {
             if (manager.SelectedDocuments.get(docView)) {
                 manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
-                Doc.UserDoc().activeSelection = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
             }
         }
         @action
@@ -54,7 +52,6 @@ export namespace SelectionManager {
             manager.SelectedSchemaDocument = undefined;
             Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
-            Doc.UserDoc().activeSelection = new List<Doc>([]);
         }
     }
 
