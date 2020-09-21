@@ -265,19 +265,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this.layoutDoc.presCollection = srcContext;
             } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         }
-        if (collectionDocView) {
-            if (srcContext && srcContext !== presCollection) {
-                // Case 1: new srcContext inside of current collection so add a new tab to the current pres collection
-                collectionDocView.props.addDocTab(srcContext, "inPlace");
-            }
-        }
+        // if (collectionDocView) {
+        //     if (srcContext && srcContext !== presCollection) {
+        //         // Case 1: new srcContext inside of current collection so add a new tab to the current pres collection
+        //         collectionDocView.props.addDocTab(srcContext, "inPlace");
+        //     }
+        // }
         this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            this.props.addDocTab(activeItem, "replace:right");
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "inPlace") : this.props.addDocTab(activeItem, "replace:right");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -1047,7 +1047,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         activeItem.presPinViewX = x;
                                         activeItem.presPinViewY = y;
                                         activeItem.presPinViewScale = scale;
-                                    }}>Update</div> : (null)};
+                                    }}>Update</div> : (null)}
                             </div>
                             <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
