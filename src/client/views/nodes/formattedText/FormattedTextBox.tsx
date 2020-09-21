@@ -1189,6 +1189,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.endUndoTypingBatch();
         Object.values(this._disposers).forEach(disposer => disposer?.());
         this._editorView?.destroy();
+        FormattedTextBoxComment.Hide();
     }
 
     _downEvent: any;
