@@ -251,7 +251,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 })}
                                 OnFillDown={async (value: string) => {
                                     const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                    script.compiled && DocListCast(field).
+                                    script.compiled && DocListCast(this.props.Document[this.props.fieldKey]).
                                         forEach((doc, i) => value.startsWith(":=") ?
                                             this.props.setComputed(value.substring(2), Doc.GetProto(doc), this.renderFieldKey, i, this.props.col) :
                                             this.applyToDoc(Doc.GetProto(doc), i, this.props.col, script.run));

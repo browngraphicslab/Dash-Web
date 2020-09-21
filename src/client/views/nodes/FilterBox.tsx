@@ -19,6 +19,7 @@ import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
+import { values } from "lodash";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -49,6 +50,39 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_") && !key.startsWith("acl")) || noviceFields.includes(key)).sort();
     }
+
+    gatherFieldValues(dashboard: Doc, facetKey: string) {
+        const childDocs = DocListCast((dashboard.data as any)[0].data);
+        const valueSet = new Set<string>();
+        let rtFields = 0;
+        childDocs.forEach((d) => {
+            const facetVal = d[facetKey];
+            if (facetVal instanceof RichTextField) rtFields++;
+            valueSet.add(Field.toString(facetVal as Field));
+            const fieldKey = Doc.LayoutFieldKey(d);
+            const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+            const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+            if (data !== undefined) {
+                let subDocs = DocListCast(data);
+                if (subDocs.length > 0) {
+                    let newarray: Doc[] = [];
+                    while (subDocs.length > 0) {
+                        newarray = [];
+                        subDocs.forEach((t) => {
+                            const facetVal = t[facetKey];
+                            if (facetVal instanceof RichTextField) rtFields++;
+                            valueSet.add(Field.toString(facetVal as Field));
+                            const fieldKey = Doc.LayoutFieldKey(t);
+                            const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
+                            DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
+                        });
+                        subDocs = newarray;
+                    }
+                }
+            }
+        });
+        return { strings: Array.from(valueSet.keys()), rtFields };
+    }
     /**
      * Responds to clicking the check box in the flyout menu
      */
@@ -73,17 +107,11 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             }
         } else {
             const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
-            var rtfields = 0;
-            const facetValues = Array.from(allCollectionDocs.reduce((set, child) => {
-                const field = child[facetHeader] as Field;
-                const fieldStr = Field.toString(field);
-                if (field instanceof RichTextField || (typeof (field) === "string" && fieldStr.split(" ").length > 2)) rtfields++;
-                return set.add(fieldStr);
-            }, new Set<string>()));
+            const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
 
             let nonNumbers = 0;
             let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
-            facetValues.map(val => {
+            facetValues.strings.map(val => {
                 const num = Number(val);
                 if (Number.isNaN(num)) {
                     nonNumbers++;
@@ -93,13 +121,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 }
             });
             let newFacet: Opt<Doc>;
-            if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
+            if (facetHeader === "text" || facetValues.rtfields / allCollectionDocs.length > 0.1) {
                 newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
-            } else if (facetHeader !== "tags" && nonNumbers / facetValues.length < .1) {
+            } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
                 newFacet = Docs.Create.SliderDocument({ title: facetHeader, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
