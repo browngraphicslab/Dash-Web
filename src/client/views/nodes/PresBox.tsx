@@ -1047,7 +1047,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         activeItem.presPinViewX = x;
                                         activeItem.presPinViewY = y;
                                         activeItem.presPinViewScale = scale;
-                                    }}>Update</div> : (null)};
+                                    }}>Update</div> : (null)}
                             </div>
                             <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
