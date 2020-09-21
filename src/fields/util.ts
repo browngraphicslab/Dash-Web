@@ -10,6 +10,8 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
+import CursorField from "./CursorField";
+import { List } from "@material-ui/core";
 
 
 function _readOnlySetter(): never {
@@ -360,10 +362,12 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
             const oldValue = current;
             const newValue = ObjectField.MakeCopy(value);
             current = newValue;
-            UndoManager.AddEvent({
-                redo() { receiver[prop] = newValue; },
-                undo() { receiver[prop] = oldValue; }
-            });
+            if (!(value instanceof CursorField) && !(value?.some((v: any) => v instanceof CursorField))) {
+                UndoManager.AddEvent({
+                    redo() { receiver[prop] = newValue; },
+                    undo() { receiver[prop] = oldValue; }
+                });
+            }
         }
         target[Update](diff);
     };

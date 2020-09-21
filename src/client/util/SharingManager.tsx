@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction } from "mobx";
+import { action, observable, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
@@ -7,7 +7,7 @@ import * as RequestPromise from "request-promise";
 import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
-import { distributeAcls, GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
@@ -148,7 +148,7 @@ export class SharingManager extends React.Component<{}> {
      * @param group 
      * @param permission 
      */
-    setInternalGroupSharing = (group: Doc, permission: string, targetDoc?: Doc) => {
+    setInternalGroupSharing = (group: Doc | { groupName: string }, permission: string, targetDoc?: Doc) => {
 
         const target = targetDoc || this.targetDoc!;
         const key = StrCast(group.groupName).replace(".", "_");
@@ -160,7 +160,7 @@ export class SharingManager extends React.Component<{}> {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
             GetEffectiveAcl(doc) === AclAdmin && distributeAcls(acl, permission as SharingPermissions, doc);
 
-            if (key !== "Public") {
+            if (group instanceof Doc) {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
@@ -393,39 +393,22 @@ export class SharingManager extends React.Component<{}> {
     /**
      * @returns the main interface of the SharingManager.
      */
-    private get sharingInterface() {
-
+    @computed get sharingInterface() {
+        TraceMobx();
         const groupList = GroupManager.Instance?.getAllGroups() || [];
-        const sortedUsers = this.users.slice().sort(this.sortUsers)
-            .map(({ user: { email } }) => ({ label: email, value: indType + email }));
-        const sortedGroups = groupList.slice().sort(this.sortGroups)
-            .map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
+        const sortedUsers = this.users.slice().sort(this.sortUsers).map(({ user: { email } }) => ({ label: email, value: indType + email }));
+        const sortedGroups = groupList.slice().sort(this.sortGroups).map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
 
         // the next block handles the users shown (individuals/groups/both)
         const options: GroupedOptions[] = [];
         if (GroupManager.Instance) {
             if ((this.showUserOptions && this.showGroupOptions) || (!this.showUserOptions && !this.showGroupOptions)) {
-                options.push({
-                    label: 'Individuals',
-                    options: sortedUsers
-                },
-                    {
-                        label: 'Groups',
-                        options: sortedGroups
-                    });
+                options.push(
+                    { label: 'Individuals', options: sortedUsers },
+                    { label: 'Groups', options: sortedGroups });
             }
-            else if (this.showUserOptions) {
-                options.push({
-                    label: 'Individuals',
-                    options: sortedUsers
-                });
-            }
-            else {
-                options.push({
-                    label: 'Groups',
-                    options: sortedGroups
-                });
-            }
+            else if (this.showUserOptions) options.push({ label: 'Individuals', options: sortedUsers });
+            else options.push({ label: 'Groups', options: sortedGroups });
         }
 
         const users = this.individualSort === "ascending" ? this.users.slice().sort(this.sortUsers) : this.individualSort === "descending" ? this.users.slice().sort(this.sortUsers).reverse() : this.users;
@@ -510,12 +493,10 @@ export class SharingManager extends React.Component<{}> {
                 ) : null
         );
 
-        // dummy doc for public acl
-        const publicDoc = new Doc;
-        publicDoc.groupName = "Public";
+
         // the list of groups shared with
-        const groupListMap = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${StrCast(groupName).replace('.', '_')}`) : true);
-        groupListMap.unshift(publicDoc);
+        const groupListMap: (Doc | { groupName: string })[] = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${StrCast(groupName).replace('.', '_')}`) : true);
+        groupListMap.unshift({ groupName: "Public" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.groupName)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
@@ -527,7 +508,7 @@ export class SharingManager extends React.Component<{}> {
                     className={"container"}
                 >
                     <div className={"padding"}>{group.groupName}</div>
-                    {group.groupName !== "Public" ?
+                    {group instanceof Doc ?
                         (<div className="group-info" onClick={action(() => GroupManager.Instance.currentGroup = group)}>
                             <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                         </div>)
@@ -559,36 +540,6 @@ export class SharingManager extends React.Component<{}> {
                         onCloseButtonClick={action(() => GroupManager.Instance.currentGroup = undefined)}
                     /> :
                     null}
-                {/* <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
-                {!this.linkVisible ? (null) :
-                    <div className={"link-container"}>
-                        <div className={"link-box"} onClick={this.copy}>{this.sharingUrl}</div>
-                        <div
-                            title={"Copy link to clipboard"}
-                            className={"copy"}
-                            style={{ backgroundColor: this.copied ? "lawngreen" : "gainsboro" }}
-                            onClick={this.copy}
-                        >
-                            <FontAwesomeIcon icon={"copy"} />
-                        </div>
-                    </div>
-                }
-                <div className={"people-with-container"}>
-                    {!this.linkVisible ? (null) : <p className={"people-with"}>People with this link</p>}
-                    <select
-                        className={"people-with-select"}
-                        value={this.sharingDoc ? StrCast(this.sharingDoc[PublicKey], SharingPermissions.None) : SharingPermissions.None}
-                        style={{
-                            marginLeft: this.linkVisible ? 10 : 0,
-                            color: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[PublicKey], SharingPermissions.None)) : DefaultColor,
-                            borderColor: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[PublicKey], SharingPermissions.None)) : DefaultColor
-                        }}
-                        onChange={e => this.setExternalSharing(e.currentTarget.value)}
-                    >
-                        {this.sharingOptions}
-                    </select>
-                </div>
-                <div className={"hr-substitute"} /> */}
                 <div className="sharing-contents">
                     <p className={"share-title"}><b>Share </b>{this.focusOn(docs.length < 2 ? StrCast(targetDoc?.title, "this document") : "-multiple-")}</p>
                     <div className={"close-button"} onClick={this.close}>
@@ -660,16 +611,13 @@ export class SharingManager extends React.Component<{}> {
     }
 
     render() {
-        return (
-            <MainViewModal
-                contents={this.sharingInterface}
-                isDisplayed={this.isOpen}
-                interactive={true}
-                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                overlayDisplayedOpacity={this.overlayOpacity}
-                closeOnExternalClick={this.close}
-            />
-        );
+        return <MainViewModal
+            contents={this.sharingInterface}
+            isDisplayed={this.isOpen}
+            interactive={true}
+            dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
+            overlayDisplayedOpacity={this.overlayOpacity}
+            closeOnExternalClick={this.close}
+        />;
     }
-
 }

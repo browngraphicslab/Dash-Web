@@ -24,6 +24,8 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { TreeView } from "./TreeView";
 import React = require("react");
+import { DocumentManager } from '../../util/DocumentManager';
+import { FormattedTextBoxComment } from '../nodes/formattedText/FormattedTextBoxComment';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
@@ -61,19 +63,26 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         this.treedropDisposer?.();
     }
 
-    @action
-    remove = (doc: Doc | Doc[]): boolean => {
+    @undoBatch
+    remove = action((doc: Doc | Doc[]): boolean => {
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.doc[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         const result = value.filter(v => !docs.includes(v));
         SelectionManager.DeselectAll();
         if (result.length !== value.length) {
+            const ind = targetDataDoc[this.props.fieldKey].indexOf(doc);
             targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+            if (ind > 0) {
+                const prev = targetDataDoc[this.props.fieldKey][ind - 1];
+                FormattedTextBox.SelectOnLoad = prev[Id];
+                const prevView = DocumentManager.Instance.getDocumentView(prev, this.props.CollectionView);
+                prevView?.select(false);
+            }
             return true;
         }
         return false;
-    }
+    })
     @action
     addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>

@@ -1162,6 +1162,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 FormattedTextBox.SelectOnLoadChar = "";
             } else if (curText?.Text) {
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
+                this.startUndoTypingBatch();
             }
 
         }
@@ -1411,7 +1412,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     public startUndoTypingBatch() {
-        this._undoTyping = UndoManager.StartBatch("undoTyping");
+        !this._undoTyping && (this._undoTyping = UndoManager.StartBatch("undoTyping"));
     }
 
     public endUndoTypingBatch() {
@@ -1425,6 +1426,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static LiveTextUndo: UndoManager.Batch | undefined;
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
+        console.log("blur ", document.activeElement?.textContent);
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();
@@ -1473,9 +1475,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
         }
 
-        if (!this._undoTyping) {
-            this.startUndoTypingBatch();
-        }
+        this.startUndoTypingBatch();
     }
 
     ondrop = (eve: React.DragEvent) => {

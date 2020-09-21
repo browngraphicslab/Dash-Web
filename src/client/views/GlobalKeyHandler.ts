@@ -206,10 +206,12 @@ export class KeyManager {
                 preventDefault = false;
                 break;
             case "y":
+                SelectionManager.DeselectAll();
                 UndoManager.Redo();
                 stopPropagation = false;
                 break;
             case "z":
+                SelectionManager.DeselectAll();
                 UndoManager.Undo();
                 stopPropagation = false;
                 break;
