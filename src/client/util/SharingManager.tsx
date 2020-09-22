@@ -88,7 +88,7 @@ export class SharingManager extends React.Component<{}> {
             this.targetDoc = target_doc || target?.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = this.targetDoc !== undefined;
-            this.permissions = SharingPermissions.View;
+            this.permissions = SharingPermissions.Add;
         });
     }
 
