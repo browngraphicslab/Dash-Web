@@ -220,7 +220,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @computed
     get linkButton() {
         TraceMobx();
-        const links = new Set<Doc>(this.props.links);
+        const links = DocUtils.FilterDocs(Array.from(new Set<Doc>(this.props.links)), this.props.View.props.docFilters(), []);
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
         const buttonTitle = "Tap to view links";
