@@ -121,7 +121,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 }
             });
             let newFacet: Opt<Doc>;
-            if (facetHeader === "text" || facetValues.rtfields / allCollectionDocs.length > 0.1) {
+            if (facetHeader === "text" || facetValues.rtFields / allCollectionDocs.length > 0.1) {
                 newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;

@@ -82,7 +82,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             return true;
         }
         return false;
-    })
+    });
     @action
     addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>
@@ -209,7 +209,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
-        return hideTitle ? (null) : (this.doc.treeViewOutlineMode ? this.documentTitle : this.editableTitle)(this.treeChildren)
+        return hideTitle ? (null) : (this.doc.treeViewOutlineMode ? this.documentTitle : this.editableTitle)(this.treeChildren);
     }
     render() {
         TraceMobx();

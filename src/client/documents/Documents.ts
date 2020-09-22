@@ -52,6 +52,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { FilterBox } from "../views/nodes/FilterBox";
 import { SharingPermissions } from "../../fields/util";
+import { SharingManager } from "../util/SharingManager";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -601,7 +602,7 @@ export namespace Docs {
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
-            if (Doc.UserDoc()?.defaultAclPrivate) viewDoc["acl-Public"] = dataDoc["acl-Public"] = "Not Shared";
+            viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
