@@ -396,8 +396,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 </label>
             </div>
         </form>
-            <div onPointerDown={this.editOnClickScript} className="onClickFlyout-editScript"> Edit onClick Script</div>
-        </div>;
+            {Doc.UserDoc().noviceMode ? (null) : <div onPointerDown={this.editOnClickScript} className="onClickFlyout-editScript"> Edit onClick Script</div>}
+        </div>
     }
 
     @computed
