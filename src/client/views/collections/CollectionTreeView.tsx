@@ -41,7 +41,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     private _mainEle?: HTMLDivElement;
     public _uniqueId = Utils.GenerateGuid();
 
-    @computed get doc() { return this.props.Document; }
+    @computed get doc() { TraceMobx(); return this.props.Document; }
     @computed get dataDoc() { return this.props.DataDoc || this.doc; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -82,7 +82,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             return true;
         }
         return false;
-    })
+    });
     @action
     addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
         const doAddDoc = (doc: Doc | Doc[]) =>
@@ -117,7 +117,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});
 
     @computed get renderClearButton() {
-        return <div key="toolbar">
+        return !this.doc.allowClear ? (null) : <div key="toolbar">
             <button className="toolbar-button round-button" title="Empty" onClick={undoBatch(action(() => Doc.GetProto(this.doc)[this.props.fieldKey] = undefined))}>
                 <FontAwesomeIcon icon={"trash"} size="sm" />
             </button>
@@ -192,37 +192,45 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
-    render() {
+    @computed get treeChildren() {
         TraceMobx();
-        if (!(this.doc instanceof Doc)) return (null);
+        return this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
+    }
+    @computed get treeViewElements() {
+        TraceMobx();
         const dropAction = StrCast(this.doc.childDropAction) as dropActionType;
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(d, target, addDoc);
-        const childDocs = this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
-        const childElements = childDocs && TreeView.GetChildElements(childDocs, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
+        return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
             this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged);
+    }
+    @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
+        return hideTitle ? (null) : (this.doc.treeViewOutlineMode ? this.documentTitle : this.editableTitle)(this.treeChildren);
+    }
+    render() {
+        TraceMobx();
+        if (!(this.doc instanceof Doc)) return (null);
+        const background = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
+        const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
+        const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
+        const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
 
-        return !childDocs ? (null) : (
+        return !this.treeChildren ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget"
-                    style={{
-                        background: backgroundColor,
-                        paddingLeft: `${NumCast(this.doc._xPadding, 10)}px`,
-                        paddingRight: `${NumCast(this.doc._xPadding, 10)}px`,
-                        paddingTop: `${NumCast(this.doc._yPadding, 20)}px`,
-                        pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined,
-                    }}
+                    style={{ background, paddingLeft: paddingX, paddingRight: paddingX, paddingTop, pointerEvents }}
                     onWheel={(e) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                     onDrop={this.onTreeDrop}
                     ref={this.createTreeDropTarget}>
-                    {hideTitle ? (null) : (this.doc.treeViewOutlineMode ? this.documentTitle : this.editableTitle)(childDocs)}
-                    {this.doc.allowClear ? this.renderClearButton : (null)}
-                    <ul className="no-indent" style={{ width: "max-content" }} > {childElements} </ul>
+                    {this.titleBar}
+                    {this.renderClearButton}
+                    <ul className="no-indent">
+                        {this.treeViewElements}
+                    </ul>
                 </div >
             </div>
         );

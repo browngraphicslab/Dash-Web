@@ -361,7 +361,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
             const oldValue = current;
             const newValue = ObjectField.MakeCopy(value);
             current = newValue;
-            if (!(value instanceof CursorField) && !(value?.some((v: any) => v instanceof CursorField))) {
+            if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
                 UndoManager.AddEvent({
                     redo() { receiver[prop] = newValue; },
                     undo() { receiver[prop] = oldValue; }

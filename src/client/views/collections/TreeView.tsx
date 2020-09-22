@@ -83,9 +83,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _uniqueId = Utils.GenerateGuid();
     private _editMaxWidth: number | string = 0;
 
-    get doc() { return this.props.document; }
+    @computed get doc() { TraceMobx(); return this.props.document; }
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
-    get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
+    get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
     get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
     get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.noviceMode || this.outlineMode ? "layout" : "fields"); }
     get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs ? this.fieldKey : this.defaultExpandedView); }
@@ -100,14 +100,14 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.doc[DataSym]; }
     @computed get layoutDoc() { return Doc.Layout(this.doc); }
-    @computed get fieldKey() { const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
+    @computed get fieldKey() { TraceMobx(); const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
             DocListCastOrNull(this.doc[field])); // otherwise use the document's data field
     }
-    @computed get childDocs() { return this.childDocList(this.fieldKey); }
+    @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
     @computed get boundsOfCollectionDocument() {
@@ -130,13 +130,12 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     constructor(props: any) {
         super(props);
-        console.log("Ttile = " + this.props.document.title);
         const titleScript = ScriptField.MakeScript(`{setInPlace(self, 'editTitle', '${this._uniqueId}'); documentView.select();} `, { documentView: "any" });
         const openScript = ScriptField.MakeScript(`openOnRight(self)`);
         const treeOpenScript = ScriptField.MakeScript(`self.treeViewOpen = !self.treeViewOpen`);
         this._editTitleScript = !Doc.IsSystem(this.props.document) ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
         this._openScript = !Doc.IsSystem(this.props.document) ? openScript && (() => openScript) : undefined;
-        if (Doc.GetT(this.doc, "editTitle", "string", true) === "*") Doc.SetInPlace(this.doc, "editTitle", this._uniqueId, false);
+        if (Doc.GetT(this.props.document, "editTitle", "string", true) === "*") Doc.SetInPlace(this.props.document, "editTitle", this._uniqueId, false);
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -185,7 +184,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", forceActive: true, _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -659,8 +658,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         onChildClick: undefined | (() => ScriptField),
         ignoreFields: string[] | undefined,
         firstLevel: boolean,
-        whenActiveChanged: (isActive: boolean) => void
-    ) {
+        whenActiveChanged: (isActive: boolean) => void) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             childDocs = childDocs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);
@@ -691,7 +689,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         }
 
         const rowWidth = () => panelWidth() - 20;
-        return docs.map((child, i) => {
+        return docs.filter(child => child instanceof Doc).map((child, i) => {
             const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
             if (!pair.layout || pair.data instanceof Promise) {
                 return (null);
@@ -727,13 +725,12 @@ export class TreeView extends React.Component<TreeViewProps> {
                 const aspect = NumCast(childLayout._nativeWidth, 0) / NumCast(childLayout._nativeHeight, 0);
                 return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
-            return !(child instanceof Doc) ? (null) : <TreeView
+            return <TreeView key={child[Id]}
                 document={pair.layout}
                 dataDoc={pair.data}
                 containingCollection={containingCollection}
                 prevSibling={docs[i]}
                 treeView={treeView}
-                key={child[Id]}
                 indentDocument={indent}
                 outdentDocument={!parentCollectionDoc ? undefined : outdent}
                 onCheckedClick={onCheckedClick}

@@ -114,22 +114,13 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
 }> {
     @computed get layout(): string {
         TraceMobx();
-        if (!this.layoutDoc) return "<p>awaiting layout</p>";
-        // const layout = Cast(this.layoutDoc[StrCast(this.layoutDoc.layoutKey, this.layoutDoc === this.props.Document ? this.props.layoutKey : "layout")], "string");  // bcz: replaced this with below... is it right?
         if (this.props.LayoutTemplateString) return this.props.LayoutTemplateString;
+        if (!this.layoutDoc) return "<p>awaiting layout</p>";
+        if (this.props.layoutKey === "layout_keyValue") return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
         const layout = Cast(this.layoutDoc[this.layoutDoc === this.props.Document && this.props.layoutKey ? this.props.layoutKey : StrCast(this.layoutDoc.layoutKey, "layout")], "string");
-        if (this.props.layoutKey === "layout_keyValue") {
-            return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
-        } else
-            if (layout === undefined) {
-                return this.props.Document.data ?
-                    "<FieldView {...props} fieldKey='data' />" :
-                    KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
-            } else if (typeof layout === "string") {
-                return layout;
-            } else {
-                return "<p>Loading layout</p>";
-            }
+        if (layout === undefined) return this.props.Document.data ? "<FieldView {...props} fieldKey='data' />" : KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
+        if (typeof layout === "string") return layout;
+        return "<p>Loading layout</p>";
     }
 
     get dataDoc() {

@@ -139,7 +139,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
-        dragData.dropAction = dragDocView.props.dropAction as dropActionType;
+        dragData.dropAction = dragDocView.props.dropAction;
         this.Interacting = true;
         this._hidden = true;
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
