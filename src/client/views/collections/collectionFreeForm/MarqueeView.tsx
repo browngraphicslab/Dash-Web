@@ -525,12 +525,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         selected.map(d => {
             this.props.removeDocument(d);
-            d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-            d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+            d.x = NumCast(d.x) - bounds.left;
+            d.y = NumCast(d.y) - bounds.top;
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
         const portal = Doc.MakeAlias(summary);
         Doc.GetProto(summary)[Doc.LayoutFieldKey(summary) + "-annotations"] = new List<Doc>(selected);
         Doc.GetProto(summary).layout_portal = CollectionView.LayoutString(Doc.LayoutFieldKey(summary) + "-annotations");
