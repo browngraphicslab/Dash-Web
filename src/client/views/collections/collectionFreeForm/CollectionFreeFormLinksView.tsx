@@ -1,4 +1,4 @@
-import { computed } from "mobx";
+import { computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
@@ -10,12 +10,10 @@ import React = require("react");
 import { Utils, emptyFunction } from "../../../../Utils";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { SnappingManager } from "../../../util/SnappingManager";
-import { Cast } from "../../../../fields/Types";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
-    @computed
-    get uniqueConnections() {
+    @computed get uniqueConnections() {
         const connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             if (!drawnPairs.reduce((found, drawnPair) => {
                 const match1 = (connection.a === drawnPair.a && connection.b === drawnPair.b);
@@ -37,7 +35,7 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return SnappingManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
+        return <div className="collectionfreeformlinksview-container">
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections}
             </svg>

@@ -122,9 +122,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         return top; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
     }
 
-    @computed get renderData() {
-        this._start;
-        if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) {
+    @computed.struct get renderData() {
+        this._start; SnappingManager.GetIsDragging();
+        if (!this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) {
             return undefined;
         }
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
@@ -132,6 +132,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
         const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
         const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
+        for (let apdiv = adiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
+        for (let apdiv = bdiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
         const a = adiv.getBoundingClientRect();
         const b = bdiv.getBoundingClientRect();
         const atop = this.visibleY(adiv);

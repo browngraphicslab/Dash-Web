@@ -339,7 +339,6 @@ export namespace DragManager {
             DragManager.Root().appendChild(dragDiv);
         }
         dragLabel.style.display = "";
-        SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -410,6 +409,7 @@ export namespace DragManager {
         const hideSource = options?.hideSource ? true : false;
         eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
 
+        SnappingManager.SetIsDragging(true);
         let lastX = downX;
         let lastY = downY;
         const xFromLeft = downX - elesCont.left;

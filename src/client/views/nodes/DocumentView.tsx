@@ -208,7 +208,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
         if (!BoolCast(this.rootDoc.dontRegisterView, this.props.dontRegisterView)) {
-            DocumentManager.Instance.DocumentViews.push(this);
+            DocumentManager.Instance.AddView(this);
         }
     }
 
@@ -234,8 +234,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
         if (!this.props.dontRegisterView) {
-            const index = DocumentManager.Instance.DocumentViews.indexOf(this);
-            index !== -1 && DocumentManager.Instance.DocumentViews.splice(index, 1);
+            DocumentManager.Instance.RemoveView(this);
         }
     }
 
