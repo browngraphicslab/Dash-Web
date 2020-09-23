@@ -290,10 +290,10 @@ export class SharingManager extends React.Component<{}> {
         const dropdownValues: string[] = Object.values(SharingPermissions);
         if (!uniform) dropdownValues.unshift("-multiple-");
         if (override) dropdownValues.unshift("unset");
-        return dropdownValues.map(permission =>
+        return dropdownValues.filter(permission => permission !== SharingPermissions.View).map(permission =>
             (
                 <option key={permission} value={permission}>
-                    {permission}
+                    {permission === SharingPermissions.Add ? "Can Augment" : permission}
                 </option>
             )
         );

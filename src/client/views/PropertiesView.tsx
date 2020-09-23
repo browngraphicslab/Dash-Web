@@ -323,10 +323,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return <select className="permissions-select"
             value={permission}
             onChange={e => this.changePermissions(e, user)}>
-            {dropdownValues.map(permission => {
+            {dropdownValues.filter(permission => permission !== SharingPermissions.View).map(permission => {
                 return (
                     <option key={permission} value={permission}>
-                        {permission}
+                        {permission === SharingPermissions.Add ? "Can Augment" : permission}
                     </option>);
             })}
         </select>;
