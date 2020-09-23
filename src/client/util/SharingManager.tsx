@@ -572,9 +572,10 @@ export class SharingManager extends React.Component<{}> {
                             <input type="checkbox" onChange={action(() => this.showUserOptions = !this.showUserOptions)} /> <label style={{ marginRight: 10 }}>Individuals</label>
                             <input type="checkbox" onChange={action(() => this.showGroupOptions = !this.showGroupOptions)} /> <label>Groups</label>
                         </div>
-                        <div className="layoutDoc-acls">
-                            <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
-                        </div>
+                        {Doc.UserDoc().noviceMode ? (null) :
+                            <div className="layoutDoc-acls">
+                                <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
+                            </div>}
                     </div>
                     }
                     <div className="main-container">
