@@ -583,9 +583,10 @@ export class SharingManager extends React.Component<{}> {
                         <div className="myDocs-acls">
                             <input type="checkbox" onChange={action(() => this.myDocAcls = !this.myDocAcls)} checked={this.myDocAcls} /> <label>My Docs</label>
                         </div>
-                        <div className="layoutDoc-acls">
-                            <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
-                        </div>
+                        {Doc.UserDoc().noviceMode ? (null) :
+                            <div className="layoutDoc-acls">
+                                <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
+                            </div>}
                     </div>
                     }
                     <div className="main-container">
