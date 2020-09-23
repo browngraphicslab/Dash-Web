@@ -71,7 +71,8 @@
                 }
             }
 
-            .layoutDoc-acls {
+            .layoutDoc-acls,
+            .myDocs-acls {
                 display: flex;
                 flex-direction: column;
                 float: right;

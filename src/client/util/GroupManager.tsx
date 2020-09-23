@@ -278,21 +278,24 @@ export class GroupManager extends React.Component<{}> {
      */
     @action
     createGroup = () => {
-        if (!this.inputRef.current?.value) {
+        const { value } = this.inputRef.current!;
+        if (!value) {
             alert("Please enter a group name");
             return;
         }
-        if (this.inputRef.current.value.toLowerCase() === "admin" && this.getGroup("Admin")) {
-            alert("You cannot override the Admin group");
-            return;
+        if (["admin", "public", "override"].includes(value.toLowerCase())) {
+            if (value.toLowerCase() !== "admin" || (value.toLowerCase() === "admin" && this.getGroup("Admin"))) {
+                alert(`You cannot override the ${value.charAt(0).toUpperCase() + value.slice(1)} group`);
+                return;
+            }
         }
-        if (this.getGroup(this.inputRef.current.value)) {
+        if (this.getGroup(value)) {
             alert("Please select a unique group name");
             return;
         }
-        this.createGroupDoc(this.inputRef.current.value, this.selectedUsers?.map(user => user.value));
+        this.createGroupDoc(value, this.selectedUsers?.map(user => user.value));
         this.selectedUsers = null;
-        this.inputRef.current.value = "";
+        this.inputRef.current!.value = "";
         this.buttonColour = "#979797";
 
         const { left, width, top } = this.createGroupButtonRef.current!.getBoundingClientRect();

@@ -103,6 +103,7 @@ export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
+export const AclUnset = Symbol("AclUnset");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
@@ -112,6 +113,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
+    ["unset", AclUnset],
     [SharingPermissions.None, AclPrivate],
     [SharingPermissions.View, AclReadonly],
     [SharingPermissions.Add, AclAddonly],
@@ -332,7 +334,7 @@ export namespace Doc {
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         try {
             return getField(doc[Self], key, ignoreProto);
-        } catch  {
+        } catch {
             return doc;
         }
     }

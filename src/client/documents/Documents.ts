@@ -603,6 +603,7 @@ export namespace Docs {
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
+            viewDoc["acl-Override"] = dataDoc["acl-Override"] = "unset";
 
             return Doc.assign(viewDoc, delegateProps, true);
         }

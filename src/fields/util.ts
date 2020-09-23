@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -167,10 +167,15 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
     if (currentUserGroups.includes("Admin")) return AclAdmin;
 
+
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
         // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
+
+        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
+        // if it's unset, it just goes ahead
+        if (target[AclSym]["acl-Override"] !== AclUnset) return target[AclSym]["acl-Override"];
 
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([
@@ -223,14 +228,17 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     const dataDoc = target[DataSym];
 
     // if it is inheriting from a collection, it only inherits if A) the key doesn't already exist or B) the right being inherited is more restrictive
-    if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) {
+    if (GetEffectiveAcl(target) === AclAdmin && (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!)) {
         target[key] = acl;
         layoutDocChanged = true;
     }
 
     if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
-        dataDoc[key] = acl;
-        dataDocChanged = true;
+
+        if (GetEffectiveAcl(dataDoc) === AclAdmin) {
+            dataDoc[key] = acl;
+            dataDocChanged = true;
+        }
 
         // maps over the aliases of the document
         const links = DocListCast(dataDoc.links);
@@ -238,22 +246,22 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
 
         // maps over the children of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
-            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection, visited);
-            }
+            // if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            // }
             const data = d[DataSym];
-            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+            if (data) {// && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
 
         // maps over the annotations of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
-            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection, visited);
-            }
+            // if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            // }
             const data = d[DataSym];
-            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+            if (data) {// && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
@@ -271,7 +279,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
-    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
+    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "unset"].includes(value))) return true;
     // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
