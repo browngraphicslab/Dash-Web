@@ -589,7 +589,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
-        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+        const noviceHighlighting = ["My Text", "Text from Others"];
+        const expertHighlighting = ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"];
+        (Doc.UserDoc().noviceMode ? noviceHighlighting : expertHighlighting).forEach(option =>
             highlighting.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
                     e.stopPropagation();
@@ -607,7 +609,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
-        uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
