@@ -198,7 +198,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                  self.target._searchFilterDocs = compareLists(self['target-searchFilterDocs'],self.target._searchFilterDocs) ? undefined: copyField(self['target-searchFilterDocs']);`,
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
-            button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
+            button['target-docFilters'] = (Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters || Cast(Doc.UserDoc().activeDashboard, Doc, null)._docFilters) instanceof ObjectField ?
+                ObjectField.MakeCopy((Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters || Cast(Doc.UserDoc().activeDashboard, Doc, null)._docFilters) as any as ObjectField) : undefined;
             button['target-searchFilterDocs'] = CurrentUserUtils.ActiveDashboard._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(CurrentUserUtils.ActiveDashboard._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
