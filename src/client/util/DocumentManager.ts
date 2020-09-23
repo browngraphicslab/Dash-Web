@@ -19,6 +19,7 @@ export class DocumentManager {
     //global holds all of the nodes (regardless of which collection they're in)
     @observable
     public DocumentViews: DocumentView[] = [];
+    @observable LinkedDocumentViews: { a: DocumentView, b: DocumentView, l: Doc }[] = [];
 
     // singleton instance
     private static _instance: DocumentManager;
@@ -30,6 +31,26 @@ export class DocumentManager {
 
     //private constructor so no other class can create a nodemanager
     private constructor() {
+    }
+
+    @action
+    public AddView = (view: DocumentView) => {
+        const linksList = DocListCast(view.props.Document.links);
+        linksList.forEach(link => {
+            const linkToDoc = link && LinkManager.getOppositeAnchor(link, view.props.Document);
+            linkToDoc && DocumentManager.Instance.DocumentViews.filter(dv => Doc.AreProtosEqual(dv.props.Document, linkToDoc)).forEach(dv => {
+                if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== view.props.LayoutTemplateString) {
+                    this.LinkedDocumentViews.push({ a: dv, b: view, l: link });
+                }
+            });
+        });
+        this.DocumentViews.push(view);
+    }
+    public RemoveView = (view: DocumentView) => {
+        const index = this.DocumentViews.indexOf(view);
+        index !== -1 && this.DocumentViews.splice(index, 1);
+
+        this.LinkedDocumentViews.slice().forEach(action((pair, i) => pair.a === view || pair.b === view ? this.LinkedDocumentViews.splice(i, 1) : null));
     }
 
     //gets all views
@@ -105,25 +126,6 @@ export class DocumentManager {
         return toReturn;
     }
 
-    @computed
-    public get LinkedDocumentViews() {
-        TraceMobx();
-        const pairs = DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            const linksList = DocListCast(dv.props.Document.links);
-            pairs.push(...linksList.reduce((pairs, link) => {
-                const linkToDoc = link && LinkManager.getOppositeAnchor(link, dv.props.Document);
-                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== docView1.props.LayoutTemplateString) {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    }
-                });
-                return pairs;
-            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            return pairs;
-        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
-
-        return pairs;
-    }
 
     static addRightSplit = (doc: Doc, finished?: () => void) => {
         CollectionDockingView.AddSplit(doc, "right");
