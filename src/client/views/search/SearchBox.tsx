@@ -183,7 +183,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let newarray: Doc[] = [];
         while (docs.length > 0) {
             newarray = [];
-            docs.forEach(d => {
+            docs.filter(d => d).forEach(d => {
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
                 const data = d[annos ? fieldKey + "-annotations" : fieldKey];

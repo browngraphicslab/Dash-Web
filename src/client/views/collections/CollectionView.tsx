@@ -144,7 +144,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     added.forEach(d => {
                         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
                             if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
-                            else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
+                            //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
                             //else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                         }
                     });
