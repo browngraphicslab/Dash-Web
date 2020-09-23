@@ -4,7 +4,7 @@ import { Checkbox, Tooltip } from "@material-ui/core";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
