@@ -63,7 +63,7 @@ export class LinkManager {
     // finds all links that contain the given anchor
     public getAllDirectLinks(anchor: Doc): Doc[] {
         const related = LinkManager.Instance.getAllLinks().filter(link => link).filter(link => {
-            const a1 = Cast(link.anchor1, Doc, null)
+            const a1 = Cast(link.anchor1, Doc, null);
             const a2 = Cast(link.anchor2, Doc, null);
             const protomatch1 = Doc.AreProtosEqual(anchor, a1);
             const protomatch2 = Doc.AreProtosEqual(anchor, a2);
