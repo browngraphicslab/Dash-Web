@@ -173,11 +173,6 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
         // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
-        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
-        // if it's unset, it just goes ahead
-        const override = target[AclSym]["acl-Override"];
-        if (override !== AclUnset && override !== undefined) return target[AclSym]["acl-Override"];
-
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([
             [AclPrivate, 0],
@@ -198,6 +193,12 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
                 }
             }
         }
+
+        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
+        // if it's unset, it just goes ahead
+        const override = target[AclSym]["acl-Override"];
+        if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
+
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
