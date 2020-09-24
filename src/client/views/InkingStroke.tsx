@@ -160,7 +160,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
         const addpoints = apoints.map((pts, i) =>
             <svg height="10" width="10" key={`add${i}`}>
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
                     onPointerDown={(e) => { formatInstance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
@@ -189,8 +189,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
         return (
             <svg className="inkingStroke"
-                width={width}
-                height={height}
+                width={Math.max(width, height)}
+                height={Math.max(width, height)}
                 style={{
                     pointerEvents: this.props.Document.isInkMask ? "all" : "none",
                     transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,
