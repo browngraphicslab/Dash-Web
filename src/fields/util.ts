@@ -175,7 +175,8 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
 
         // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
         // if it's unset, it just goes ahead
-        if (target[AclSym]["acl-Override"] !== AclUnset) return target[AclSym]["acl-Override"];
+        const override = target[AclSym]["acl-Override"];
+        if (override !== AclUnset && override !== undefined) return target[AclSym]["acl-Override"];
 
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([

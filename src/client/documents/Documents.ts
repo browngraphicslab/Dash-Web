@@ -748,6 +748,8 @@ export namespace Docs {
             I.author = Doc.CurrentUserEmail;
             I.rotation = 0;
             I.data = new InkField(points);
+            I["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
+            I["acl-Override"] = "unset";
             return I;
         }
 
