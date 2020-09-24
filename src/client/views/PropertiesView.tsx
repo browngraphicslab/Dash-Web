@@ -320,6 +320,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     getPermissionsSelect(user: string, permission: string) {
         const dropdownValues: string[] = Object.values(SharingPermissions);
         if (permission === "-multiple-") dropdownValues.unshift(permission);
+        if (name === "Override") dropdownValues.unshift("Unset");
         return <select className="permissions-select"
             value={permission}
             onChange={e => this.changePermissions(e, user)}>

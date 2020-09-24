@@ -189,13 +189,12 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             if (currentUserGroups.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclAdmin) break;
+                    if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
             }
         }
 
-        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
-        // if it's unset, it just goes ahead
+        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned if the user isn't an admin of the document
         const override = target[AclSym]["acl-Override"];
         if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
 
