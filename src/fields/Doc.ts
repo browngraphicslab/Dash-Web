@@ -113,7 +113,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
-    ["unset", AclUnset],
+    ["None", AclUnset],
     [SharingPermissions.None, AclPrivate],
     [SharingPermissions.View, AclReadonly],
     [SharingPermissions.Add, AclAddonly],
@@ -124,7 +124,7 @@ const AclMap = new Map<string, symbol>([
 export function fetchProto(doc: Doc) {
     const permissions: { [key: string]: symbol } = {};
 
-    Object.keys(doc).filter(key => key.startsWith("acl")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+    Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
 
     if (Object.keys(permissions).length) doc[AclSym] = permissions;
 
