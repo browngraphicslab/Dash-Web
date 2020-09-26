@@ -173,11 +173,6 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
         // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
-        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned.
-        // if it's unset, it just goes ahead
-        const override = target[AclSym]["acl-Override"];
-        if (override !== AclUnset && override !== undefined) return target[AclSym]["acl-Override"];
-
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([
             [AclPrivate, 0],
@@ -194,10 +189,15 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             if (currentUserGroups.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclAdmin) break;
+                    if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
             }
         }
+
+        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned if the user isn't an admin of the document
+        const override = target[AclSym]["acl-Override"];
+        if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
+
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
@@ -280,7 +280,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
-    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "unset"].includes(value))) return true;
+    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "None"].includes(value))) return true;
     // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {

@@ -603,7 +603,7 @@ export namespace Docs {
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
-            viewDoc["acl-Override"] = dataDoc["acl-Override"] = "unset";
+            viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -749,7 +749,7 @@ export namespace Docs {
             I.rotation = 0;
             I.data = new InkField(points);
             I["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
-            I["acl-Override"] = "unset";
+            I["acl-Override"] = "None";
             return I;
         }
 

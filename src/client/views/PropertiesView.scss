@@ -246,15 +246,20 @@
         }
     }
 
-    .expansion-button-icon {
-        width: 11px;
-        height: 11px;
-        color: black;
-        margin-left: 27px;
+    .expansion-button {
+        margin-left: -22.5;
+        margin: 3;
 
-        &:hover {
-            color: rgb(131, 131, 131);
-            cursor: pointer;
+        .expansion-button-icon {
+            width: 11px;
+            height: 11px;
+            color: black;
+            margin-left: 27px;
+
+            &:hover {
+                color: rgb(131, 131, 131);
+                cursor: pointer;
+            }
         }
     }
 
@@ -305,9 +310,9 @@
                 .permissions-select {
                     border: none;
                     background-color: inherit;
-                    width: 75px;
-                    //text-align: justify; // for Edge
-                    //text-align-last: end;
+                    width: 87px;
+                    text-align: justify; // for Edge
+                    text-align-last: end;
 
                     &:hover {
                         cursor: pointer;
