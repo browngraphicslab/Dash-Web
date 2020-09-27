@@ -134,7 +134,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             const coreFilename = pathComponents.pop()!.split(".")[0];
             const params: any = {
                 coreFilename,
-                pageNum: this.Document._curPage || 1,
+                pageNum: Math.min(this.props.pdf.numPages, Math.max(0, this.Document._curPage || 1)),
             };
             if (pathComponents.length) {
                 params.subtree = `${pathComponents.join("/")}/`;
@@ -143,7 +143,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         } else {
             const params: any = {
                 coreFilename: relative.split("/")[relative.split("/").length - 1],
-                pageNum: this.Document._curPage || 1,
+                pageNum: Math.min(this.props.pdf.numPages, Math.max(0, this.Document._curPage || 1)),
             };
             this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
