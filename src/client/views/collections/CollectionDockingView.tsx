@@ -152,6 +152,8 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
             if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
                 instance._goldenLayout.root.addChild(newContentItem);
+            } else if (instance._goldenLayout.root.contentItems[0].isStack) {
+                instance._goldenLayout.root.contentItems[0].addChild(docContentConfig);
             } else if (instance._goldenLayout.root.contentItems.length === 1 && instance._goldenLayout.root.contentItems[0].contentItems.length === 1 &&
                 instance._goldenLayout.root.contentItems[0].contentItems[0].contentItems.length === 0) {
                 instance._goldenLayout.root.contentItems[0].contentItems[0].addChild(docContentConfig);
