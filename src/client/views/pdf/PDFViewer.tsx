@@ -61,6 +61,8 @@ interface IViewerProps {
     DataDoc?: Doc;
     searchFilterDocs: () => Doc[];
     ContainingCollectionView: Opt<CollectionView>;
+    docFilters: () => string[];
+    docRangeFilters: () => string[];
     PanelWidth: () => number;
     PanelHeight: () => number;
     ContentScaling: () => number;
@@ -118,8 +120,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _viewerIsSetup = false;
 
     @computed get allAnnotations() {
-        return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).
-            filter(anno => this._script.run({ this: anno }, console.log, true).result);
+        return DocUtils.FilterDocs(DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]), this.props.docFilters(), this.props.docRangeFilters(), undefined);
     }
     @computed get nonDocAnnotations() { return this.allAnnotations.filter(a => a.annotations); }
 
@@ -718,6 +719,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
+                docFilters={this.props.docRangeFilters}
+                docRangeFilters={this.props.docRangeFilters}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
                 renderDepth={this.props.renderDepth + 1}

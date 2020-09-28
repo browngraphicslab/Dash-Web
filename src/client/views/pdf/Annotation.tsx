@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym, Field } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { Cast, FieldValue, BoolCast, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
@@ -9,6 +9,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
 import { undoBatch } from "../../util/UndoManager";
+import { useIsFocusVisible } from "@material-ui/core";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -128,8 +129,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         return false;
     }
 
+    @observable _showInfo = false;
     render() {
-        return (<div className="pdfAnnotation" onPointerDown={this.onPointerDown} ref={this._mainCont}
+        return (<div className="pdfAnnotation" onPointerEnter={action(() => this._showInfo = true)} onPointerLeave={action(() => this._showInfo = false)} onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
                 top: this.props.y,
                 left: this.props.x,
@@ -137,7 +139,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 height: this.props.height,
                 opacity: this._brushed ? 0.5 : undefined,
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
-                transition: "opacity 0.5s",
-            }} />);
+            }} >
+            {!this._showInfo ? (null) : <div className="pdfAnnotation-info">
+                {this.props.dataDoc.author + " " + Field.toString(this.props.dataDoc.creationDate as Field)}
+            </div>}
+        </div>);
     }
 }

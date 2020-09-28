@@ -254,6 +254,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                 addDocTab={this.props.addDocTab} focus={this.props.focus} searchFilterDocs={this.props.searchFilterDocs}
+                docFilters={this.props.docFilters} docRangeFilters={this.props.docRangeFilters}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                 Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
