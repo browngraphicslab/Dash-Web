@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym, Field } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -26,7 +26,6 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionView } from "../collections/CollectionView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { DocumentDecorations } from "../DocumentDecorations";
 import { Annotation } from "./Annotation";
 import { PDFMenu } from "./PDFMenu";
 import "./PDFViewer.scss";
@@ -35,6 +34,7 @@ import React = require("react");
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { SharingManager } from "../../util/SharingManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -101,6 +101,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
+    @observable private _overlayAnnoInfo: Opt<Doc>;
 
     private _pdfViewer: any;
     private _styleRule: any; // stylesheet rule for making hyperlinks clickable
@@ -689,10 +690,21 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         TraceMobx();
         return <div className="pdfViewerDash-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={this.showInfo} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }
+
+    @computed get overlayInfo() {
+        return !this._overlayAnnoInfo || this._overlayAnnoInfo.author === Doc.CurrentUserEmail ? (null) :
+            <div className="pdfViewerDash-overlayAnno" style={{ top: NumCast(this._overlayAnnoInfo.y), left: NumCast(this._overlayAnnoInfo.x) }}>
+                <div className="pdfViewerDash-overlayAnno" style={{ right: -50, background: SharingManager.Instance.users.find(users => users.user.email === this._overlayAnnoInfo!.author)?.userColor }}>
+                    {this._overlayAnnoInfo.author + " " + Field.toString(this._overlayAnnoInfo.creationDate as Field)}
+                </div>
+            </div>
+    }
+
+    showInfo = action((anno: Doc) => this._overlayAnnoInfo = anno);
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
@@ -758,6 +770,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {this.pdfViewerDiv}
             {this.overlayLayer}
             {this.annotationLayer}
+            {this.overlayInfo}
             {this.standinViews}
             <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
         </div >;

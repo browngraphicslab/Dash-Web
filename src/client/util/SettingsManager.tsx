@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import { ColorState, SketchPicker } from "react-color";
 import { Doc } from "../../fields/Doc";
-import { BoolCast, StrCast } from "../../fields/Types";
+import { BoolCast, StrCast, Cast } from "../../fields/Types";
 import { addStyleSheet, addStyleSheetRule, Utils } from "../../Utils";
 import { GoogleAuthenticationManager } from "../apis/GoogleAuthenticationManager";
 import { DocServer } from "../DocServer";
@@ -205,6 +205,6 @@ export class SettingsManager extends React.Component<{}> {
             isDisplayed={this.isOpen}
             interactive={true}
             closeOnExternalClick={this.close}
-            dialogueBoxStyle={{ width: "600px" }} />;
+            dialogueBoxStyle={{ width: "600px", background: Cast(Doc.UserDoc().userColor, "string", null) }} />;
     }
 }

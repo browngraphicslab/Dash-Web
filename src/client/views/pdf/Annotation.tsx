@@ -9,7 +9,6 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
 import { undoBatch } from "../../util/UndoManager";
-import { useIsFocusVisible } from "@material-ui/core";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -18,6 +17,7 @@ interface IAnnotationProps {
     focus: (doc: Doc) => void;
     dataDoc: Doc;
     fieldKey: string;
+    showInfo: (anno: Doc) => void;
 }
 
 @observer
@@ -30,6 +30,7 @@ export
 }
 
 interface IRegionAnnotationProps {
+    anno: Doc;
     x: number;
     y: number;
     width: number;
@@ -39,6 +40,7 @@ interface IRegionAnnotationProps {
     document: Doc;
     dataDoc: Doc;
     fieldKey: string;
+    showInfo: (anno: Doc) => void;
 }
 
 @observer
@@ -131,18 +133,15 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     @observable _showInfo = false;
     render() {
-        return (<div className="pdfAnnotation" onPointerEnter={action(() => this._showInfo = true)} onPointerLeave={action(() => this._showInfo = false)} onPointerDown={this.onPointerDown} ref={this._mainCont}
+        return (<div className="pdfAnnotation" onPointerEnter={action(() => this.props.showInfo(this.props.anno))} onPointerLeave={action(() => this.props.showInfo(undefined))} onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
                 top: this.props.y,
                 left: this.props.x,
                 width: this.props.width,
                 height: this.props.height,
-                opacity: this._brushed ? 0.5 : undefined,
+                opacity: !this._showInfo && this._brushed ? 0.5 : undefined,
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
             }} >
-            {!this._showInfo ? (null) : <div className="pdfAnnotation-info">
-                {this.props.anno.author + " " + Field.toString(this.props.anno.creationDate as Field)}
-            </div>}
         </div>);
     }
 }

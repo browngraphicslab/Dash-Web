@@ -4,13 +4,4 @@
     position: absolute;
     background-color: rgba(146, 245, 95, 0.467);
     transition: opacity 0.5s;
-    .pdfAnnotation-info {
-        top: -17px;
-        pointer-events: none;
-        width: max-content;
-        height: 20px;
-        position: relative;
-        background: #8080804a;
-        border-radius: 5px;
-    }
 }
