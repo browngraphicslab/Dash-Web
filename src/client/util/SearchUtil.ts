@@ -42,8 +42,9 @@ export namespace SearchUtil {
         let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}*:* AND ${arg}`);
         if (options.onlyAliases) {
             const header = query.match(/_[atnb]?:/) ? replacedQuery : "DEFAULT:" + replacedQuery;
-            replacedQuery = `{!join from=id to=proto_i}${header}`;
+            replacedQuery = `({!join from=id to=proto_i}*) AND ${header}`;
         }
+	console.log("Q: " + replacedQuery);
         const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
