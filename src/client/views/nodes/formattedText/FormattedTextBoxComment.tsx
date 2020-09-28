@@ -308,6 +308,7 @@ export class FormattedTextBoxComment {
                                             pinToPres={returnFalse}
                                             dontRegisterView={true}
                                             docFilters={returnEmptyFilter}
+                                            docRangeFilters={returnEmptyFilter}
                                             searchFilterDocs={returnEmptyDoclist}
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}

@@ -207,6 +207,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             opacity={opacity}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}

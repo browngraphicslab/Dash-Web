@@ -104,6 +104,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 pinToPres={returnFalse}
                 dontRegisterView={true}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}

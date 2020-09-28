@@ -905,6 +905,7 @@ export class GestureOverlay extends Touchable {
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
+                docRangeFilters={returnEmptyFilter}
                 docFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}

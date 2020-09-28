@@ -187,6 +187,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     fieldKey={`${this.props.fieldKey}`}
                     CollectionView={undefined}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     ContainingCollectionView={this.props.ContainingCollectionView}

@@ -58,6 +58,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined} />

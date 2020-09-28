@@ -59,7 +59,6 @@ interface IViewerProps {
     fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
-    docFilters: () => string[];
     searchFilterDocs: () => Doc[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;

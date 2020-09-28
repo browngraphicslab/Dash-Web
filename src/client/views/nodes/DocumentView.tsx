@@ -48,6 +48,7 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     docFilters: () => string[];
+    docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
     FreezeDimensions?: boolean;
     NativeWidth?: () => number;
@@ -915,6 +916,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any, borderRadius: "inherit", width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
                 searchFilterDocs={this.props.searchFilterDocs}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}

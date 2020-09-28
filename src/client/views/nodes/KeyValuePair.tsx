@@ -57,6 +57,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             DataDoc: this.props.doc,
             LibraryPath: [],
             docFilters: returnEmptyFilter,
+            docRangeFilters: returnEmptyFilter,
             searchFilterDocs: returnEmptyDoclist,
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,

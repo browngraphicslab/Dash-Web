@@ -284,6 +284,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     focus={returnFalse}
                     ScreenToLocalTransform={this.getTransform}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}

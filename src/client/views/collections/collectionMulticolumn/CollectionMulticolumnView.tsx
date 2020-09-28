@@ -233,6 +233,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             ScreenToLocalTransform={dxf}
             focus={this.props.focus}
             docFilters={this.docFilters}
+            docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}

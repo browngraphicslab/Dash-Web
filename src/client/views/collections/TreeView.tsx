@@ -402,6 +402,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     focus={returnFalse}
                     ScreenToLocalTransform={this.docTransform}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
@@ -515,6 +516,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 bringToFront={emptyFunction}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={this.props.containingCollection}
@@ -585,6 +587,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                                 focus={this.refocus}
                                 ScreenToLocalTransform={this.docTransform}
                                 docFilters={returnEmptyFilter}
+                                docRangeFilters={returnEmptyFilter}
                                 searchFilterDocs={returnEmptyDoclist}
                                 ContainingCollectionDoc={this.props.containingCollection}
                                 ContainingCollectionView={undefined}

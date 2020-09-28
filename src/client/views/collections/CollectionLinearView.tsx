@@ -160,6 +160,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 docFilters={this.props.docFilters}
+                                docRangeFilters={this.props.docRangeFilters}
                                 searchFilterDocs={this.props.searchFilterDocs}
                                 ContainingCollectionView={undefined}
                                 ContainingCollectionDoc={undefined} />

@@ -439,6 +439,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     PanelHeight={this.previewHeight}
                     ScreenToLocalTransform={this.getPreviewTransform}
                     docFilters={this.docFilters}
+                    docRangeFilters={this.docRangeFilters}
                     searchFilterDocs={this.searchFilterDocs}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}

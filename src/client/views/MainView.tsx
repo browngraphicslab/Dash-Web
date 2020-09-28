@@ -269,6 +269,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             docFilters={returnEmptyFilter}
+            docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
@@ -331,6 +332,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
@@ -365,6 +367,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
@@ -484,6 +487,7 @@ export class MainView extends React.Component {
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
@@ -549,6 +553,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
@@ -580,6 +585,7 @@ export class MainView extends React.Component {
                     PanelHeight={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                 />
             </div>;
@@ -645,6 +651,7 @@ export class MainView extends React.Component {
                             PanelHeight={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}
                         />
                     </div>;

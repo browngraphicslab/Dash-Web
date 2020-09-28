@@ -931,7 +931,7 @@ export namespace DocUtils {
                 const min = Number(docRangeFilters[i + 1]);
                 const max = Number(docRangeFilters[i + 2]);
                 const val = Cast(d[key], "number", null);
-                if (val !== undefined && (val < min || val > max)) {
+                if (val === undefined || (val < min || val > max)) {
                     return false;
                 }
             }

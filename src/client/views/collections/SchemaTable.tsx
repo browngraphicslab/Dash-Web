@@ -580,6 +580,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         PanelHeight={() => 150}
                         ScreenToLocalTransform={this.getPreviewTransform}
                         docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                         ContainingCollectionView={this.props.CollectionView}
