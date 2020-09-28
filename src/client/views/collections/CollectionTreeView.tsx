@@ -6,7 +6,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { Document } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
 import { emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, Utils } from '../../../Utils';
 import { DocUtils } from '../../documents/Documents';
@@ -205,7 +205,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged);
+            this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null));
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;

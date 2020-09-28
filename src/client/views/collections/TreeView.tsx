@@ -48,6 +48,7 @@ export interface TreeViewProps {
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
+    dontRegisterView?: boolean;
     backgroundColor?: (doc: Opt<Doc>, renderDepth: number) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
@@ -319,7 +320,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged);
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
             } else {
                 contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
@@ -372,7 +373,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                         StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged)}
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
             return <ul key={this.doc[Id] + this.doc.title}><div ref={this._dref} style={{ display: "inline-block" }} >
@@ -387,6 +388,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     Document={this.doc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
+                    dontRegisterView={this.props.dontRegisterView}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
                     treeViewDoc={undefined}
@@ -658,7 +660,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         onChildClick: undefined | (() => ScriptField),
         ignoreFields: string[] | undefined,
         firstLevel: boolean,
-        whenActiveChanged: (isActive: boolean) => void) {
+        whenActiveChanged: (isActive: boolean) => void,
+        dontRegisterView: boolean | undeifned) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             childDocs = childDocs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);
@@ -709,7 +712,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             const outdent = !parentCollectionDoc ? undefined : () => {
-                if (remove && StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
+                if (parentCollectionDoc._viewType === CollectionViewType.Tree && remove && StrCast(parentCollectionDoc.layout).indexOf('fieldKey') !== -1) {
                     const fieldKeysub = StrCast(parentCollectionDoc.layout).split('fieldKey')[1];
                     const fieldKey = fieldKeysub.split("\'")[1];
                     remove(child);
@@ -742,6 +745,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
                 ChromeHeight={ChromeHeight}
+                dontRegisterView={dontRegisterView}
                 moveDocument={move}
                 dropAction={dropAction}
                 addDocTab={addDocTab}

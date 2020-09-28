@@ -297,11 +297,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             else {
                 Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
                 this.updateFilter();
-                let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-                const blockedkeys = ["system", "title-custom", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
-                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("acl"));
-                if (keyOptions.length) {
-                    this.onSelect(keyOptions[0]);
+                if (this.showKeys.length) {
+                    this.onSelect(this.showKeys[0]);
                 } else if (this._searchTerm !== "" && this.props.canAddNew) {
                     this.setSearchTerm(this._searchTerm || this._key);
                     this.onSelect(this._searchTerm);
@@ -320,22 +317,22 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.setIsEditing(true);
     }
 
+    @computed get showKeys() {
+        const whitelistKeys = ["context", "author", "*lastModified", "text", "data", "tags", "creationDate"];
+        let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        const showKeys = new Set<string>();
+        [...keyOptions, ...whitelistKeys].forEach(key => (!Doc.UserDoc().noviceMode ||
+            whitelistKeys.includes(key)
+            || ((!key.startsWith("_") && key[0] === key[0].toUpperCase()) || key[0] === "#")) ? showKeys.add(key) : null);
+        return Array.from(showKeys.keys()).filter(key => !this._searchTerm || key.includes(this._searchTerm));
+    }
     @action
     renderOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) {
             this.defaultMenuHeight = 0;
             return <></>;
         }
-        const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
-
-        let keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-        const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
-            this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
-
-        const blockedkeys = ["proto", "x", "y", "zIndex", "_timeStampOnEnter", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
-        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("acl"));
-
-        const options = keyOptions.map(key => {
+        const options = this.showKeys.map(key => {
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray",
                 width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
@@ -352,7 +349,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         // if search term does not already exist as a group type, give option to create new group type
 
         if (this._key !== this._searchTerm.slice(0, this._key.length)) {
-            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+            if (this._searchTerm !== "" && this.props.canAddNew) {
                 options.push(<div key={""} className="key-option" style={{
                     border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
                 }}
