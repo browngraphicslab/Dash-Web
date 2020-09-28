@@ -14,7 +14,7 @@ import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, DateCast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -167,7 +167,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.Document._searchDoc) {
             const aliasdoc = await SearchUtil.GetAliasesOfDocument(this._rowDataDoc);
             const targetContext = aliasdoc.length <= 0 ? undefined : Cast(aliasdoc[0].context, Doc, null);
-            DocumentManager.Instance.jumpToDocument(this._rowDoc, false, () => undefined, targetContext);
+            DocumentManager.Instance.jumpToDocument(this._rowDoc, false, emptyFunction, targetContext,
+                undefined, undefined, undefined, () => this.props.setPreviewDoc(this._rowDoc));
         }
     }
     renderCellWithType(type: string | undefined) {
