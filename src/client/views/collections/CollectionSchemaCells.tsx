@@ -241,8 +241,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                         const script = value.substring(value.startsWith("=:=") ? 3 : 2);
                                         retVal = this.props.setComputed(script, value.startsWith(":=") ? this._rowDataDoc : this._rowDoc, this.renderFieldKey, this.props.row, this.props.col);
                                     } else {
-                                        const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                        script.compiled && (retVal = this.applyToDoc(this._rowDataDoc, this.props.row, this.props.col, script.run));
+                                        const inputscript = value.substring(value.startsWith("=") ? 1 : 0);
+                                        const script = CompileScript(inputscript, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                        script.compiled && (retVal = this.applyToDoc(inputscript.length !== value.length ? this._rowDoc : this._rowDataDoc, this.props.row, this.props.col, script.run));
                                     }
                                     if (retVal) {
                                         this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
