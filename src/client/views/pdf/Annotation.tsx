@@ -141,7 +141,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
             }} >
             {!this._showInfo ? (null) : <div className="pdfAnnotation-info">
-                {this.props.dataDoc.author + " " + Field.toString(this.props.dataDoc.creationDate as Field)}
+                {this.props.anno.author + " " + Field.toString(this.props.anno.creationDate as Field)}
             </div>}
         </div>);
     }

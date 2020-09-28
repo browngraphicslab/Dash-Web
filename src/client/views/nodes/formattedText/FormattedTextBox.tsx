@@ -607,7 +607,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
 
         const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
         !Doc.UserDoc().noviceMode && uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
