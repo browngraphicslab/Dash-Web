@@ -11,7 +11,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, returnVal, returnEmptyString } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -1047,8 +1047,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <EditableView ref={this._titleRef}
                     contents={this.ShowTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
                     display={"block"} fontSize={10}
-                    GetValue={() => ""}
-                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true)}
+                    GetValue={returnEmptyString}
+                    SetValue={undoBatch((value: string) => {
+                        this.ShowTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true;
+                    })}
                 />
             </div>);
         return !this.ShowTitle && !showCaption ?
