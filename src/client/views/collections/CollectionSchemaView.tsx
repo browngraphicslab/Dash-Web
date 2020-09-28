@@ -484,8 +484,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             documentKeys={this.documentKeys}
             headerIsEditing={this._headerIsEditing}
             openHeader={this.openHeader}
-            onClick={e => { e.stopPropagation(); this.closeHeader(); }}
-            onPointerDown={this.onTablePointerDown}
+            onClick={this.onTableClick}
+            onPointerDown={emptyFunction}
             onResizedChange={this.onResizedChange}
             setColumns={this.setColumns}
             reorderColumns={this.reorderColumns}
@@ -520,15 +520,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    onTablePointerDown = (e: React.PointerEvent): void => {
+    onTableClick = (e: React.MouseEvent): void => {
         if (!(e.target as any)?.className?.includes?.("collectionSchemaView-cell") && !(e.target instanceof HTMLSpanElement)) {
             this.setPreviewDoc(undefined);
-        }
-        this.setFocused(this.props.Document);
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
+        } else {
             e.stopPropagation();
         }
-        // this.closeHeader();
+        this.setFocused(this.props.Document);
+        this.closeHeader();
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
