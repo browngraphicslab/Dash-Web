@@ -13,11 +13,12 @@
     .FormattedTextBoxComment {
         background-color: white;
         border: 8px solid white;
+        //width: 200px;
 
         //display: flex;
         .FormattedTextBoxComment-info {
 
-            margin-bottom: 9px;
+            margin-bottom: 37px;
 
             .FormattedTextBoxComment-title {
                 padding-right: 4px;
@@ -61,7 +62,7 @@
         }
 
         .FormattedTextBoxComment-preview-wrapper {
-            width: 170px;
+            //width: 170px;
             height: 170px;
             overflow: hidden;
             //padding-top: 5px;

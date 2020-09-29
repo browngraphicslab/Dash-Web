@@ -96,7 +96,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
             FormattedTextBoxComment.tooltip.style.maxWidth = "400px";
             FormattedTextBoxComment.tooltip.style.maxHeight = "235px";
-            FormattedTextBoxComment.tooltip.style.width = "100%";
+            //FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
             FormattedTextBoxComment.tooltip.style.display = "none";
