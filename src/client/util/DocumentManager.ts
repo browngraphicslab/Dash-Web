@@ -11,6 +11,7 @@ import { SelectionManager } from './SelectionManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { TraceMobx } from '../../fields/util';
 import { returnFalse } from '../../Utils';
+import { undoBatch } from './UndoManager';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -219,6 +220,7 @@ export class DocumentManager {
         }
     }
 
+    @undoBatch
     public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
         const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
