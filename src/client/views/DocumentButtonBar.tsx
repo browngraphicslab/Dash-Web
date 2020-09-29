@@ -363,9 +363,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             {![DocumentType.VID, DocumentType.WEB].includes(StrCast(this.view0.props.Document.type) as DocumentType) ? (null) : <div className="documentButtonBar-button">
                 {this.annotateButton}
             </div>}
-            <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
+            {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
-            </div>
+            </div>}
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
             </div>

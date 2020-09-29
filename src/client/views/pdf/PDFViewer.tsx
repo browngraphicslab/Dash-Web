@@ -703,10 +703,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 <div className="pdfViewerDash-overlayAnno" style={{ right: -50, background: SharingManager.Instance.users.find(users => users.user.email === this._overlayAnnoInfo!.author)?.userColor }}>
                     {this._overlayAnnoInfo.author + " " + Field.toString(this._overlayAnnoInfo.creationDate as Field)}
                 </div>
-            </div>
+            </div>;
     }
 
-    showInfo = action((anno: Doc) => this._overlayAnnoInfo = anno);
+    showInfo = action((anno: Opt<Doc>) => this._overlayAnnoInfo = anno);
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);

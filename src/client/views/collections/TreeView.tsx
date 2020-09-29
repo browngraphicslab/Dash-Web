@@ -664,7 +664,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         ignoreFields: string[] | undefined,
         firstLevel: boolean,
         whenActiveChanged: (isActive: boolean) => void,
-        dontRegisterView: boolean | undeifned) {
+        dontRegisterView: boolean | undefined) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             childDocs = childDocs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);

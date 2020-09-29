@@ -176,7 +176,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
             smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
-        afterFocus && setTimeout(() => afterFocus?.(), 500);
+        afterFocus && setTimeout(afterFocus, 500);
     }
 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {

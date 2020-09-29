@@ -557,7 +557,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     sidebarDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, this.sidebarMove, emptyFunction,
-            () => this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%")) !== "0%");
+            action(() => {
+                const prevWidth = this.sidebarWidth();
+                this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "50%" : "0%")) !== "0%";
+                this.layoutDoc._width = this.layoutDoc._showSidebar ? NumCast(this.layoutDoc._width) * 2 : Math.max(20, NumCast(this.layoutDoc._width) - prevWidth);
+            }));
     }
     sidebarMove = (e: PointerEvent, down: number[], delta: number[]) => {
         const bounds = this.CurrentDiv.getBoundingClientRect();
@@ -1518,16 +1522,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
-    return1000 = () => 1000;
     @computed get sidebarCollection() {
+        const fitToBox = this.props.Document._fitToBox;
         return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")} style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                    PanelHeight={this.active() ? this.return1000 : this.props.PanelHeight}
+                    PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.sidebarWidth}
                     scaleField={this.annotationKey + "-scale"}
                     annotationsKey={this.annotationKey}
                     isAnnotationOverlay={true}
+                    fitToBox={fitToBox}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
                     select={emptyFunction}
@@ -1614,7 +1619,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         />
                     </div>
                     {this.sidebarCollection}
-                    {selected ? <div className="formattedTextBox-sidebar-handle" style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} - 5px))` }} onPointerDown={this.sidebarDown} /> : (null)}
+                    {selected ? <div className="formattedTextBox-sidebar-handle" style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} - 5px))`, background: DocListCast(this.dataDoc[this.annotationKey]).length ? "lightBlue" : undefined }} onPointerDown={this.sidebarDown} /> : (null)}
                     {!this.layoutDoc._showAudio ? (null) :
                         <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
                             <FontAwesomeIcon className="formattedTextBox-audioFont" style={{ color: this._recording ? "red" : "blue", transitionDelay: "0.6s", opacity: this._recording ? 1 : 0.25, }} icon={"microphone"} size="sm" />

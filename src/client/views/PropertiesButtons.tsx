@@ -529,7 +529,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
                 {this.clustersButton}
             </div>
-            <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+            <div className="propertiesButtons-button" style={{ display: !isFreeForm && !isText ? "none" : "" }}>
                 {this.fitContentButton}
             </div>
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
