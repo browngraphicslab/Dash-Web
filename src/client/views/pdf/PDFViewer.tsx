@@ -709,7 +709,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`}
             style={{ pointerEvents: SnappingManager.GetIsDragging() ? "all" : undefined, transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
