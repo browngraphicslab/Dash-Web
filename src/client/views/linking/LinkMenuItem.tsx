@@ -146,7 +146,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
-    followLinkClick = async (linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) => {
+    public static followLinkClick = async (linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) => {
         const batch = UndoManager.StartBatch("follow link click");
         const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
         // open up target if it's not already in view ...
@@ -157,7 +157,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                     finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
-                this.props.addDocTab(doc, where) && dv?.props.focus(doc, BoolCast(destinationDoc.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
+                addDocTab(doc, where);
+                dv?.props.focus(doc, BoolCast(destinationDoc.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
                 return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
             if (!destinationDoc.followLinkZoom) {
@@ -280,7 +281,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
-                                    onPointerDown={() => this.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab)}>
+                                    onPointerDown={() => LinkMenuItem.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab)}>
                                     {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>
