@@ -33,6 +33,7 @@ import "../pdf/PDFViewer.scss";
 import React = require("react");
 import { Tooltip } from '@material-ui/core';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { FormattedTextBox } from './formattedText/FormattedTextBox';
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -499,6 +500,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         e.stopPropagation();
 
         const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 125, 125);
+        FormattedTextBox.SelectOnLoad = targetDoc[Id];
         const annotationDoc = this.highlight("rgba(173, 216, 230, 0.35)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
