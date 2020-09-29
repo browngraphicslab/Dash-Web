@@ -142,6 +142,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             const docsforFilter: Doc[] = [];
             childDocs.forEach((d) => {
+                if (DocUtils.Excluded(d, docFilters)) return;
                 let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");

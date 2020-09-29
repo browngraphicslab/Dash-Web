@@ -508,6 +508,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
+                        annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     }
                 }
             });

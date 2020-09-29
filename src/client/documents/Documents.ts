@@ -889,6 +889,27 @@ export namespace Docs {
 }
 
 export namespace DocUtils {
+    export function Excluded(d: Doc, docFilters: string[]) {
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
+            }
+            filterFacets[key][value] = modifiers;
+        }
+
+        if (d.z) return false;
+        for (const facetKey of Object.keys(filterFacets)) {
+            const facet = filterFacets[facetKey];
+            const xs = Object.keys(facet).filter(value => facet[value] === "x");
+            const failsNotEqualFacets = xs?.some(value => Doc.matchFieldValue(d, facetKey, value));
+            if (failsNotEqualFacets) {
+                return true;
+            }
+        }
+        return false;
+    }
     export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 

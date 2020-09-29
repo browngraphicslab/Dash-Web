@@ -642,6 +642,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                     }
                     annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
+                    annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
                 }
             });
@@ -733,7 +734,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
-                docFilters={this.props.docRangeFilters}
+                docFilters={this.props.docFilters}
                 docRangeFilters={this.props.docRangeFilters}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}

@@ -1127,8 +1127,9 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
 
-    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number) {
+    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number, noMargins?: boolean) {
         const tbox = Docs.Create.TextDocument("", {
+            _xMargin: noMargins ? 0 : undefined, _yMargin: noMargins ? 0 : undefined,
             _width: width || 200, _height: height || 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
         });
