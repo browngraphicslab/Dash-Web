@@ -977,9 +977,9 @@ export namespace DocUtils {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
 
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
-        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (!allowParCollectionLink && sv?.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);

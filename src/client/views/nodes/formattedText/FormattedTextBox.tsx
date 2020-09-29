@@ -825,8 +825,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             () => this.props.makeLink?.(),
             (linkDoc: Opt<Doc>) => {
                 if (linkDoc) {
-                    const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                    const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
+                    const a1 = Cast(linkDoc.anchor1, Doc, null);
+                    const a2 = Cast(linkDoc.anchor2, Doc, null);
+                    const otherAnchor = Doc.AreProtosEqual(a1, this.rootDoc) ? a2 : a1;
+                    const anchor2Title = StrCast(otherAnchor.title, "-untitled-");
+                    const anchor2Id = otherAnchor?.[Id] || "";
                     this.makeLinkToSelection(linkDoc[Id], anchor2Title, "add:right", anchor2Id);
                 }
             },
@@ -910,15 +913,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
-                    let offset = 0;
                     frag.forEach((node, index) => {
                         const examinedNode = findLinkNode(node, editor);
                         if (examinedNode?.textContent) {
                             nodes.push(examinedNode);
-                            offset = index;
+                            !start && (start = index);
                         }
                     });
-                    return { frag: Fragment.fromArray(nodes), start: start + offset };
+                    return { frag: Fragment.fromArray(nodes), start };
                 };
                 const findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {
@@ -930,7 +932,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
-                const start = 0;
+                let start = 0;
                 if (this._editorView && scrollToLinkID) {
                     const editor = this._editorView;
                     const ret = findLinkFrag(editor.state.doc.content, editor);
