@@ -35,6 +35,7 @@ import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SharingManager } from "../../util/SharingManager";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -624,6 +625,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         clipDoc._height = this.marqueeHeight();
         clipDoc._scrollTop = this.marqueeY();
         const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 100, 100);
+        FormattedTextBox.SelectOnLoad = targetDoc[Id];
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
         clipDoc.rootDocument = targetDoc;
         // DocUtils.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
