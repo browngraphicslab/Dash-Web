@@ -33,6 +33,7 @@ import "../pdf/PDFViewer.scss";
 import React = require("react");
 import { Tooltip } from '@material-ui/core';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { FormattedTextBox } from './formattedText/FormattedTextBox';
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -457,7 +458,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         TraceMobx();
         return <div className="webBox-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={emptyFunction} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }
@@ -499,6 +500,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         e.stopPropagation();
 
         const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 125, 125);
+        FormattedTextBox.SelectOnLoad = targetDoc[Id];
         const annotationDoc = this.highlight("rgba(173, 216, 230, 0.35)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
@@ -506,6 +508,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
+                        annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     }
                 }
             });

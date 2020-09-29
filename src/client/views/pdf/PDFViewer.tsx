@@ -35,6 +35,7 @@ import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SharingManager } from "../../util/SharingManager";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -624,6 +625,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         clipDoc._height = this.marqueeHeight();
         clipDoc._scrollTop = this.marqueeY();
         const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 100, 100);
+        FormattedTextBox.SelectOnLoad = targetDoc[Id];
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
         clipDoc.rootDocument = targetDoc;
         // DocUtils.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
@@ -640,6 +642,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                     }
                     annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
+                    annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
                 }
             });
@@ -701,15 +704,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 <div className="pdfViewerDash-overlayAnno" style={{ right: -50, background: SharingManager.Instance.users.find(users => users.user.email === this._overlayAnnoInfo!.author)?.userColor }}>
                     {this._overlayAnnoInfo.author + " " + Field.toString(this._overlayAnnoInfo.creationDate as Field)}
                 </div>
-            </div>
+            </div>;
     }
 
-    showInfo = action((anno: Doc) => this._overlayAnnoInfo = anno);
+    showInfo = action((anno: Opt<Doc>) => this._overlayAnnoInfo = anno);
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`}
             style={{ pointerEvents: SnappingManager.GetIsDragging() ? "all" : undefined, transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
@@ -731,7 +734,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
-                docFilters={this.props.docRangeFilters}
+                docFilters={this.props.docFilters}
                 docRangeFilters={this.props.docRangeFilters}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}

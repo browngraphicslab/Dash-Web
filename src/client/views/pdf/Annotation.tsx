@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Field } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { Cast, FieldValue, BoolCast, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
@@ -17,7 +17,7 @@ interface IAnnotationProps {
     focus: (doc: Doc) => void;
     dataDoc: Doc;
     fieldKey: string;
-    showInfo: (anno: Doc) => void;
+    showInfo: (anno: Opt<Doc>) => void;
 }
 
 @observer
@@ -25,7 +25,7 @@ export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a =>
-            <RegionAnnotation {...this.props} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
+            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
     }
 }
 
@@ -40,7 +40,7 @@ interface IRegionAnnotationProps {
     document: Doc;
     dataDoc: Doc;
     fieldKey: string;
-    showInfo: (anno: Doc) => void;
+    showInfo: (anno: Opt<Doc>) => void;
 }
 
 @observer

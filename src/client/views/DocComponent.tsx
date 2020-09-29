@@ -123,7 +123,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
-            if (effectiveAcl === AclAdmin || effectiveAcl === AclEdit) {
+            const docAcl = GetEffectiveAcl(doc);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || docAcl === AclAdmin) {
                 const docs = doc instanceof Doc ? [doc] : doc;
                 docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
                 const targetDataDoc = this.dataDoc;

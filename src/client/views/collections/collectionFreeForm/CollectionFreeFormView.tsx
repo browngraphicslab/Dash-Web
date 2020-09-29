@@ -104,28 +104,32 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable canPanY: boolean = true;
 
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
-    @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
-    @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
+    @computed get fitToContent() { return this.props.fitToBox || (this.Document._fitToBox && !this.isAnnotationOverlay); }
+    @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
     @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), NumCast(this.Document._nativeWidth)); }
     @computed get nativeHeight() { return this.fitToContent ? 0 : returnVal(this.props.NativeHeight?.(), NumCast(this.Document._nativeHeight)); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get scaleFieldKey() { return this.props.scaleField || "_viewScale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document._panX || 0;
-    private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document._panY || 0;
-    private zoomScaling = () => (this.fitToContentScaling / this.parentScaling) * (this.fitToContent ?
-        Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
-            this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        NumCast(this.Document[this.scaleFieldKey], 1))
-
+    private panX = () => this.fitToContent && !this.props.isAnnotationOverlay ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document._panX || 0;
+    private panY = () => this.fitToContent && !this.props.isAnnotationOverlay ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document._panY || 0;
+    private zoomScaling = () => {
+        const mult = this.fitToContentScaling / this.parentScaling;
+        if (this.fitToContent) {
+            const zs = !this.childDocs.length ? 1 :
+                Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x));
+            return mult * (this.props.isAnnotationOverlay ? Math.min(zs, 1) : zs);
+        }
+        return mult * NumCast(this.Document[this.scaleFieldKey], 1);
+    }
     @computed get cachedCenteringShiftX(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
+        return !this.props.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedCenteringShiftY(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
+        return !this.props.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedGetLocalTransform(): Transform {
         return Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -776,9 +780,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
         let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
-        if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
-            deltaScale = 1 / this.zoomScaling();
-        }
         if (deltaScale < 0) deltaScale = -deltaScale;
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
@@ -1106,7 +1107,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         });
         this._cachedPool.clear();
         Array.from(newPool.entries()).forEach(k => this._cachedPool.set(k[0], k[1]));
-        const elements: ViewDefResult[] = computedElementData.slice();
+        const elements = computedElementData.slice();
         const engine = this.props.layoutEngine?.() || StrCast(this.props.Document._layoutEngine);
         Array.from(newPool.entries()).filter(entry => this.isCurrent(entry[1].pair.layout)).forEach(entry =>
             elements.push({
@@ -1127,8 +1128,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));
 
-        if (this.props.isAnnotationOverlay) {
-            this.props.Document[this.scaleFieldKey] = Math.max(1, NumCast(this.props.Document[this.scaleFieldKey]));
+        if (this.props.isAnnotationOverlay) {   // don't zoom out farther than 1-1 if it's a bounded item (image, video, pdf), otherwise don't allow zooming in closer than 1-1 if it's a text sidebar
+            if (this.props.scaleField) this.props.Document[this.scaleFieldKey] = Math.min(1, NumCast(this.props.Document[this.scaleFieldKey], 1));
+            else this.props.Document[this.scaleFieldKey] = Math.max(1, NumCast(this.props.Document[this.scaleFieldKey]));
         }
 
         this.Document._useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
@@ -1623,6 +1625,12 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
         return <div className={freeformclass}
+            onScroll={e => {
+                const target = e.target as any;
+                if (getComputedStyle(target.parentElement)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
+                    target.scrollTop = target.scrollLeft = 0;
+                }
+            }}
             style={{
                 transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
                 transition: this.props.transition,
