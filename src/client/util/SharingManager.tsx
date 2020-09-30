@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym } from "../../fields/Doc";
+import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from "../../fields/util";
@@ -71,6 +71,7 @@ export class SharingManager extends React.Component<{}> {
     @observable private individualSort: "ascending" | "descending" | "none" = "none"; // sorting options for the list of individuals
     @observable private groupSort: "ascending" | "descending" | "none" = "none"; // sorting options for the list of groups
     private shareDocumentButtonRef: React.RefObject<HTMLButtonElement> = React.createRef(); // ref for the share button, used for the position of the popup
+    private distributeAclsButtonRef: React.RefObject<HTMLButtonElement> = React.createRef(); // ref for the distribute button, used for the position of the popup
     // if both showUserOptions and showGroupOptions are false then both are displayed
     @observable private showUserOptions: boolean = false; // whether to show individuals as options when sharing (in the react-select component)
     @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
@@ -374,6 +375,26 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
+    @action
+    distributeOverCollection = (targetDoc?: Doc) => {
+        const AclMap = new Map<symbol, string>([
+            [AclPrivate, SharingPermissions.None],
+            [AclReadonly, SharingPermissions.View],
+            [AclAddonly, SharingPermissions.Add],
+            [AclEdit, SharingPermissions.Edit],
+            [AclAdmin, SharingPermissions.Admin]
+        ]);
+
+        const target = targetDoc || this.targetDoc!;
+
+        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        docs.forEach(doc => {
+            for (const [key, value] of Object.entries(doc[AclSym])) {
+                distributeAcls(key, AclMap.get(value)! as SharingPermissions, target);
+            }
+        });
+    }
+
     /**
      * Sorting algorithm to sort users.
      */
@@ -436,7 +457,7 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${user.email.replace('.', '_')}`) : true).map(({ user, notificationDoc, userColor }) => {
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${user.email.replace('.', '_')}`) : docs[0]?.author !== user.email).map(({ user, notificationDoc, userColor }) => {
             const userKey = `acl-${user.email.replace('.', '_')}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
@@ -580,13 +601,19 @@ export class SharingManager extends React.Component<{}> {
                             <input type="checkbox" onChange={action(() => this.showUserOptions = !this.showUserOptions)} /> <label style={{ marginRight: 10 }}>Individuals</label>
                             <input type="checkbox" onChange={action(() => this.showGroupOptions = !this.showGroupOptions)} /> <label>Groups</label>
                         </div>
-                        <div className="myDocs-acls">
-                            <input type="checkbox" onChange={action(() => this.myDocAcls = !this.myDocAcls)} checked={this.myDocAcls} /> <label>My Docs</label>
+
+                        <div className="acl-container">
+                            <div className="myDocs-acls">
+                                <input type="checkbox" onChange={action(() => this.myDocAcls = !this.myDocAcls)} checked={this.myDocAcls} /> <label>My Docs</label>
+                            </div>
+                            {Doc.UserDoc().noviceMode ? (null) :
+                                <div className="layoutDoc-acls">
+                                    <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
+                                </div>}
+                            <button className="distribute-button" onClick={() => this.distributeOverCollection()}>
+                                Distribute
+                        </button>
                         </div>
-                        {Doc.UserDoc().noviceMode ? (null) :
-                            <div className="layoutDoc-acls">
-                                <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
-                            </div>}
                     </div>
                     }
                     <div className="main-container">

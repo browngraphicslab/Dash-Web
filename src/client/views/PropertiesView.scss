@@ -121,18 +121,29 @@
             padding: 10px;
             margin-left: 5px;
 
-            .propertiesView-acls-checkbox {
+            .propertiesView-buttonContainer {
                 float: right;
-                height: 20px;
-                margin-top: -20px;
-                margin-right: -15;
+                display: flex;
 
-                .propertiesView-acls-checkbox-text {
-                    font-size: 7px;
-                    margin-top: -10px;
-                    margin-left: 6px;
+                button {
+                    width: 15;
+                    height: 15;
+                    padding: 0;
+                    margin-top: -5;
+                }
+
+                .propertiesView-acls-checkbox {
+                    margin-top: -20px;
+
+                    .propertiesView-acls-checkbox-text {
+                        font-size: 7px;
+                        margin-top: -10px;
+                        margin-left: 6px;
+                    }
                 }
             }
+
+
 
             .change-buttons {
                 display: flex;
@@ -247,8 +258,7 @@
     }
 
     .expansion-button {
-        margin-left: -22.5;
-        margin: 3;
+        margin-left: -20;
 
         .expansion-button-icon {
             width: 11px;
