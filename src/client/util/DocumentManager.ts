@@ -204,15 +204,9 @@ export class DocumentManager {
                         };
                         findView(0);
                     }
-                } else {  // there's no context view so we need to create one first and try again
-                    createViewFunc(targetDocContext); // so first we create the target, but don't pass finished because we still need to create the target
-                    setTimeout(() => {
-                        const finalDocView = getFirstDocView(targetDoc);
-                        const finalDocContextView = getFirstDocView(targetDocContext);
-                        setTimeout(() =>  // if not, wait a bit to see if the context can be loaded (e.g., a PDF). wait interval heurisitic tries to guess how we're animating based on what's just become visible
-                            this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true, undefined, finished), // pass true this time for closeContextIfNotFound
-                            finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
-                    }, 0);
+                } else {  // there's no context view so we need to create one first and try again when that finishes
+                    createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
+                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
                 }
             }
         }

@@ -366,7 +366,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
-                this.allLinks.length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
+                this.allLinks.length && DocumentView.followLinkClick(undefined, this.props.Document, this.props, e.shiftKey, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
@@ -384,27 +384,35 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // follows a link - if the target is on screen, it highlights/pans to it.
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
+    public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
+        focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void,
+        addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean,
+        ContainingCollectionDoc?: Doc
+    }, shiftKey: boolean, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
             const targetFocusAfterDocFocus = () => {
-                const where = StrCast(this.Document.followLinkLocation) || followLoc;
+                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
                     finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
-                this.props.addDocTab(doc, where) && this.props.focus(doc, BoolCast(this.Document.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
-                return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+                const addTab = docView.addDocTab(doc, where);
+                addTab && setTimeout(() => {
+                    const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
+                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, true), undefined, hackToCallFinishAfterFocus);
+                }); //  add the target and focus on it.
+                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
-            if (!this.Document.followLinkZoom) {
+            if (!sourceDoc.followLinkZoom) {
                 targetFocusAfterDocFocus();
             } else {
                 // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                this.props.focus(this.props.Document, BoolCast(this.Document.followLinkZoom, true), 1, targetFocusAfterDocFocus);
+                docView.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
             }
         };
-        await DocumentManager.Instance.FollowLink(undefined, this.props.Document, createViewFunc, shiftKey, this.props.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
+        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, true), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {

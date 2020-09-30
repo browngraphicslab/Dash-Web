@@ -41,7 +41,7 @@ export class LinkDocPreview extends React.Component<Props> {
     async followDefault() {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, doc => this.props.addDocTab(doc, "add:right"), false) : null;
+        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, (doc, where) => this.props.addDocTab(doc, where), false) : null;
     }
     componentWillUnmount() { LinkDocPreview.TargetDoc = undefined; }
 
