@@ -431,22 +431,20 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             this.selectedDocumentView.props.addDocument?.(alias);
         }
     }
-    private _dragRef = React.createRef<HTMLButtonElement>();
-
-    @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
     }
 
     @undoBatch
     onAliasButtonMoved = (e: PointerEvent) => {
-        if (this._dragRef.current && this.selectedDoc) {
-            const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
-            const [left, top] = [e.clientX, e.clientY];
+        const contentDiv = this.selectedDocumentView?.ContentDiv;
+        if (contentDiv) {
+            const dragData = new DragManager.DocumentDragData([this.selectedDocumentView!.props.Document]);
+            const offset = [e.clientX - contentDiv.getBoundingClientRect().x, e.clientY - contentDiv.getBoundingClientRect().y];
             dragData.defaultDropAction = "alias";
-            DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
-                offsetX: dragData.offset[0],
-                offsetY: dragData.offset[1],
+            DragManager.StartDocumentDrag([contentDiv], dragData, e.clientX, e.clientY, {
+                offsetX: offset[0],
+                offsetY: offset[1],
                 hideSource: false
             });
             return true;
@@ -458,7 +456,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get aliasButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "copy" }}>
+            <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "copy" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;
@@ -467,7 +465,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Images"}</div>} placement="top">
-            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={action(() => targetDoc._isLightboxOpen = true)} onClick={this.onAlias}>
+            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc._isLightboxOpen = true)} onClick={this.onAlias}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
             </button>
         </Tooltip>;
