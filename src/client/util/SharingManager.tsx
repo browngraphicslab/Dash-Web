@@ -375,7 +375,6 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
-    @action
     distributeOverCollection = (targetDoc?: Doc) => {
         const AclMap = new Map<symbol, string>([
             [AclPrivate, SharingPermissions.None],
