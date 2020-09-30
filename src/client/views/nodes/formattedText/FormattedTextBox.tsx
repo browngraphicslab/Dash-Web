@@ -1541,7 +1541,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     @computed get sidebarHandle() {
-        const annotated = DocListCast(this.dataDoc[this.annotationKey]).length;
+        const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.title).length;
         return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
                 style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : undefined }}
