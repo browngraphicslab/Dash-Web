@@ -186,10 +186,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             addDocTab(annotationOn instanceof Doc ? annotationOn : destinationDoc, StrCast(linkDoc.followLinkLocation));
             if (annotationOn) {
                 setTimeout(() => {
-                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
-                    undoBatch(() => {
-                        dv?.props.focus(destinationDoc, false);
-                    })();
+                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc); \
+                    dv?.props.focus(destinationDoc, false);
                 });
             }
         } else {
