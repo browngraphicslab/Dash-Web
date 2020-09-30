@@ -106,6 +106,15 @@
         border-width: 1px;
     }
 }
+.formattedTextBox-inner-rounded-selected,
+.formattedTextBox-inner-selected {
+    .ProseMirror {
+        padding:10px;
+    }
+    .ProseMirror:hover {
+        background: unset;
+    }
+}
 
 // .menuicon {
 //     display: inline-block;
@@ -332,15 +341,6 @@ footnote::after {
     .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; vertical-align: top; margin-left: -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
 }
 
-.formattedTextBox-inner-rounded-selected,
-.formattedTextBox-inner-selected {
-    .ProseMirror {
-        padding:10px;
-    }
-    .ProseMirror:hover {
-        background: unset;
-    }
-}
 
 @media only screen and (max-width: 1000px) {
     @import "../../globalCssVariables";

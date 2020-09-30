@@ -185,7 +185,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", forceActive: true, _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
+        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", "sidebarColor": "transparent", "sidebarViewType": CollectionViewType.Freeform, forceActive: true, _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
         Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
@@ -402,6 +402,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     focus={returnFalse}
                     ScreenToLocalTransform={this.docTransform}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
@@ -515,6 +516,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 bringToFront={emptyFunction}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={this.props.containingCollection}
@@ -585,6 +587,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                                 focus={this.refocus}
                                 ScreenToLocalTransform={this.docTransform}
                                 docFilters={returnEmptyFilter}
+                                docRangeFilters={returnEmptyFilter}
                                 searchFilterDocs={returnEmptyDoclist}
                                 ContainingCollectionDoc={this.props.containingCollection}
                                 ContainingCollectionView={undefined}
@@ -661,7 +664,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         ignoreFields: string[] | undefined,
         firstLevel: boolean,
         whenActiveChanged: (isActive: boolean) => void,
-        dontRegisterView: boolean | undeifned) {
+        dontRegisterView: boolean | undefined) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             childDocs = childDocs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);

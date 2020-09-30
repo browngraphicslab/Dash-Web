@@ -422,8 +422,12 @@ export class CurrentUserUtils {
             doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
-            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
+        }
+        if (doc.emptyNote === undefined) {
+            doc.emptyNote = Docs.Create.TextDocument("", { _width: 200, title: "text note", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyNote as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyImage === undefined) {
             doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat", system: true });
@@ -444,6 +448,7 @@ export class CurrentUserUtils {
             this.setupActiveMobileMenu(doc);
         }
         return [
+            { toolTip: "Tap to create a note in a new pane, drag for a note", title: "Note", icon: "sticky-note", click: 'openOnRight(copyDragFactory(this.clickFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyNote as Doc, noviceMode: true, clickFactory: doc.emptyNote as Doc, },
             { toolTip: "Tap to create a collection in a new pane, drag for a collection", title: "Col", icon: "folder", click: 'openOnRight(copyDragFactory(this.clickFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyCollection as Doc, noviceMode: true, clickFactory: doc.emptyPane as Doc, },
             { toolTip: "Tap to create a webpage in a new pane, drag for a webpage", title: "Web", icon: "globe-asia", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
             { toolTip: "Tap to create a progressive slide", title: "Slide", icon: "file", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySlide as Doc, noviceMode: true },
@@ -1127,8 +1132,9 @@ export class CurrentUserUtils {
         CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
     }
 
-    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number) {
+    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number, noMargins?: boolean) {
         const tbox = Docs.Create.TextDocument("", {
+            _xMargin: noMargins ? 0 : undefined, _yMargin: noMargins ? 0 : undefined,
             _width: width || 200, _height: height || 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
         });

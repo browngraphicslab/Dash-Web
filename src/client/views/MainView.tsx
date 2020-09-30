@@ -86,7 +86,7 @@ export class MainView extends React.Component {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -269,6 +269,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             docFilters={returnEmptyFilter}
+            docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
@@ -331,6 +332,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
@@ -365,6 +367,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
@@ -484,6 +487,7 @@ export class MainView extends React.Component {
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
@@ -549,6 +553,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
@@ -580,6 +585,7 @@ export class MainView extends React.Component {
                     PanelHeight={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
                 />
             </div>;
@@ -645,6 +651,7 @@ export class MainView extends React.Component {
                             PanelHeight={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}
                         />
                     </div>;

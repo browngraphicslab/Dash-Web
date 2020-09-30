@@ -173,6 +173,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={this.doc}
                 ContainingCollectionView={this.props.CollectionView}

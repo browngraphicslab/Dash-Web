@@ -301,6 +301,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     addDocTab={this.addDocTab}
                     pinToPres={TabDocView.PinDoc}
                     docFilters={CollectionDockingView.Instance.docFilters}
+                    docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                     searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                     fitToBox={true}
                 />
@@ -350,6 +351,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 addDocTab={this.addDocTab}
                 pinToPres={TabDocView.PinDoc}
                 docFilters={CollectionDockingView.Instance.docFilters}
+                docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />

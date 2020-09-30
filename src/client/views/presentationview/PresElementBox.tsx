@@ -104,6 +104,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     bringToFront={returnFalse}
                     opacity={returnOne}
                     docFilters={this.props.docFilters}
+                    docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}

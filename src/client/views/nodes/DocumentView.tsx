@@ -1,20 +1,22 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
+import { RichTextField } from '../../../fields/RichTextField';
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
@@ -39,8 +41,6 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-import { RichTextField } from '../../../fields/RichTextField';
 
 export type DocFocusFunc = () => boolean;
 
@@ -48,6 +48,7 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     docFilters: () => string[];
+    docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
     FreezeDimensions?: boolean;
     NativeWidth?: () => number;
@@ -915,6 +916,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any, borderRadius: "inherit", width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
                 searchFilterDocs={this.props.searchFilterDocs}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
@@ -1043,10 +1045,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={this.ShowTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
-                    display={"block"} fontSize={10}
-                    GetValue={() => ""}
-                    SetValue={undoBatch((value: string) => (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true)}
+                    contents={this.ShowTitle === "title" ? StrCast((this.dataDoc || this.props.Document).title) : this.ShowTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
+                    display={"block"}
+                    fontSize={10}
+                    GetValue={() => Field.toString((this.dataDoc || this.props.Document)[this.ShowTitle.split(";")[0]] as any as Field)}
+                    SetValue={undoBatch((value: string) => {
+                        this.ShowTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true;
+                    })}
                 />
             </div>);
         return !this.ShowTitle && !showCaption ?

@@ -57,7 +57,7 @@ export class SearchManager extends ApiManager {
                     }
                     res.send(resObj);
                 } catch (e) {
-                    console.log("textsearch: received bad RegExp" + q.toString())
+                    console.log(red("textsearch:bad RegExp" + q.toString()));
                     res.send([]);
                     return;
                 }

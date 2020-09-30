@@ -246,6 +246,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                             bringToFront={emptyFunction}
                             dontRegisterView={false}
                             docFilters={this.props.tbox?.props.docFilters || returnEmptyFilter}
+                            docRangeFilters={this.props.tbox?.props.docRangeFilters || returnEmptyFilter}
                             searchFilterDocs={this.props.tbox?.props.searchFilterDocs || returnEmptyDoclist}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}

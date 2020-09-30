@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { isEqual } from "lodash";
+import { isEqual, max } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap, selectAll } from "prosemirror-commands";
@@ -58,6 +58,8 @@ import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
 import { DocumentManager } from '../../../util/DocumentManager';
+import { CollectionStackingView } from '../../collections/CollectionStackingView';
+import { CollectionViewType } from '../../collections/CollectionView';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -557,7 +559,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     sidebarDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, this.sidebarMove, emptyFunction,
-            () => this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%")) !== "0%");
+            () => setTimeout(action(() => {
+                const prevWidth = this.sidebarWidth();
+                this.layoutDoc._showSidebar = ((this.layoutDoc._sidebarWidthPercent = StrCast(this.layoutDoc._sidebarWidthPercent, "0%") === "0%" ? "50%" : "0%")) !== "0%";
+                this.layoutDoc._width = this.layoutDoc._showSidebar ? NumCast(this.layoutDoc._width) * 2 : Math.max(20, NumCast(this.layoutDoc._width) - prevWidth);
+            })), false);
     }
     sidebarMove = (e: PointerEvent, down: number[], delta: number[]) => {
         const bounds = this.CurrentDiv.getBoundingClientRect();
@@ -607,7 +613,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
 
         const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
         !Doc.UserDoc().noviceMode && uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
@@ -822,8 +827,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             () => this.props.makeLink?.(),
             (linkDoc: Opt<Doc>) => {
                 if (linkDoc) {
-                    const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                    const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
+                    const a1 = Cast(linkDoc.anchor1, Doc, null);
+                    const a2 = Cast(linkDoc.anchor2, Doc, null);
+                    const otherAnchor = Doc.AreProtosEqual(a1, this.rootDoc) ? a2 : a1;
+                    const anchor2Title = StrCast(otherAnchor.title, "-untitled-");
+                    const anchor2Id = otherAnchor?.[Id] || "";
                     this.makeLinkToSelection(linkDoc[Id], anchor2Title, "add:right", anchor2Id);
                 }
             },
@@ -907,15 +915,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
-                    let offset = 0;
                     frag.forEach((node, index) => {
                         const examinedNode = findLinkNode(node, editor);
                         if (examinedNode?.textContent) {
                             nodes.push(examinedNode);
-                            offset = index;
+                            !start && (start = index);
                         }
                     });
-                    return { frag: Fragment.fromArray(nodes), start: start + offset };
+                    return { frag: Fragment.fromArray(nodes), start };
                 };
                 const findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {
@@ -927,7 +934,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
-                const start = 0;
+                let start = 0;
                 if (this._editorView && scrollToLinkID) {
                     const editor = this._editorView;
                     const ret = findLinkFrag(editor.state.doc.content, editor);
@@ -1161,7 +1168,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
                 const curMarks = this._editorView.state.storedMarks ?? $from?.marksAcross(this._editorView.state.selection.$head) ?? [];
                 const storedMarks = [...curMarks.filter(m => m.type !== mark.type), mark];
-                this._editorView.dispatch(this._editorView.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar).setStoredMarks(storedMarks));
+                const tr = this._editorView.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar, this._editorView.state.doc.content.size - 1, this._editorView.state.doc.content.size).setStoredMarks(storedMarks);
+                this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(tr.doc.content.size))));
                 FormattedTextBox.SelectOnLoadChar = "";
             } else if (curText?.Text) {
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
@@ -1491,6 +1499,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
+        this.rootDoc[this.fieldKey + "-height"] = 0;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
@@ -1512,43 +1521,75 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 try {
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    this.rootDoc._height = newHeight + Math.max(0, outer);
-                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    const finalHeight = newHeight + Math.max(0, outer);
+                    const maxsidebar = !this.sidebarWidth() ? 0 : Array.from(this._boxRef.current!.getElementsByClassName("collectionStackingViewFieldColumn")).reduce((prev, ele) => Math.max(prev, Number(getComputedStyle(ele).height.replace("px", ""))), 0);
+                    if (this.rootDoc._height !== finalHeight && finalHeight > maxsidebar) {
+                        this.rootDoc._height = finalHeight;
+                        this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    }
+                    this.rootDoc[this.fieldKey + "-height"] = finalHeight;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
         }
     }
 
-    return1000 = () => 1000;
+    @computed get audioHandle() {
+        return !this.layoutDoc._showAudio ? (null) :
+            <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
+                <FontAwesomeIcon className="formattedTextBox-audioFont" style={{ color: this._recording ? "red" : "blue", transitionDelay: "0.6s", opacity: this._recording ? 1 : 0.25, }} icon={"microphone"} size="sm" />
+            </div>;
+    }
+
+    @computed get sidebarHandle() {
+        const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.title).length;
+        return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
+            <div className="formattedTextBox-sidebar-handle"
+                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : undefined }}
+                onPointerDown={this.sidebarDown}
+                onClick={e => {
+                    console.log(e);
+                }}
+            />;
+    }
+
     @computed get sidebarCollection() {
+        const fitToBox = this.props.Document._fitToBox;
+        const collectionProps = {
+            ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
+            PanelHeight: this.props.PanelHeight,
+            PanelWidth: this.sidebarWidth,
+            xMargin: 0,
+            yMargin: 0,
+            chromeStatus: "enabled",
+            scaleField: this.annotationKey + "-scale",
+            annotationsKey: this.annotationKey,
+            isAnnotationOverlay: true,
+            fitToBox: fitToBox,
+            focus: this.props.focus,
+            isSelected: this.props.isSelected,
+            select: emptyFunction,
+            active: this.annotationsActive,
+            ContentScaling: returnOne,
+            whenActiveChanged: this.whenActiveChanged,
+            removeDocument: this.removeDocument,
+            moveDocument: this.moveDocument,
+            addDocument: this.addDocument,
+            CollectionView: undefined,
+            ScreenToLocalTransform: this.sidebarScreenToLocal,
+            renderDepth: this.props.renderDepth + 1,
+            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
+        };
         return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
-            <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")} style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                    PanelHeight={this.active() ? this.return1000 : this.props.PanelHeight}
-                    PanelWidth={this.sidebarWidth}
-                    scaleField={this.annotationKey + "-scale"}
-                    annotationsKey={this.annotationKey}
-                    isAnnotationOverlay={true}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
-                    select={emptyFunction}
-                    active={this.annotationsActive}
-                    ContentScaling={returnOne}
-                    whenActiveChanged={this.whenActiveChanged}
-                    removeDocument={this.removeDocument}
-                    moveDocument={this.moveDocument}
-                    addDocument={this.addDocument}
-                    CollectionView={undefined}
-                    ScreenToLocalTransform={this.sidebarScreenToLocal}
-                    renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc} />
+            <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
+                style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
+                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ? <CollectionFreeFormView {...collectionProps} /> : <CollectionStackingView {...collectionProps} />}
             </div>;
     }
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
     sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
-    @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
+    @computed get sidebarColor() { return StrCast(this.layoutDoc.sidebarColor, StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "#e4e4e4")); }
     render() {
         TraceMobx();
         const selected = this.props.isSelected();
@@ -1559,8 +1600,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         selected && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props)); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!selected && FormattedTextBoxComment.textBox === this) { FormattedTextBoxComment.Hide(); }
         const minimal = this.props.ignoreAutoHeight;
-        const selPad = (selected && !this.layoutDoc._singleLine) || minimal ? -10 : 0;
-        const selclass = selected && !this.layoutDoc._singleLine ? "-selected" : "";
+        const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
+        const selPad = Math.min(margins, 10);
+        const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
+        const selclass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
             <div className={"formattedTextBox-cont"} ref={this._boxRef}
                 style={{
@@ -1608,18 +1651,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
-                                padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) :
-                                    `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
+                                padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
                                 pointerEvents: !active ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}
                         />
                     </div>
                     {this.sidebarCollection}
-                    {selected ? <div className="formattedTextBox-sidebar-handle" style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} - 5px))` }} onPointerDown={this.sidebarDown} /> : (null)}
-                    {!this.layoutDoc._showAudio ? (null) :
-                        <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
-                            <FontAwesomeIcon className="formattedTextBox-audioFont" style={{ color: this._recording ? "red" : "blue", transitionDelay: "0.6s", opacity: this._recording ? 1 : 0.25, }} icon={"microphone"} size="sm" />
-                        </div>}
+                    {this.sidebarHandle}
+                    {this.audioHandle}
                 </div>
             </div>
         );

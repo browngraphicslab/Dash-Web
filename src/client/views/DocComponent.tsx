@@ -123,7 +123,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
-            if (effectiveAcl === AclAdmin || effectiveAcl === AclEdit) {
+            const docAcl = GetEffectiveAcl(doc);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || docAcl === AclAdmin) {
                 const docs = doc instanceof Doc ? [doc] : doc;
                 docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
                 const targetDataDoc = this.dataDoc;
@@ -166,7 +167,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
                                 if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
-                                else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                                //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
+                                // else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }
                         });
                     }

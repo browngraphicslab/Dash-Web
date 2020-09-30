@@ -319,7 +319,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @computed get showKeys() {
         const whitelistKeys = ["context", "author", "*lastModified", "text", "data", "tags", "creationDate"];
-        let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
         const showKeys = new Set<string>();
         [...keyOptions, ...whitelistKeys].forEach(key => (!Doc.UserDoc().noviceMode ||
             whitelistKeys.includes(key)

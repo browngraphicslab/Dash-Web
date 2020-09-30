@@ -88,6 +88,7 @@ export class AudioUpload extends React.Component {
                         rootSelected={returnTrue}
                         removeDocument={undefined}
                         docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}

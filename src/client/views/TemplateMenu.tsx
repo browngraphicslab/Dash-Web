@@ -131,6 +131,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}

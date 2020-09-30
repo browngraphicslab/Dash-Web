@@ -434,6 +434,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
                 docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
                 searchFilterDocs={this.props.searchFilterDocs}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}

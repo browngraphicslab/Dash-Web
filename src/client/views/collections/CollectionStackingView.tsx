@@ -33,8 +33,12 @@ const _global = (window /* browser */ || global /* node */) as any;
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
 const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
+export type collectionStackingViewProps = {
+    chromeStatus?: string;
+};
+
 @observer
-export class CollectionStackingView extends CollectionSubView(StackingDocument) {
+export class CollectionStackingView extends CollectionSubView<StackingDocument, Partial<collectionStackingViewProps>>(StackingDocument) {
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
     _pivotFieldDisposer?: IReactionDisposer;
@@ -44,15 +48,16 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     @observable _heightMap = new Map<string, number>();
     @observable _cursor: CursorProperty = "grab";
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
+    @computed get chromeStatus() { return this.props.chromeStatus || StrCast(this.layoutDoc._chromeStatus); }
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.layoutDoc._columnsStack, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.pivotField && (this.layoutDoc._chromeStatus !== 'view-mode' && this.layoutDoc._chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / this.props.ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
@@ -176,9 +181,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
             smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
-        afterFocus && setTimeout(() => {
-            if (afterFocus?.()) { }
-        }, 500);
+        afterFocus && setTimeout(afterFocus, 500);
     }
 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
@@ -209,6 +212,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             opacity={opacity}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
@@ -355,7 +359,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
+                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);
@@ -407,7 +412,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+                            const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);
@@ -443,10 +449,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         const firstEntry = descending ? b : a;
         const secondEntry = descending ? a : b;
         return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
-    }
-
-    onToggle = (checked: Boolean) => {
-        this.layoutDoc._chromeStatus = checked ? "collapsed" : "view-mode";
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -495,10 +497,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
                     }}
-                    onScroll={action(e => {
-                        if (!this.props.isSelected(true) && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
-                        else this._scroll = e.currentTarget.scrollTop;
-                    })}
+                    onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
                     onWheel={e => this.props.active(true) && e.stopPropagation()} >
@@ -508,13 +507,14 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                             style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {this.layoutDoc._chromeStatus !== 'disabled' && this.props.isSelected() ? <Switch
-                        onChange={this.onToggle}
-                        onClick={this.onToggle}
-                        defaultChecked={this.layoutDoc._chromeStatus !== 'view-mode'}
-                        checkedChildren="edit"
-                        unCheckedChildren="view"
-                    /> : null}
+                    {/* {this.chromeStatus === 'disabled' || !this.props.isSelected() ? (null) :
+                        <Switch
+                            onChange={this.onToggle}
+                            onClick={this.onToggle}
+                            defaultChecked={this.chromeStatus !== 'view-mode'}
+                            checkedChildren="edit"
+                            unCheckedChildren="view"
+                        />} */}
                 </div> </div>
         );
     }
