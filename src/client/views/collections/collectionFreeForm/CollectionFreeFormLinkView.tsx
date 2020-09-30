@@ -26,7 +26,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this._anchorDisposer?.();
     }
     @action
-    timeout = () => (Date.now() < this._start++ + 1000) && setTimeout(this.timeout, 25)
+    timeout = action(() => (Date.now() < this._start++ + 1000) && (this._timeout = setTimeout(this.timeout, 25)))
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
@@ -113,13 +113,27 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         var el = el.parentNode;
         do {
             rect = el.getBoundingClientRect();
-            if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
+            if (top <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
             // Check if the element is out of view due to a container scrolling
             if ((top + height) <= rect.top && getComputedStyle(el).overflow === "hidden") return rect.top;
             el = el.parentNode;
         } while (el !== document.body);
         // Check its within the document viewport
         return top; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
+    }
+    visibleX = (el: any) => {
+        let rect = el.getBoundingClientRect();
+        const left = rect.left, width = rect.width;
+        var el = el.parentNode;
+        do {
+            rect = el.getBoundingClientRect();
+            if (left <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.right;
+            // Check if the element is out of view due to a container scrolling
+            if ((left + width) <= rect.left && getComputedStyle(el).overflow === "hidden") return rect.left;
+            el = el.parentNode;
+        } while (el !== document.body);
+        // Check its within the document viewport
+        return left; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
     }
 
     @computed.struct get renderData() {
@@ -138,16 +152,18 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const b = bdiv.getBoundingClientRect();
         const atop = this.visibleY(adiv);
         const btop = this.visibleY(bdiv);
-        const apt = Utils.closestPtBetweenRectangles(a.left, atop, a.width, a.height,
-            b.left, btop, b.width, b.height,
+        const aleft = this.visibleX(adiv);
+        const bleft = this.visibleX(bdiv);
+        const apt = Utils.closestPtBetweenRectangles(aleft, atop, a.width, a.height,
+            bleft, btop, b.width, b.height,
             a.left + a.width / 2, a.top + a.height / 2);
-        const bpt = Utils.closestPtBetweenRectangles(b.left, btop, b.width, b.height,
-            a.left, atop, a.width, a.height,
+        const bpt = Utils.closestPtBetweenRectangles(bleft, btop, b.width, b.height,
+            aleft, atop, a.width, a.height,
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
-        const pt1vec = [pt1[0] - (a.left + a.width / 2), pt1[1] - (atop + a.height / 2)];
-        const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (btop + b.height / 2)];
+        const pt1vec = [pt1[0] - (aleft + a.width / 2), pt1[1] - (atop + a.height / 2)];
+        const pt2vec = [pt2[0] - (bleft + b.width / 2), pt2[1] - (btop + b.height / 2)];
         const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
         const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
         const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;
@@ -155,6 +171,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.B.isSelected() || Doc.IsBrushed(this.props.B.props.Document);
+        if (aleft !== a.left || atop !== a.top || bleft !== b.left || btop !== b.top) return { a, b, pt1norm: [0, 0], pt2norm: [0, 0], aActive, bActive, textX: undefined, textY: undefined, pt1, pt2 };
 
         const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetX);
         const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
@@ -167,9 +184,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         return !a.width || !b.width || ((!this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
-            <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
+            {textX === undefined ? (null) : <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
                 {StrCast(this.props.LinkDocs[0].description)}
-            </text>
+            </text>}
         </>);
     }
 }
