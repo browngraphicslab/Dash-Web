@@ -129,6 +129,7 @@ export namespace DragManager {
         treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
+        canEmbed?: boolean;
         userDropAction: dropActionType;     // the user requested drop action -- this will be honored as specified by modifier keys
         defaultDropAction?: dropActionType;  // an optionally specified default drop action when there is no user drop actionl - this will be honored if there is no user drop action
         dropAction: dropActionType;         // a drop action request by the initiating code.  the actual drop action may be different -- eg, if the request is 'alias', but the document is dropped within the same collection, the drop action will be switched to 'move'
@@ -324,7 +325,7 @@ export namespace DragManager {
         if (dragData.dropAction === "none") return;
         const batch = UndoManager.StartBatch("dragging");
         eles = eles.filter(e => e);
-        CanEmbed = false;
+        CanEmbed = dragData.canEmbed || false;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";

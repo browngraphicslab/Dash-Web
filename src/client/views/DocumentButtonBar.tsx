@@ -283,6 +283,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             dragData.defaultDropAction = "alias";
+            dragData.canEmbed = true;
             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, { hideSource: false });
             return true;
         }
@@ -299,7 +300,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         Array.from(["Caption", "Title", "TitleHover"]).map(template =>
             templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template] ? true : false, false as boolean)));
         return !view0 ? (null) :
-            <Tooltip title={<div className="dash-tooltip">CustomizeLayout</div>} open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} placement="bottom">
+            <Tooltip title={<div className="dash-tooltip">Tap to Customize Layout. Drag an embeddable alias</div>} open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} placement="bottom">
                 <div className="documentButtonBar-linkFlyout" ref={this._dragRef}
                     onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))} >
 

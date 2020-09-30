@@ -442,6 +442,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             const dragData = new DragManager.DocumentDragData([this.selectedDocumentView!.props.Document]);
             const offset = [e.clientX - contentDiv.getBoundingClientRect().x, e.clientY - contentDiv.getBoundingClientRect().y];
             dragData.defaultDropAction = "alias";
+            dragData.canEmbed = true;
             DragManager.StartDocumentDrag([contentDiv], dragData, e.clientX, e.clientY, {
                 offsetX: offset[0],
                 offsetY: offset[1],
@@ -456,7 +457,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get aliasButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "copy" }}>
+            <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "drag" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;
