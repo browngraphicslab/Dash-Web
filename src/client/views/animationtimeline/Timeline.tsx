@@ -484,7 +484,6 @@ export class Timeline extends React.Component<FieldViewProps> {
     render() {
         setTimeout(() => this.changeLengths(), 0);
 
-        trace();
         // change visible and total width
         return (
             <div style={{ visibility: "visible" }}>

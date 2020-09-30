@@ -67,7 +67,7 @@ export class LinkManager {
             const a2 = Cast(link.anchor2, Doc, null);
             const protomatch1 = Doc.AreProtosEqual(anchor, a1);
             const protomatch2 = Doc.AreProtosEqual(anchor, a2);
-            return ((a1?.title !== undefined && a2?.title !== undefined) || link.author === Doc.CurrentUserEmail) && (protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor));
+            return ((a1?.author !== undefined && a2?.author !== undefined) || link.author === Doc.CurrentUserEmail) && (protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor));
         });
         return related;
     }

@@ -11,7 +11,6 @@ import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
-import { List } from "@material-ui/core";
 
 
 function _readOnlySetter(): never {

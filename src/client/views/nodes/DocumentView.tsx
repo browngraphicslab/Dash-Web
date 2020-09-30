@@ -987,9 +987,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
 
-    @computed.struct get directLinks() { return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
-    @computed.struct get allLinks() { return DocListCast(this.Document.links); }
-    @computed.struct get allAnchors() {
+    @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
+    @computed get allLinks() { TraceMobx(); return DocListCast(this.Document.links); }
+    @computed get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
         if ((this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
