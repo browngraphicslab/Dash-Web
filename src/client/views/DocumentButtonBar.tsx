@@ -242,7 +242,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get menuButton() {
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`Open Context Menu`}</div></>}>
-            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "context-menu" }} onClick={e => this.openContextMenu(e)}>
+            <div className="documentButtonBar-linker" style={{ color: "white", cursor: "pointer" }} onClick={e => this.openContextMenu(e)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="bars" />
             </div></Tooltip >;
     }
