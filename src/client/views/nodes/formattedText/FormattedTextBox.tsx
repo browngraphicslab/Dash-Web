@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { isEqual } from "lodash";
+import { isEqual, max } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap, selectAll } from "prosemirror-commands";
@@ -58,6 +58,8 @@ import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
 import { DocumentManager } from '../../../util/DocumentManager';
+import { CollectionStackingView } from '../../collections/CollectionStackingView';
+import { CollectionViewType } from '../../collections/CollectionView';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -1166,7 +1168,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
                 const curMarks = this._editorView.state.storedMarks ?? $from?.marksAcross(this._editorView.state.selection.$head) ?? [];
                 const storedMarks = [...curMarks.filter(m => m.type !== mark.type), mark];
-                this._editorView.dispatch(this._editorView.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar).setStoredMarks(storedMarks));
+                const tr = this._editorView.state.tr.setStoredMarks(storedMarks).insertText(FormattedTextBox.SelectOnLoadChar, this._editorView.state.doc.content.size - 1, this._editorView.state.doc.content.size).setStoredMarks(storedMarks);
+                this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(tr.doc.content.size))));
                 FormattedTextBox.SelectOnLoadChar = "";
             } else if (curText?.Text) {
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
@@ -1496,6 +1499,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
+        this.rootDoc[this.fieldKey + "-height"] = 0;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
@@ -1517,8 +1521,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 try {
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    this.rootDoc._height = newHeight + Math.max(0, outer);
-                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    const finalHeight = newHeight + Math.max(0, outer);
+                    const maxsidebar = !this.sidebarWidth() ? 0 : Array.from(this._boxRef.current!.getElementsByClassName("collectionStackingViewFieldColumn")).reduce((prev, ele) => Math.max(prev, Number(getComputedStyle(ele).height.replace("px", ""))), 0);
+                    if (this.rootDoc._height !== finalHeight && finalHeight > maxsidebar) {
+                        this.rootDoc._height = finalHeight;
+                        this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    }
+                    this.rootDoc[this.fieldKey + "-height"] = finalHeight;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
         }
@@ -1545,36 +1554,42 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarCollection() {
         const fitToBox = this.props.Document._fitToBox;
+        const collectionProps = {
+            ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
+            PanelHeight: this.props.PanelHeight,
+            PanelWidth: this.sidebarWidth,
+            xMargin: 0,
+            yMargin: 0,
+            chromeStatus: "enabled",
+            scaleField: this.annotationKey + "-scale",
+            annotationsKey: this.annotationKey,
+            isAnnotationOverlay: true,
+            fitToBox: fitToBox,
+            focus: this.props.focus,
+            isSelected: this.props.isSelected,
+            select: emptyFunction,
+            active: this.annotationsActive,
+            ContentScaling: returnOne,
+            whenActiveChanged: this.whenActiveChanged,
+            removeDocument: this.removeDocument,
+            moveDocument: this.moveDocument,
+            addDocument: this.addDocument,
+            CollectionView: undefined,
+            ScreenToLocalTransform: this.sidebarScreenToLocal,
+            renderDepth: this.props.renderDepth + 1,
+            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
+        };
         return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
-            <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")} style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                    PanelHeight={this.props.PanelHeight}
-                    PanelWidth={this.sidebarWidth}
-                    xMargin={0}
-                    scaleField={this.annotationKey + "-scale"}
-                    annotationsKey={this.annotationKey}
-                    isAnnotationOverlay={true}
-                    fitToBox={fitToBox}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
-                    select={emptyFunction}
-                    active={this.annotationsActive}
-                    ContentScaling={returnOne}
-                    whenActiveChanged={this.whenActiveChanged}
-                    removeDocument={this.removeDocument}
-                    moveDocument={this.moveDocument}
-                    addDocument={this.addDocument}
-                    CollectionView={undefined}
-                    ScreenToLocalTransform={this.sidebarScreenToLocal}
-                    renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc} />
+            <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
+                style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
+                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ? <CollectionFreeFormView {...collectionProps} /> : <CollectionStackingView {...collectionProps} />}
             </div>;
     }
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
     sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
-    @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
+    @computed get sidebarColor() { return StrCast(this.layoutDoc.sidebarColor, StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "#e4e4e4")); }
     render() {
         TraceMobx();
         const selected = this.props.isSelected();

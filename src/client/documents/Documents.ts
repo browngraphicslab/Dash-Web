@@ -1,7 +1,8 @@
 import { runInAction } from "mobx";
 import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclAddonly } from "../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
 import { HtmlField } from "../../fields/HtmlField";
 import { InkField } from "../../fields/InkField";
 import { List } from "../../fields/List";
@@ -11,6 +12,7 @@ import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ComputedField, ScriptField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
+import { SharingPermissions } from "../../fields/util";
 import { MessageStore } from "../../server/Message";
 import { Upload } from "../../server/SharedMediaTypes";
 import { OmitKeys, Utils } from "../../Utils";
@@ -33,6 +35,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { FilterBox } from "../views/nodes/FilterBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
@@ -50,9 +53,6 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
-import { FilterBox } from "../views/nodes/FilterBox";
-import { SharingPermissions } from "../../fields/util";
-import { SharingManager } from "../util/SharingManager";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -208,6 +208,8 @@ export interface DocumentOptions {
     treeViewOutlineMode?: boolean; // whether slide should function as a text outline
     treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
     treeViewDefaultExpandedView?: string; // default expanded view
+    sidebarColor?: string;  // background color of text sidebar
+    sidebarViewType?: string; // collection type of text sidebar
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -1094,8 +1096,8 @@ export namespace DocUtils {
         return ctor ? ctor(path, options) : undefined;
     }
 
-    export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
-        ContextMenu.Instance.addItem({
+    export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number, simpleMenu: boolean = false): void {
+        !simpleMenu && ContextMenu.Instance.addItem({
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc()["template-notes"] as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
@@ -1114,14 +1116,15 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).filter(btnDoc => !btnDoc.hidden).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc && doc !== Doc.UserDoc().emptyPresentation).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: undoBatch((args: { x: number, y: number }) => {
-                    const newDoc = Doc.ApplyTemplate(dragDoc);
+                    const newDoc = Doc.copyDragFactory(dragDoc);
                     if (newDoc) {
                         newDoc.author = Doc.CurrentUserEmail;
                         newDoc.x = x;
                         newDoc.y = y;
+                        if (newDoc.type === DocumentType.RTF) FormattedTextBox.SelectOnLoad = newDoc[Id];
                         docAdder(newDoc);
                     }
                 }),

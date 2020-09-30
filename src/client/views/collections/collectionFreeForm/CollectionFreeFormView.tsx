@@ -1627,7 +1627,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         return <div className={freeformclass}
             onScroll={e => {
                 const target = e.target as any;
-                if (getComputedStyle(target.parentElement)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
+                if (getComputedStyle(target)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
                     target.scrollTop = target.scrollLeft = 0;
                 }
             }}
