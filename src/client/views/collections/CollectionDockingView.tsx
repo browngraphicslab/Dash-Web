@@ -21,6 +21,7 @@ import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { TabDocView } from './TabDocView';
 import React = require("react");
+import { stat } from 'fs';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -147,6 +148,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
         if (!pullSide && stack) {
             stack.addChild(docContentConfig, undefined);
+            stack.setActiveContentItem(stack.contentItems[stack.contentItems.length - 1]);
         } else {
             const newItemStackConfig = { type: 'stack', content: [docContentConfig] };
             const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);

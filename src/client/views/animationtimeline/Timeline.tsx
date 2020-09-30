@@ -83,23 +83,22 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     /////////lifecycle functions////////////
+    @action
     componentDidMount() {
         const relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
         this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
         this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset
-        runInAction(() => {
-            if (!this.props.Document.AnimationLength) { //if animation length did not exist
-                this.props.Document.AnimationLength = this._time; //set it to default time
-            } else {
-                this._time = NumCast(this.props.Document.AnimationLength); //else, set time to animationlength stored from before
-            }
-            this._totalLength = this._tickSpacing * (this._time / this._tickIncrement); //the entire length of the timeline div (actual div part itself)
-            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
-            this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
-            this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
-            this.toggleHandle();
-        });
+        if (!this.props.Document.AnimationLength) { //if animation length did not exist
+            this.props.Document.AnimationLength = this._time; //set it to default time
+        } else {
+            this._time = NumCast(this.props.Document.AnimationLength); //else, set time to animationlength stored from before
+        }
+        this._totalLength = this._tickSpacing * (this._time / this._tickIncrement); //the entire length of the timeline div (actual div part itself)
+        this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
+        this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
+        this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
+        this.toggleHandle();
     }
 
     componentWillUnmount() {

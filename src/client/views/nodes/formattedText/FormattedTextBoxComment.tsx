@@ -15,9 +15,9 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import { LinkManager } from "../../../util/LinkManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import { LinkMenuItem } from "../../linking/LinkMenuItem";
 import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
 import { DocumentLinksButton } from "../DocumentLinksButton";
+import { DocumentView } from "../DocumentView";
 import { LinkDocPreview } from "../LinkDocPreview";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
@@ -117,7 +117,7 @@ export class FormattedTextBoxComment {
                                 textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
-                                target && LinkMenuItem.followLinkClick(linkDoc, textBox.dataDoc, target, textBox.props.addDocTab);
+                                target && DocumentView.followLinkClick(linkDoc, textBox.dataDoc, textBox.props, e.shiftKey, e.altKey);
                             }
                         }
                     }

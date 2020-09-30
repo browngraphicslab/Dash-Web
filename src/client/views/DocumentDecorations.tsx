@@ -119,7 +119,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
     @action onTitleDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onBackgroundMove, (e) => { }, this.onTitleClick);
+        setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, this.onTitleClick);
     }
     @action onTitleClick = (e: PointerEvent): void => {
         !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
@@ -128,22 +128,26 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onBackgroundDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onBackgroundMove, (e) => { }, (e) => { });
+        setupMoveUpEvents(this, e, e => this.onBackgroundMove(false, e), (e) => { }, (e) => { });
     }
 
     @action
-    onBackgroundMove = (e: PointerEvent, down: number[]): boolean => {
+    onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
         const dragDocView = SelectionManager.SelectedDocuments()[0];
         const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
+        dragData.canEmbed = dragTitle;
         dragData.dropAction = dragDocView.props.dropAction;
         this.Interacting = true;
         this._hidden = true;
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
-            dragComplete: action(e => this._hidden = this.Interacting = false),
+            dragComplete: action(e => {
+                dragData.canEmbed && SelectionManager.DeselectAll();
+                this._hidden = this.Interacting = false;
+            }),
             hideSource: true
         });
         return true;

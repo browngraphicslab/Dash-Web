@@ -2,8 +2,8 @@ import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontaw
 import { Tooltip } from '@material-ui/core';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from '../../../fields/Doc';
-import { BoolCast, Cast, StrCast } from '../../../fields/Types';
+import { Doc, DocListCast } from '../../../fields/Doc';
+import { Cast, StrCast } from '../../../fields/Types';
 import { WebField } from '../../../fields/URLField';
 import { emptyFunction, setupMoveUpEvents } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -11,7 +11,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from '../../util/DragManager';
 import { Hypothesis } from '../../util/HypothesisUtils';
 import { LinkManager } from '../../util/LinkManager';
-import { undoBatch, UndoManager } from '../../util/UndoManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { DocumentView } from '../nodes/DocumentView';
@@ -146,31 +146,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
-    public static followLinkClick = async (linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) => {
-        const batch = UndoManager.StartBatch("follow link click");
-        const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
-        // open up target if it's not already in view ...
-        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = () => {
-                const where = StrCast(destinationDoc.followLinkLocation) || followLoc;
-                const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
-                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                };
-                addDocTab(doc, where);
-                dv?.props.focus(doc, BoolCast(destinationDoc.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
-                return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
-            };
-            if (!destinationDoc.followLinkZoom) {
-                targetFocusAfterDocFocus();
-            } else {
-                // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                dv?.props.focus(destinationDoc, BoolCast(destinationDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
-            }
-        };
-
-        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, undefined, dv?.props.ContainingCollectionDoc, batch.end, undefined);
-    }
 
     @action
     public static followDefault(linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) {
@@ -191,7 +166,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 });
             }
         } else {
-            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, doc => addDocTab(doc, "add:right"), false);
+            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, addDocTab, false);
         }
 
         linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
@@ -274,7 +249,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
-                                    onPointerDown={() => LinkMenuItem.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab)}>
+                                    onPointerDown={() => DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false)}>
                                     {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>

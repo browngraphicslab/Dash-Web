@@ -355,12 +355,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-                {this._document._viewType !== CollectionViewType.Freeform || this._document.hideMinimap ? (null) : this.renderMiniMap()}
-                <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                    <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
-                        <FontAwesomeIcon icon={"globe-asia"} size="lg" />
-                    </div>
-                </Tooltip>
+                {this._document._viewType !== CollectionViewType.Freeform ? (null) :
+                    <>{this._document.hideMinimap ? (null) : this.renderMiniMap()}
+                        <Tooltip key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                            <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                                <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+                            </div>
+                        </Tooltip>
+                    </>}
             </>;
     }
 
