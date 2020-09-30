@@ -96,7 +96,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
             FormattedTextBoxComment.tooltip.style.maxWidth = "400px";
             FormattedTextBoxComment.tooltip.style.maxHeight = "235px";
-            FormattedTextBoxComment.tooltip.style.width = "100%";
+            //FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
             FormattedTextBoxComment.tooltip.style.display = "none";
@@ -117,7 +117,7 @@ export class FormattedTextBoxComment {
                                 textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
-                                target && LinkMenuItem.followDefault(linkDoc, textBox.dataDoc, target, textBox.props.addDocTab);
+                                target && LinkMenuItem.followLinkClick(linkDoc, textBox.dataDoc, target, textBox.props.addDocTab);
                             }
                         }
                     }
