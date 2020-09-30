@@ -96,6 +96,8 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+        window.removeEventListener("keyup", KeyManager.Instance.unhandle);
+        window.addEventListener("keyup", KeyManager.Instance.unhandle);
         window.addEventListener("paste", KeyManager.Instance.paste as any);
         document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on
             const id = FormattedTextBox.GetDocFromUrl(e.detail);
@@ -106,6 +108,7 @@ export class MainView extends React.Component {
     }
 
     componentWillUnMount() {
+        window.removeEventListener("keyup", KeyManager.Instance.unhandle);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("paste", KeyManager.Instance.paste as any);

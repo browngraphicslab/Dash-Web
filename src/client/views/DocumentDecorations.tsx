@@ -25,6 +25,7 @@ import React = require("react");
 import e = require('express');
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { InkStrokeProperties } from './InkStrokeProperties';
+import { KeyManager } from './GlobalKeyHandler';
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -575,6 +576,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             "caret-up";
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
+
     render() {
         const darkScheme = CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
@@ -625,7 +627,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
-                pointerEvents: this.Interacting ? "none" : "all",
+                pointerEvents: KeyManager.Instance.ShiftPressed || this.Interacting ? "none" : "all",
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>

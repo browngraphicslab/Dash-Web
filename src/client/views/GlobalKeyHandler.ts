@@ -1,4 +1,4 @@
-import { action } from "mobx";
+import { action, observable } from "mobx";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
@@ -37,6 +37,7 @@ type KeyControlInfo = {
 export class KeyManager {
     public static Instance: KeyManager = new KeyManager();
     private router = new Map<string, KeyHandler>();
+    @observable ShiftPressed = false;
 
     constructor() {
         const isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
@@ -49,7 +50,12 @@ export class KeyManager {
         this.router.set("1000", this.shift);
     }
 
-    public handle = async (e: KeyboardEvent) => {
+    public unhandle = action((e: KeyboardEvent) => {
+        if (e.key.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = false;
+    })
+
+    public handle = action(async (e: KeyboardEvent) => {
+        if (e.key.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = true;
         const keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
@@ -69,7 +75,7 @@ export class KeyManager {
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
-    }
+    })
 
     private handleGreedy = action((keyname: string) => {
         switch (keyname) {
@@ -128,7 +134,7 @@ export class KeyManager {
         };
     });
 
-    private shift = async (keyname: string) => {
+    private shift = action(async (keyname: string) => {
         const stopPropagation = false;
         const preventDefault = false;
 
@@ -143,7 +149,7 @@ export class KeyManager {
             stopPropagation: stopPropagation,
             preventDefault: preventDefault
         };
-    }
+    })
 
     private alt = action((keyname: string) => {
         const stopPropagation = true;
