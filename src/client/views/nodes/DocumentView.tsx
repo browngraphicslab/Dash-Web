@@ -401,7 +401,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const addTab = docView.addDocTab(doc, where);
                 addTab && setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
-                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, true), undefined, hackToCallFinishAfterFocus);
+                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
                 }); //  add the target and focus on it.
                 return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
@@ -412,7 +412,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 docView.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
             }
         };
-        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, true), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
+        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
