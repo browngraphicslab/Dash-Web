@@ -1,17 +1,15 @@
-import { action, computed, observable } from 'mobx';
-import { Doc, DocListCastAsync, DocListCast, Opt } from '../../fields/Doc';
+import { action, observable } from 'mobx';
+import { Doc, DocListCast, DocListCastAsync, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../fields/Types';
+import { returnFalse } from '../../Utils';
+import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
-import { DocumentView, DocFocusFunc } from '../views/nodes/DocumentView';
+import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
-import { DocumentType } from '../documents/DocumentTypes';
-import { TraceMobx } from '../../fields/util';
-import { returnFalse } from '../../Utils';
-import { undoBatch } from './UndoManager';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -220,7 +218,6 @@ export class DocumentManager {
         }
     }
 
-    @undoBatch
     public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
         const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();

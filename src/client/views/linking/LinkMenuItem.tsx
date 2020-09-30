@@ -178,10 +178,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         LinkDocPreview.LinkInfo = undefined;
 
         if (linkDoc.followLinkLocation === "openExternal" && destinationDoc.type === DocumentType.WEB) {
-            undoBatch(() => {
-                window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
-                return;
-            })();
+            window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
         }
 
         if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
@@ -196,9 +193,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 });
             }
         } else {
-            undoBatch(() => {
-                DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, doc => addDocTab(doc, "add:right"), false);
-            })();
+            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, doc => addDocTab(doc, "add:right"), false);
         }
 
         linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
