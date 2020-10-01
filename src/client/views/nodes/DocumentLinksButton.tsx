@@ -274,7 +274,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
                         backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
                         opacity: DocumentLinksButton.StartLink ? "" : "50%",
-                        border: DocumentLinksButton.StartLink ? "" : "none"
+                        border: DocumentLinksButton.StartLink ? "" : "none",
+                        cursor: DocumentLinksButton.StartLink ? "pointer" : "default"
                     }}
                     onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
                     onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.clientX, e.clientY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)

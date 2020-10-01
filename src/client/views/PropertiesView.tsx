@@ -901,14 +901,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {!this.openSharing ? (null) :
                             <div className="propertiesView-sharing-content">
-                                {!novice ? (<div className="propertiesView-acls-checkbox">
-                                    <Checkbox
-                                        color="primary"
-                                        onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
-                                        checked={this.layoutDocAcls}
-                                    />;
-                                    <div className="propertiesView-acls-checkbox-text">Layout</div>
-                                </div>) : (null)}
+                                <div className="propertiesView-buttonContainer">
+                                    {!novice ? (<div className="propertiesView-acls-checkbox">
+                                        <Checkbox
+                                            color="primary"
+                                            onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
+                                            checked={this.layoutDocAcls}
+                                        />
+                                        <div className="propertiesView-acls-checkbox-text">Layout</div>
+                                    </div>) : (null)}
+                                    <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
+                                        <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
+                                    </button>
+                                </div>
                                 {this.sharingTable}
                             </div>}
                     </div>
