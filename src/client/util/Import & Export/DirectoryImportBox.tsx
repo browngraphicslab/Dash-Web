@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCloudUploadAlt, faPlus, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { BatchedArray } from "array-batcher";
 import "fs";
@@ -13,7 +11,7 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast } from "../../../fields/Types";
-import { AcceptibleMedia, Upload } from "../../../server/SharedMediaTypes";
+import { AcceptableMedia, Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
@@ -47,7 +45,6 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
 
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faTag, faPlus);
         const doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
@@ -90,7 +87,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
             const file = files.item(i);
             if (file && !unsupported.includes(file.type)) {
                 const ext = path.extname(file.name).toLowerCase();
-                if (AcceptibleMedia.imageFormats.includes(ext)) {
+                if (AcceptableMedia.imageFormats.includes(ext)) {
                     validated.push(file);
                 }
             }
@@ -301,7 +298,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
-                                <FontAwesomeIcon icon={faCloudUploadAlt} color="#FFFFFF" size={"2x"} />
+                                <FontAwesomeIcon icon={"cloud-upload-alt"} color="#FFFFFF" size={"2x"} />
                             </div>
                             <img
                                 style={{
@@ -366,7 +363,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}
-                            icon={isEditing ? faCloudUploadAlt : faTag}
+                            icon={isEditing ? "cloud-upload-alt" : "tag"}
                             color="#FFFFFF"
                             size={"1x"}
                         />
@@ -399,7 +396,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                         marginLeft: 6.4,
                                         marginTop: 5.2
                                     }}
-                                    icon={faPlus}
+                                    icon={"plus"}
                                     size={"1x"}
                                 />
                             </div>

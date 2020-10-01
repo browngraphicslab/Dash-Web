@@ -1,8 +1,8 @@
 import React = require("react");
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, IReactionDisposer, reaction } from "mobx";
+import { Tooltip } from "@material-ui/core";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { lift, wrapIn } from "prosemirror-commands";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";
@@ -11,27 +11,24 @@ import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../../fields/Doc";
 import { DarkPastelSchemaPalette, PastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
-import { Cast, StrCast, BoolCast, NumCast } from "../../../../fields/Types";
+import { Cast, StrCast } from "../../../../fields/Types";
+import { TraceMobx } from "../../../../fields/util";
 import { unimplementedFunction, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { LinkManager } from "../../../util/LinkManager";
 import { SelectionManager } from "../../../util/SelectionManager";
-import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
 import { FieldViewProps } from "../FieldView";
 import { FormattedTextBox, FormattedTextBoxProps } from "./FormattedTextBox";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
-import { TraceMobx } from "../../../../fields/util";
-import { UndoManager, undoBatch } from "../../../util/UndoManager";
-import { Tooltip } from "@material-ui/core";
 const { toggleMark } = require("prosemirror-commands");
-
-library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 
 @observer
-export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
+export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     static Instance: RichTextMenu;
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 
@@ -78,24 +75,24 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         RichTextMenu.Instance = this;
         this._canFade = false;
         //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
-        this.Pinned = true;
+        runInAction(() => this.Pinned = true);
 
         this.fontSizeOptions = [
-            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "9pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
-            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 8 }), title: "Set font size", label: "8px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 9 }), title: "Set font size", label: "9px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 10 }), title: "Set font size", label: "10px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 12 }), title: "Set font size", label: "12px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 14 }), title: "Set font size", label: "14px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 16 }), title: "Set font size", label: "16px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 18 }), title: "Set font size", label: "18px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 20 }), title: "Set font size", label: "20px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 24 }), title: "Set font size", label: "24px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48px", command: this.changeFontSize },
+            { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72px", command: this.changeFontSize },
             { mark: null, title: "", label: "...", command: unimplementedFunction, hidden: true },
-            { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
+            { mark: null, title: "", label: "13px", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
         ];
 
         this.fontFamilyOptions = [
@@ -180,7 +177,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         this.activeListType = this.getActiveListStyle();
         this.activeAlignment = this.getActiveAlignment();
         this.activeFontFamily = !activeFamilies.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
+        this.activeFontSize = !activeSizes.length ? "13px" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
         this.activeFontColor = !activeColors.length ? "black" : activeColors.length === 1 ? String(activeColors[0]) : "...";
         this.activeHighlightColor = !activeHighlights.length ? "" : activeHighlights.length === 1 ? String(activeHighlights[0]) : "...";
 
@@ -258,7 +255,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 marks.forEach(m => {
                     m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
                     m.type === state.schema.marks.pFontColor && activeColors.push(m.attrs.color);
-                    m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
+                    m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "px");
                     m.type === state.schema.marks.marker && activeHighlights.push(String(m.attrs.highlight));
                 });
             }
@@ -387,7 +384,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                     if (!self.TextView.props.isSelected(true)) {
                         switch (mark.type) {
                             case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
-                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "pt"); break;
+                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "px"); break;
                         }
                     }
                     else UndoManager.RunInBatch(() => self.view && mark && command(mark, self.view), "text mark dropdown");
@@ -428,7 +425,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     changeFontSize = (mark: Mark, view: EditorView) => {
         if ((this.view?.state.selection.$from.pos || 0) < 2) {
-            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
+            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize === Number(mark.attrs.fontSize) ? `${mark.attrs.fontSize}pt` : mark.attrs.fontSize;
         }
         const fmark = view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize });
         this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);
@@ -678,6 +675,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
     get TextView() { return (this.view as any)?.TextView as FormattedTextBox; }
+    get TextViewFieldKey() { return this.TextView?.props.fieldKey; }
 
     createColorButton() {
         const self = this;
@@ -813,7 +811,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             <div className="dropdown link-menu">
                 <p>Linked to:</p>
                 <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
-                <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "onRight")}>Apply hyperlink</button>
+                <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "add:right")}>Apply hyperlink</button>
                 <div className="divider"></div>
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
@@ -860,7 +858,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     // TODO: should check for valid URL
     @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
-        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
+        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRadd:rightight", "", target);
     }
 
     @undoBatch
@@ -1021,6 +1019,7 @@ interface ButtonDropdownProps {
     dropdownContent: JSX.Element;
     openDropdownOnButton?: boolean;
     link?: boolean;
+    pdf?: boolean;
 }
 
 @observer
@@ -1060,13 +1059,22 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
         }, 0);
     }
 
+
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
-                    {this.props.button}
-                    <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
-                </div>
+                {!this.props.pdf ?
+                    <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                        {this.props.button}
+                        <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
+                    </div>
+                    :
+                    <>
+                        {this.props.button}
+                        <button className="dropdown-button antimodeMenu-button" key="antimodebutton" onPointerDown={this.onDropdownClick}>
+                            <FontAwesomeIcon icon="caret-down" size="sm" />
+                        </button>
+                    </>}
                 {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );

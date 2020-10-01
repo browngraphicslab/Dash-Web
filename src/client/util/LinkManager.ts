@@ -2,6 +2,7 @@ import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
+import { CurrentUserUtils } from "./CurrentUserUtils";
 
 /* 
  * link doc: 
@@ -61,10 +62,12 @@ export class LinkManager {
 
     // finds all links that contain the given anchor
     public getAllDirectLinks(anchor: Doc): Doc[] {
-        const related = LinkManager.Instance.getAllLinks().filter(link => {
-            const protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
-            const protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
-            return protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor);
+        const related = LinkManager.Instance.getAllLinks().filter(link => link).filter(link => {
+            const a1 = Cast(link.anchor1, Doc, null);
+            const a2 = Cast(link.anchor2, Doc, null);
+            const protomatch1 = Doc.AreProtosEqual(anchor, a1);
+            const protomatch2 = Doc.AreProtosEqual(anchor, a2);
+            return ((a1?.author !== undefined && a2?.author !== undefined) || link.author === Doc.CurrentUserEmail) && (protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor));
         });
         return related;
     }
@@ -200,7 +203,7 @@ export class LinkManager {
     // finds the opposite anchor of a given anchor in a link
     //TODO This should probably return undefined if there isn't an opposite anchor
     //TODO This should also await the return value of the anchor so we don't filter out promises
-    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
+    public static getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         const a1 = Cast(linkDoc.anchor1, Doc, null);
         const a2 = Cast(linkDoc.anchor2, Doc, null);
         if (Doc.AreProtosEqual(anchor, a1)) return a2;

@@ -13,10 +13,11 @@ export const documentSchema = createSchema({
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
 
     // "Location" properties in a very general sense
-    currentFrame: "number",     // current frame of a frame based collection (e.g., a progressive slide)
+    _curPage: "number",         // current page of a page based document
+    _currentFrame: "number",    // current frame of a frame based collection (e.g., a progressive slide)
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
-    currentTimecode: "number",  // current play back time of a temporal document (video / audio)
+    _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
@@ -83,7 +84,10 @@ export const documentSchema = createSchema({
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
+    treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
+    treeViewOutlineMode: "boolean", // whether tree view is an outline and clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
@@ -91,13 +95,13 @@ export const documentSchema = createSchema({
     onPointerDown: ScriptField, // script to run when document is clicked (can be overriden by an onClick prop)
     onPointerUp: ScriptField,   // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
-    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
+    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., add:right, inPlace, default, ) 
     hideLinkButton: "boolean",  // whether the blue link counter button should be hidden
     hideAllLinks: "boolean",    // whether all individual blue anchor dots should be hidden
     linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
-    isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
+    _isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 

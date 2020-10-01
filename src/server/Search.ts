@@ -29,9 +29,8 @@ export namespace Search {
 
     export async function search(query: any) {
         try {
-            const searchResults = JSON.parse(await rp.get(pathTo("select"), {
-                qs: query
-            }));
+            const output = await rp.get(pathTo("select"), { qs: query });
+            const searchResults = JSON.parse(output);
             const { docs, numFound } = searchResults.response;
             const ids = docs.map((field: any) => field.id);
             return { ids, numFound, highlighting: searchResults.highlighting };

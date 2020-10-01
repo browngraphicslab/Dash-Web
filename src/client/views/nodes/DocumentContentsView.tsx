@@ -18,14 +18,14 @@ import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
-import { MenuIconBox } from "./MenuIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
+import { FormattedTextBox, FormattedTextBoxProps } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
 import { SearchBox } from "../search/SearchBox";
+import { FilterBox } from "./FilterBox";
 import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { LinkAnchorBox } from "./LinkAnchorBox";
@@ -64,7 +64,19 @@ interface HTMLtagProps {
     onClick?: ScriptField;
     onInput?: ScriptField;
 }
-//"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'><ImageBox {...props} fieldKey={'data'}/><HTMLspan width='100%'  marginTop='50%'  height='10%'  position='absolute' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}grey'>{this.title}</HTMLspan></HTMLdiv>"@observer
+
+//"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} overflow='hidden' position='absolute' width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'> <ImageBox {...props} fieldKey={'data'}/> <HTMLspan width='200px' top='0' height='35px' textAlign='center' paddingTop='10px' transform='translate(-40px, 45px) rotate(-45deg)' position='absolute' color='{this.bannerColor===`green`?`light`:`dark`}blue' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}blue'> {this.title}</HTMLspan></HTMLdiv>"
+//"<HTMLdiv borderRadius='100px' overflow='hidden' position='absolute' width='100%' height='100%' 
+//          transform='rotate({2*this.x+this.y}deg)' 
+//          onClick = { this.bannerColor = this.bannerColor === 'red' ? 'green' : 'red' } >
+//    <ImageBox {...props} fieldKey={'data'}/>
+//    <HTMLspan width='200px' top='0' height='35px' textAlign='center' paddingTop='10px' 
+//              transform='translate(-40px, 45px) rotate(-45deg)' position='absolute' 
+//              color='{this.bannerColor===`green`?`light`:`dark`}blue' 
+//              backgroundColor='{this.bannerColor===`green`?`dark`:`light`}blue'>
+//       {this.title}
+//    </HTMLspan>
+//  </HTMLdiv>"
 @observer
 export class HTMLtag extends React.Component<HTMLtagProps> {
     click = (e: React.MouseEvent) => {
@@ -93,7 +105,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
 }
 
 @observer
-export class DocumentContentsView extends React.Component<DocumentViewProps & {
+export class DocumentContentsView extends React.Component<DocumentViewProps & FormattedTextBoxProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
@@ -102,22 +114,13 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 }> {
     @computed get layout(): string {
         TraceMobx();
-        if (!this.layoutDoc) return "<p>awaiting layout</p>";
-        // const layout = Cast(this.layoutDoc[StrCast(this.layoutDoc.layoutKey, this.layoutDoc === this.props.Document ? this.props.layoutKey : "layout")], "string");  // bcz: replaced this with below... is it right?
         if (this.props.LayoutTemplateString) return this.props.LayoutTemplateString;
+        if (!this.layoutDoc) return "<p>awaiting layout</p>";
+        if (this.props.layoutKey === "layout_keyValue") return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
         const layout = Cast(this.layoutDoc[this.layoutDoc === this.props.Document && this.props.layoutKey ? this.props.layoutKey : StrCast(this.layoutDoc.layoutKey, "layout")], "string");
-        if (this.props.layoutKey === "layout_keyValue") {
-            return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
-        } else
-            if (layout === undefined) {
-                return this.props.Document.data ?
-                    "<FieldView {...props} fieldKey='data' />" :
-                    KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
-            } else if (typeof layout === "string") {
-                return layout;
-            } else {
-                return "<p>Loading layout</p>";
-            }
+        if (layout === undefined) return this.props.Document.data ? "<FieldView {...props} fieldKey='data' />" : KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
+        if (typeof layout === "string") return layout;
+        return "<p>Loading layout</p>";
     }
 
     get dataDoc() {
@@ -136,7 +139,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     CreateBindings(onClick: Opt<ScriptField>, onInput: Opt<ScriptField>): JsxBindings {
         const list = {
-            ...OmitKeys(this.props, ['parentActive'], "", (obj: any) => obj.active = this.props.parentActive).omit,
+            ...OmitKeys(this.props, ['parentActive', 'NativeWidth', 'NativeHeight'], "", (obj: any) => obj.active = this.props.parentActive).omit,
             RootDoc: Cast(this.layoutDoc?.rootDocument, Doc, null) || this.layoutDoc,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,
@@ -170,10 +173,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
         // add onClick function to props
         const makeFuncProp = (func: string) => {
-            const splits = layoutFrame.split(`func=`);
+            const splits = layoutFrame.split(`${func}=`);
             if (splits.length > 1) {
                 const code = XRegExp.matchRecursive(splits[1], "{", "}", "", { valueNames: ["between", "left", "match", "right", "between"] });
-                layoutFrame = splits[0] + ` ${func}={props.onClick} ` + splits[1].substring(code[1].end + 1);
+                layoutFrame = splits[0] + ` ${func}={props.${func}} ` + splits[1].substring(code[1].end + 1);
                 return ScriptField.MakeScript(code[1].value, { this: Doc.name, self: Doc.name, value: "string" });
             }
             return undefined;
@@ -190,9 +193,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 blacklistedAttrs={[]}
                 renderInWrapper={false}
                 components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, MenuIconBox, LabelBox, SliderBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                     ScreenshotBox, HTMLtag, ComparisonBox
                 }}

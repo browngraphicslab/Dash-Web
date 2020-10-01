@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -10,6 +10,7 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
+import CursorField from "./CursorField";
 
 
 function _readOnlySetter(): never {
@@ -111,7 +112,7 @@ export function makeEditable() {
     _setter = _setterImpl;
 }
 var _overrideAcl = false;
-export function OVERRIDE_ACL(val: boolean) {
+export function OVERRIDE_acl(val: boolean) {
     _overrideAcl = val;
 }
 
@@ -156,16 +157,19 @@ export enum SharingPermissions {
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
+
+    // all changes received fromt the server must be processed as Admin
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
+
+    // if the current user is the author of the document / the current user is a member of the admin group
+    const userChecked = user || Doc.CurrentUserEmail;
+    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
+    if (currentUserGroups.includes("Admin")) return AclAdmin;
+
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        const userChecked = user || Doc.CurrentUserEmail;
-
-        // if the current user is the author of the document / the current user is a member of the admin group
-        if (userChecked === (target.__fields?.author || target.author) || currentUserGroups.includes("admin")) return AclAdmin;
-
-        // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
+        // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
         let effectiveAcl = AclPrivate;
@@ -180,13 +184,19 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
         for (const [key, value] of Object.entries(target[AclSym])) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
-            if (currentUserGroups.includes(key.substring(4).replace("_", ".")) || userChecked === key.substring(4).replace("_", ".")) {
+            const entity = key.substring(4).replace('_', '.'); // an individual or a group
+            if (currentUserGroups.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclAdmin) break;
+                    if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
             }
         }
+
+        // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned if the user isn't an admin of the document
+        const override = target[AclSym]["acl-Override"];
+        if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
+
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
@@ -194,13 +204,16 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
 }
 /**
  * Recursively distributes the access right for a user across the children of a document and its annotations.
- * @param key the key storing the access right (e.g. ACL-groupname)
+ * @param key the key storing the access right (e.g. acl-groupname)
  * @param acl the access right being stored (e.g. "Can Edit")
  * @param target the document on which this access right is being set
- * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the ACLs from the collection)
- * inheritingFromCollection is not currently being used but could be used if ACL assignment defaults change
+ * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the acls from the collection)
+ * inheritingFromCollection is not currently being used but could be used if acl assignment defaults change
  */
-export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
+export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean, visited?: Doc[]) {
+    if (!visited) visited = [] as Doc[];
+    if (visited.includes(target)) return;
+    visited.push(target);
 
     const HierarchyMapping = new Map<string, number>([
         ["Not Shared", 0],
@@ -215,42 +228,41 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     const dataDoc = target[DataSym];
 
     // if it is inheriting from a collection, it only inherits if A) the key doesn't already exist or B) the right being inherited is more restrictive
-    if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) {
+    if (GetEffectiveAcl(target) === AclAdmin && (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!)) {
         target[key] = acl;
         layoutDocChanged = true;
     }
 
     if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
-        dataDoc[key] = acl;
-        dataDocChanged = true;
+
+        if (GetEffectiveAcl(dataDoc) === AclAdmin) {
+            dataDoc[key] = acl;
+            dataDocChanged = true;
+        }
 
         // maps over the aliases of the document
-        const aliases = DocListCast(dataDoc.aliases);
-        if (aliases.length) {
-            aliases.map(alias => {
-                alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection);
-            });
-        }
+        const links = DocListCast(dataDoc.links);
+        links.forEach(link => distributeAcls(key, acl, link, inheritingFromCollection, visited));
 
         // maps over the children of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
-            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection);
-            }
+            // if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            // }
             const data = d[DataSym];
-            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, data, inheritingFromCollection);
+            if (data) {// && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+                distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
 
         // maps over the annotations of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
-            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, d, inheritingFromCollection);
-            }
+            // if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            distributeAcls(key, acl, d, inheritingFromCollection, visited);
+            // }
             const data = d[DataSym];
-            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
-                distributeAcls(key, acl, data, inheritingFromCollection);
+            if (data) {// && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+                distributeAcls(key, acl, data, inheritingFromCollection, visited);
             }
         });
     }
@@ -267,8 +279,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
-    if (typeof prop === "string" && prop.startsWith("ACL") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
-    // if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "None"].includes(value))) return true;
+    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
@@ -289,7 +301,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
 
-    if (in_prop === ToString || in_prop === ToScriptString || in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
+    if (in_prop === "toString" || in_prop === ToString || in_prop === ToScriptString || in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
     if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
     if (prop === LayoutSym) {
@@ -357,10 +369,12 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
             const oldValue = current;
             const newValue = ObjectField.MakeCopy(value);
             current = newValue;
-            UndoManager.AddEvent({
-                redo() { receiver[prop] = newValue; },
-                undo() { receiver[prop] = oldValue; }
-            });
+            if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
+                UndoManager.AddEvent({
+                    redo() { receiver[prop] = newValue; },
+                    undo() { receiver[prop] = oldValue; }
+                });
+            }
         }
         target[Update](diff);
     };

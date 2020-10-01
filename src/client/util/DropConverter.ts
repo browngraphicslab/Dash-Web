@@ -2,12 +2,13 @@ import { DragManager } from "./DragManager";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { DocumentType } from "../documents/DocumentTypes";
 import { ObjectField } from "../../fields/ObjectField";
-import { StrCast } from "../../fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { RichTextField } from "../../fields/RichTextField";
 import { ImageField } from "../../fields/URLField";
 import { Scripting } from "./Scripting";
+import { listSpec } from "../../fields/Schema";
 
 // 
 // converts 'doc' into a template that can be used to render other documents.
@@ -37,11 +38,7 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
         }
     });
     if (first) {
-        if (docs.length) { // bcz: feels hacky : if the root level document has items, it's not a field template, but we still want its caption to be a textTemplate
-            if (doc.caption instanceof RichTextField && !doc.caption.Empty()) {
-                doc["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
-            }
-        } else {
+        if (!docs.length) { // bcz: feels hacky : if the root level document has items, it's not a field template
             any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
         }
     }
@@ -58,9 +55,15 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         let dbox = doc;
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
         if (doc.type === DocumentType.FONTICON || StrCast(Doc.Layout(doc).layout).includes("FontIconBox")) {
-            //dbox = Doc.MakeAlias(doc);  // don't need to do anything if dropping an icon doc onto an icon bar since there should be no layout data for an icon
+            if (data.removeDropProperties || dbox.removeDropProperties) {
+                //dbox = Doc.MakeAlias(doc);  // don't need to do anything if dropping an icon doc onto an icon bar since there should be no layout data for an icon
+                dbox = Doc.MakeAlias(dbox);
+                const dragProps = Cast(dbox.removeDropProperties, listSpec("string"), []);
+                const remProps = (data.removeDropProperties || []).concat(Array.from(dragProps));
+                remProps.map(prop => dbox[prop] = undefined);
+            }
         } else if (!doc.onDragStart && !doc.isButtonBar) {
-            const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
+            const layoutDoc = doc;// doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
             if (layoutDoc.type !== DocumentType.FONTICON) {
                 !layoutDoc.isTemplateDoc && makeTemplate(layoutDoc);
             }

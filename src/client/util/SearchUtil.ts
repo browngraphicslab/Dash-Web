@@ -23,7 +23,7 @@ export namespace SearchUtil {
     }
 
     export interface SearchParams {
-        hl?: boolean;
+        hl?: string;
         "hl.fl"?: string;
         start?: number;
         rows?: number;
@@ -39,10 +39,12 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}*:* AND ${arg}`);
         if (options.onlyAliases) {
-            replacedQuery = `{!join from=id to=proto_i}DEFAULT:${replacedQuery}`;
+            const header = query.match(/_[atnb]?:/) ? replacedQuery : "DEFAULT:" + replacedQuery;
+            replacedQuery = `{!join from=id to=proto_i}* AND ${header}`;
         }
+        console.log("Q: " + replacedQuery + " fq: " + options.fq);
         const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
@@ -58,12 +60,14 @@ export namespace SearchUtil {
         const fileids = txtresult ? txtresult.ids : [];
         const newIds: string[] = [];
         const newLines: string[][] = [];
-        await Promise.all(fileids.map(async (tr: string, i: number) => {
-            const docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
-            const docResult = JSON.parse(await rp.get(Utils.prepend("/dashsearch"), { qs: { ...options, q: docQuery } }));
-            newIds.push(...docResult.ids);
-            newLines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
-        }));
+        if (fileids) {
+            await Promise.all(fileids.map(async (tr: string, i: number) => {
+                const docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
+                const docResult = JSON.parse(await rp.get(Utils.prepend("/dashsearch"), { qs: { ...options, q: docQuery } }));
+                newIds.push(...docResult.ids);
+                newLines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
+            }));
+        }
 
 
         const theDocs: Doc[] = [];
@@ -85,10 +89,12 @@ export namespace SearchUtil {
             if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || testDoc.proto === undefined || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
+            } else {
+                result.numFound--;
             }
         }
 
-        return { docs: theDocs, numFound: result.numFound, highlighting, lines: theLines };
+        return { docs: theDocs, numFound: Math.max(0, result.numFound), highlighting, lines: theLines };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;

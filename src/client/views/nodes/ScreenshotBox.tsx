@@ -1,16 +1,15 @@
 import React = require("react");
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faVideo } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { Doc } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
+import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
-import { emptyFunction, returnFalse, returnOne, returnZero, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnZero, Utils, OmitKeys } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -18,13 +17,10 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
-import { InkTool } from "../../../fields/InkField";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
 const ScreenshotDocument = makeInterface(documentSchema);
-
-library.add(faVideo);
 
 @observer
 export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
@@ -77,7 +73,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                             const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                             imageSummary.x = spt[0];
                             imageSummary.y = spt[1];
-                            Cast(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
+                            Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
                         } else {
                             this.props.addDocument?.(imageSummary);
                         }
@@ -173,11 +169,9 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
             <div className="videoBox-viewer" >
-                <CollectionFreeFormView {...this.props}
+                <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     annotationsKey={""}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

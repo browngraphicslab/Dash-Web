@@ -5,7 +5,7 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
 import { Id, HandleUpdate, Parent } from '../fields/FieldSymbols';
-import GestureOverlay from './views/GestureOverlay';
+import { GestureOverlay } from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
@@ -42,7 +42,7 @@ export namespace DocServer {
     export var PlaygroundFields: string[];
     export function setPlaygroundFields(livePlaygroundFields: string[]) {
         DocServer.PlaygroundFields = livePlaygroundFields;
-        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.Playground));
     }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {

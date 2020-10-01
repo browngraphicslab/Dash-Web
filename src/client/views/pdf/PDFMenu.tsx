@@ -1,17 +1,17 @@
 import React = require("react");
-import "./PDFMenu.scss";
-import { observable, action, computed, } from "mobx";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction, returnFalse, Utils } from "../../../Utils";
-import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Tooltip } from "@material-ui/core";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
 import { ColorState } from "react-color";
+import { Doc, Opt } from "../../../fields/Doc";
+import { returnFalse, setupMoveUpEvents, unimplementedFunction, Utils } from "../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
-
+import "./PDFMenu.scss";
 
 @observer
-export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
+export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
@@ -46,6 +46,8 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     public Delete: () => void = unimplementedFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
     public PinToPres: () => void = unimplementedFunction;
+    public MakePushpin: () => void = unimplementedFunction;
+    public IsPushpin: () => boolean = returnFalse;
     public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
     public get Active() { return this._left > 0; }
 
@@ -57,31 +59,10 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     pointerDown = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.pointerMove);
-        document.addEventListener("pointermove", this.pointerMove);
-        document.removeEventListener("pointerup", this.pointerUp);
-        document.addEventListener("pointerup", this.pointerUp);
-
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    pointerMove = (e: PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        if (!this._dragging) {
+        setupMoveUpEvents(this, e, (e: PointerEvent) => {
             this.StartDrag(e, this._commentCont.current!);
-            this._dragging = true;
-        }
-    }
-
-    pointerUp = (e: PointerEvent) => {
-        this._dragging = false;
-        document.removeEventListener("pointermove", this.pointerMove);
-        document.removeEventListener("pointerup", this.pointerUp);
-        e.stopPropagation();
-        e.preventDefault();
+            return true;
+        }, returnFalse, returnFalse);
     }
 
     @action
@@ -93,7 +74,7 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
 
     @computed get highlighter() {
         const button =
-            <button className="antimodeMenu-button color-preview-button" title="" key="highlighter-button" onPointerDown={this.highlightClicked}>
+            <button className="antimodeMenu-button color-preview-button" title="" key="highlighter-button" onClick={this.highlightClicked}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
                 <div className="color-preview" style={{ backgroundColor: this.highlightColor }}></div>
             </button>;
@@ -112,12 +93,13 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
                 </div>
             </div>;
         return (
-            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} />
+            <Tooltip key="highlighter" title={<div className="dash-tooltip">{"Click to Highlight"}</div>}>
+                <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} pdf={true} />
+            </Tooltip>
         );
     }
 
-    @action
-    changeHighlightColor = (color: string, e: React.PointerEvent) => {
+    @action changeHighlightColor = (color: string, e: React.PointerEvent) => {
         const col: ColorState = {
             hex: color, hsl: { a: 0, h: 0, s: 0, l: 0, source: "" }, hsv: { a: 0, h: 0, s: 0, v: 0, source: "" },
             rgb: { a: 0, r: 0, b: 0, g: 0, source: "" }, oldHue: 0, source: "",
@@ -127,25 +109,11 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
         this.highlightColor = Utils.colorString(col);
     }
 
-    deleteClicked = (e: React.PointerEvent) => {
-        this.Delete();
-    }
-
-    @action
-    keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._keyValue = e.currentTarget.value;
-    }
-
-    @action
-    valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._valueValue = e.currentTarget.value;
-    }
-
-    @action
-    addTag = (e: React.PointerEvent) => {
+    @action keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._keyValue = e.currentTarget.value; };
+    @action valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => { this._valueValue = e.currentTarget.value; };
+    @action addTag = (e: React.PointerEvent) => {
         if (this._keyValue.length > 0 && this._valueValue.length > 0) {
             this._added = this.AddTag(this._keyValue, this._valueValue);
-
             setTimeout(action(() => this._added = false), 1000);
         }
     }
@@ -154,19 +122,34 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
         const buttons = this.Status === "pdf" ?
             [
                 this.highlighter,
-                <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
-                    <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
+
+                <Tooltip key="annotate" title={<div className="dash-tooltip">{"Drag to Place Annotation"}</div>}>
+                    <button className="antimodeMenu-button annotate" ref={this._commentCont} onPointerDown={this.pointerDown} style={{ cursor: "grab" }}>
+                        <FontAwesomeIcon icon="comment-alt" size="lg" />
+                    </button>
+                </Tooltip>,
             ] : [
-                <button key="5" className="antimodeMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>
-                    <FontAwesomeIcon icon="trash-alt" size="lg" /></button>,
-                <button key="6" className="antimodeMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}>
-                    <FontAwesomeIcon icon="map-pin" size="lg" /></button>,
-                <div key="7" className="pdfMenu-addTag" >
-                    <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
-                    <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
-                </div>,
-                <button key="8" className="antimodeMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
-                    <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
+                <Tooltip key="trash" title={<div className="dash-tooltip">{"Remove Link Anchor"}</div>}>
+                    <button className="antimodeMenu-button" onPointerDown={this.Delete}>
+                        <FontAwesomeIcon icon="trash-alt" size="lg" />
+                    </button>
+                </Tooltip>,
+                <Tooltip key="Pin" title={<div className="dash-tooltip">{"Pin to Presentation"}</div>}>
+                    <button className="antimodeMenu-button" onPointerDown={this.PinToPres}>
+                        <FontAwesomeIcon icon="map-pin" size="lg" />
+                    </button>
+                </Tooltip>,
+                <Tooltip key="pushpin" title={<div className="dash-tooltip">{"toggle pushpin behavior"}</div>}>
+                    <button className="antimodeMenu-button" style={{ color: this.IsPushpin() ? "black" : "white", backgroundColor: this.IsPushpin() ? "white" : "black" }} onPointerDown={this.MakePushpin}>
+                        <FontAwesomeIcon icon="thumbtack" size="lg" />
+                    </button>
+                </Tooltip>,
+                // <div key="7" className="pdfMenu-addTag" >
+                //     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
+                //     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
+                // </div>,
+                // <button key="8" className="antimodeMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
+                //     <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
             ];
 
         return this.getElement(buttons);

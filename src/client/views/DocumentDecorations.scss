@@ -16,22 +16,12 @@ $linkGap : 3px;
     grid-template-columns: 8px 16px 1fr 8px 8px;
     pointer-events: none;
 
-    #documentDecorations-centerCont {
+    .documentDecorations-centerCont {
         grid-column: 3;
         background: none;
     }
 
-    .documentDecorations-resizer {
-        pointer-events: auto;
-        background: $alt-accent;
-        opacity: 0.1;
-    }
-
-    .documentDecorations-resizer:hover {
-        opacity: 1;
-    }
-
-    .documentDecorations-selector {
+    .documentDecorations-levelSelector {
         pointer-events: auto;
         height: 15px;
         width: 15px;
@@ -49,27 +39,43 @@ $linkGap : 3px;
         grid-row: 4;
     }
 
-    #documentDecorations-topLeftResizer,
-    #documentDecorations-leftResizer,
-    #documentDecorations-bottomLeftResizer {
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-topRightResizer,
+    .documentDecorations-bottomLeftResizer,
+    .documentDecorations-bottomRightResizer,
+    .documentDecorations-leftResizer,
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer,
+    .documentDecorations-rightResizer {
+        pointer-events: auto;
+        background: $alt-accent;
+        opacity: 0.1;
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-leftResizer,
+    .documentDecorations-bottomLeftResizer {
         grid-column: 1
     }
 
-    #documentDecorations-topResizer,
-    #documentDecorations-bottomResizer {
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer {
         grid-column-start: 2;
         grid-column-end: 5;
     }
 
-    #documentDecorations-bottomRightResizer,
-    #documentDecorations-topRightResizer,
-    #documentDecorations-rightResizer {
+    .documentDecorations-bottomRightResizer,
+    .documentDecorations-topRightResizer,
+    .documentDecorations-rightResizer {
         grid-column-start: 5;
         grid-column-end: 7;
     }
 
-    #documentDecorations-rotation,
-    #documentDecorations-borderRadius {
+    .documentDecorations-rotation,
+    .documentDecorations-borderRadius {
         grid-column: 5;
         grid-row: 4;
         border-radius: 100%;
@@ -79,6 +85,7 @@ $linkGap : 3px;
         top: 12;
         position: relative;
         pointer-events: all;
+        cursor: nwse-resize;
 
         .borderRadiusTooltip {
             width: 10px;
@@ -86,69 +93,69 @@ $linkGap : 3px;
             position: absolute;
         }
     }
-    #documentDecorations-rotation {
+    .documentDecorations-rotation {
         background: transparent;
         right: -15;
     }
 
 
-    #documentDecorations-topLeftResizer,
-    #documentDecorations-bottomRightResizer {
+    .documentDecorations-topLeftResizer,
+    .documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
         background: unset;
         opacity: 1;
     }
 
-    #documentDecorations-topLeftResizer {
+    .documentDecorations-topLeftResizer {
         border-left: 2px solid;
         border-top: solid 2px;
     }
 
-    #documentDecorations-bottomRightResizer {
+    .documentDecorations-bottomRightResizer {
         border-right: 2px solid;
         border-bottom: solid 2px;
     }
 
-    #documentDecorations-topLeftResizer:hover,
-    #documentDecorations-bottomRightResizer:hover {
+    .documentDecorations-topLeftResizer:hover,
+    .documentDecorations-bottomRightResizer:hover {
         opacity: 1;
     }
 
-    #documentDecorations-bottomRightResizer {
+    .documentDecorations-bottomRightResizer {
         grid-row: 4;
     }
 
-    #documentDecorations-topRightResizer,
-    #documentDecorations-bottomLeftResizer {
+    .documentDecorations-topRightResizer,
+    .documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
         background: unset;
         opacity: 1;
     }
 
-    #documentDecorations-topRightResizer {
+    .documentDecorations-topRightResizer {
         border-right: 2px solid;
         border-top: 2px solid;
     }
 
-    #documentDecorations-bottomLeftResizer {
+    .documentDecorations-bottomLeftResizer {
         border-left: 2px solid;
         border-bottom: 2px solid;
     }
 
-    #documentDecorations-topRightResizer:hover,
-    #documentDecorations-bottomLeftResizer:hover {
+    .documentDecorations-topRightResizer:hover,
+    .documentDecorations-bottomLeftResizer:hover {
         cursor: nesw-resize;
         background: dimGray;
         opacity: 1;
     }
 
-    #documentDecorations-topResizer,
-    #documentDecorations-bottomResizer {
+    .documentDecorations-topResizer,
+    .documentDecorations-bottomResizer {
         cursor: ns-resize;
     }
 
-    #documentDecorations-leftResizer,
-    #documentDecorations-rightResizer {
+    .documentDecorations-leftResizer,
+    .documentDecorations-rightResizer {
         cursor: ew-resize;
     }
 
@@ -164,7 +171,7 @@ $linkGap : 3px;
 
     .documentDecorations-title {
         opacity: 1;
-        grid-column-start: 3;
+        grid-column-start: 2;
         grid-column-end: 4;
         pointer-events: auto;
         overflow: hidden;

@@ -6,7 +6,7 @@ import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
-import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents } from '../../../../Utils';
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
 import { Docs } from '../../../documents/Documents';
 import { DragManager } from '../../../util/DragManager';
 import { SnappingManager } from '../../../util/SnappingManager';
@@ -94,8 +94,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     unflexedPosition(index: number): Omit<Layout, "i"> {
         return {
-            x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
-            y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH,
+            x: (index % (Math.floor(this.numCols / this.defaultW) || 1)) * this.defaultW,
+            y: Math.floor(index / (Math.floor(this.numCols / this.defaultH) || 1)) * this.defaultH,
             w: this.defaultW,
             h: this.defaultH,
             static: true
@@ -162,11 +162,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
-            {...this.props}
+            {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
@@ -175,7 +173,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={StrCast(this.props.Document.display, "contents")} // sets the css display type of the ContentFittingDocumentView component
+            dontCenter={true}
         />;
     }
 

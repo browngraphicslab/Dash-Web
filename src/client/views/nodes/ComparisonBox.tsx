@@ -74,7 +74,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     render() {
         const clipWidth = NumCast(this.layoutDoc._clipWidth) + "%";
-        const childProps: DocumentViewProps = { ...this.props, pointerEvents: false, parentActive: this.props.active };
+        const childProps: DocumentViewProps = { ...this.props, pointerEvents: "none", parentActive: this.props.active };
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`}
                 onPointerDown={e => e.stopPropagation()} // prevent triggering slider movement in registerSliding 

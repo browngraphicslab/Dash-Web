@@ -148,7 +148,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             alt: { default: null },
             title: { default: null },
             float: { default: "left" },
-            location: { default: "onRight" },
+            location: { default: "add:right" },
             docid: { default: "" }
         },
         group: "inline",
@@ -177,7 +177,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             height: { default: 100 },
             title: { default: null },
             float: { default: "right" },
-            location: { default: "onRight" },
+            location: { default: "add:right" },
             hidden: { default: false },
             fieldKey: { default: "" },
             docid: { default: "" },

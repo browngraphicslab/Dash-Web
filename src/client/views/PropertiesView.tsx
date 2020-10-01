@@ -1,46 +1,40 @@
 import React = require("react");
-import { observer } from "mobx-react";
-import "./PropertiesView.scss";
-import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt, DocCastAsync, DataSym } from "../../../../fields/Doc";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { EditableView } from "../../EditableView";
-import { KeyValueBox } from "../../nodes/KeyValueBox";
-import { Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
-import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils } from "../../../../Utils";
-import { Id } from "../../../../fields/FieldSymbols";
-import { Transform } from "../../../util/Transform";
-import { PropertiesButtons } from "../../PropertiesButtons";
-import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip, Checkbox } from "@material-ui/core";
-import SharingManager from "../../../util/SharingManager";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
-import { InkField } from "../../../../fields/InkField";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { Checkbox, Tooltip } from "@material-ui/core";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import "./FormatShapePane.scss";
-import { PresBox } from "../../nodes/PresBox";
-import { DocumentManager } from "../../../util/DocumentManager";
-import FormatShapePane from "./FormatShapePane";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { InkField } from "../../fields/InkField";
+import { ComputedField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../Utils";
+import { DocumentType } from "../documents/DocumentTypes";
+import { DocumentManager } from "../util/DocumentManager";
+import { SelectionManager } from "../util/SelectionManager";
+import { SharingManager } from "../util/SharingManager";
+import { Transform } from "../util/Transform";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CollectionDockingView } from "./collections/CollectionDockingView";
+import { EditableView } from "./EditableView";
+import { InkStrokeProperties } from "./InkStrokeProperties";
+import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { KeyValueBox } from "./nodes/KeyValueBox";
+import { PresBox } from "./nodes/PresBox";
+import { PropertiesButtons } from "./PropertiesButtons";
+import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
+import "./PropertiesView.scss";
+import { intersection } from "lodash";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 const _global = (window /* browser */ || global /* node */) as any;
 
-// import * as fa from '@fortawesome/free-solid-svg-icons';
-// import { library } from "@fortawesome/fontawesome-svg-core";
-
-// library.add(fa.faPlus, fa.faMinus, fa.faCog);
-
 interface PropertiesViewProps {
     width: number;
     height: number;
-    renderDepth: number;
-    ScreenToLocalTransform: () => Transform;
-    onDown: (event: any) => void;
 }
 
 @observer
@@ -49,26 +43,25 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
-            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
-        } else { return undefined; }
+        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        return undefined;
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
         return false;
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
-    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
+    @computed get dataDoc() { return this.selectedDoc?.[DataSym]; }
 
     @observable layoutFields: boolean = false;
 
-    @observable openActions: boolean = true;
+    @observable openOptions: boolean = true;
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
     @observable openLayout: boolean = true;
+    @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
     // @observable selectedUser: string = "";
@@ -81,27 +74,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openAddSlide: boolean = false;
     @observable openSlideOptions: boolean = false;
 
-    @observable inActions: boolean = false;
+    @observable inOptions: boolean = false;
     @observable _controlBtn: boolean = false;
     @observable _lock: boolean = false;
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
-    @action
     rtfWidth = () => {
-        if (this.selectedDoc) {
-            return Math.min(this.selectedDoc?.[WidthSym](), this.props.width - 20);
-        } else {
-            return 0;
-        }
+        return !this.selectedDoc ? 0 : Math.min(this.selectedDoc?.[WidthSym](), this.props.width - 20);
     }
-    @action
     rtfHeight = () => {
-        if (this.selectedDoc) {
-            return this.rtfWidth() <= this.selectedDoc?.[WidthSym]() ? Math.min(this.selectedDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
-        } else {
-            return 0;
-        }
+        return !this.selectedDoc ? 0 : this.rtfWidth() <= this.selectedDoc?.[WidthSym]() ? Math.min(this.selectedDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
     }
 
     @action
@@ -136,24 +119,26 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expandedField() {
         if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
-            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
-            doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
+            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
+                SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? Doc.Layout(dv.layoutDoc) : dv.dataDoc);
+            docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
-                const contents = doc[key];
+                const docvals = new Set<any>();
+                docs.forEach(doc => docvals.add(doc[key]));
+                const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
                     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                     &nbsp;
                 </div>);
                 } else {
-                    let contentElement: (JSX.Element | null)[] | JSX.Element = [];
-                    contentElement = <EditableView key="editableView"
+                    const contentElement = <EditableView key="editableView"
                         contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
                         height={13}
                         fontSize={10}
-                        GetValue={() => Field.toKeyValueString(doc, key)}
-                        SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
+                        GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
+                        SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                     />;
                     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
@@ -176,45 +161,45 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get noviceFields() {
-        if (this.dataDoc && this.selectedDoc) {
+        if (this.dataDoc) {
             const ids: { [key: string]: string } = {};
-            const doc = this.dataDoc;
-            doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
+            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => dv.dataDoc);
+            docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
-            for (const key of Object.keys(ids).slice().sort()) {
-                if ((key[0] === key[0].toUpperCase() && key.substring(0, 3) !== "ACL" && key !== "UseCors")
-                    || key[0] === "#" || key === "author" ||
-                    key === "creationDate" || key.indexOf("lastModified") !== -1) {
-
-                    const contents = doc[key];
-                    if (key[0] === "#") {
+            const noviceReqFields = ["author", "creationDate", "tags"];
+            const noviceLayoutFields = ["_curPage"];
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("acl"))),
+            ...noviceReqFields, ...noviceLayoutFields];
+            for (const key of noviceKeys.sort()) {
+                const docvals = new Set<any>();
+                docs.forEach(doc => docvals.add(doc[key]));
+                const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
+                if (key[0] === "#") {
+                    rows.push(<div className="uneditable-field" key={key}>
+                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
+                        &nbsp;
+                    </div>);
+                } else if (contents !== undefined) {
+                    const value = Field.toString(contents as Field);
+                    if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
                         rows.push(<div className="uneditable-field" key={key}>
-                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
-                    &nbsp;
-                </div>);
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
+                            <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
+                        </div>);
                     } else {
-                        const value = Field.toString(contents as Field);
-                        if (key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
-                            rows.push(<div className="uneditable-field" key={key}>
-                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
-                                <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
-                            </div>);
-                        } else {
-                            let contentElement: (JSX.Element | null)[] | JSX.Element = [];
-                            contentElement = <EditableView key="editableView"
-                                contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
-                                height={13}
-                                fontSize={10}
-                                GetValue={() => Field.toKeyValueString(doc, key)}
-                                SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
-                            />;
+                        const contentElement = <EditableView key="editableView"
+                            contents={value}
+                            height={13}
+                            fontSize={10}
+                            GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
+                            SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
+                        />;
 
-                            rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
-                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
-                            &nbsp;
-                            {contentElement}
-                            </div>);
-                        }
+                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                        &nbsp;
+                        {contentElement}
+                        </div>);
                     }
                 }
             }
@@ -233,18 +218,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch
     setKeyValue = (value: string) => {
-        if (this.selectedDoc && this.dataDoc) {
-            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
+        const docs = SelectionManager.SelectedDocuments().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                const splits = newVal.split(":");
+                KeyValueBox.SetField(doc, splits[0], splits[1], true);
+                const tags = StrCast(doc.tags, ":");
+                if (tags.includes(`${splits[0]}:`) && splits[1] === "undefined") {
+                    KeyValueBox.SetField(doc, "tags", `"${tags.replace(splits[0] + ":", "")}"`, true);
+                }
                 return true;
             } else if (value[0] === "#") {
                 const newVal = value + `:'${value}'`;
-                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                doc[DataSym][value] = value;
+                const tags = StrCast(doc.tags, ":");
+                if (!tags.includes(`${value}:`)) {
+                    doc[DataSym].tags = `${tags + value + ':'}`;
+                }
                 return true;
             }
-        }
+        });
         return false;
     }
 
@@ -258,8 +252,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         ref && observer.observe(ref);
     }
 
+    @computed get contexts() {
+        return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddSplit(doc, "right")} />;
+    }
+
     previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            return "-- multiple selected --";
+        }
         if (this.selectedDoc) {
             const layoutDoc = Doc.Layout(this.selectedDoc);
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
@@ -269,21 +270,22 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
                     LibraryPath={emptyPath}
-                    renderDepth={this.props.renderDepth + 1}
+                    renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
                     backgroundColor={this.previewBackground}
                     fitToBox={true}
                     FreezeDimensions={true}
-                    NativeWidth={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : returnZero}
-                    NativeHeight={layoutDoc.type ===
-                        StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : returnZero}
+                    dontCenter={true}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
                     focus={returnFalse}
                     ScreenToLocalTransform={this.getTransform}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
@@ -309,20 +311,24 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     @undoBatch
     changePermissions = (e: any, user: string) => {
-        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
+        const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.selectedDoc!] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, docs);
     }
 
     /**
      * @returns the options for the permissions dropdown.
      */
     getPermissionsSelect(user: string, permission: string) {
+        const dropdownValues: string[] = Object.values(SharingPermissions);
+        if (permission === "-multiple-") dropdownValues.unshift(permission);
+        if (user === "Override") dropdownValues.unshift("None");
         return <select className="permissions-select"
             value={permission}
             onChange={e => this.changePermissions(e, user)}>
-            {Object.values(SharingPermissions).map(permission => {
+            {dropdownValues.filter(permission => permission !== SharingPermissions.View).map(permission => {
                 return (
-                    <option key={permission} value={permission} selected={this.selectedDoc![`ACL-${user.replace(".", "_")}`] === permission}>
-                        {permission}
+                    <option key={permission} value={permission}>
+                        {permission === SharingPermissions.Add ? "Can Augment" : permission}
                     </option>);
             })}
         </select>;
@@ -345,8 +351,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expansionIcon() {
         return <Tooltip title={<div className="dash-tooltip">{"Show more permissions"}</div>}>
             <div className="expansion-button" onPointerDown={() => {
-                if (this.selectedDocumentView) {
-                    SharingManager.Instance.open(this.selectedDocumentView);
+                if (this.selectedDocumentView || this.selectedDoc) {
+                    SharingManager.Instance.open(this.selectedDocumentView?.props.Document === this.selectedDocumentView ? this.selectedDocumentView : undefined, this.selectedDoc);
                 }
             }}>
                 <FontAwesomeIcon className="expansion-button-icon" icon="ellipsis-h" color="black" size="sm" />
@@ -357,7 +363,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     /**
      * @returns a row of the permissions panel
      */
-    sharingItem(name: string, effectiveAcl: symbol, permission: string) {
+    sharingItem(name: string, admin: boolean, permission: string, showExpansionIcon?: boolean) {
         return <div className="propertiesView-sharingTable-item" key={name + permission}
         // style={{ backgroundColor: this.selectedUser === name ? "#bcecfc" : "" }}
         // onPointerDown={action(() => this.selectedUser = this.selectedUser === name ? "" : name)}
@@ -365,17 +371,18 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
             {/* {name !== "Me" ? this.notifyIcon : null} */}
             <div className="propertiesView-sharingTable-item-permission">
-                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
-                {permission === "Owner" ? this.expansionIcon : null}
+                {admin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
+                {permission === "Owner" || showExpansionIcon ? this.expansionIcon : null}
             </div>
         </div>;
     }
 
     /**
-     * @returns the sharing and permissiosn panel.
+     * @returns the sharing and permissions panel.
      */
     @computed get sharingTable() {
         const AclMap = new Map<symbol, string>([
+            [AclUnset, "None"],
             [AclPrivate, SharingPermissions.None],
             [AclReadonly, SharingPermissions.View],
             [AclAddonly, SharingPermissions.Add],
@@ -383,32 +390,46 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             [AclAdmin, SharingPermissions.Admin]
         ]);
 
-        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
+        // all selected docs
+        const docs = SelectionManager.SelectedDocuments().length < 2 ?
+            [this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym]]
+            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
 
-        const effectiveAcl = GetEffectiveAcl(target);
+        const target = docs[0];
+
+        // tslint:disable-next-line: no-unnecessary-callback-wrapper
+        const effectiveAcls = docs.map(doc => GetEffectiveAcl(doc));
+        const showAdmin = effectiveAcls.every(acl => acl === AclAdmin);
+
+        // users in common between all docs
+        const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
+
         const tableEntries = [];
 
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
-        if (target[AclSym]) {
-            for (const [key, value] of Object.entries(target[AclSym])) {
+        if (commonKeys.length) {
+            for (const key of commonKeys) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public"/* && sidebarUsersDisplayed![name] !== false*/) {
-                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value as symbol)!));
+                const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[key] === docs[0]?.[AclSym]?.[key] : doc?.[DataSym]?.[AclSym]?.[key] === docs[0]?.[DataSym]?.[AclSym]?.[key]);
+                if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public" && name !== "Override"/* && sidebarUsersDisplayed![name] !== false*/) {
+                    tableEntries.push(this.sharingItem(name, showAdmin, uniform ? AclMap.get(this.layoutDocAcls ? target[AclSym][key] : target[DataSym][AclSym][key])! : "-multiple-"));
                 }
             }
         }
 
         //     if (Doc.UserDoc().sidebarUsersDisplayed) {
         //         for (const [name, value] of Object.entries(sidebarUsersDisplayed!)) {
-        //             if (value === true && !this.selectedDoc![`ACL-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
+        //             if (value === true && !this.selectedDoc![`acl-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
         //         }
         //     }
         // })
 
+        const ownerSame = Doc.CurrentUserEmail !== target.author && docs.filter(doc => doc).every(doc => doc.author === docs[0].author);
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Public", effectiveAcl, (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None)));
-        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === target.author ? "Owner" : AclMap.get(effectiveAcl)!));
-        if (Doc.CurrentUserEmail !== target.author) tableEntries.unshift(this.sharingItem(StrCast(target.author), effectiveAcl, "Owner"));
+        tableEntries.unshift(this.sharingItem("Override", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Override"] === docs[0]["acl-Override"]) ? (AclMap.get(target[AclSym]?.["acl-Override"]) || "None") : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Public"] === docs[0]["acl-Public"]) ? (AclMap.get(target[AclSym]?.["acl-Public"]) || SharingPermissions.None) : "-multiple-"));
+        tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.filter(doc => doc).every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-", !ownerSame));
+        if (ownerSame) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
@@ -429,21 +450,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get editableTitle() {
+        const titles = new Set<string>();
+        SelectionManager.SelectedDocuments().forEach(dv => titles.add(StrCast(dv.rootDoc.title)));
+        const title = Array.from(titles.keys()).length > 1 ? "--multiple selected--" : StrCast(this.selectedDoc?.title);
         return <div className="editable-title"><EditableView
             key="editableView"
-            contents={StrCast(this.selectedDoc?.title)}
+            contents={title}
             height={25}
             fontSize={14}
-            GetValue={() => StrCast(this.selectedDoc?.title)}
+            GetValue={() => title}
             SetValue={this.setTitle} /> </div>;
     }
 
     @undoBatch
     @action
     setTitle = (value: string) => {
-        if (this.dataDoc) {
-            this.selectedDoc && (this.selectedDoc.title = value);
-            KeyValueBox.SetField(this.dataDoc, "title", value, true);
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().map(dv => Doc.SetInPlace(dv.rootDoc, "title", value, true));
+            return true;
+        } else if (this.dataDoc) {
+            if (this.selectedDoc) Doc.SetInPlace(this.selectedDoc, "title", value, true);
+            else KeyValueBox.SetField(this.dataDoc, "title", value, true);
             return true;
         }
         return false;
@@ -500,15 +527,16 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed
     get controlPointsButton() {
-        return <div className="inking-button">
+        const formatInstance = InkStrokeProperties.Instance;
+        return !formatInstance ? (null) : <div className="inking-button">
             <Tooltip title={<div className="dash-tooltip">{"Edit points"}</div>}>
-                <div className="inking-button-points" onPointerDown={action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn)} style={{ backgroundColor: FormatShapePane.Instance._controlBtn ? "black" : "" }}>
+                <div className="inking-button-points" onPointerDown={action(() => formatInstance._controlBtn = !formatInstance._controlBtn)} style={{ backgroundColor: formatInstance._controlBtn ? "black" : "" }}>
                     <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
-                <div className="inking-button-lock" onPointerDown={action(() => FormatShapePane.Instance._lock = !FormatShapePane.Instance._lock)} >
-                    <FontAwesomeIcon icon={FormatShapePane.Instance._lock ? "lock" : "unlock"} color="white" size="lg" />
+            <Tooltip title={<div className="dash-tooltip">{formatInstance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
+                <div className="inking-button-lock" onPointerDown={action(() => formatInstance._lock = !formatInstance._lock)} >
+                    <FontAwesomeIcon icon={formatInstance._lock ? "lock" : "unlock"} color="white" size="lg" />
                 </div>
             </Tooltip>
             <Tooltip title={<div className="dash-tooltip">{"Rotate 90˚"}</div>}>
@@ -528,7 +556,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="inputBox-title"> {title} </div>
             <input className="inputBox-input"
                 type="text" value={value}
-                onChange={e => setter(e.target.value)} />
+                onChange={e => {
+                    setter(e.target.value);
+                }}
+                onKeyPress={e => {
+                    e.stopPropagation();
+                }} />
             <div className="inputBox-button">
                 <div className="inputBox-button-up" key="up2"
                     onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))} >
@@ -563,7 +596,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oldX = NumCast(this.selectedDoc?.x);
                 const oldY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._width = oldWidth + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
                 const doc = this.selectedDoc;
                 if (doc?.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
                     const ink = Cast(doc.data, InkField)?.inkData;
@@ -585,7 +618,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oX = NumCast(this.selectedDoc?.x);
                 const oY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._height = oHeight + (dirs === "up" ? 10 : - 10));
-                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
+                InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
                 const docu = this.selectedDoc;
                 if (docu?.type === DocumentType.INK && docu.x && docu.y && docu._height && docu._width) {
                     const ink = Cast(docu.data, InkField)?.inkData;
@@ -623,12 +656,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set shapeWid(value) {
         const oldWidth = NumCast(this.selectedDoc?._width);
         this.selectedDoc && (this.selectedDoc._width = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
     }
     set shapeHgt(value) {
         const oldHeight = NumCast(this.selectedDoc?._height);
         this.selectedDoc && (this.selectedDoc._height = Number(value));
-        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
+        InkStrokeProperties.Instance?._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
     }
 
     @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => { if (!isNaN(Number(val))) { this.shapeHgt = val; } return true; }, "H:", "wid", this.shapeWid, (val: string) => { if (!isNaN(Number(val))) { this.shapeWid = val; } return true; }, "W:"); }
@@ -833,35 +866,33 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
+                    minWidth: this.props.width
                     //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
-                    {/* <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                        <FontAwesomeIcon icon="times" color="black" size="sm" />
-                    </div> */}
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}
                     </div>
-                    <div className="propertiesView-settings" onPointerEnter={() => runInAction(() => { this.inActions = true; })}
-                        onPointerLeave={action(() => this.inActions = false)}>
+                    <div className="propertiesView-settings" onPointerEnter={action(() => this.inOptions = true)}
+                        onPointerLeave={action(() => this.inOptions = false)}>
                         <div className="propertiesView-settings-title"
-                            onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}
-                            style={{ backgroundColor: this.openActions ? "black" : "" }}>
-                            Actions
+                            onPointerDown={action(() => this.openOptions = !this.openOptions)}
+                            style={{ backgroundColor: this.openOptions ? "black" : "" }}>
+                            Options
                         <div className="propertiesView-settings-title-icon">
-                                <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
+                                <FontAwesomeIcon icon={this.openOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {!this.openActions ? (null) :
+                        {!this.openOptions ? (null) :
                             <div className="propertiesView-settings-content">
                                 <PropertiesButtons />
                             </div>}
                     </div>
                     <div className="propertiesView-sharing">
                         <div className="propertiesView-sharing-title"
-                            onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
+                            onPointerDown={action(() => this.openSharing = !this.openSharing)}
                             style={{ backgroundColor: this.openSharing ? "black" : "" }}>
                             Sharing {"&"} Permissions
                         <div className="propertiesView-sharing-title-icon">
@@ -870,52 +901,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {!this.openSharing ? (null) :
                             <div className="propertiesView-sharing-content">
-                                <div className="propertiesView-acls-checkbox">
-                                    <Checkbox
-                                        color="primary"
-                                        onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
-                                        checked={this.layoutDocAcls}
-                                    />;
-                                    <div className="propertiesView-acls-checkbox-text">Layout</div>
+                                <div className="propertiesView-buttonContainer">
+                                    {!novice ? (<div className="propertiesView-acls-checkbox">
+                                        <Checkbox
+                                            color="primary"
+                                            onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
+                                            checked={this.layoutDocAcls}
+                                        />
+                                        <div className="propertiesView-acls-checkbox-text">Layout</div>
+                                    </div>) : (null)}
+                                    <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
+                                        <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
+                                    </button>
                                 </div>
                                 {this.sharingTable}
-                                {/* <div className="change-buttons">
-                            <button
-                                onPointerDown={action(() => this.addButtonPressed = !this.addButtonPressed)}
-                            >
-                                <FontAwesomeIcon icon={fa.faPlus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} />
-                            </button>
-                            <button
-                                id="sharingProperties-removeUser"
-                                onPointerDown={() => this.handleUserChange(this.selectedUser, false)}
-                                style={{ backgroundColor: this.selectedUser ? "#121721" : "#777777" }}
-                            ><FontAwesomeIcon icon={fa.faMinus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
-                            <button onClick={() => SharingManager.Instance.open(this.selectedDocumentView!)}><FontAwesomeIcon icon={fa.faCog} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
-                            {this.addButtonPressed ?
-                                // <input type="text" onKeyDown={this.handleKeyPress} /> :
-                                <select onChange={e => this.handleUserChange(e.target.value, true)}>
-                                    <option selected disabled hidden>
-                                        Add users
-                                    </option>
-                                    {SharingManager.Instance.users.map(user =>
-                                        (<option value={user.user.email}>
-                                            {user.user.email}
-                                        </option>)
-                                    )}
-                                    {GroupManager.Instance.getAllGroups().map(group =>
-                                        (<option value={StrCast(group.groupName)}>
-                                            {StrCast(group.groupName)}
-                                        </option>))}
-                                </select> :
-                                null}
-                        </div> */}
                             </div>}
                     </div>
 
                     {!this.isInk ? (null) :
                         <div className="propertiesView-appearance">
                             <div className="propertiesView-appearance-title"
-                                onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
+                                onPointerDown={action(() => this.openAppearance = !this.openAppearance)}
                                 style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
                                 Appearance
                             <div className="propertiesView-appearance-title-icon">
@@ -930,7 +936,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     {this.isInk ? <div className="propertiesView-transform">
                         <div className="propertiesView-transform-title"
-                            onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}
+                            onPointerDown={action(() => this.openTransform = !this.openTransform)}
                             style={{ backgroundColor: this.openTransform ? "black" : "" }}>
                             Transform
                         <div className="propertiesView-transform-title-icon">
@@ -944,7 +950,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     <div className="propertiesView-fields">
                         <div className="propertiesView-fields-title"
-                            onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
+                            onPointerDown={action(() => this.openFields = !this.openFields)}
                             style={{ backgroundColor: this.openFields ? "black" : "" }}>
                             Fields {"&"} Tags
                             <div className="propertiesView-fields-title-icon">
@@ -960,12 +966,23 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                 {novice ? this.noviceFields : this.expandedField}
                             </div>}
                     </div>
+                    <div className="propertiesView-contexts">
+                        <div className="propertiesView-contexts-title"
+                            onPointerDown={action(() => this.openContexts = !this.openContexts)}
+                            style={{ backgroundColor: this.openContexts ? "black" : "" }}>
+                            Contexts
+                        <div className="propertiesView-contexts-title-icon">
+                                <FontAwesomeIcon icon={this.openContexts ? "caret-down" : "caret-right"} size="lg" color="white" />
+                            </div>
+                        </div>
+                        {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
+                    </div>
                     <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
-                            onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
+                            onPointerDown={action(() => this.openLayout = !this.openLayout)}
                             style={{ backgroundColor: this.openLayout ? "black" : "" }}>
                             Layout
-                        <div className="propertiesView-layout-title-icon" onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
+                        <div className="propertiesView-layout-title-icon">
                                 <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
@@ -975,6 +992,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const type = PresBox.Instance.activeItem?.type;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -1001,9 +1019,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
+                            onPointerDown={action(() => this.openPresProgressivize = !this.openPresProgressivize)}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
                         <div className="propertiesView-presTrails-title-icon">
@@ -1014,9 +1032,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
+                            onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
                         <div className="propertiesView-presTrails-title-icon">
@@ -1029,7 +1047,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>}
                     <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
+                            onPointerDown={action(() => { this.openAddSlide = !this.openAddSlide; })}
                             style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
                         <div className="propertiesView-presTrails-title-icon">
@@ -1040,19 +1058,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
                     </div>
-                    {/* <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
-                            onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
-                            style={{ backgroundColor: this.openSharing ? "black" : "" }}>
-                            Sharing {"&"} Permissions
-                        <div className="propertiesView-sharing-title-icon">
-                                <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openSharing ? <div className="propertiesView-sharing-content">
-                            {this.sharingTable}
-                        </div> : null}
-                    </div> */}
                 </div>;
             }
         }

@@ -13,7 +13,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 
-export type dropActionType = "alias" | "copy" | "move" | "same" | undefined; // undefined = move
+export type dropActionType = "alias" | "copy" | "move" | "same" | "none" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -117,10 +117,11 @@ export namespace DragManager {
     }
 
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dropAction?: dropActionType) {
             this.draggedDocuments = dragDoc;
             this.droppedDocuments = [];
             this.offset = [0, 0];
+            this.dropAction = dropAction;
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
@@ -128,9 +129,11 @@ export namespace DragManager {
         treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
-        dropAction: dropActionType;
+        canEmbed?: boolean;
+        userDropAction: dropActionType;     // the user requested drop action -- this will be honored as specified by modifier keys
+        defaultDropAction?: dropActionType;  // an optionally specified default drop action when there is no user drop actionl - this will be honored if there is no user drop action
+        dropAction: dropActionType;         // a drop action request by the initiating code.  the actual drop action may be different -- eg, if the request is 'alias', but the document is dropped within the same collection, the drop action will be switched to 'move'
         removeDropProperties?: string[];
-        userDropAction: dropActionType;
         moveDocument?: MoveFunction;
         removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
@@ -143,7 +146,7 @@ export namespace DragManager {
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
         linkDocument?: Doc;
-        linkDropCallback?: (data: LinkDragData) => void;
+        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -160,7 +163,7 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.offset = [0, 0];
         }
-        linkedToDoc?: boolean;
+        linkDocument?: Doc;
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
@@ -168,6 +171,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
+        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
     }
 
     export function MakeDropTarget(
@@ -221,6 +225,7 @@ export namespace DragManager {
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
+        return true;
     }
 
     // drag a button template and drop a new button 
@@ -317,9 +322,10 @@ export namespace DragManager {
     export let docsBeingDragged: Doc[] = [];
     export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+        if (dragData.dropAction === "none") return;
         const batch = UndoManager.StartBatch("dragging");
         eles = eles.filter(e => e);
-        CanEmbed = false;
+        CanEmbed = dragData.canEmbed || false;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
@@ -327,14 +333,13 @@ export namespace DragManager {
             dragLabel = document.createElement("div");
             dragLabel.className = "dragManager-dragLabel";
             dragLabel.style.zIndex = "100001";
-            dragLabel.style.fontSize = "10pt";
+            dragLabel.style.fontSize = "10px";
             dragLabel.style.position = "absolute";
             // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
         dragLabel.style.display = "";
-        SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -405,6 +410,7 @@ export namespace DragManager {
         const hideSource = options?.hideSource ? true : false;
         eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
 
+        SnappingManager.SetIsDragging(true);
         let lastX = downX;
         let lastY = downY;
         const xFromLeft = downX - elesCont.left;
@@ -415,7 +421,7 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
+                dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : dragData.defaultDropAction;
             }
             if (e?.shiftKey && dragData.draggedDocuments.length === 1) {
                 dragData.dropAction = dragData.userDropAction || "same";
@@ -434,7 +440,7 @@ export namespace DragManager {
 
             const target = document.elementFromPoint(e.x, e.y);
 
-            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
+            if (target && !Doc.UserDoc()._noAutoscroll && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
                 const autoScrollHandler = () => {
                     target.dispatchEvent(
                         new CustomEvent<React.DragEvent>("dashDragAutoScroll", {

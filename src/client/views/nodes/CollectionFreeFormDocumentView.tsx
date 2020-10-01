@@ -11,7 +11,7 @@ import { Document } from "../../../fields/documentSchemas";
 import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { List } from "../../../fields/List";
-import { numberRange, smoothScroll } from "../../../Utils";
+import { numberRange, smoothScroll, returnVal } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -55,23 +55,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-
-    @computed get renderScriptDim() {
-        if (this.Document.renderScript) {
-            const someView = Cast(this.props.Document.someView, Doc);
-            const minimap = Cast(this.props.Document.minimap, Doc);
-            if (someView instanceof Doc && minimap instanceof Doc) {
-                const x = (NumCast(someView._panX) - NumCast(someView._width) / 2 / NumCast(someView._viewScale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap._width) - NumCast(minimap._width) / 2;
-                const y = (NumCast(someView._panY) - NumCast(someView._height) / 2 / NumCast(someView._viewScale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap._height) - NumCast(minimap._height) / 2;
-                const w = NumCast(someView._width) / NumCast(someView._viewScale) / NumCast(minimap.fitW) * NumCast(minimap.width);
-                const h = NumCast(someView._height) / NumCast(someView._viewScale) / NumCast(minimap.fitH) * NumCast(minimap.height);
-                return { x: x, y: y, width: w, height: h };
-            }
-        }
-        return undefined;
-    }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc._nativeWidth, this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc._nativeHeight, this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
 
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
@@ -80,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
+            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollY, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
@@ -98,7 +83,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         hindexed[timecode] = h as any as number;
         windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
-        scrollIndexed[timecode] = scroll as any as number;
+        if (scroll) scrollIndexed[timecode] = scroll as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
         d["h-indexed"] = new List<number>(hindexed);
@@ -123,12 +108,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => doc.dataTransition = "inherit", 1010);
     }
 
-    public static setupScroll(doc: Doc, timecode: number, scrollProgressivize: boolean = false) {
+    public static setupScroll(doc: Doc, timecode: number) {
         const scrollList = new List<number>();
-        scrollList[timecode] = NumCast(doc._scrollTop);
+        scrollList[timecode] = NumCast(doc._scrollY);
         doc["scroll-indexed"] = scrollList;
-        doc.activeFrame = ComputedField.MakeFunction("self.currentFrame");
-        doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+        doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
+        doc._scrollY = ComputedField.MakeInterpolated("scroll", "activeFrame");
     }
 
 
@@ -165,7 +150,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
 
-    public static setupZoom(doc: Doc, targDoc: Doc, zoomProgressivize: boolean = false) {
+    public static setupZoom(doc: Doc, targDoc: Doc) {
         const width = new List<number>();
         const height = new List<number>();
         const top = new List<number>();
@@ -180,32 +165,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         doc["viewfinder-left-indexed"] = left;
     }
 
-    public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
-        docs.forEach((doc, i) => {
-            if (doc.appearFrame === undefined) doc.appearFrame = i;
-            const curTimecode = progressivize ? i : timecode;
-            const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const wlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const hlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
-            const oarray = olist;
-            oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
-            oarray.fill(1, NumCast(doc.appearFrame), timecode);
-            // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
-            // oarray.fill(1, NumCast(doc.appearFrame), timecode);\
+    public static setupKeyframes(docs: Doc[], currTimecode: number, makeAppear: boolean = false) {
+        docs.forEach(doc => {
+            if (doc.appearFrame === undefined) doc.appearFrame = currTimecode;
+            const curTimecode = currTimecode;
+            const xlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const ylist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const wlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const hlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
             wlist[curTimecode] = NumCast(doc._width);
             hlist[curTimecode] = NumCast(doc._height);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
-            doc.xArray = xlist;
-            doc.yArray = ylist;
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
             doc["w-indexed"] = wlist;
             doc["h-indexed"] = hlist;
-            doc["opacity-indexed"] = oarray;
-            doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
+            doc["opacity-indexed"] = olist;
+            doc.activeFrame = ComputedField.MakeFunction("self.context?._currentFrame||0");
             doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
             doc._width = ComputedField.MakeInterpolated("w", "activeFrame");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
@@ -269,15 +247,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     render() {
         TraceMobx();
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document, this.props.renderDepth);
+        const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
                     this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document, this.props.renderDepth)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
+                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document, this.props.renderDepth)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc._isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                this.layoutDoc._isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
+                borderRadius: borderRounding,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
@@ -286,7 +265,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents ? "all" : undefined
+                // @ts-ignore
+                pointerEvents: this.props.Document._isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents
             }} >
 
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :

@@ -15,6 +15,7 @@ import { ActiveInkPen, ActiveInkWidth, ActiveInkBezierApprox, SetActiveInkColor,
 import "./ColorBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
+import { RichTextMenu } from "./formattedText/RichTextMenu";
 
 type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
@@ -39,8 +40,8 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     if (view.props.LayoutTemplate?.() || view.props.LayoutTemplateString) {  // this situation typically occurs when you have a link dot 
                         targetDoc.backgroundColor = Doc.UserDoc().backgroundColor;  // bcz: don't know how to change the color of an inline template...
                     }
-                    else if (StrCast(Doc.Layout(view.props.Document).layout).includes("FormattedTextBox") && window.getSelection()?.toString() !== "") {
-                        Doc.Layout(view.props.Document)[Doc.LayoutFieldKey(view.props.Document) + "-color"] = Doc.UserDoc().backgroundColor;
+                    else if (RichTextMenu.Instance?.TextViewFieldKey && window.getSelection()?.toString() !== "") {
+                        Doc.Layout(view.props.Document)[RichTextMenu.Instance.TextViewFieldKey + "-color"] = Doc.UserDoc().backgroundColor;
                     } else {
                         Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().backgroundColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                     }
@@ -55,7 +56,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
     render() {
         const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
         return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
-            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
+            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()} onClick={e => { (e.nativeEvent as any).stuff = true; e.stopPropagation(); }}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
 
             <SketchPicker onChange={ColorBox.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}

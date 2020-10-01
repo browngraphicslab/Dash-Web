@@ -1,5 +1,5 @@
-import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
-import { Doc, DocListCast, Field } from "../../../../fields/Doc";
+import { IReactionDisposer, observable, computed, action } from "mobx";
+import { Doc, DocListCast, Field, DataSym } from "../../../../fields/Doc";
 import { List } from "../../../../fields/List";
 import { listSpec } from "../../../../fields/Schema";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
@@ -70,7 +70,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             DocServer.GetRefField(this.props.docid).
                 then(action(async dashDoc => dashDoc instanceof Doc && (this._dashDoc = dashDoc)));
         } else {
-            this._dashDoc = this.props.tbox.props.DataDoc || this.props.tbox.dataDoc;
+            this._dashDoc = this.props.tbox.rootDoc;
         }
     }
     componentWillUnmount() {
@@ -82,7 +82,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     // set the display of the field's value (checkbox for booleans, span of text for strings)
     @computed get fieldValueContent() {
         if (this._dashDoc) {
-            const dashVal = this._dashDoc[this._fieldKey] || (this._fieldKey === "PARAMS" ? this._textBoxDoc[this._fieldKey] : "");
+            const dashVal = this._dashDoc[DataSym][this._fieldKey] ?? this._dashDoc[this._fieldKey] ?? (this._fieldKey === "PARAMS" ? this._textBoxDoc[this._fieldKey] : "");
             const fval = dashVal instanceof List ? dashVal.join(this.multiValueDelimeter) : StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
             const boolVal = Cast(fval, "boolean", null);
             const strVal = Field.toString(fval as Field) || "";
@@ -92,7 +92,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 return <input
                     className="dashFieldView-fieldCheck"
                     type="checkbox" checked={boolVal}
-                    onChange={e => this._dashDoc![this._fieldKey] = e.target.checked}
+                    onChange={e => {
+                        if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = e.target.checked;
+                        Doc.SetInPlace(this._dashDoc!, this._fieldKey, e.target.checked, true);
+                    }}
                 />;
             }
             else // field value is a string, so display it as an editable span
@@ -106,7 +109,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     ref={r => {
                         r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
                         r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
-                        r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
+                        r?.addEventListener("pointerdown", action((e) => {
+                            this._showEnumerables = true;
+                            e.stopPropagation();
+                        }));
                     }} >
                     {strVal}
                 </span>;
@@ -149,16 +155,23 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 if (modText) {
                     //  elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
                     DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, []);
-                    this._dashDoc![this._fieldKey] = modText;
+                    Doc.SetInPlace(this._dashDoc!, this._fieldKey, modText, true);
                 } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
                 else if (nodeText.startsWith(":=")) {
-                    this._dashDoc![this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(2));
+                    this._dashDoc![DataSym][this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(2));
                 } else if (nodeText.startsWith("=:=")) {
                     Doc.Layout(this._textBoxDoc)[this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(3));
                 } else {
-                    const splits = newText.split(this.multiValueDelimeter);
-                    if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
-                        this._dashDoc![this._fieldKey] = splits.length > 1 ? new List<string>(splits) : newText;
+                    if (Number(newText).toString() === newText) {
+                        if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = Number(newText);
+                        Doc.SetInPlace(this._dashDoc!, this._fieldKey, newText, true);
+                    } else {
+                        const splits = newText.split(this.multiValueDelimeter);
+                        if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
+                            const strVal = splits.length > 1 ? new List<string>(splits) : newText;
+                            if (this._fieldKey.startsWith("_")) Doc.Layout(this._textBoxDoc)[this._fieldKey] = strVal;
+                            Doc.SetInPlace(this._dashDoc!, this._fieldKey, strVal, true);
+                        }
                     }
                 }
             });
@@ -169,7 +182,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     onPointerDownEnumerables = async (e: any) => {
         e.stopPropagation();
         const collview = await DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
-        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
+        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "add:right");
     }
 
 
@@ -183,7 +196,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         }
         if (container) {
             const alias = Doc.MakeAlias(container.props.Document);
-            alias.viewType = CollectionViewType.Time;
+            alias._viewType = CollectionViewType.Time;
             let list = Cast(alias._columnHeaders, listSpec(SchemaHeaderField));
             if (!list) {
                 alias._columnHeaders = list = new List<SchemaHeaderField>();
@@ -191,7 +204,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             list.map(c => c.heading).indexOf(this._fieldKey) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
             list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
             alias._pivotField = this._fieldKey.startsWith("#") ? "#" : this._fieldKey;
-            this.props.tbox.props.addDocTab(alias, "onRight");
+            this.props.tbox.props.addDocTab(alias, "add:right");
         }
     }
 

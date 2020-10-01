@@ -1,28 +1,28 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
+import { action, observable } from "mobx";
 import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
+import wiki from "wikijs";
 import { Doc, DocCastAsync, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter } from "../../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { schema } from "./schema_rts";
+import { Docs } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { LinkManager } from "../../../util/LinkManager";
 import { Transform } from "../../../util/Transform";
+import { undoBatch } from "../../../util/UndoManager";
 import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
+import { DocumentLinksButton } from "../DocumentLinksButton";
+import { DocumentView } from "../DocumentView";
+import { LinkDocPreview } from "../LinkDocPreview";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
+import { schema } from "./schema_rts";
 import React = require("react");
-import { Docs } from "../../../documents/Documents";
-import wiki from "wikijs";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action } from "mobx";
-import { LinkManager } from "../../../util/LinkManager";
-import { LinkDocPreview } from "../LinkDocPreview";
-import { DocumentLinksButton } from "../DocumentLinksButton";
-import { Tooltip } from "@material-ui/core";
-import { undoBatch } from "../../../util/UndoManager";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -60,6 +60,7 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
 // this view appears when clicking on text that has a hyperlink which is configured to show a preview of its target.
 // this will also display metadata information about text when the view is configured to display things like other people who authored text.
 // 
+
 export class FormattedTextBoxComment {
     static tooltip: HTMLElement;
     static tooltipText: HTMLElement;
@@ -72,6 +73,13 @@ export class FormattedTextBoxComment {
 
     static _deleteRef: Opt<HTMLDivElement | null>;
     static _followRef: Opt<HTMLDivElement | null>;
+    static _nextRef: Opt<HTMLDivElement | null>;
+
+    static _lastState?: EditorState;
+    static _lastView?: EditorView;
+
+    @observable static _hrefInd = 0;
+    static _hrefs: string[] | undefined = [];
 
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
@@ -80,84 +88,67 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltipInput.type = "checkbox";
             FormattedTextBoxComment.tooltip = document.createElement("div");
             FormattedTextBoxComment.tooltipText = document.createElement("div");
-            FormattedTextBoxComment.tooltipText.style.width = "100%";
+            //FormattedTextBoxComment.tooltipText.style.width = "100%";
             FormattedTextBoxComment.tooltipText.style.height = "100%";
             FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "200px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "400px";
             FormattedTextBoxComment.tooltip.style.maxHeight = "235px";
-            FormattedTextBoxComment.tooltip.style.width = "100%";
+            //FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
             FormattedTextBoxComment.tooltip.style.display = "none";
-            FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
+            // FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipInput);
             FormattedTextBoxComment.tooltip.onpointerdown = async (e: PointerEvent) => {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
-                if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    if (FormattedTextBoxComment.linkDoc.author) {
-
-                        if (FormattedTextBoxComment._deleteRef && FormattedTextBoxComment._deleteRef.contains(e.target as any)) {
+                const linkDoc = FormattedTextBoxComment.linkDoc;
+                if (linkDoc && !keep && textBox) {
+                    if (linkDoc.author) {
+                        if (FormattedTextBoxComment._deleteRef?.contains(e.target as any)) {
                             this.deleteLink();
-                        } else if (FormattedTextBoxComment._followRef && FormattedTextBoxComment._followRef.contains(e.target as any)) {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
-                            } else {
-                                const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc)), textBox.dataDoc) ?
-                                    Cast(FormattedTextBoxComment.linkDoc.anchor2, Doc) : (Cast(FormattedTextBoxComment.linkDoc.anchor1, Doc))
-                                    || FormattedTextBoxComment.linkDoc);
-                                const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
-
-                                if (FormattedTextBoxComment.linkDoc.follow) {
-                                    if (FormattedTextBoxComment.linkDoc.follow === "Default") {
-                                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "onRight"), false);
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in right tab") {
-                                        if (target) { textBox.props.addDocTab(target, "onRight"); }
-                                    } else if (FormattedTextBoxComment.linkDoc.follow === "Always open in new tab") {
-                                        if (target) { textBox.props.addDocTab(target, "inTab"); }
-                                    }
-                                } else {
-                                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document, doc => textBox.props.addDocTab(doc, "onRight"), false);
-                                }
-                            }
+                        } else if (FormattedTextBoxComment._nextRef?.contains(e.target as any)) {
+                            FormattedTextBoxComment.showPreview(FormattedTextBoxComment._lastView!, FormattedTextBoxComment._lastState, FormattedTextBoxComment._hrefs?.[(++FormattedTextBoxComment._hrefInd) % FormattedTextBoxComment._hrefs?.length]);
                         } else {
-                            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                                textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+                            FormattedTextBoxComment.linkDoc = undefined;
+                            if (linkDoc.type !== DocumentType.LINK) {
+                                textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
-                                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
-                                    (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                                const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
+                                target && DocumentView.followLinkClick(linkDoc, textBox.dataDoc, textBox.props, e.shiftKey, e.altKey);
                             }
                         }
-
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _fitWidth: true, _width: 200, _height: 400, useCors: true }), "add:right");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
                 e.stopPropagation();
                 e.preventDefault();
             };
-            root && root.appendChild(FormattedTextBoxComment.tooltip);
+            root?.appendChild(FormattedTextBoxComment.tooltip);
         }
     }
 
     @undoBatch
-    @action
-    deleteLink = () => {
+    deleteLink = action(() => {
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
         LinkDocPreview.LinkInfo = undefined;
         DocumentLinksButton.EditLink = undefined;
-        //FormattedTextBoxComment.tooltipText = undefined;
         FormattedTextBoxComment.Hide();
-    }
+    });
 
     public static Hide() {
         FormattedTextBoxComment.textBox = undefined;
+        FormattedTextBoxComment.linkDoc = undefined;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
-        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+        try {
+            ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+            FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
+        } catch (e) { }
     }
     public static SetState(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
@@ -185,14 +176,20 @@ export class FormattedTextBoxComment {
     }
 
     static update(view: EditorView, lastState?: EditorState, forceUrl: string = "") {
-        const state = view.state;
         // Don't do anything if the document/selection didn't change
-        if (lastState && lastState.doc.eq(state.doc) &&
-            lastState.selection.eq(state.selection)) {
+        if (!forceUrl && lastState?.doc.eq(view.state.doc) && lastState?.selection.eq(view.state.selection)) {
             return;
         }
+        FormattedTextBoxComment._lastState = lastState;
+        FormattedTextBoxComment._lastView = view;
+        FormattedTextBoxComment._hrefs = forceUrl ? forceUrl.trim().split(" ") : undefined;
+        FormattedTextBoxComment._hrefInd = 0;
         FormattedTextBoxComment.linkDoc = undefined;
+        FormattedTextBoxComment.showPreview(view, lastState, FormattedTextBoxComment._hrefs?.[FormattedTextBoxComment._hrefInd]);
+    }
 
+    static showPreview(view: EditorView, lastState?: EditorState, forceUrl: string = "") {
+        const state = view.state;
         const textBox = FormattedTextBoxComment.textBox;
         if (!textBox || !textBox.props) {
             return;
@@ -217,7 +214,7 @@ export class FormattedTextBoxComment {
                 FormattedTextBoxComment.SetState(FormattedTextBoxComment.textBox, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
             }
             if (mark && child && ((nbef && naft) || !noselection)) {
-                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " date=" + (new Date(mark.attrs.modified * 5000)).toDateString();
+                FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " on " + (new Date(mark.attrs.modified * 1000)).toLocaleString();
                 set = "";
                 FormattedTextBoxComment.tooltipInput.style.display = "";
             }
@@ -230,10 +227,22 @@ export class FormattedTextBoxComment {
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             child = child || (nbef && state.selection.$from.nodeBefore);
             const mark = child ? findLinkMark(child.marks) : undefined;
-            const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allLinks.find((item: { href: string }) => item.href)?.href || forceUrl;
+            const href = forceUrl || (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allLinks.find((item: { href: string }) => item.href)?.href;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
-                FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
+                try {
+                    ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+                    FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
+                } catch (e) { }
+                FormattedTextBoxComment.tooltipText = document.createElement("div");
+                FormattedTextBoxComment.tooltipText.className = "FormattedTextBoxComment-toolTipText";
+                FormattedTextBoxComment.tooltipText.style.width = "100%";
+                FormattedTextBoxComment.tooltipText.style.height = "100%";
+                FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
+                FormattedTextBoxComment.tooltipText.style.cursor = "pointer";
+                FormattedTextBoxComment.tooltipText.textContent = "URL: " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;
+                FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
+
                 if (href.startsWith("https://en.wikipedia.org/wiki/")) {
                     wiki().page(href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
                 } else {
@@ -241,12 +250,9 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
                 }
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     FormattedTextBoxComment.tooltipText.textContent = "target not found...";
                     (FormattedTextBoxComment.tooltipText as any).href = "";
-                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    try {
-                        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
-                    } catch (e) { }
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = href;
@@ -259,34 +265,35 @@ export class FormattedTextBoxComment {
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 
-                                const title = StrCast(target.title).length > 16 ?
-                                    StrCast(target.title).substr(0, 16) + "..." : target.title;
-
+                                const title = StrCast(target.title).length > 16 ? StrCast(target.title).substr(0, 16) + "..." : target.title;
 
                                 const docPreview = <div className="FormattedTextBoxComment">
                                     <div className="FormattedTextBoxComment-info">
                                         <div className="FormattedTextBoxComment-title">
                                             {title}
-                                            {FormattedTextBoxComment.linkDoc.description !== "" ? <p className="FormattedTextBoxComment-description">
-                                                {StrCast(FormattedTextBoxComment.linkDoc.description)}</p> : null}
+                                            {FormattedTextBoxComment.linkDoc.description === "" ? (null) :
+                                                <p className="FormattedTextBoxComment-description"> {StrCast(FormattedTextBoxComment.linkDoc.description)}</p>}
                                         </div>
                                         <div className="wrapper" style={{ float: "right" }}>
+                                            {(FormattedTextBoxComment._hrefs?.length || 0) <= 1 ? (null) : <Tooltip title={<><div className="dash-tooltip">Next Link</div></>} placement="top">
+                                                <div className="FormattedTextBoxComment-button" ref={(r) => this._nextRef = r}>
+                                                    <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="chevron-right" color="white" size="sm" />
+                                                </div>
+                                            </Tooltip>}
 
                                             <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>} placement="top">
-                                                <div className="FormattedTextBoxComment-button"
-                                                    ref={(r) => this._deleteRef = r}>
-                                                    <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white"
-                                                        size="sm" /></div>
+                                                <div className="FormattedTextBoxComment-button" ref={(r) => this._deleteRef = r}>
+                                                    <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white" size="sm" />
+                                                </div>
                                             </Tooltip>
 
                                             <Tooltip title={<><div className="dash-tooltip">Follow Link</div></>} placement="top">
-                                                <div className="FormattedTextBoxComment-button"
-                                                    ref={(r) => this._followRef = r}>
-                                                    <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white"
-                                                        size="sm" />
+                                                <div className="FormattedTextBoxComment-button" ref={(r) => this._followRef = r}>
+                                                    <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white" size="sm" />
                                                 </div>
                                             </Tooltip>
-                                        </div> </div>
+                                        </div>
+                                    </div>
                                     <div className="FormattedTextBoxComment-preview-wrapper">
                                         <ContentFittingDocumentView
                                             Document={target}
@@ -302,29 +309,29 @@ export class FormattedTextBoxComment {
                                             pinToPres={returnFalse}
                                             dontRegisterView={true}
                                             docFilters={returnEmptyFilter}
+                                            docRangeFilters={returnEmptyFilter}
+                                            searchFilterDocs={returnEmptyDoclist}
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
-                                            renderDepth={0}
+                                            renderDepth={-1}
                                             PanelWidth={() => 175} //Math.min(350, NumCast(target._width, 350))}
                                             PanelHeight={() => 175} //Math.min(250, NumCast(target._height, 250))}
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={() => target._nativeWidth ? NumCast(target._nativeWidth) : 0}
-                                            NativeHeight={() => target._nativeHeight ? NumCast(target._nativeHeight) : 0}
+                                            NativeWidth={target._nativeWidth ? (() => NumCast(target._nativeWidth)) : undefined}
+                                            NativeHeight={target._natvieHeight ? (() => NumCast(target._nativeHeight)) : undefined}
                                         />
                                     </div>
                                 </div>;
-
-
 
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 
                                 ReactDOM.render(docPreview, FormattedTextBoxComment.tooltipText);
 
-                                FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
-                                FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
+                                //FormattedTextBoxComment.tooltip.style.width = "100%";
+                                FormattedTextBoxComment.tooltip.style.height = "100%";
                             }
                         }
                     });

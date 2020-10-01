@@ -29,6 +29,8 @@ export interface FieldViewProps {
     dropAction: dropActionType;
     backgroundHalo?: () => boolean;
     docFilters: () => string[];
+    docRangeFilters: () => string[];
+    searchFilterDocs: () => Doc[];
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
@@ -38,11 +40,12 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc | Doc[]) => boolean;
     moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    backgroundColor?: (document: Doc, renderDepth: number) => string | undefined;
+    backgroundColor?: (document: Opt<Doc>, renderDepth: number) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    LayoutTemplateString?: string;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation
@@ -51,17 +54,15 @@ export interface FieldViewProps {
     PanelHeight: () => number;
     PanelPosition?: string;
     overflow?: boolean;
-    NativeHeight: () => number;
-    NativeWidth: () => number;
+    NativeHeight?: () => number;
+    NativeWidth?: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
-
     ChromeHeight?: () => number;
     childLayoutTemplate?: () => Opt<Doc>;
-    highlighting?: string[];
-    lines?: string[];
-    doc?: Doc;
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
+    fontSize?: number;
+    pointerEvents?: string;
     height?: number;
     width?: number;
     background?: string;
@@ -133,7 +134,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             // );
         }
         else if (field instanceof List) {
-            return <div> {field.map(f => Field.toString(f)).join(", ")}  </div>;
+            return <div> {field.length ? field.map(f => Field.toString(f)).join(", ") : "[]"}  </div>;
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         else if (field instanceof WebField) {

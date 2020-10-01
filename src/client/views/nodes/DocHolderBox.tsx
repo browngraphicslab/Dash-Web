@@ -120,6 +120,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
+                    docRangeFilters={this.props.docRangeFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -134,8 +136,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     pinToPres={this.props.pinToPres}
                     ScreenToLocalTransform={this.getTransform}
                     renderDepth={containedDoc.type !== DocumentType.DOCHOLDER && !this.props.renderDepth ? 0 : this.props.renderDepth + 1}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={this.pwidth}
                     PanelHeight={this.pheight}
                     focus={this.props.focus}
@@ -149,6 +149,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
+                    docRangeFilters={this.props.docRangeFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -164,8 +166,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     pinToPres={this.props.pinToPres}
                     ScreenToLocalTransform={this.getTransform}
                     renderDepth={containedDoc.type !== DocumentType.DOCHOLDER && !this.props.renderDepth ? 0 : this.props.renderDepth + 1}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={this.pwidth}
                     PanelHeight={this.pheight}
                     focus={this.props.focus}

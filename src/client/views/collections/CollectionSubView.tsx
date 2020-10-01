@@ -1,8 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
-import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
+import { Id, ToString } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
@@ -31,8 +30,8 @@ export interface CollectionViewProps extends FieldViewProps {
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
-    NativeWidth: () => number;
-    NativeHeight: () => number;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -40,6 +39,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
     childOpacity?: () => number;
+    childIgnoreNativeSize?: boolean;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
@@ -111,6 +111,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return this.props.ignoreFields?.includes("_docFilters") ? [] :
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
+        docRangeFilters = () => {
+            return this.props.ignoreFields?.includes("_docRangeFilters") ? [] :
+                [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
+        }
+        searchFilterDocs = () => {
+            return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
+        }
         @computed get childDocs() {
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
@@ -128,52 +135,38 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            let searchDocs = DocListCast(this.props.Document._searchDocs);
+            const docFilters = this.docFilters();
+            const docRangeFilters = this.docRangeFilters();
+            const searchDocs = this.searchFilterDocs();
+            if (this.props.Document.dontRegisterView || (!docFilters.length && !docRangeFilters.length && !searchDocs.length)) return childDocs;
 
-
-            let docsforFilter: Doc[] = childDocs;
-
-            if (searchDocs !== undefined && searchDocs.length > 0) {
-                docsforFilter = [];
-                const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-                console.log(searchDocs);
-                searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
-                console.log(this.docFilters());
-                console.log(searchDocs);
-                childDocs.forEach((d) => {
-                    if (d.data !== undefined) {
-                        let newdocs = DocListCast(d.data);
-                        if (newdocs.length > 0) {
-                            let displaycheck: boolean | undefined = undefined;
-                            let newarray: Doc[] = [];
-                            while (newdocs.length > 0) {
-                                newarray = [];
-                                newdocs.forEach((t) => {
-                                    if (d.data !== undefined) {
-                                        const newdocs = DocListCast(t.data);
-                                        newdocs.forEach((newdoc) => {
-                                            newarray.push(newdoc);
-                                        });
-                                    }
-                                    if (searchDocs.includes(t)) {
-                                        displaycheck = true;
-                                    }
-                                });
-                                newdocs = newarray;
-                            }
-                            if (displaycheck === true) {
-                                docsforFilter.push(d);
-                            }
+            const docsforFilter: Doc[] = [];
+            childDocs.forEach((d) => {
+                if (DocUtils.Excluded(d, docFilters)) return;
+                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
+                const fieldKey = Doc.LayoutFieldKey(d);
+                const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                if (data !== undefined) {
+                    let subDocs = DocListCast(data);
+                    if (subDocs.length > 0) {
+                        let newarray: Doc[] = [];
+                        notFiltered = notFiltered || (!searchDocs.length && (!docFilters.length && !docRangeFilters.length) && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript).length);
+                        while (subDocs.length > 0 && !notFiltered) {
+                            newarray = [];
+                            subDocs.forEach((t) => {
+                                const fieldKey = Doc.LayoutFieldKey(t);
+                                const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
+                                notFiltered = notFiltered || ((!searchDocs.length || searchDocs.includes(t)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([t], docFilters, docRangeFilters, viewSpecScript).length));
+                                DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));
+                            });
+                            subDocs = newarray;
                         }
                     }
-                    if (searchDocs.includes(d)) {
-                        docsforFilter.push(d);
-                    }
-                });
-                return docsforFilter;
-            }
-            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
+                }
+                notFiltered && docsforFilter.push(d);
+            });
+            return docsforFilter;
         }
 
         @action
@@ -231,16 +224,22 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (docDragData) {
                 let added = false;
                 const dropAction = docDragData.dropAction || docDragData.userDropAction;
-                if ((!dropAction || dropAction === "move") && docDragData.moveDocument) {
+                const targetDocments = DocListCast(this.dataDoc[this.props.fieldKey]);
+                const someMoved = !docDragData.userDropAction && docDragData.draggedDocuments.some(drag => targetDocments.includes(drag));
+                if (someMoved) docDragData.droppedDocuments = docDragData.droppedDocuments.map((drop, i) => targetDocments.includes(docDragData.draggedDocuments[i]) ? docDragData.draggedDocuments[i] : drop);
+                if ((!dropAction || dropAction === "move" || someMoved) && docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                    const res = addedDocs.length ? this.addDocument(addedDocs) : true;
                     if (movedDocs.length) {
                         const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey || !this.props.isAnnotationOverlay ||
                             Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
-                    } else added = res;
-                    e.stopPropagation();
+                    } else {
+                        ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
+                        added = addedDocs.length ? this.addDocument(addedDocs) : true;
+                    }
+                    added && e.stopPropagation();
+                    return added;
                 } else {
                     ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
@@ -249,7 +248,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 e.stopPropagation();
                 return added;
             }
-            else if (de.complete.annoDragData) {
+            else if (de.complete.annoDragData && (!this.props.isAnnotationOverlay || de.complete.annoDragData.dragDocument === this.props.Document)) {
                 e.stopPropagation();
                 return this.addDocument(de.complete.annoDragData.dropDocument);
             }
@@ -293,10 +292,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 }
                             });
                         } else {
-                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
+                            this.addDocument(Docs.Create.WebDocument(href, { ...options, _fitWidth: true, title: href }));
                         }
                     } else if (text) {
-                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: StrCast(Doc.UserDoc().showTitle), _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -342,7 +341,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0]?.contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
@@ -363,14 +362,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (uriList || text) {
                 if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    this.addDocument(Docs.Create.VideoDocument(url, {
+                    console.log("Video URI = ", uriList);
+                    console.log("Add:" + this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
                         _height: 315,
                         _nativeWidth: 600,
                         _nativeHeight: 472.5
-                    }));
+                    })));
                     return;
                 }
                 // let matches: RegExpExecArray | null;
@@ -391,27 +391,30 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
+                console.log("Web URI = ", uriList);
                 const existingWebDoc = await Hypothesis.findWebDoc(uriList);
                 if (existingWebDoc) {
                     const alias = Doc.MakeAlias(existingWebDoc);
                     alias.x = options.x;
                     alias.y = options.y;
                     alias._nativeWidth = 850;
-                    alias._nativeHeight = 962;
+                    alias._height = 512;
                     alias._width = 400;
                     this.addDocument(alias);
                 } else {
+                    console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList, {
                         ...options,
+                        _fitWidth: true,
                         title: uriList.split("#annotations:")[0],
                         _width: 400,
-                        _height: 315,
+                        _height: 512,
                         _nativeWidth: 850,
-                        _nativeHeight: 962,
-                        UseCors: true
+                        useCors: true
                     });
+                    console.log(" ... " + newDoc.title);
                     newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
-                    this.addDocument(newDoc);
+                    console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;
             }

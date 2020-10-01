@@ -1,22 +1,21 @@
+import { Tooltip } from '@material-ui/core';
 import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../fields/Doc';
-import { makeInterface } from '../../../fields/Schema';
-import { BoolCast, NumCast, StrCast, Cast, ScriptCast } from '../../../fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse, returnZero } from '../../../Utils';
-import { DragManager } from '../../util/DragManager';
-import { Transform } from '../../util/Transform';
-import "./CollectionLinearView.scss";
-import { CollectionViewType } from './CollectionView';
-import { CollectionSubView } from './CollectionSubView';
-import { DocumentView } from '../nodes/DocumentView';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
+import { makeInterface } from '../../../fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { emptyFunction, returnOne, returnTrue, Utils } from '../../../Utils';
+import { DragManager } from '../../util/DragManager';
+import { Transform } from '../../util/Transform';
+import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
-import { Tooltip } from '@material-ui/core';
+import "./CollectionLinearView.scss";
+import { CollectionSubView } from './CollectionSubView';
+import { CollectionViewType } from './CollectionView';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -89,6 +88,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             }
         }
         DocumentLinksButton.StartLink = undefined;
+        DocumentLinksButton.StartLinkView = undefined;
     }
 
     @action
@@ -112,12 +112,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
 
-        const menuOpener = <label htmlFor={`${guid}`} style={{
-            background: backgroundColor === color ? "black" : backgroundColor,
-            // width: "18px", height: "18px", fontSize: "12.5px",
-            // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
-            // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
-        }}
+        const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "pointer", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
             <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
         </label>;
@@ -128,21 +123,22 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     {menuOpener}
                 </Tooltip>
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
+                    onChange={action(() => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), flexDirection: flexDir }}>
                     {this.childLayoutPairs.map((pair, ind) => {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
-                        const deltaSize = nativeWidth * .15 / 2;
                         const scalable = pair.layout.onClick || pair.layout.onDragStart;
                         return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
-                                width: scalable ? (nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize) : undefined,
-                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
+                                pointerEvents: "all",
+                                minWidth: 30,
+                                width: nested ? pair.layout[WidthSym]() : this.dimension(),
+                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension(),
                             }}  >
-                            <DocumentView
+                            <ContentFittingDocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
                                 LibraryPath={this.props.LibraryPath}
@@ -155,10 +151,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
-                                NativeHeight={returnZero}
-                                NativeWidth={returnZero}
-                                PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
-                                PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
+                                PanelWidth={nested ? pair.layout[WidthSym] : this.dimension}
+                                PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}
                                 renderDepth={this.props.renderDepth + 1}
                                 focus={emptyFunction}
                                 backgroundColor={this.props.backgroundColor}
@@ -166,13 +160,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 docFilters={this.props.docFilters}
+                                docRangeFilters={this.props.docRangeFilters}
+                                searchFilterDocs={this.props.searchFilterDocs}
                                 ContainingCollectionView={undefined}
                                 ContainingCollectionDoc={undefined} />
                         </div>;
                     })}
                 </div>
                 {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor
+                    background: backgroundColor === color ? "black" : backgroundColor,
+                    pointerEvents: "all"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
@@ -191,9 +188,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             Clear
                         </span>
                     </Tooltip>
-
-                    {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
-                        onClick={this.exitLongLinks} /> */}
 
                 </span> : null}
             </div>

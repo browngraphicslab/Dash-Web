@@ -7,11 +7,13 @@ import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
-import { Doc, DataSym } from "../../../../fields/Doc";
+import { Doc, DataSym, DocListCast } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Docs } from "../../../documents/Documents";
 import { Utils } from "../../../../Utils";
+import { listSpec } from "../../../../fields/Schema";
+import { List } from "../../../../fields/List";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -33,7 +35,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema, assignedMapStyle?:
     return tx2;
 };
 
-export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
+export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
@@ -44,6 +46,29 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         }
         keys[key] = cmd;
     }
+
+    /// bcz; Argh!!  replace with an onEnter func that conditionally handles Enter 
+    const addTextBox = (below: boolean, force?: boolean) => {
+        if (props.Document.treeViewOutlineMode) return true;  // bcz: Arghh .. need to determine if this is an treeViewOutlineBox in which case Enter's are ignored..
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.rootDocument || layoutDoc;
+        if (force || props.Document._singleLine) {
+            const layoutKey = StrCast(originalDoc.layoutKey);
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            const dataField = originalDoc[Doc.LayoutFieldKey(newDoc)];
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = dataField === undefined || Cast(dataField, listSpec(Doc), null)?.length !== undefined ? new List<Doc>([]) : undefined;
+            if (below) newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            else newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
+                newDoc[layoutKey] = originalDoc[layoutKey];
+            }
+            Doc.GetProto(newDoc).text = undefined;
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            props.addDocument(newDoc);
+            return true;
+        }
+        return false;
+    };
 
     //History commands
     bind("Mod-z", undo);
@@ -66,6 +91,11 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     bind("Ctrl-i", wrapInList(schema.nodes.ordered_list));
 
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        /// bcz; Argh!!  replace layotuTEmpalteString with a onTab prop conditionally handles Tab);
+        if (props.Document._singleLine) {
+            if (!props.LayoutTemplateString) return addTextBox(false, true);
+            return true;
+        }
         const ref = state.selection;
         const range = ref.$from.blockRange(ref.$to);
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
@@ -89,6 +119,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     });
 
     bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        /// bcz; Argh!!  replace with a onShiftTab prop conditionally handles Tab);
+        if (props.Document._singleLine) return true;
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
 
         if (!liftListItem(schema.nodes.list_item)(state.tr, (tx2: Transaction) => {
@@ -104,7 +136,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     //Command to create a new Tab with a PDF of all the command shortcuts
     bind("Mod-/", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const newDoc = Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _fitWidth: true, _width: 300, _height: 300 });
-        props.addDocTab(newDoc, "onRight");
+        props.addDocTab(newDoc, "add:right");
     });
 
     //Commands to modify BlockType
@@ -136,47 +168,11 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         return tx;
     };
 
-    const addTextOnRight = (force: boolean) => {
-        const layoutDoc = props.Document;
-        const originalDoc = layoutDoc.rootDocument || layoutDoc;
-        if (force || props.Document._singleLine) {
-            const layoutKey = StrCast(originalDoc.layoutKey);
-            const newDoc = Doc.MakeCopy(originalDoc, true);
-            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
-            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
-                newDoc[layoutKey] = originalDoc[layoutKey];
-            }
-            Doc.GetProto(newDoc).text = undefined;
-            FormattedTextBox.SelectOnLoad = newDoc[Id];
-            props.addDocument(newDoc);
-            return true;
-        }
-        return false;
-    };
-
     //Command to create a text document to the right of the selected textbox
-    bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
-        return addTextOnRight(true);
-    });
+    bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => addTextBox(false, true));
 
     //Command to create a text document to the bottom of the selected textbox
-    bind("Ctrl-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        const layoutDoc = props.Document;
-        const originalDoc = layoutDoc.rootDocument || layoutDoc;
-        if (originalDoc instanceof Doc) {
-            const layoutKey = StrCast(originalDoc.layoutKey);
-            const newDoc = Doc.MakeCopy(originalDoc, true);
-            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
-            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
-                newDoc[layoutKey] = originalDoc[layoutKey];
-            }
-            Doc.GetProto(newDoc).text = undefined;
-            FormattedTextBox.SelectOnLoad = newDoc[Id];
-            props.addDocument(newDoc);
-        }
-    });
+    bind("Ctrl-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => addTextBox(true, true));
 
     // backspace = chainCommands(deleteSelection, joinBackward, selectNodeBackward);
     bind("Backspace", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
@@ -199,7 +195,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     //newlineInCode, createParagraphNear, liftEmptyBlock, splitBlock
     //command to break line
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
-        if (addTextOnRight(false)) return true;
+        if (addTextBox(true, false)) return true;
         const trange = state.selection.$from.blockRange(state.selection.$to);
         const path = (state.selection.$from as any).path;
         const depth = trange ? liftTarget(trange) : undefined;
@@ -221,11 +217,13 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
                 const fromattrs = state.selection.$from.node().attrs;
                 if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                     const tonode = tx3.selection.$to.node();
-                    const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
-                    splitMetadata(marks, tx4);
-                    if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
-                        dispatch(tx4);
-                    }
+                    if (tx3.selection.to && tx3.doc.nodeAt(tx3.selection.to - 1)) {
+                        const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
+                        splitMetadata(marks, tx4);
+                        if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
+                            dispatch(tx4);
+                        }
+                    } else dispatch(tx3.insertText("\r\n"));
                 })) {
                     return false;
                 }

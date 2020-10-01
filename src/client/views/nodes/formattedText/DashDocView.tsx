@@ -5,13 +5,14 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter, returnEmptyDoclist } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Transform } from "../../../util/Transform";
 import React = require("react");
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 interface IDashDocView {
     node: any;
@@ -131,14 +132,6 @@ export class DashDocView extends React.Component<IDashDocView> {
                 if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
                     finalLayout.rootDocument = dashDoc.aliasOf;
                 }
-                const layoutKey = StrCast(finalLayout.layoutKey);
-                const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
-                if (finalLayout !== dashDoc && finalKey) {
-                    const finalLayoutField = finalLayout[finalKey];
-                    if (finalLayoutField instanceof ObjectField) {
-                        finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
-                    }
-                }
                 this._finalLayout = finalLayout;
                 this._resolvedDataDoc = Cast(finalLayout.resolvedDataDoc, Doc, null);
                 return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };
@@ -175,7 +168,7 @@ export class DashDocView extends React.Component<IDashDocView> {
         const outerStyle = {
             position: "relative" as "relative",
             textIndent: "0",
-            border: "1px solid " + StrCast(this._textBox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray")),
+            border: "1px solid " + StrCast(this._textBox.Document.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray")),
             width: this.props.node.props.width,
             height: this.props.node.props.height,
             display: this.props.node.props.hidden ? "none" : "inline-block",
@@ -202,7 +195,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                 ({ dim, color }) => {
                     spanStyle.width = outerStyle.width = Math.max(20, dim[0]) + "px";
                     spanStyle.height = outerStyle.height = Math.max(20, dim[1]) + "px";
-                    outerStyle.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+                    outerStyle.border = "1px solid " + StrCast(finalLayout.color, (CurrentUserUtils.ActiveDashboard.darkScheme ? "dimGray" : "lightGray"));
                 }, { fireImmediately: true });
 
             if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
@@ -244,8 +237,6 @@ export class DashDocView extends React.Component<IDashDocView> {
                             addDocTab={this._textBox.props.addDocTab}
                             pinToPres={returnFalse}
                             renderDepth={self._textBox.props.renderDepth + 1}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             PanelWidth={finalLayout[WidthSym]}
                             PanelHeight={finalLayout[HeightSym]}
                             focus={this.outerFocus}
@@ -255,6 +246,8 @@ export class DashDocView extends React.Component<IDashDocView> {
                             bringToFront={emptyFunction}
                             dontRegisterView={false}
                             docFilters={this.props.tbox?.props.docFilters || returnEmptyFilter}
+                            docRangeFilters={this.props.tbox?.props.docRangeFilters || returnEmptyFilter}
+                            searchFilterDocs={this.props.tbox?.props.searchFilterDocs || returnEmptyDoclist}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                             ContentScaling={this.contentScaling}

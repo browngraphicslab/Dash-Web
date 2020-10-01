@@ -414,6 +414,8 @@ export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
 
+export function returnVal(val1?: number, val2?: number) { return val1 !== undefined ? val1 : val2 !== undefined ? val2 : 0; }
+
 export function returnOne() { return 1; }
 
 export function returnZero() { return 0; }
@@ -421,6 +423,8 @@ export function returnZero() { return 0; }
 export function returnEmptyString() { return ""; }
 
 export function returnEmptyFilter() { return [] as string[]; }
+
+export function returnEmptyDoclist() { return [] as any[]; }
 
 export let emptyPath = [];
 
@@ -514,7 +518,8 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
-export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number, rightClick = true) {
+export function simulateMouseClick(element: Element | null | undefined, x: number, y: number, sx: number, sy: number, rightClick = true) {
+    if (!element) return;
     ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
         new PointerEvent(event, {
             view: window,
@@ -547,8 +552,8 @@ export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent, movement: number[]) => void,
-    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
+    upEvent: (e: PointerEvent, movement: number[]) => any,
+    clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
     stopMovePropagation: boolean = true
 ) {

@@ -1,34 +1,32 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
-import { NumCast, StrCast, Cast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
-import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
-import { listSpec } from "../../../fields/Schema";
-import { SnappingManager } from "../../util/SnappingManager";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
+import { Id } from "../../../fields/FieldSymbols";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPalette);
 
 interface CSVFieldColumnProps {
     cols: () => number;
@@ -141,8 +139,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
         newDoc.heading = heading;
-        this.props.parent.props.addDocument(newDoc);
-        return false;
+        FormattedTextBox.SelectOnLoad = newDoc[Id];
+        FormattedTextBox.SelectOnLoadChar = " ";
+        return this.props.parent.props.addDocument(newDoc);
     }
 
     @action
@@ -232,7 +231,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const docItems: ContextMenuProps[] = [];
         const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
 
-        DocUtils.addDocumentCreatorMenuItems(this.props.parent.props.addDocument, this.props.parent.props.addDocument, x, y);
+        DocUtils.addDocumentCreatorMenuItems((doc) => {
+            FormattedTextBox.SelectOnLoad = doc[Id];
+            return this.props.parent.props.addDocument(doc);
+        }, this.props.parent.props.addDocument, x, y, true);
 
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
@@ -260,13 +262,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     }
                 }, icon: "compress-arrows-alt"
             }));
-        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
-        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200 })), icon: "compress-arrows-alt" });
-        layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
-        layoutItems.push({ description: ":image", event: () => this.props.parent.props.addDocument(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
-
-        ContextMenu.Instance.addItem({ description: "Doc Fields ...", subitems: docItems, icon: "eye" });
-        ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
+        !Doc.UserDoc().noviceMode && ContextMenu.Instance.addItem({ description: "Doc Fields ...", subitems: docItems, icon: "eye" });
+        !Doc.UserDoc().noviceMode && ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
         ContextMenu.Instance.setDefaultItem("::", (name: string): void => {
             Doc.GetProto(this.props.parent.props.Document)[name] = "";
             const created = Docs.Create.TextDocument("", { title: name, _width: 250, _autoHeight: true });
@@ -289,9 +286,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const heading = this._heading;
         const style = this.props.parent;
         const singleColumn = style.isStackingView;
-        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.props.Document._yMargin, 5);
+        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.yMargin, 5);
         const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
-        const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
+        const evContents = heading ? heading : this.props?.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const headerEditableViewProps = {
             GetValue: () => evContents,
             SetValue: this.headingChanged,
@@ -310,10 +307,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{
-                    marginTop: NumCast(this.props.parent.props.Document._yMargin, 5),
+                    marginTop: NumCast(this.props.parent.yMargin, 5),
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
-                            ((this.props.parent.props.Document._chromeStatus !== 'view-mode' && this.props.parent.props.Document._chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+                            ((this.props.parent.chromeStatus !== 'view-mode' && this.props.parent.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
                 }}>
                 <div className={"collectionStackingView-collapseBar" + (this.props.headingObject.collapsed === true ? " active" : "")} onClick={this.collapseSection}></div>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
@@ -346,7 +343,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
-        const chromeStatus = this.props.parent.props.Document._chromeStatus;
+        const chromeStatus = this.props.parent.chromeStatus;
         const type = this.props.parent.props.Document.type;
         return <>
             {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
@@ -369,7 +366,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         </div>
                         {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 70 }}>
+                                style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 10 }}>
                                 <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                             </div> : null}
                     </div>

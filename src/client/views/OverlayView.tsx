@@ -1,10 +1,11 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
+import ReactLoading from 'react-loading';
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { NumCast, Cast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
@@ -145,7 +146,7 @@ export class OverlayView extends React.Component {
 
 
     @computed get overlayDocs() {
-        const userDocOverlays = Doc.UserDoc().myOverlayDocuments;
+        const userDocOverlays = Doc.UserDoc().myOverlayDocs;
         if (!userDocOverlays) {
             return null;
         }
@@ -165,7 +166,7 @@ export class OverlayView extends React.Component {
                     dragData.dropAction = "move";
                     dragData.removeDocument = (doc: Doc | Doc[]) => {
                         const docs = (doc instanceof Doc) ? [doc] : doc;
-                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null), "data", d));
+                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocs, Doc, null), "data", d));
                         return true;
                     };
                     dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
@@ -192,8 +193,6 @@ export class OverlayView extends React.Component {
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     PanelWidth={returnOne}
                     PanelHeight={returnOne}
                     ScreenToLocalTransform={Transform.Identity}
@@ -205,11 +204,18 @@ export class OverlayView extends React.Component {
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    docRangeFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;
         });
     }
+
+    public static ShowSpinner() {
+        return OverlayView.Instance.addElement(<ReactLoading type="spinningBubbles" color="green" height={250} width={250} />, { x: 300, y: 200 });
+    }
+
 
     render() {
         return (

@@ -2,6 +2,8 @@
 .pdfViewerDash, .pdfViewerDash-interactive {
     width: 100%;
     height: 100%;
+    top: 0;
+    left:0;
     position: absolute;
     overflow-y: auto;
     overflow-x: hidden;
@@ -57,9 +59,21 @@
         left: 0px;
         display: inline-block;
         width:100%;
+        pointer-events: all;
     }
     .pdfViewerDash-overlay {
         pointer-events: none;
+    }
+
+    .pdfViewerDash-overlayAnno {
+        top: -17px;
+        pointer-events: none;
+        width: max-content;
+        height: 20px;
+        position: absolute;
+        background: #b8b8b8;
+        border-radius: 5px;
+        display: block;
     }
     
     .pdfViewerDash-annotationLayer {

@@ -3,13 +3,8 @@ import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextM
 import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCircle } from '@fortawesome/free-solid-svg-icons';
 import Measure from "react-measure";
-
-library.add(faSearch);
-library.add(faCircle);
 
 @observer
 export class ContextMenu extends React.Component {
@@ -100,7 +95,7 @@ export class ContextMenu extends React.Component {
     }
     @action
     moveAfter(item: ContextMenuProps, after: ContextMenuProps) {
-        if (this.findByDescription(after.description)) {
+        if (after && this.findByDescription(after.description)) {
             const curInd = this._items.findIndex((i) => i.description === item.description);
             this._items.splice(curInd, 1);
             const afterInd = this._items.findIndex((i) => i.description === after.description);
@@ -238,7 +233,7 @@ export class ContextMenu extends React.Component {
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Search Menu..." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
+                    <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Filter Menu..." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
                 </span>
                 {this.menuItems}
             </>

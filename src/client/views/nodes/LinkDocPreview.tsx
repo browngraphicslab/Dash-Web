@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import wiki from "wikijs";
 import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Transform } from "../../util/Transform";
@@ -16,12 +16,13 @@ interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    backgroundColor: (doc: Doc, renderDepth: number) => string;
+    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => string;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }
 @observer
 export class LinkDocPreview extends React.Component<Props> {
+    static TargetDoc: Doc | undefined;
     @observable public static LinkInfo: Opt<{ linkDoc?: Doc; addDocTab: (document: Doc, where: string) => boolean, linkSrc: Doc; href?: string; Location: number[] }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
@@ -40,14 +41,16 @@ export class LinkDocPreview extends React.Component<Props> {
     async followDefault() {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, doc => this.props.addDocTab(doc, "onRight"), false) : null;
+        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, (doc, where) => this.props.addDocTab(doc, where), false) : null;
     }
+    componentWillUnmount() { LinkDocPreview.TargetDoc = undefined; }
 
     componentDidUpdate() { this.updatePreview(); }
     componentDidMount() { this.updatePreview(); }
     async updatePreview() {
         const linkDoc = this.props.linkDoc;
         const linkSrc = this.props.linkSrc;
+        LinkDocPreview.TargetDoc = undefined;
         if (this.props.href) {
             if (this.props.href.startsWith("https://en.wikipedia.org/wiki/")) {
                 wiki().page(this.props.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(action(summary => this._toolTipText = summary.substring(0, 500))));
@@ -59,7 +62,7 @@ export class LinkDocPreview extends React.Component<Props> {
             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
             runInAction(() => {
                 this._toolTipText = "";
-                this._targetDoc = target;
+                LinkDocPreview.TargetDoc = this._targetDoc = target;
                 if (anchor !== this._targetDoc && anchor && this._targetDoc) {
                     this._targetDoc._scrollY = NumCast(anchor?.y);
                 }
@@ -69,13 +72,13 @@ export class LinkDocPreview extends React.Component<Props> {
     pointerDown = (e: React.PointerEvent) => {
         if (this.props.linkDoc && this.props.linkSrc) {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.linkSrc,
-                (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
         } else if (this.props.href) {
-            this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, UseCors: true }), "onRight");
+            this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { _fitWidth: true, title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
-    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
-    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
+    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225)) - 16;
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16;
     @computed get targetDocView() {
         return !this._targetDoc ?
             <div style={{
@@ -101,17 +104,17 @@ export class LinkDocPreview extends React.Component<Props> {
                 pinToPres={returnFalse}
                 dontRegisterView={true}
                 docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
-                renderDepth={0}
-                PanelWidth={() => this.width() - 16} //Math.min(350, NumCast(target._width, 350))}
-                PanelHeight={() => this.height() - 16} //Math.min(250, NumCast(target._height, 250))}
+                renderDepth={-1}
+                PanelWidth={this.width} //Math.min(350, NumCast(target._width, 350))}
+                PanelHeight={this.height} //Math.min(250, NumCast(target._height, 250))}
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
-                NativeWidth={returnZero}
-                NativeHeight={returnZero}
                 backgroundColor={this.props.backgroundColor} />;
     }
 
@@ -119,7 +122,7 @@ export class LinkDocPreview extends React.Component<Props> {
         return <div className="linkDocPreview"
             style={{
                 position: "absolute", left: this.props.location[0],
-                top: this.props.location[1], width: this.width(), height: this.height(),
+                top: this.props.location[1], width: this.width() + 16, height: this.height() + 16,
                 zIndex: 1000,
                 border: "8px solid white", borderRadius: "7px",
                 boxShadow: "3px 3px 1.5px grey",

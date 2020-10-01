@@ -3,18 +3,18 @@ import "./ImageUpload.scss";
 import React = require('react');
 import { observer } from 'mobx-react';
 import { observable, action, computed } from 'mobx';
-import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter } from '../Utils';
+import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter, returnEmptyDoclist } from '../Utils';
 import { Doc, Opt } from '../fields/Doc';
 import { Cast, FieldValue } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
-import MainViewModal from '../client/views/MainViewModal';
+import { MainViewModal } from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { nullAudio } from '../fields/URLField';
 import { Transform } from '../client/util/Transform';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { MobileInterface } from './MobileInterface';
 import { DictationOverlay } from '../client/views/DictationOverlay';
-import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
+import { RichTextMenu } from '../client/views/nodes/formattedText/RichTextMenu';
 import { ContextMenu } from '../client/views/ContextMenu';
 
 @observer
@@ -53,7 +53,7 @@ export class AudioUpload extends React.Component {
      * Pushing the audio doc onto Dash Web through the right side bar
      */
     uploadAudio = () => {
-        const audioRightSidebar = Cast(Doc.UserDoc()["sidebar-sharing"], Doc) as Doc;
+        const audioRightSidebar = Cast(Doc.UserDoc().mySharedDocs, Doc) as Doc;
         const audioDoc = this._audioCol;
         const data = Cast(audioRightSidebar.data, listSpec(Doc));
         for (let i = 1; i < 8; i++) {
@@ -88,13 +88,13 @@ export class AudioUpload extends React.Component {
                         rootSelected={returnTrue}
                         removeDocument={undefined}
                         docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ContentScaling={returnOne}
                         PanelWidth={() => 600}
                         PanelHeight={() => 400}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
                         renderDepth={0}
                         focus={emptyFunction}
                         backgroundColor={() => "rgba(0,0,0,0)"}

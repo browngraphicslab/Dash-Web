@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../fields/Doc";
 import { NumCast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnZero, returnFalse, returnOne, returnTrue, returnEmptyFilter } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnZero, returnFalse, returnOne, returnTrue, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { DocumentView } from "./nodes/DocumentView";
 import "./Palette.scss";
@@ -49,8 +49,6 @@ export default class Palette extends React.Component<PaletteProps> {
                             onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             PanelWidth={() => window.screen.width}
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
@@ -60,6 +58,8 @@ export default class Palette extends React.Component<PaletteProps> {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined} />
                         <div className="palette-cover" style={{ transform: `translate(${Math.max(0, this._selectedIndex) * 50.75 + 23}px, 0px)` }}></div>

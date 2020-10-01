@@ -6,7 +6,7 @@
     cursor: auto;
 
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -47,7 +47,7 @@
     }
 
     .propertiesView-settings {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
         font-size: 12.5px;
         font-weight: bold;
@@ -87,7 +87,7 @@
     }
 
     .propertiesView-sharing {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-sharing-title {
@@ -121,18 +121,29 @@
             padding: 10px;
             margin-left: 5px;
 
-            .propertiesView-acls-checkbox {
+            .propertiesView-buttonContainer {
                 float: right;
-                height: 20px;
-                margin-top: -20px;
-                margin-right: -15;
+                display: flex;
 
-                .propertiesView-acls-checkbox-text {
-                    font-size: 7px;
-                    margin-top: -10px;
-                    margin-left: 6px;
+                button {
+                    width: 15;
+                    height: 15;
+                    padding: 0;
+                    margin-top: -5;
+                }
+
+                .propertiesView-acls-checkbox {
+                    margin-top: -20px;
+
+                    .propertiesView-acls-checkbox-text {
+                        font-size: 7px;
+                        margin-top: -10px;
+                        margin-left: 6px;
+                    }
                 }
             }
+
+
 
             .change-buttons {
                 display: flex;
@@ -150,7 +161,7 @@
     }
 
     .propertiesView-appearance {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-appearance-title {
@@ -187,7 +198,7 @@
     }
 
     .propertiesView-transform {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-transform-title {
@@ -246,15 +257,19 @@
         }
     }
 
-    .expansion-button-icon {
-        width: 11px;
-        height: 11px;
-        color: black;
-        margin-left: 27px;
+    .expansion-button {
+        margin-left: -20;
 
-        &:hover {
-            color: rgb(131, 131, 131);
-            cursor: pointer;
+        .expansion-button-icon {
+            width: 11px;
+            height: 11px;
+            color: black;
+            margin-left: 27px;
+
+            &:hover {
+                color: rgb(131, 131, 131);
+                cursor: pointer;
+            }
         }
     }
 
@@ -271,7 +286,7 @@
         // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
-        overflow-y: scroll;
+        overflow-y: auto;
         width: 92%;
 
         .propertiesView-sharingTable-item {
@@ -303,12 +318,11 @@
                 margin-left: auto;
 
                 .permissions-select {
-                    z-index: 1;
                     border: none;
                     background-color: inherit;
-                    width: 75px;
-                    //text-align: justify; // for Edge
-                    //text-align-last: end;
+                    width: 87px;
+                    text-align: justify; // for Edge
+                    text-align-last: end;
 
                     &:hover {
                         cursor: pointer;
@@ -323,7 +337,7 @@
     }
 
     .propertiesView-fields {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-fields-title {
@@ -396,6 +410,41 @@
         }
     }
 
+    .propertiesView-contexts {
+
+        .propertiesView-contexts-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-contexts-title-icon {
+                float: right;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-contexts-content {
+            overflow: hidden;
+            padding: 10px;
+        }
+
+    }
+
     .propertiesView-layout {
 
         .propertiesView-layout-title {
@@ -432,7 +481,7 @@
     }
 
     .propertiesView-presTrails {
-        border-bottom: 1px solid black;
+        //border-bottom: 1px solid black;
         //padding: 8.5px;
 
         .propertiesView-presTrails-title {
@@ -731,7 +780,9 @@
     border: none;
     padding: 6px;
     padding-bottom: 2px;
-
+    background: #eeeeee;
+    border-top: 1px solid;
+    border-left: 1px solid;
 
     &:hover {
         border: 0.75px solid rgb(122, 28, 28);

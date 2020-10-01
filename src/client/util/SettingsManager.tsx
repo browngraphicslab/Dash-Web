@@ -1,27 +1,25 @@
-import { observable, runInAction, action, computed } from "mobx";
-import * as React from "react";
-import MainViewModal from "../views/MainViewModal";
-import { observer } from "mobx-react";
-import * as fa from '@fortawesome/free-solid-svg-icons';
-import { SelectionManager } from "./SelectionManager";
-import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Networking } from "../Network";
-import { CurrentUserUtils } from "./CurrentUserUtils";
-import { Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from "../../Utils";
-import { Doc } from "../../fields/Doc";
-import GroupManager from "./GroupManager";
-import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import { DocServer } from "../DocServer";
-import { BoolCast, StrCast, NumCast } from "../../fields/Types";
-import { undoBatch } from "./UndoManager";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
 import { ColorState, SketchPicker } from "react-color";
+import { Doc } from "../../fields/Doc";
+import { BoolCast, StrCast, Cast } from "../../fields/Types";
+import { addStyleSheet, addStyleSheetRule, Utils } from "../../Utils";
+import { GoogleAuthenticationManager } from "../apis/GoogleAuthenticationManager";
+import { DocServer } from "../DocServer";
+import { Networking } from "../Network";
+import { MainViewModal } from "../views/MainViewModal";
+import { CurrentUserUtils } from "./CurrentUserUtils";
+import { GroupManager } from "./GroupManager";
+import "./SettingsManager.scss";
+import { undoBatch } from "./UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 @observer
-export default class SettingsManager extends React.Component<{}> {
+export class SettingsManager extends React.Component<{}> {
     public static Instance: SettingsManager;
     static _settingsStyle = addStyleSheet();
     @observable private isOpen = false;
@@ -32,7 +30,7 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private new_password = "";
     @observable private new_confirm = "";
 
-    @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
+    @computed get backgroundColor() { return Doc.UserDoc().activeCollectionBackground; }
 
     constructor(props: {}) {
         super(props);
@@ -54,9 +52,11 @@ export default class SettingsManager extends React.Component<{}> {
     }
 
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
+    @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value ? "title" : undefined);
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
-    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
+    @undoBatch switchActiveBackgroundColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
+    @undoBatch switchUserColor = action((color: ColorState) => Doc.UserDoc().userColor = String(color.hex));
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;
@@ -68,13 +68,20 @@ export default class SettingsManager extends React.Component<{}> {
     });
 
     @computed get preferencesContent() {
-        const colorBox = <SketchPicker onChange={this.switchColor} color={StrCast(this.backgroundColor)}
+        const colorBox = (func: (color: ColorState) => void) => <SketchPicker onChange={func} color={StrCast(this.backgroundColor)}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']} />;
 
         const colorFlyout = <div className="colorFlyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox(this.switchActiveBackgroundColor)}>
+                <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }} onPointerDown={e => e.stopPropagation()} >
+                    <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
+                </div>
+            </Flyout>
+        </div>;
+        const userColorFlyout = <div className="colorFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox(this.switchUserColor)}>
                 <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }} onPointerDown={e => e.stopPropagation()} >
                     <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
                 </div>
@@ -82,21 +89,39 @@ export default class SettingsManager extends React.Component<{}> {
         </div>;
 
         const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
-        const fontSizes = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
+        const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
 
         return <div className="preferences-content">
             <div className="preferences-color">
-                <div className="preferences-color-text">Background Color</div>
+                <div className="preferences-color-text">Back. Color</div>
                 {colorFlyout}
             </div>
+            <div className="preferences-color">
+                <div className="preferences-color-text">User Color</div>
+                {userColorFlyout}
+            </div>
             <div className="preferences-font">
-                <div className="preferences-font-text">Default Font</div>
+                <div className="preferences-font-text">Font</div>
                 <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                     {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
                 </select>
-                <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
+                <select className="size-select" style={{ marginRight: "10px" }} onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7px")}>
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
+                <div>
+                    <div className="preferences-check">Show header</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = Doc.UserDoc().showTitle ? undefined : "creationDate"} checked={Doc.UserDoc().showTitle !== undefined} />
+                </div>
+                <div>
+                    <div className="preferences-check">Full Toolbar</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-fullMenu"] = !Doc.UserDoc()["documentLinksButton-fullMenu"]}
+                        checked={BoolCast(Doc.UserDoc()["documentLinksButton-fullMenu"])} />
+                </div>
+                <div>
+                    <div className="preferences-check">Raise on drag</div>
+                    <input type="checkbox" onChange={e => Doc.UserDoc()._raiseWhenDragged = !Doc.UserDoc()._raiseWhenDragged}
+                        checked={BoolCast(Doc.UserDoc()._raiseWhenDragged)} />
+                </div>
             </div>
         </div>;
     }
@@ -158,10 +183,10 @@ export default class SettingsManager extends React.Component<{}> {
                 <div className="settings-title">Settings</div>
                 <div className="settings-username">{Doc.CurrentUserEmail}</div>
                 <button className="logout-button" onClick={() => window.location.assign(Utils.prepend("/logout"))} >
-                    {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                    {CurrentUserUtils.GuestDashboard ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
-                    <FontAwesomeIcon icon={fa.faTimes} color="black" size={"lg"} />
+                    <FontAwesomeIcon icon={"times"} color="black" size={"lg"} />
                 </div>
             </div>
             <div className="settings-content">
@@ -180,6 +205,6 @@ export default class SettingsManager extends React.Component<{}> {
             isDisplayed={this.isOpen}
             interactive={true}
             closeOnExternalClick={this.close}
-            dialogueBoxStyle={{ width: "600px", height: "340px" }} />;
+            dialogueBoxStyle={{ width: "600px", background: Cast(Doc.UserDoc().userColor, "string", null) }} />;
     }
 }

@@ -1,28 +1,11 @@
-import * as React from 'react';
+import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
+import * as React from 'react';
+import { DocumentType } from "../../documents/DocumentTypes";
 // import "./SearchBox.scss";
 import "./IconBar.scss";
-import "./IconButton.scss";
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faTimesCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import * as _ from "lodash";
 import { IconButton } from './IconButton';
-import { DocumentType } from "../../documents/DocumentTypes";
-
-
-library.add(faSearch);
-library.add(faObjectGroup);
-library.add(faImage);
-library.add(faStickyNote);
-library.add(faFilePdf);
-library.add(faFilm);
-library.add(faMusic);
-library.add(faLink);
-library.add(faChartBar);
-library.add(faGlobeAsia);
-library.add(faBan);
+import "./IconButton.scss";
 
 export interface IconBarProps {
     setIcons: (icons: string[]) => void;

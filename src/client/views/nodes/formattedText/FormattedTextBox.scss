@@ -32,8 +32,8 @@
     .formattedTextBox-dictation {
         height: 12px;
         width: 10px;
-        top: 0px;
-        left: 0px;
+        bottom: 5px;
+        right: 8px;
         position: absolute;
     }
 }
@@ -43,22 +43,19 @@
     overflow: auto;
     display: inline-block;
     width: 100%;
-    height: 100%;
+    height: unset;
 }
-
+    
 .formattedTextBox-sidebar-handle {
     position: absolute;
-    top: calc(50% - 17.5px);
+    top: 0;
+    //top: calc(50% - 17.5px);  // use this to center vertically -- make sure it looks okay for slide views
     width: 10px;
-    height: 35px;
+    height: 100%;
+    max-height: 35px;
     background: lightgray;
     border-radius: 20px;
     cursor:grabbing;
-}
-
-.formattedTextBox-cont>.formattedTextBox-sidebar-handle {
-    right: 0;
-    left: unset;
 }
 
 .formattedTextBox-sidebar,
@@ -72,11 +69,6 @@
 
     .collectionfreeformview-container {
         position: relative;
-    }
-
-    >.formattedTextBox-sidebar-handle {
-        right: unset;
-        left: -5;
     }
 }
 
@@ -94,7 +86,9 @@
 }
 
 .formattedTextBox-inner-rounded, .formattedTextBox-inner-rounded-selected,
-.formattedTextBox-inner, .formattedTextBox-inner-selected {
+.formattedTextBox-inner, 
+.formattedTextBox-inner-minimal,
+.formattedTextBox-inner-selected {
     height: 100%;
     white-space: pre-wrap;
     .ProseMirror:hover {
@@ -110,6 +104,15 @@
         overflow: hidden;
         border-style: inset;
         border-width: 1px;
+    }
+}
+.formattedTextBox-inner-rounded-selected,
+.formattedTextBox-inner-selected {
+    .ProseMirror {
+        padding:10px;
+    }
+    .ProseMirror:hover {
+        background: unset;
     }
 }
 
@@ -338,15 +341,6 @@ footnote::after {
     .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; vertical-align: top; margin-left: -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
 }
 
-.formattedTextBox-inner-rounded-selected,
-.formattedTextBox-inner-selected {
-    .ProseMirror {
-        padding:10px;
-    }
-    .ProseMirror:hover {
-        background: unset;
-    }
-}
 
 @media only screen and (max-width: 1000px) {
     @import "../../globalCssVariables";
@@ -396,20 +390,16 @@ footnote::after {
         width: 100%;
         height: 100%;
     }
-
+    
     .formattedTextBox-sidebar-handle {
         position: absolute;
-        top: calc(50% - 17.5px);
+        top: 0;
+        //top: calc(50% - 17.5px);  // use this to center vertically -- make sure it looks okay for slide views
         width: 10px;
         height: 35px;
         background: lightgray;
         border-radius: 20px;
         cursor:grabbing;
-    }
-
-    .formattedTextBox-cont>.formattedTextBox-sidebar-handle {
-        right: 0;
-        left: unset;
     }
 
     .formattedTextBox-sidebar,
@@ -422,11 +412,6 @@ footnote::after {
 
         .collectionfreeformview-container {
             position: relative;
-        }
-
-        >.formattedTextBox-sidebar-handle {
-            right: unset;
-            left: -5;
         }
     }
 
@@ -443,6 +428,7 @@ footnote::after {
         left: 10%;
     }
 
+    .formattedTextBox-inner-minimal,
     .formattedTextBox-inner-rounded,
     .formattedTextBox-inner {
         height: 100%;

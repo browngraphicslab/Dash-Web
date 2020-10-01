@@ -13,13 +13,6 @@
         display: flex;
         flex-direction: row;
 
-        .imageBox-cont img {
-            height: auto;
-            width: auto;
-            max-height: 100%;
-            max-width: 100%;
-        }
-
         .react-grid-layout {
             width: 100%;
         }
@@ -133,17 +126,6 @@
     }
 
 }
-
-// .documentDecorations-container .documentDecorations-resizer {
-//     pointer-events: none;
-// }
-
-// #documentDecorations-bottomRightResizer,
-// #documentDecorations-bottomLeftResizer,
-// #documentDecorations-topRightResizer,
-// #documentDecorations-topLeftResizer {
-//     visibility: collapse;
-// }
 
 
 /* Chrome, Safari, Edge, Opera */

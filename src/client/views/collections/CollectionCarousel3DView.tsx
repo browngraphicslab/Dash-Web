@@ -1,20 +1,18 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
+import { Doc } from '../../../fields/Doc';
+import { collectionSchema, documentSchema } from '../../../fields/documentSchemas';
+import { Id } from '../../../fields/FieldSymbols';
 import { makeInterface } from '../../../fields/Schema';
-import { NumCast, StrCast, ScriptCast } from '../../../fields/Types';
+import { ScriptField } from '../../../fields/ScriptField';
+import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { returnFalse, Utils, OmitKeys } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarousel3DView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { Doc } from '../../../fields/Doc';
-import { ContextMenu } from '../ContextMenu';
-import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse, Utils } from '../../../Utils';
-import { ScriptField } from '../../../fields/ScriptField';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Id } from '../../../fields/FieldSymbols';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -44,7 +42,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
             const script = ScriptField.MakeScript("child._showCaption = 'caption'", { child: Doc.name }, { child: childPair.layout });
             const onChildClick = script && (() => script);
-            return <ContentFittingDocumentView {...this.props}
+            return <ContentFittingDocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 onDoubleClick={this.onChildDoubleClick}
                 onClick={onChildClick}
                 renderDepth={this.props.renderDepth + 1}

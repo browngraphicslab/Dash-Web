@@ -8,13 +8,14 @@ import { Doc } from '../../fields/Doc';
 import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
 import { undoBatch, UndoManager } from '../util/UndoManager';
-import { NumCast } from '../../fields/Types';
+import { NumCast, Cast } from '../../fields/Types';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import * as rp from 'request-promise';
 import { Utils } from '../../Utils';
 import { Networking } from '../Network';
 import { Upload } from '../../server/SharedMediaTypes';
 import { basename } from 'path';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -22,7 +23,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _getTransform: () => Transform;
     static _addDocument: (doc: Doc | Doc[]) => void;
     static _addLiveTextDoc: (doc: Doc) => void;
-    static _nudge: (x: number, y: number) => boolean;
+    static _nudge?: undefined | ((x: number, y: number) => boolean);
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     constructor(props: any) {
@@ -44,8 +45,7 @@ export class PreviewCursor extends React.Component<{}> {
                 if (plain.indexOf("www.youtube.com/watch") !== -1) {
                     const url = plain.replace("youtube.com/watch?v=", "youtube.com/embed/");
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
-                        title: url, _width: 400, _height: 315,
-                        _nativeWidth: 600, _nativeHeight: 472.5,
+                        title: url, _width: 400, _height: 315, _nativeWidth: 600, _nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     })))();
                 }
@@ -53,49 +53,37 @@ export class PreviewCursor extends React.Component<{}> {
                 else if (re.test(plain)) {
                     const url = plain;
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300, UseCors: true,
-                        // nativeWidth: 300, nativeHeight: 472.5,
-                        x: newPoint[0], y: newPoint[1]
+                        title: url, _fitWidth: true, _width: 500, _height: 300, useCors: true, x: newPoint[0], y: newPoint[1]
                     })))();
                 }
-
                 else if (plain.startsWith("__DashDocId(") || plain.startsWith("__DashCloneId(")) {
                     const clone = plain.startsWith("__DashCloneId(");
                     const docids = plain.split(":");
                     const strs = docids[0].split(",");
                     const ptx = Number(strs[0].substring((clone ? "__DashCloneId(" : "__DashDocId(").length));
                     const pty = Number(strs[1].substring(0, strs[1].length - 1));
-                    let count = 1;
-                    const list: Doc[] = [];
 
-                    let first: Doc | undefined;
-                    docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
-                        count++;
-                        if (doc instanceof Doc) {
-                            i === 1 && (first = doc);
-                            const alias = clone ? (await Doc.MakeClone(doc)).clone : doc;
-                            const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
-                            const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
-                            alias.x = newPoint[0] + deltaX;
-                            alias.y = newPoint[1] + deltaY;
-                            list.push(alias);
-                        }
-                        if (count === docids.length) {
-                            undoBatch(() => PreviewCursor._addDocument(list))();
-                        }
-                    }));
+                    const batch = UndoManager.StartBatch("cloning");
+                    {
+                        const docs = await Promise.all(docids.filter((did, i) => i).map(async (did) => {
+                            const doc = Cast(await DocServer.GetRefField(did), Doc, null);
+                            return clone ? (await Doc.MakeClone(doc)).clone : doc;
+                        }));
+                        const firstx = docs.length ? NumCast(docs[0].x) + ptx - newPoint[0] : 0;
+                        const firsty = docs.length ? NumCast(docs[0].y) + pty - newPoint[1] : 0;
+                        docs.map(doc => {
+                            doc.x = NumCast(doc.x) - firstx;
+                            doc.y = NumCast(doc.y) - firsty;
+                        });
+                        PreviewCursor._addDocument(docs);
+                    }
+                    batch.end();
                     e.stopPropagation();
-                } else {
+                }
+                else {
                     // creates text document
                     FormattedTextBox.PasteOnLoad = e;
-                    undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
-                        _width: 500,
-                        limitHeight: 400,
-                        _autoHeight: true,
-                        x: newPoint[0],
-                        y: newPoint[1],
-                        title: "-pasted text-"
-                    })))();
+                    UndoManager.RunInBatch(() => PreviewCursor._addLiveTextDoc(CurrentUserUtils.GetNewTextDoc("-pasted text-", newPoint[0], newPoint[1], 500)), "paste");
                 }
             } else
                 //pasting in images
@@ -132,6 +120,7 @@ export class PreviewCursor extends React.Component<{}> {
             e.key !== "Insert" && e.key !== "Home" && e.key !== "End" && e.key !== "PageUp" && e.key !== "PageDown" &&
             e.key !== "NumLock" && e.key !== " " &&
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
+            (e.keyCode < 173 || e.keyCode > 183 || e.key === "-") && // mute, volume up/down etc, - is there specifically because its keycode is 173 in Firefox so shouldn't be avoided
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
             if ((!e.metaKey && !e.ctrlKey) || (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90)) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
@@ -162,7 +151,7 @@ export class PreviewCursor extends React.Component<{}> {
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
         addDocument: (doc: Doc | Doc[]) => boolean,
-        nudge: (nudgeX: number, nudgeY: number) => boolean) {
+        nudge: undefined | ((nudgeX: number, nudgeY: number) => boolean)) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;

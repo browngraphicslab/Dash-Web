@@ -21,6 +21,8 @@ import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../fields/documentSchemas';
+import { CollectionViewType } from '../collections/CollectionView';
+import { TraceMobx } from '../../../fields/util';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -99,20 +101,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
-    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
+    public backPage = () => { this.Document._curPage = (this.Document._curPage || 1) - 1; return true; };
+    public forwardPage = () => { this.Document._curPage = (this.Document._curPage || 1) + 1; return true; };
+    public gotoPage = (p: number) => { this.Document._curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
+        let processed = false;
         if (e.key === "f" && e.ctrlKey) {
             this._searching = true;
             setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            processed = true;
+        }
+        if (e.key === "PageDown") processed = this.forwardPage();
+        if (e.key === "PageUp") processed = this.backPage();
+        if (e.target instanceof HTMLInputElement || this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) {
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") processed = this.forwardPage();
+            if (e.key === "ArrowUp" || e.key === "ArrowLeft") processed = this.backPage();
+        }
+        if (processed) {
             e.stopImmediatePropagation();
             e.preventDefault();
         }
-        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") this.forwardPage();
-        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") this.backPage();
     });
 
     @undoBatch
@@ -150,7 +160,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </button>
         </>;
         const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
-        const curPage = this.Document.curPage || 1;
+        const curPage = this.Document._curPage || 1;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
@@ -177,12 +187,12 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
                 <div className="pdfBox-pageNums">
                     <input value={curPage}
-                        onChange={e => this.gotoPage(Number(e.currentTarget.value))}
+                        onChange={e => this.Document._curPage = Number(e.currentTarget.value)}
                         style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
-                <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
+                {/* <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
                         <div className="pdfBox-settingsButton-iconCont">
@@ -211,7 +221,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                             </button>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>);
     }
 
@@ -227,12 +237,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
-        return <div className={classname} style={{
-            width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            //height adjusted for mobile (window.screen.width > 600)
-            height: !this.props.Document._fitWidth && (window.screen.width > 600) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
-            transform: `scale(${this.contentScaling})`
-        }}  >
+        return <div className={classname} >
             <div className="pdfBox-title-outer">
                 <strong className="pdfBox-title" >{this.props.Document.title}</strong>
             </div>
@@ -241,27 +246,33 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
+        TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
+            <div className="pdfBox-background"></div>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                addDocTab={this.props.addDocTab} focus={this.props.focus} docFilters={this.props.docFilters}
+                addDocTab={this.props.addDocTab} focus={this.props.focus} searchFilterDocs={this.props.searchFilterDocs}
+                docFilters={this.props.docFilters} docRangeFilters={this.props.docRangeFilters}
                 pinToPres={this.props.pinToPres} addDocument={this.addDocument}
                 Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
-                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 || this.props.Document._scrollTop ? true : false} />
+                fieldKey={this.props.fieldKey} startupLive={true} />
             {this.settingsPanel()}
         </div>;
     }
 
     _pdfjsRequested = false;
     render() {
+        TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
-        if (this.props.isSelected() || this.props.renderDepth === 0 || this.props.Document._scrollY !== undefined) this._everActive = true;
-        if (pdfUrl && (this._everActive || this.props.Document._scrollTop || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+        if (true) {//this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) {
+            this._everActive = true;
+        }
+        if (pdfUrl && this._everActive) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
             }

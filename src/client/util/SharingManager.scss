@@ -40,7 +40,7 @@
 
                 .permissions-select {
                     z-index: 1;
-                    margin-left: -100;
+                    margin-left: -115;
                     border: none;
                     outline: none;
                     text-align: justify; // for Edge
@@ -59,6 +59,7 @@
                 margin-top: -17px;
                 margin-bottom: 10px;
                 font-size: 10px;
+                min-height: 40px;
 
                 input {
                     height: 10px;
@@ -71,21 +72,25 @@
                 }
             }
 
-            .layoutDoc-acls {
+            .acl-container {
                 display: flex;
-                flex-direction: column;
                 float: right;
-                margin-right: 12;
-                margin-top: -15;
-                align-items: center;
+                align-items: baseline;
+                margin-top: -12;
 
-                label {
-                    font-weight: normal;
-                    font-style: italic;
-                }
+                .layoutDoc-acls,
+                .myDocs-acls {
+                    flex-direction: column;
+                    margin-right: 12;
 
-                input {
-                    cursor: pointer;
+                    label {
+                        font-weight: normal;
+                        font-style: italic;
+                    }
+
+                    input {
+                        cursor: pointer;
+                    }
                 }
             }
         }
@@ -121,7 +126,7 @@
                     overflow-y: scroll;
                     overflow-x: hidden;
                     text-align: left;
-                    display: flex;
+                    display: block;
                     align-content: center;
                     align-items: center;
                     text-align: center;

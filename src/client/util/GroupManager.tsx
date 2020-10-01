@@ -1,24 +1,19 @@
-import * as React from "react";
-import { observable, action, runInAction, computed } from "mobx";
-import { SelectionManager } from "./SelectionManager";
-import MainViewModal from "../views/MainViewModal";
-import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt, DocListCastAsync } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as fa from '@fortawesome/free-solid-svg-icons';
-import { library } from "@fortawesome/fontawesome-svg-core";
-import SharingManager, { User } from "./SharingManager";
-import { Utils } from "../../Utils";
-import * as RequestPromise from "request-promise";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
 import Select from 'react-select';
-import "./GroupManager.scss";
-import { StrCast, Cast } from "../../fields/Types";
-import GroupMemberView from "./GroupMemberView";
+import * as RequestPromise from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
+import { Cast, StrCast } from "../../fields/Types";
 import { setGroups } from "../../fields/util";
+import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
+import { MainViewModal } from "../views/MainViewModal";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
-
-library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle, fa.faCaretUp, fa.faCaretRight, fa.faCaretDown);
+import "./GroupManager.scss";
+import { GroupMemberView } from "./GroupMemberView";
+import { SharingManager, User } from "./SharingManager";
 
 /**
  * Interface for options for the react-select component
@@ -29,7 +24,7 @@ export interface UserOptions {
 }
 
 @observer
-export default class GroupManager extends React.Component<{}> {
+export class GroupManager extends React.Component<{}> {
 
     static Instance: GroupManager;
     @observable isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
@@ -71,7 +66,7 @@ export default class GroupManager extends React.Component<{}> {
             const evaluating = raw.map(async user => {
                 const userDocument = await DocServer.GetRefField(user.userDocumentId);
                 if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument["sidebar-sharing"], Doc);
+                    const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
                     runInAction(() => {
                         if (notificationDoc instanceof Doc) {
                             this.users.push(user.email);
@@ -92,6 +87,7 @@ export default class GroupManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
             });
+            this.currentUserGroups.push("Public");
             setGroups(this.currentUserGroups);
         });
     }
@@ -121,6 +117,7 @@ export default class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
+        this.selectedUsers = null;
         // this.users = [];
         this.createGroupModalOpen = false;
         TaskCompletionBox.taskCompleted = false;
@@ -162,7 +159,7 @@ export default class GroupManager extends React.Component<{}> {
      * @returns the members of the admin group.
      */
     get adminGroupMembers(): string[] {
-        return this.getGroup("admin") ? JSON.parse(StrCast(this.getGroup("admin")!.members)) : "";
+        return this.getGroup("Admin") ? JSON.parse(StrCast(this.getGroup("Admin")!.members)) : "";
     }
 
     /**
@@ -182,7 +179,7 @@ export default class GroupManager extends React.Component<{}> {
      */
     createGroupDoc(groupName: string, memberEmails: string[] = []) {
         const groupDoc = new Doc;
-        groupDoc.groupName = groupName;
+        groupDoc.groupName = groupName.toLowerCase() === "admin" ? "Admin" : groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
         if (memberEmails.includes(Doc.CurrentUserEmail)) {
@@ -281,17 +278,24 @@ export default class GroupManager extends React.Component<{}> {
      */
     @action
     createGroup = () => {
-        if (!this.inputRef.current?.value) {
+        const { value } = this.inputRef.current!;
+        if (!value) {
             alert("Please enter a group name");
             return;
         }
-        if (this.getAllGroups().find(group => group.groupName === this.inputRef.current!.value)) { // why do I need a null check here?
+        if (["admin", "public", "override"].includes(value.toLowerCase())) {
+            if (value.toLowerCase() !== "admin" || (value.toLowerCase() === "admin" && this.getGroup("Admin"))) {
+                alert(`You cannot override the ${value.charAt(0).toUpperCase() + value.slice(1)} group`);
+                return;
+            }
+        }
+        if (this.getGroup(value)) {
             alert("Please select a unique group name");
             return;
         }
-        this.createGroupDoc(this.inputRef.current.value, this.selectedUsers?.map(user => user.value));
+        this.createGroupDoc(value, this.selectedUsers?.map(user => user.value));
         this.selectedUsers = null;
-        this.inputRef.current.value = "";
+        this.inputRef.current!.value = "";
         this.buttonColour = "#979797";
 
         const { left, width, top } = this.createGroupButtonRef.current!.getBoundingClientRect();
@@ -314,7 +318,7 @@ export default class GroupManager extends React.Component<{}> {
                     <div className={"close-button"} onClick={action(() => {
                         this.createGroupModalOpen = false; TaskCompletionBox.taskCompleted = false;
                     })}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                 </div>
                 <input
@@ -398,19 +402,19 @@ export default class GroupManager extends React.Component<{}> {
                 <div className="group-heading">
                     <p><b>Manage Groups</b></p>
                     <button onClick={action(() => this.createGroupModalOpen = true)}>
-                        <FontAwesomeIcon icon={fa.faPlus} size={"sm"} /> Create Group
+                        <FontAwesomeIcon icon={"plus-hexagon"} size={"sm"} /> Create Group
                     </button>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                 </div>
                 <div className="main-container">
                     <div
                         className="sort-groups"
                         onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                        Name {this.groupSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
-                            : this.groupSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
-                                : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />
+                        Name {this.groupSort === "ascending" ? <FontAwesomeIcon icon={"caret-up"} size={"xs"} />
+                            : this.groupSort === "descending" ? <FontAwesomeIcon icon={"caret-down"} size={"xs"} />
+                                : <FontAwesomeIcon icon={"caret-right"} size={"xs"} />
                         }
                     </div>
                     <div className="group-body">
@@ -421,7 +425,7 @@ export default class GroupManager extends React.Component<{}> {
                             >
                                 <div className="group-name" >{group.groupName}</div>
                                 <div className="group-info" onClick={action(() => this.currentGroup = group)}>
-                                    <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                                    <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                                 </div>
                             </div>
                         )}

@@ -58,7 +58,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
-        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
+        active = (outsideReaction?: boolean) => !this.props.Document._isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -104,7 +104,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         styleFromLayoutString = (scale: number) => {
             const style: { [key: string]: any } = {};
-            const divKeys = ["width", "height", "background", "top", "position"];
+            const divKeys = ["width", "height", "fontSize", "left", "background", "top", "pointerEvents", "position"];
             const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a property expression string:  { script }  into a value
                 return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
             };
@@ -123,7 +123,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
-            if (effectiveAcl === AclAdmin || effectiveAcl === AclEdit) {
+            const docAcl = GetEffectiveAcl(doc);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || docAcl === AclAdmin) {
                 const docs = doc instanceof Doc ? [doc] : doc;
                 docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
                 const targetDataDoc = this.dataDoc;
@@ -131,7 +132,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 const toRemove = value.filter(v => docs.includes(v));
 
                 if (toRemove.length !== 0) {
-                    const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                    const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
                         Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey + "-annotations", doc);
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
@@ -166,7 +167,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
                                 if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
-                                else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                                //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
+                                // else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }
                         });
                     }
@@ -178,8 +180,6 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                         added.map(doc => doc.context = this.props.Document);
                         (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
                         targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                        const lastModified = "lastModified";
-                        targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                     }
                 }
             }
@@ -187,9 +187,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document.isBackground) &&
+        active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document._) &&
             (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.Document.isBackground && this.props.active()) ||
+        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.Document._isBackground && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

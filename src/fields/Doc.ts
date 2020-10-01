@@ -23,6 +23,8 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
+import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
+import { SelectionManager } from "../client/util/SelectionManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -91,6 +93,9 @@ export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
+export function DocListCastOrNull(field: FieldResult) {
+    return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined;
+}
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
@@ -98,6 +103,7 @@ export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
+export const AclUnset = Symbol("AclUnset");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
@@ -107,6 +113,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
+    ["None", AclUnset],
     [SharingPermissions.None, AclPrivate],
     [SharingPermissions.View, AclReadonly],
     [SharingPermissions.Add, AclAddonly],
@@ -117,7 +124,7 @@ const AclMap = new Map<string, symbol>([
 export function fetchProto(doc: Doc) {
     const permissions: { [key: string]: symbol } = {};
 
-    Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+    Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
 
     if (Object.keys(permissions).length) doc[AclSym] = permissions;
 
@@ -179,7 +186,7 @@ export class Doc extends RefField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
-            field && (this.__fieldKeys[key] = true);
+            (field !== undefined) && (this.__fieldKeys[key] = true);
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
             field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
@@ -207,10 +214,10 @@ export class Doc extends RefField {
     private [Self] = this;
     private [SelfProxy]: any;
     public [FieldsSym](clear?: boolean) { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
-    public [WidthSym]() { return NumCast(this[SelfProxy]._width); }
-    public [HeightSym]() { return NumCast(this[SelfProxy]._height); }
-    public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    public [ToString]() { return `Doc(${GetEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`; }
+    public [WidthSym] = () => NumCast(this[SelfProxy]._width);
+    public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
+    public [ToString] = () => `Doc(${GetEffectiveAcl(this[SelfProxy]) === AclPrivate ? "-inaccessible-" : this[SelfProxy].title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -249,7 +256,7 @@ export class Doc extends RefField {
                     const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
-                    if (fKey.startsWith("ACL")) {
+                    if (fKey.startsWith("acl")) {
                         fetchProto(this);
                     }
                     this[UpdatingFromServer] = false;
@@ -257,7 +264,7 @@ export class Doc extends RefField {
                         DocServer.GetRefField(this[Id], true);
                     }
                 };
-                if (sameAuthor || fKey.startsWith("ACL") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
@@ -327,7 +334,7 @@ export namespace Doc {
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         try {
             return getField(doc[Self], key, ignoreProto);
-        } catch  {
+        } catch {
             return doc;
         }
     }
@@ -339,6 +346,9 @@ export namespace Doc {
     }
     export function IsBaseProto(doc: Doc) {
         return GetT(doc, "baseProto", "boolean", true);
+    }
+    export function IsSystem(doc: Doc) {
+        return GetT(doc, "system", "boolean", true);
     }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         const hasProto = doc.proto instanceof Doc;
@@ -494,13 +504,15 @@ export namespace Doc {
     }
 
     export function MakeAlias(doc: Doc, id?: string) {
-        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
+        const alias = !GetT(doc, "isPrototype", "boolean", true) && doc.proto ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
         if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         alias.aliasOf = doc;
-        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        if (doc !== Doc.GetProto(doc)) {
+            alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        }
         alias.author = Doc.CurrentUserEmail;
         alias[AclSym] = doc[AclSym];
 
@@ -679,24 +691,26 @@ export namespace Doc {
             if (templateLayoutDoc.resolvedDataDoc === (targetDoc.rootDocument || Doc.GetProto(targetDoc)) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
                 expandedTemplateLayout = templateLayoutDoc; // reuse an existing template layout if its for the same document with the same params
             } else {
-                _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
-                setTimeout(action(() => {
-                    if (!targetDoc[expandedLayoutFieldKey]) {
-                        const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                        // the template's arguments are stored in params which is derefenced to find
-                        // the actual field key where the parameterized template data is stored.
-                        newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
-                        newLayoutDoc.rootDocument = targetDoc;
-                        targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
-                        const dataDoc = Doc.GetProto(targetDoc);
-                        newLayoutDoc.resolvedDataDoc = dataDoc;
-                        if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
+                if (!targetDoc[expandedLayoutFieldKey]) {
+                    const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                    // the template's arguments are stored in params which is derefenced to find
+                    // the actual field key where the parameterized template data is stored.
+                    newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
+                    newLayoutDoc.rootDocument = targetDoc;
+                    const dataDoc = Doc.GetProto(targetDoc);
+                    newLayoutDoc.resolvedDataDoc = dataDoc;
+
+                    _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
+                    setTimeout(() => {
+                        if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && (templateLayoutDoc[templateField] as any).length) {
                             dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
+                        targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
+
                         _pendingMap.delete(targetDoc[Id] + expandedLayoutFieldKey + args);
-                    }
-                }), 0);
+                    });
+                }
             }
         }
         return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplateLayout is pending.
@@ -764,7 +778,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
-        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
+        Doc.UserDoc().defaultAclPrivate && (copy["acl-Public"] = "Not Shared");
         return copy;
     }
 
@@ -792,7 +806,7 @@ export namespace Doc {
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
-            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
+            Doc.UserDoc().defaultAclPrivate && (applied["acl-Public"] = "Not Shared");
             return applied;
         }
         return undefined;
@@ -833,14 +847,6 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
-        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
-        }
-        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
-        }
-
         // get the layout string that the template uses to specify its layout
         const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
 
@@ -868,16 +874,12 @@ export namespace Doc {
     }
 
     export function isBrushedHighlightedDegree(doc: Doc) {
-        if (Doc.IsHighlighted(doc)) {
-            return 6;
-        }
-        else {
-            return Doc.IsBrushedDegree(doc);
-        }
+        return Doc.IsHighlighted(doc) ? 6 : Doc.IsBrushedDegree(doc);
     }
 
     export class DocBrush {
         BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+        SearchMatchDoc: ObservableMap<Doc, { searchMatch: number }> = new ObservableMap();
     }
     const brushManager = new DocBrush();
 
@@ -903,6 +905,34 @@ export namespace Doc {
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
+
+    export function IsSearchMatch(doc: Doc) {
+        return computedFn(function IsSearchMatch(doc: Doc) {
+            return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+                brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+        })(doc);
+    }
+    export function IsSearchMatchUnmemoized(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    }
+    export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
+        if (doc && GetEffectiveAcl(doc) !== AclPrivate && GetEffectiveAcl(Doc.GetProto(doc)) !== AclPrivate) {
+            brushManager.SearchMatchDoc.set(doc, results);
+        }
+        return doc;
+    }
+    export function SearchMatchNext(doc: Doc, backward: boolean) {
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
+        const result = brushManager.SearchMatchDoc.get(doc);
+        const num = Math.abs(result?.searchMatch || 0) + 1;
+        runInAction(() => result && brushManager.SearchMatchDoc.set(doc, { searchMatch: backward ? -num : num }));
+        return doc;
+    }
+    export function ClearSearchMatches() {
+        brushManager.SearchMatchDoc.clear();
+    }
+
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
             return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
@@ -996,10 +1026,12 @@ export namespace Doc {
         const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
-            return vals.some(v => v === value);
+            const docs = vals.some(v => (v as any) instanceof Doc);
+            if (docs) return value === Field.toString(fieldVal as Field);
+            return vals.some(v => v.includes(value));  // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
         }
         const fieldStr = Field.toString(fieldVal as Field);
-        return fieldStr === value;
+        return fieldStr.includes(value); // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
     }
 
     export function deiconifyView(doc: any) {
@@ -1013,7 +1045,8 @@ export namespace Doc {
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
-        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        const container = target ?? CollectionDockingView.Instance.props.Document;
+        const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
                 docRangeFilters.splice(i, 3);
@@ -1024,22 +1057,19 @@ export namespace Doc {
             docRangeFilters.push(key);
             docRangeFilters.push(range[0].toString());
             docRangeFilters.push(range[1].toString());
-            target._docRangeFilters = new List<string>(docRangeFilters);
+            container._docRangeFilters = new List<string>(docRangeFilters);
         }
-    }
-
-    export function aliasDocs(field: any) {
-        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d)));
     }
 
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+        const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {
-                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
+                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
                     container._docFilters = new List<string>(docFilters);
@@ -1049,7 +1079,7 @@ export namespace Doc {
             if (typeof modifiers === "string") {
                 if (!docFilters.length && modifiers === "match" && value === undefined) {
                     container._docFilters = undefined;
-                } else {
+                } else if (modifiers !== "remove") {
                     docFilters.push(key);
                     docFilters.push(value);
                     docFilters.push(modifiers);
@@ -1095,6 +1125,24 @@ export namespace Doc {
             return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
         }
         return false;
+    }
+
+    export function copyDragFactory(dragFactory: Doc) {
+        const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+        }
+        return ndoc;
+    }
+    export function delegateDragFactory(dragFactory: Doc) {
+        const ndoc = Doc.MakeDelegate(dragFactory);
+        ndoc.isPrototype = true;
+        if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+            dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+            Doc.GetProto(ndoc).title = ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString();
+        }
+        return ndoc;
     }
 
 
@@ -1245,14 +1293,15 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
+Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) { return Doc.copyDragFactory(dragFactory); });
+Scripting.addGlobal(function delegateDragFactory(dragFactory: Doc) { return Doc.delegateDragFactory(dragFactory); });
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
-Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
-Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
-Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function undo() { SelectionManager.DeselectAll(); return UndoManager.Undo(); });
+Scripting.addGlobal(function redo() { SelectionManager.DeselectAll(); return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
@@ -1261,7 +1310,7 @@ Scripting.addGlobal(function activePresentationItem() {
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().activeSelection).
+    const docs = SelectionManager.SelectedDocuments().map(dv => dv.props.Document).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;

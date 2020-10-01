@@ -1,44 +1,38 @@
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { HeightSym, Opt, WidthSym, Doc } from "../../../fields/Doc";
-import { ScriptField } from "../../../fields/ScriptField";
-import { BoolCast, NumCast, StrCast } from "../../../fields/Types";
-import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { CollectionSubView } from "./CollectionSubView";
-import "./CollectionPileView.scss";
-import React = require("react");
-import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { SnappingManager } from "../../util/SnappingManager";
-import { DragManager } from "../../util/DragManager";
+import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
+import { SelectionManager } from "../../util/SelectionManager";
+import { SnappingManager } from "../../util/SnappingManager";
+import { UndoManager } from "../../util/UndoManager";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import "./CollectionPileView.scss";
+import { CollectionSubView } from "./CollectionSubView";
+import React = require("react");
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
-    _lastTap = 0;
-    _doubleTap: boolean | undefined = false;
     _originalChrome: string = "";
-    @observable _contentsActive = true;
-    @observable _collapsed: boolean = false;
-    @observable _childClickedScript: Opt<ScriptField>;
+
     componentDidMount() {
         if (this.layoutEngine() !== "pass" && this.layoutEngine() !== "starburst") {
             this.Document._pileLayoutEngine = "pass";
         }
         this._originalChrome = StrCast(this.layoutDoc._chromeStatus);
         this.layoutDoc._chromeStatus = "disabled";
-        this.layoutDoc.hideFilterView = true;
     }
     componentWillUnmount() {
-        this.layoutDoc.hideFilterView = false;
         this.layoutDoc._chromeStatus = this._originalChrome;
     }
 
     layoutEngine = () => StrCast(this.Document._pileLayoutEngine);
 
+    // returns the contents of the pileup in a CollectionFreeFormView
     @computed get contents() {
-        return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" ? undefined : "none" }} >
+        const draggingSelf = this.props.isSelected();
+        return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" || (SnappingManager.GetIsDragging() && !draggingSelf) ? undefined : "none", zIndex: this.layoutEngine() === "starburst" && !SnappingManager.GetIsDragging() ? -10 : "auto" }} >
             <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
                 addDocument={(doc: Doc | Doc[]) => {
                     (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
@@ -50,6 +44,8 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
                 }} />
         </div>;
     }
+
+    // toggles the pileup between starburst to compact
     toggleStarburst = action(() => {
         if (this.layoutEngine() === 'starburst') {
             const defaultSize = 110;
@@ -80,11 +76,11 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }
     });
 
+    // for dragging documents out of the pileup view
     _undoBatch: UndoManager.Batch | undefined;
     pointerDown = (e: React.PointerEvent) => {
         let dist = 0;
         SnappingManager.SetIsDragging(true);
-        // this._lastTap should be set to 0, and this._doubleTap should be set to false in the class header
         setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
             if (this.layoutEngine() === "pass" && this.childDocs.length && e.shiftKey) {
                 dist += Math.sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
@@ -110,8 +106,9 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }, emptyFunction, e.shiftKey && this.layoutEngine() === "pass", this.layoutEngine() === "pass" && e.shiftKey); // this sets _doubleTap
     }
 
+    // onClick for toggling the pileup view
     onClick = (e: React.MouseEvent) => {
-        if (e.button === 0) {//} && this._doubleTap) {
+        if (e.button === 0) {
             SelectionManager.DeselectAll();
             this.toggleStarburst();
             e.stopPropagation();
@@ -119,8 +116,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-
-        return <div className={"collectionPileView"} onClick={this.onClick} onPointerDown={this.pointerDown}
+        return <div className={`collectionPileView`} onClick={this.onClick} onPointerDown={this.pointerDown}
             style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
             {this.contents}
         </div>;

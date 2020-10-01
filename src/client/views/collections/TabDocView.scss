@@ -1,0 +1,54 @@
+input.lm_title:focus,
+input.lm_title
+{
+    max-width: unset !important;
+    transition-delay: unset;
+    width: 100%;
+    cursor: text;
+}
+input.lm_title {
+    transition-delay: 0.35s;
+    width: 100px;
+    cursor: pointer;
+}
+.tabDocView-drag {
+    margin: auto;
+}
+.miniMap-hidden,
+.miniMap {
+    position: absolute;
+    overflow: hidden;
+    right: 10;
+    bottom: 10;
+    border: solid 1px;
+    box-shadow: black 0.4vw 0.4vw 0.8vw;
+    width: 100%;
+    height: 100%;
+    transition: all 0.5s;
+
+    .miniOverlay {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+
+        .miniThumb {
+            background: #25252525;
+            position: absolute;
+        }
+    }
+}
+.miniMap-hidden {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    background: white;
+    transform: translate(20px, 20px) rotate(45deg);
+    border-radius: 30px;
+    padding: 2px;
+    > svg {
+        margin-top: 3px;
+        transform: translate(0px, 7px);
+    }
+}

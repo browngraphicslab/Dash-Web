@@ -1,27 +1,22 @@
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
+import { action } from "mobx";
 import { observer } from "mobx-react";
+import { Doc } from "../../fields/Doc";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { makeInterface } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
+import { setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { InteractionUtils } from "../util/InteractionUtils";
+import { Scripting } from "../util/Scripting";
+import { UndoManager } from "../util/UndoManager";
 import { ContextMenu } from "./ContextMenu";
 import { ViewBoxBaseComponent } from "./DocComponent";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
-import { Scripting } from "../util/Scripting";
-import { Doc } from "../../fields/Doc";
-import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
-import { action } from "mobx";
-import { setupMoveUpEvents } from "../../Utils";
-import { undoBatch, UndoManager } from "../util/UndoManager";
-
-
-library.add(faPaintBrush);
+import { InkStrokeProperties } from "./InkStrokeProperties";
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -47,16 +42,12 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document.isInkMask = true;
     }
 
-    @action
-    private formatShape = () => {
-        FormatShapePane.Instance.Pinned = true;
-    }
-
     public _prevX = 0;
     public _prevY = 0;
     private _controlNum = 0;
     @action
     onControlDown = (e: React.PointerEvent, i: number): void => {
+        //TODO:renew points before controlling 
         setupMoveUpEvents(this, e, this.onControlMove, this.onControlup, (e) => { });
         this._controlUndo = UndoManager.StartBatch("DocDecs set radius");
         this._prevX = e.clientX;
@@ -66,15 +57,17 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
     @action
     changeCurrPoint = (i: number) => {
-        FormatShapePane.Instance._currPoint = i;
+        if (!InkStrokeProperties.Instance) return;
+        InkStrokeProperties.Instance._currPoint = i;
         document.addEventListener("keydown", this.delPts, true);
     }
 
     @action
     onControlMove = (e: PointerEvent, down: number[]): boolean => {
+        if (!InkStrokeProperties.Instance) return false;
         const xDiff = this._prevX - e.clientX;
         const yDiff = this._prevY - e.clientY;
-        FormatShapePane.Instance.control(xDiff, yDiff, this._controlNum);
+        InkStrokeProperties.Instance.control(xDiff, yDiff, this._controlNum);
         this._prevX = e.clientX;
         this._prevY = e.clientY;
         return false;
@@ -89,8 +82,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     }
     @action
     delPts = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        if (e instanceof KeyboardEvent ? e.key === "-" : true) {
-            FormatShapePane.Instance.deletePoints();
+        if (InkStrokeProperties.Instance && (e instanceof KeyboardEvent ? e.key === "-" : true)) {
+            InkStrokeProperties.Instance.deletePoints();
         }
     }
 
@@ -98,34 +91,40 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     public static MaskDim = 50000;
     render() {
         TraceMobx();
+        const formatInstance = InkStrokeProperties.Instance;
+        if (!formatInstance) return (null);
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         // const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
         const strokeWidth = Number(this.layoutDoc.strokeWidth);
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
-        const left = Math.min(...xs) - strokeWidth / 2;
-        const top = Math.min(...ys) - strokeWidth / 2;
-        const right = Math.max(...xs) + strokeWidth / 2;
-        const bottom = Math.max(...ys) + strokeWidth / 2;
-        const width = Math.max(right - left);
+        const lineTop = Math.min(...ys);
+        const lineBot = Math.max(...ys);
+        const lineLft = Math.min(...xs);
+        const lineRgt = Math.max(...xs);
+        const left = lineLft - strokeWidth / 2;
+        const top = lineTop - strokeWidth / 2;
+        const right = lineRgt + strokeWidth / 2;
+        const bottom = lineBot + strokeWidth / 2;
+        const width = Math.max(1, right - left);
         const height = Math.max(1, bottom - top);
         const scaleX = width === strokeWidth ? 1 : (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
         const scaleY = height === strokeWidth ? 1 : (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
         const strokeColor = StrCast(this.layoutDoc.color, "");
 
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
-            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
+            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5 && lineBot - lineTop > 1 && lineRgt - lineLft > 1, false);
 
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
-            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
+            "none", "none", undefined, scaleX, scaleY, "", "visiblepainted", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
             StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
 
@@ -161,43 +160,38 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const dotsize = String(Math.max(width * scaleX, height * scaleY) / 40);
 
         const addpoints = apoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" stroke-width={String(Number(dotsize) / 2)} fill="invisible"
-                    onPointerDown={(e) => { FormatShapePane.Instance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
+            <svg height="10" width="10" key={`add${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
+                    onPointerDown={(e) => { formatInstance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
 
         const controls = controlPoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" stroke-width={String(Number(dotsize) / 2)} fill="red"
+            <svg height="10" width="10" key={`ctrl${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="red"
                     onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
         const handles = handlePoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" stroke-width={String(Number(dotsize) / 2)} fill="green"
-                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
+            <svg height="10" width="10" key={`hdl${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={strokeWidth / 2} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="green"
+                    onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
         const handleLines = handleLine.map((pts, i) =>
-
-            <svg height="100" width="100">
+            <svg height="100" width="100" key={`line${i}`}>
                 <line x1={(pts.X1 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y1 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" stroke-width={String(Number(dotsize) / 2)}
-                    display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
+                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
+                    display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
                 <line x1={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" stroke-width={String(Number(dotsize) / 2)}
-                    display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
-
+                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
+                    display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
 
 
         return (
             <svg className="inkingStroke"
-                width={width}
-                height={height}
+                width={Math.max(width, height)}
+                height={Math.max(width, height)}
                 style={{
                     pointerEvents: this.props.Document.isInkMask ? "all" : "none",
                     transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,
@@ -209,6 +203,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     if (cm) {
                         !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
                         cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                        cm.addItem({ description: "Edit Points", event: action(() => formatInstance._controlBtn = !formatInstance._controlBtn), icon: "paint-brush" });
                         //cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }
                 }}
@@ -216,10 +211,10 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 </defs>
                 {hpoints}
                 {points}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? addpoints : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? controls : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handles : ""}
-                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handleLines : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? addpoints : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? controls : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? handles : ""}
+                {formatInstance._controlBtn && this.props.isSelected() ? handleLines : ""}
 
             </svg>
         );

@@ -224,8 +224,6 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
             fitToBox={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
@@ -234,6 +232,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             ScreenToLocalTransform={dxf}
             focus={this.props.focus}
             docFilters={this.docFilters}
+            docRangeFilters={this.docRangeFilters}
+            searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}

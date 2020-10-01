@@ -1,32 +1,29 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
-
-library.add(faCog, faPlus, faSortUp, faSortDown);
-library.add(faTable);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {
@@ -44,7 +41,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
+    ["_curPage", ColumnType.Number], ["_currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -71,7 +68,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get menuCoordinates() {
         let searchx = 0;
         let searchy = 0;
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             const el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
             if (el !== undefined) {
                 const rect = el.getBoundingClientRect();
@@ -303,17 +300,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     this.columns = columns;
                     if (filter) {
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            Doc.setDocFilter(doc, newKey, filter, "match");
-                        }
                     }
                     else {
                         this.props.Document._docFilters = undefined;
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            doc._docFilters = undefined;
-                        }
                     }
                 }
             }
@@ -388,7 +377,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
-    @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
+    @action setPreviewDoc = (doc: Opt<Doc>) => {
+        SelectionManager.SelectSchemaDoc(this, doc);
+        this.previewDoc = doc;
+    }
 
     //toggles preview side-panel of schema
     @action
@@ -437,8 +429,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 <ContentFittingDocumentView
                     Document={this.previewDocument}
                     DataDoc={undefined}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                     fitToBox={true}
                     FreezeDimensions={true}
                     focus={emptyFunction}
@@ -449,6 +439,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     PanelHeight={this.previewHeight}
                     ScreenToLocalTransform={this.getPreviewTransform}
                     docFilters={this.docFilters}
+                    docRangeFilters={this.docRangeFilters}
+                    searchFilterDocs={this.searchFilterDocs}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
@@ -493,8 +485,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             documentKeys={this.documentKeys}
             headerIsEditing={this._headerIsEditing}
             openHeader={this.openHeader}
-            onClick={e => { e.stopPropagation(); this.closeHeader(); }}
-            onPointerDown={this.onTablePointerDown}
+            onClick={this.onTableClick}
+            onPointerDown={emptyFunction}
             onResizedChange={this.onResizedChange}
             setColumns={this.setColumns}
             reorderColumns={this.reorderColumns}
@@ -515,14 +507,28 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
         </div>;
     }
-
-    @action
-    onTablePointerDown = (e: React.PointerEvent): void => {
-        this.setFocused(this.props.Document);
-        if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
+    onSpecificMenu = (e: React.MouseEvent) => {
+        if ((e.target as any)?.className?.includes?.("collectionSchemaView-cell") || (e.target instanceof HTMLSpanElement)) {
+            const cm = ContextMenu.Instance;
+            const options = cm.findByDescription("Options...");
+            const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+            optionItems.push({ description: "remove", event: () => this.previewDoc && this.props.removeDocument(this.previewDoc), icon: "trash" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+            cm.displayMenu(e.clientX, e.clientY);
+            (e.nativeEvent as any).SchemaHandled = true; // not sure why this is needed, but if you right-click quickly on a cell, the Document/Collection contextMenu handlers still fire without this.
             e.stopPropagation();
         }
-        // this.closeHeader();
+    }
+
+    @action
+    onTableClick = (e: React.MouseEvent): void => {
+        if (!(e.target as any)?.className?.includes?.("collectionSchemaView-cell") && !(e.target instanceof HTMLSpanElement)) {
+            this.setPreviewDoc(undefined);
+        } else {
+            e.stopPropagation();
+        }
+        this.setFocused(this.props.Document);
+        this.closeHeader();
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
@@ -572,7 +578,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
     render() {
         let name = "collectionSchemaView-container";
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             name = "collectionSchemaView-searchContainer";
         }
         if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
@@ -594,13 +600,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className={name}
             style={{
-                overflow: this.props.overflow === true ? "scroll" : undefined,
-                pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
+                pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
+                onContextMenu={this.onSpecificMenu}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}

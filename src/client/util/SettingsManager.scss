@@ -4,7 +4,6 @@
     //background-color: whitesmoke !important;
     color: grey;
     width: 450px;
-    height: 300px;
 
     button {
         background: #315a96;
@@ -142,7 +141,7 @@
 
 .colorFlyout {
     margin-top: 2px;
-    margin-right: 25px;
+    margin-right: 18px;
 
     &:hover {
         cursor: pointer;
@@ -160,13 +159,15 @@
 .preferences-content {
     display: flex;
     margin-top: 4px;
+    color: black;
+    font-size: 11;
 
     .preferences-color {
         display: flex;
+        margin-top: 2px;
+        width: 55;
 
         .preferences-color-text {
-            color: black;
-            font-size: 11;
             margin-top: 4;
             margin-right: 4;
         }
@@ -174,10 +175,11 @@
 
     .preferences-font {
         display: flex;
+        height: 23px;
+        margin-top: 2px;
 
         .preferences-font-text {
             color: black;
-            font-size: 11;
             margin-top: 4;
             margin-right: 4;
         }
@@ -192,6 +194,16 @@
             &:hover {
                 cursor: pointer;
             }
+        }
+
+        .preferences-check {
+            color: black;
+            font-size: 9;
+            /* margin-top: 4; */
+            margin-right: 4;
+            margin-bottom: -3;
+            margin-left: 5;
+            margin-top: -1px;
         }
 
         .size-select {

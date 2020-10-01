@@ -47,13 +47,20 @@ export class SearchManager extends ApiManager {
                 const resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
                 let results: any;
                 const dir = pathToDirectory(Directory.text);
-                results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, dir, ".txt$");
-                for (const result in results) {
-                    resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
-                    resObj.lines.push(results[result].line);
-                    resObj.numFound++;
+                try {
+                    const regex = new RegExp(q.toString());
+                    results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, dir, ".txt$");
+                    for (const result in results) {
+                        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+                        resObj.lines.push(results[result].line);
+                        resObj.numFound++;
+                    }
+                    res.send(resObj);
+                } catch (e) {
+                    console.log(red("textsearch:bad RegExp" + q.toString()));
+                    res.send([]);
+                    return;
                 }
-                res.send(resObj);
             }
         });
 
@@ -62,7 +69,7 @@ export class SearchManager extends ApiManager {
             subscription: "/dashsearch",
             secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
-                ["q", "fq", "start", "rows", "sort", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+                ["q", "fq", "start", "rows", "sort", "hl.maxAnalyzedChars", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                 if (solrQuery.q === undefined) {
                     res.send([]);
                     return;

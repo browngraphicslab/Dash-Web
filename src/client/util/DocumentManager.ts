@@ -1,15 +1,15 @@
-import { action, computed, observable } from 'mobx';
-import { Doc, DocListCastAsync, DocListCast, Opt } from '../../fields/Doc';
+import { action, observable } from 'mobx';
+import { Doc, DocListCast, DocListCastAsync, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../fields/Types';
+import { returnFalse } from '../../Utils';
+import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
-import { DocumentView, DocFocusFunc } from '../views/nodes/DocumentView';
+import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
-import { DocumentType } from '../documents/DocumentTypes';
-import { TraceMobx } from '../../fields/util';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -18,6 +18,7 @@ export class DocumentManager {
     //global holds all of the nodes (regardless of which collection they're in)
     @observable
     public DocumentViews: DocumentView[] = [];
+    @observable LinkedDocumentViews: { a: DocumentView, b: DocumentView, l: Doc }[] = [];
 
     // singleton instance
     private static _instance: DocumentManager;
@@ -29,6 +30,26 @@ export class DocumentManager {
 
     //private constructor so no other class can create a nodemanager
     private constructor() {
+    }
+
+    @action
+    public AddView = (view: DocumentView) => {
+        const linksList = DocListCast(view.props.Document.links);
+        linksList.forEach(link => {
+            const linkToDoc = link && LinkManager.getOppositeAnchor(link, view.props.Document);
+            linkToDoc && DocumentManager.Instance.DocumentViews.filter(dv => Doc.AreProtosEqual(dv.props.Document, linkToDoc)).forEach(dv => {
+                if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== view.props.LayoutTemplateString) {
+                    this.LinkedDocumentViews.push({ a: dv, b: view, l: link });
+                }
+            });
+        });
+        this.DocumentViews.push(view);
+    }
+    public RemoveView = (view: DocumentView) => {
+        const index = this.DocumentViews.indexOf(view);
+        index !== -1 && this.DocumentViews.splice(index, 1);
+
+        this.LinkedDocumentViews.slice().forEach(action((pair, i) => pair.a === view || pair.b === view ? this.LinkedDocumentViews.splice(i, 1) : null));
     }
 
     //gets all views
@@ -86,7 +107,8 @@ export class DocumentManager {
     }
 
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
-        return this.getDocumentViews(toFind)?.find(view => view.props.Document !== originatingDoc);
+        const views = this.getDocumentViews(toFind).filter(view => view.props.Document !== originatingDoc);
+        return views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
@@ -103,28 +125,9 @@ export class DocumentManager {
         return toReturn;
     }
 
-    @computed
-    public get LinkedDocumentViews() {
-        TraceMobx();
-        const pairs = DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            const linksList = DocListCast(dv.props.Document.links);
-            pairs.push(...linksList.reduce((pairs, link) => {
-                const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== docView1.props.LayoutTemplateString) {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    }
-                });
-                return pairs;
-            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            return pairs;
-        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
-
-        return pairs;
-    }
 
     static addRightSplit = (doc: Doc, finished?: () => void) => {
-        CollectionDockingView.AddRightSplit(doc);
+        CollectionDockingView.AddSplit(doc, "right");
         finished?.();
     }
     public jumpToDocument = async (
@@ -160,6 +163,7 @@ export class DocumentManager {
                 docView.props.Document.hidden = !docView.props.Document.hidden;
             }
             else {
+                docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
                 highlight();
@@ -174,36 +178,35 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
+                targetDocContext._scrollY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
                     if (targetDoc.displayTimecode) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
-                        targetDocContext.currentTimecode = targetDoc.displayTimecode;
+                        targetDocContext._currentTimecode = targetDoc.displayTimecode;
                         finished?.();
                     } else { // no timecode means we need to find the context view and focus on our target
-                        setTimeout(() => {
+                        const findView = (delay: number) => {
                             const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
                             if (retryDocView) {   // we found the target in the context
                                 retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
-                            } else { // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
-                                if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                highlight();
                             }
-                            highlight();
-                        }, 0);
+                            if (delay > 2500) {
+                                // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
+                                if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
+                                // targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                            } else {
+                                setTimeout(() => findView(delay + 250), 250);
+                            }
+                        };
+                        findView(0);
                     }
-                } else {  // there's no context view so we need to create one first and try again
-                    createViewFunc(targetDocContext); // so first we create the target, but don't pass finished because we still need to create the target
-                    setTimeout(() => {
-                        const finalDocView = getFirstDocView(targetDoc);
-                        const finalDocContextView = getFirstDocView(targetDocContext);
-                        setTimeout(() =>  // if not, wait a bit to see if the context can be loaded (e.g., a PDF). wait interval heurisitic tries to guess how we're animating based on what's just become visible
-                            this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true, undefined, finished), // pass true this time for closeContextIfNotFound
-                            finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
-                    }, 0);
+                } else {  // there's no context view so we need to create one first and try again when that finishes
+                    createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
+                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
                 }
             }
         }
@@ -212,8 +215,8 @@ export class DocumentManager {
     public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
         const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
-        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc)); // link docs where 'doc' is anchor1
-        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc)); // link docs where 'doc' is anchor2
+        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
+        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
         const fwdLinkWithoutTargetView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
         const backLinkWithoutTargetView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
         const linkWithoutTargetDoc = traverseBacklink === undefined ? fwdLinkWithoutTargetView || backLinkWithoutTargetView : traverseBacklink ? backLinkWithoutTargetView : fwdLinkWithoutTargetView;
@@ -222,17 +225,16 @@ export class DocumentManager {
         followLinks.forEach(async linkDoc => {
             if (linkDoc) {
                 const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
-                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
+                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
                 const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") :
                     doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
-                        (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
+                        (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
                     const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                    containerDoc.currentTimecode = targetTimecode;
+                    containerDoc._currentTimecode = targetTimecode;
                     const targetContext = await target?.context as Doc;
                     const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                    console.log(targetNavContext);
-                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
                 } else {
                     finished?.();
                 }

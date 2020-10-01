@@ -1,18 +1,14 @@
-import { action, observable, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentView } from "../nodes/DocumentView";
-import { LinkEditor } from "./LinkEditor";
-import './LinkMenu.scss';
-import React = require("react");
 import { Doc } from "../../../fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
-import { LinkMenuGroup } from "./LinkMenuGroup";
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { DocumentView } from "../nodes/DocumentView";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
-
-library.add(faTrash);
+import { LinkEditor } from "./LinkEditor";
+import './LinkMenu.scss';
+import { LinkMenuGroup } from "./LinkMenuGroup";
+import React = require("react");
 
 interface Props {
     docView: DocumentView;
@@ -93,15 +89,14 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     render() {
-        console.log("computed", this.position.x, this.position.b);
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
-        return <div className="linkMenu" ref={this._linkMenuRef} >
+        return <div className="linkMenu" style={{ left: this.position.x, top: this.props.docView.topMost ? undefined : this.position.b + 15, bottom: this.props.docView.topMost ? 20 : undefined }} ref={this._linkMenuRef} >
             {!this._editingLink ?
-                <div className="linkMenu-list" style={{ left: this.position.x, top: this.position.b + 15 }}>
+                <div className="linkMenu-list" >
                     {this.renderAllGroups(groups)}
                 </div> :
-                <div className="linkMenu-listEditor" style={{ left: this.position.x, top: this.position.b + 15 }}>
+                <div className="linkMenu-listEditor">
                     <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
                         showLinks={action(() => this._editingLink = undefined)} />
                 </div>

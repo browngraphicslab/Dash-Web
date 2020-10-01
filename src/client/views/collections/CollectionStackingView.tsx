@@ -12,7 +12,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll, returnVal } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -33,25 +33,31 @@ const _global = (window /* browser */ || global /* node */) as any;
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
 const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
+export type collectionStackingViewProps = {
+    chromeStatus?: string;
+};
+
 @observer
-export class CollectionStackingView extends CollectionSubView(StackingDocument) {
+export class CollectionStackingView extends CollectionSubView<StackingDocument, Partial<collectionStackingViewProps>>(StackingDocument) {
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
     _pivotFieldDisposer?: IReactionDisposer;
+    _autoHeightDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
     @observable _heightMap = new Map<string, number>();
     @observable _cursor: CursorProperty = "grab";
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
+    @computed get chromeStatus() { return this.props.chromeStatus || StrCast(this.layoutDoc._chromeStatus); }
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.layoutDoc._columnsStack, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
-    @computed get showAddAGroup() { return (this.pivotField && (this.layoutDoc._chromeStatus !== 'view-mode' && this.layoutDoc._chromeStatus !== 'disabled')); }
+    @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
         return Math.min(this.props.PanelWidth() / this.props.ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
@@ -78,7 +84,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(d, (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc, dxf, width)}
+                {this.getDisplayDoc(d, dxf, width)}
             </div>;
         });
     }
@@ -127,19 +133,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return fields;
     }
 
-    getSimpleDocHeight(d?: Doc) {
-        if (!d) return 0;
-        const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
-        const nw = NumCast(layoutDoc._nativeWidth);
-        const nh = NumCast(layoutDoc._nativeHeight);
-        let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!layoutDoc._fitWidth && nw && nh) {
-            const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(layoutDoc[WidthSym](), wid);
-            return wid * aspect;
-        }
-        return layoutDoc._fitWidth ? wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1) : layoutDoc[HeightSym]();
-    }
     componentDidMount() {
         super.componentDidMount?.();
 
@@ -148,10 +141,12 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             () => this.pivotField,
             () => this.layoutDoc._columnHeaders = new List()
         );
+        this._autoHeightDisposer = reaction(() => this.layoutDoc._autoHeight, this.forceAutoHeight);
     }
     componentWillUnmount() {
         super.componentWillUnmount();
         this._pivotFieldDisposer?.();
+        this._autoHeightDisposer?.();
     }
 
     @action
@@ -186,17 +181,16 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
             smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
-        afterFocus && setTimeout(() => {
-            if (afterFocus?.()) { }
-        }, 500);
+        afterFocus && setTimeout(afterFocus, 500);
     }
 
-    getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
+    getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
+        const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const opacity = () => this.Document.currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document.currentFrame))?.opacity;
+        const opacity = () => this.Document._currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
-            DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
+            DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             backgroundColor={this.props.backgroundColor}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
@@ -205,10 +199,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
+            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            dontCenter={this.props.childIgnoreNativeSize ? true : false}
             fitToBox={false}
-            dontRegisterView={BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
+            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -217,11 +212,14 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             opacity={opacity}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            docRangeFilters={this.docRangeFilters}
+            searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
+            contentsPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
             parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
@@ -240,17 +238,22 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
+        const dataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
         const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
-        const nw = NumCast(layoutDoc._nativeWidth);
-        const nh = NumCast(layoutDoc._nativeHeight);
+        const layoutField = Doc.LayoutFieldKey(layoutDoc);
+        const nw = NumCast(layoutDoc._nativeWidth) || NumCast(dataDoc?.[`${layoutField}-nativeWidth`]);
+        const nh = NumCast(layoutDoc._nativeHeight) || NumCast(dataDoc?.[`${layoutField}-nativeHeight`]);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
+        const hllimit = NumCast(this.layoutDoc.childLimitHeight, -1);
         if (!layoutDoc._fitWidth && nw && nh) {
             const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(layoutDoc[WidthSym](), wid);
-            return wid * aspect;
+            if (!(this.layoutDoc._columnsFill)) wid = Math.min(this.getDocWidth(d), wid);
+            return Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, wid * aspect);
         }
-        return layoutDoc._fitWidth ? !nh ? this.props.PanelHeight() - 2 * this.yMargin :
-            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : Math.max(20, layoutDoc[HeightSym]());
+        return layoutDoc._fitWidth ?
+            (!nh ? this.props.PanelHeight() - 2 * this.yMargin :
+                Math.min(wid * nh / (nw || 1), this.layoutDoc._autoHeight ? 100000 : this.props.PanelHeight() - 2 * this.yMargin)) :
+            Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, Math.max(20, layoutDoc[HeightSym]()));
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -340,9 +343,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     sectionStacking = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
-        const types = docList.length ? docList.map(d => typeof d[key]) : this.filteredChildren.map(d => typeof d[key]);
-        if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
-            type = types[0];
+        if (this.pivotField) {
+            const types = docList.length ? docList.map(d => typeof d[key]) : this.filteredChildren.map(d => typeof d[key]);
+            if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
+                type = types[0];
+            }
         }
         const cols = () => this.isStackingView ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
@@ -354,16 +359,17 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
+                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);
                 }
             }}
-            key={heading ? heading.heading : ""}
+            key={heading?.heading ?? ""}
             cols={cols}
             headings={this.headings}
-            heading={heading ? heading.heading : ""}
+            heading={heading?.heading ?? ""}
             headingObject={heading}
             docList={docList}
             parent={this}
@@ -381,6 +387,11 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         const offsety = (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
+    }
+
+    forceAutoHeight = () => {
+        const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
+        Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
     }
 
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
@@ -401,7 +412,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+                            const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);
@@ -439,16 +451,13 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
     }
 
-    onToggle = (checked: Boolean) => {
-        this.layoutDoc._chromeStatus = checked ? "collapsed" : "view-mode";
-    }
-
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped()) {
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.layoutDoc._columnsFill ? "Variable Size" : "Autosize"} Column`, event: () => this.layoutDoc._columnsFill = !this.layoutDoc._columnsFill, icon: "plus" });
             subItems.push({ description: `${this.layoutDoc._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+            subItems.push({ description: "Clear All", event: () => this.dataDoc.data = new List([]), icon: "times" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }
@@ -464,8 +473,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
 
 
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth) || this.props.NativeWidth() || 0; }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight) || this.props.NativeHeight() || 0; }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc._nativeWidth)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc._nativeHeight)); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 
@@ -488,10 +497,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
                     }}
-                    onScroll={action(e => {
-                        if (!this.props.isSelected() && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
-                        else this._scroll = e.currentTarget.scrollTop;
-                    })}
+                    onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
                     onWheel={e => this.props.active(true) && e.stopPropagation()} >
@@ -501,13 +507,14 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                             style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {this.layoutDoc._chromeStatus !== 'disabled' && this.props.isSelected() ? <Switch
-                        onChange={this.onToggle}
-                        onClick={this.onToggle}
-                        defaultChecked={this.layoutDoc._chromeStatus !== 'view-mode'}
-                        checkedChildren="edit"
-                        unCheckedChildren="view"
-                    /> : null}
+                    {/* {this.chromeStatus === 'disabled' || !this.props.isSelected() ? (null) :
+                        <Switch
+                            onChange={this.onToggle}
+                            onClick={this.onToggle}
+                            defaultChecked={this.chromeStatus !== 'view-mode'}
+                            checkedChildren="edit"
+                            unCheckedChildren="view"
+                        />} */}
                 </div> </div>
         );
     }

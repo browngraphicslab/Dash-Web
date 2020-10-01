@@ -1,12 +1,10 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UndoManager } from "../util/UndoManager";
-
-library.add(faAngleRight);
+import { NumberLiteralType } from "typescript";
 
 export interface OriginalMenuProps {
     description: string;
@@ -31,11 +29,12 @@ export type ContextMenuProps = OriginalMenuProps | SubmenuProps;
 export class ContextMenuItem extends React.Component<ContextMenuProps & { selected?: boolean }> {
     @observable private _items: Array<ContextMenuProps> = [];
     @observable private overItem = false;
+    @observable private subRef = React.createRef<HTMLDivElement>();
 
     constructor(props: ContextMenuProps | SubmenuProps) {
         super(props);
         if ("subitems" in this.props) {
-            this.props.subitems.forEach(i => this._items.push(i));
+            this.props.subitems?.forEach(i => this._items.push(i));
         }
     }
 
@@ -54,6 +53,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     currentTimeout?: any;
     static readonly timeout = 300;
     _overPosY = 0;
+    _overPosX = 0;
     onPointerEnter = (e: React.MouseEvent) => {
         if (this.currentTimeout) {
             clearTimeout(this.currentTimeout);
@@ -63,6 +63,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             return;
         }
         this._overPosY = e.clientY;
+        this._overPosX = e.clientX;
         this.currentTimeout = setTimeout(action(() => this.overItem = true), ContextMenuItem.timeout);
     }
 
@@ -78,6 +79,9 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     }
 
     render() {
+
+
+
         if ("event" in this.props) {
             return (
                 <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onPointerDown={this.handleEvent}>
@@ -94,8 +98,13 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
         } else if ("subitems" in this.props) {
             const where = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "flex-start" : this._overPosY > window.innerHeight * 2 / 3 ? "flex-end" : "center";
             const marginTop = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "20px" : this._overPosY > window.innerHeight * 2 / 3 ? "-20px" : "";
+
+            // here
             const submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "90%", left: "0px", marginTop }}>
+                <div className="contextMenu-subMenu-cont"
+                    style={{
+                        marginLeft: window.innerHeight - this._overPosX - 50 > 0 ? "90%" : "20%", marginTop
+                    }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             if (!("noexpand" in this.props)) {
@@ -115,7 +124,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     <div className="contextMenu-description" onMouseEnter={this.onPointerEnter}
                         style={{ alignItems: "center" }} >
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
+                        <FontAwesomeIcon icon={"angle-right"} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
                     {submenu}
                 </div>

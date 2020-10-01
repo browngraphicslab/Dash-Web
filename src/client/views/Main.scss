@@ -1,6 +1,10 @@
 @import "globalCssVariables";
 @import "nodeModuleOverrides";
 
+:root {
+    --flyoutHandleWidth: 28px;
+    --menuPanelWidth: 60px;
+}
 html,
 body {
     width: 100%;

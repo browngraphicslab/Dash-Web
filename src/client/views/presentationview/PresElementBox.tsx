@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
@@ -15,11 +15,13 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { PresBox } from "../nodes/PresBox";
+import { PresBox, PresMovement } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -102,11 +104,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     bringToFront={returnFalse}
                     opacity={returnOne}
                     docFilters={this.props.docFilters}
+                    docRangeFilters={this.props.docRangeFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
                 />
                 <div className="presElementBox-embeddedMask" />
             </div>;
@@ -114,20 +116,23 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @computed get duration() {
         let durationInS: number;
-        if (this.targetDoc.presDuration) durationInS = NumCast(this.targetDoc.presDuration) / 1000;
+        if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10; }
+        else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
-        return "D: " + durationInS + "s";
+        return this.rootDoc.presMovement === PresMovement.Jump ? (null) : "D: " + durationInS + "s";
     }
 
     @computed get transition() {
         let transitionInS: number;
-        if (this.targetDoc.presTransition) transitionInS = NumCast(this.targetDoc.presTransition) / 1000;
+        if (this.rootDoc.presTransition) transitionInS = NumCast(this.rootDoc.presTransition) / 1000;
         else transitionInS = 0.5;
         return "M: " + transitionInS + "s";
     }
 
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _titleRef: React.RefObject<EditableView> = React.createRef();
+
 
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -180,19 +185,19 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
 
     onPointerTop = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (DragManager.docsBeingDragged.length > 0) {
+        if (DragManager.docsBeingDragged.length > 1) {
             this._highlightTopRef.current!.style.borderTop = "solid 2px #5B9FDD";
         }
     }
 
     onPointerBottom = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (DragManager.docsBeingDragged.length > 0) {
+        if (DragManager.docsBeingDragged.length > 1) {
             this._highlightBottomRef.current!.style.borderBottom = "solid 2px #5B9FDD";
         }
     }
 
     onPointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (DragManager.docsBeingDragged.length > 0) {
+        if (DragManager.docsBeingDragged.length > 1) {
             this._highlightBottomRef.current!.style.borderBottom = "0px";
             this._highlightTopRef.current!.style.borderTop = "0px";
         }
@@ -200,14 +205,28 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @action
     toggleProperties = () => {
-        if (CurrentUserUtils.propertiesWidth === 0) {
-            CurrentUserUtils.propertiesWidth = 250;
+        if (CurrentUserUtils.propertiesWidth < 5) {
+            action(() => (CurrentUserUtils.propertiesWidth = 250));
         }
+    }
+
+    @undoBatch
+    removeItem = action((e: React.MouseEvent) => {
+        this.props.removeDocument?.(this.rootDoc);
+        if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
+            PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
+        }
+        e.stopPropagation();
+    });
+
+    @action
+    onSetValue = (value: string) => {
+        this.rootDoc.title = value;
+        return true;
     }
 
     render() {
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");
-        const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
@@ -231,6 +250,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     }
                 }}
                 onDoubleClick={e => {
+                    console.log('double click to open');
                     this.toggleProperties();
                     this.props.focus(this.rootDoc);
                     PresBox.Instance._eleArray = [];
@@ -246,17 +266,22 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.indexInPres + 1}.`}
                     </div>
                     <div ref={this._dragRef} className="presElementBox-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
-                        {`${this.targetDoc?.title}`}
+                        <EditableView
+                            ref={this._titleRef}
+                            contents={this.rootDoc.title}
+                            GetValue={() => StrCast(this.rootDoc.title)}
+                            SetValue={action((value: string) => {
+                                this.onSetValue(value);
+                                return true;
+                            })}
+                        />
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presElementBox-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
-                        onClick={e => {
-                            this.props.removeDocument?.(this.rootDoc);
-                            e.stopPropagation();
-                        }}>
+                        onClick={this.removeItem}>
                         <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                     </div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>

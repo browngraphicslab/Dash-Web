@@ -1,30 +1,38 @@
 import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
+import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { List } from "../../fields/List";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { listSpec } from "../../fields/Schema";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
-import { UndoManager } from "./UndoManager";
-import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
-import { List } from "../../fields/List";
-import { listSpec } from "../../fields/Schema";
-import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast, BoolCast } from "../../fields/Types";
-import { nullAudio } from "../../fields/URLField";
-import { DragManager } from "./DragManager";
-import { Scripting } from "./Scripting";
-import { CollectionViewType, CollectionView } from "../views/collections/CollectionView";
-import { makeTemplate } from "./DropConverter";
-import { RichTextField } from "../../fields/RichTextField";
-import { PrefetchProxy } from "../../fields/Proxy";
-import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
-import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { MainView } from "../views/MainView";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { LabelBox } from "../views/nodes/LabelBox";
+import { OverlayView } from "../views/OverlayView";
+import { DocumentManager } from "./DocumentManager";
+import { DragManager } from "./DragManager";
+import { makeTemplate } from "./DropConverter";
+import { HistoryUtil } from "./History";
 import { LinkManager } from "./LinkManager";
-import { Id } from "../../fields/FieldSymbols";
+import { Scripting } from "./Scripting";
+import { SearchUtil } from "./SearchUtil";
+import { SelectionManager } from "./SelectionManager";
+import { UndoManager } from "./UndoManager";
 
+
+const headerViewVersion = "0.1";
 export class CurrentUserUtils {
     private static curr_id: string;
     //TODO tfs: these should be temporary...
@@ -36,28 +44,12 @@ export class CurrentUserUtils {
     @computed public static get UserDocument() { return Doc.UserDoc(); }
 
     @observable public static GuestTarget: Doc | undefined;
-    @observable public static GuestWorkspace: Doc | undefined;
+    @observable public static GuestDashboard: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
-
     @observable public static propertiesWidth: number = 0;
 
-    // sets up the default User Templates - slideView, queryView, descriptionView
+    // sets up the default User Templates - slideView,  headerView
     static setupUserTemplateButtons(doc: Doc) {
-        if (doc["template-button-query"] === undefined) {
-            const queryTemplate = Docs.Create.MulticolumnDocument(
-                [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200, system: true }),
-                    Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
-                ],
-                { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
-            );
-            queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
-            doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
-            });
-        }
         // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
         if (doc["template-mobile-button"] === undefined) {
             const queryTemplate = this.mobileButton({
@@ -72,9 +64,8 @@ export class CurrentUserUtils {
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
             doc["template-mobile-button"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "mobile button", icon: "mobile"
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc, title: "mobile button", icon: "mobile"
             });
         }
 
@@ -84,39 +75,21 @@ export class CurrentUserUtils {
                     Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, system: true }),
                     Docs.Create.TextDocument("", { title: "text", _height: 100, system: true })
                 ],
-                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
+                { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, system: true }
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(slideTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "address-card"
-            });
-        }
-
-        if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
-            descriptionTemplate.system = true;
-            descriptionTemplate[DataSym].layout =
-                "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
-                "</div>";
-            (descriptionTemplate.proto as Doc).isTemplateDoc = makeTemplate(descriptionTemplate.proto as Doc, true, "descriptionView");
-
-            doc["template-button-description"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(slideTemplate) as any as Doc, title: "presentation slide", icon: "address-card"
             });
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
-            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _autoHeight: true, system: true }, "header")); // text needs to be a space to allow templateText to be created
             linkTemplate.system = true;
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} dontSelectOnLoad={'true'} height='{this._headerHeight||75}px' ignoreAutoHeight={'true'} background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             (linkTemplate.proto as Doc).isTemplateDoc = makeTemplate(linkTemplate.proto as Doc, true, "linkView");
@@ -152,9 +125,8 @@ export class CurrentUserUtils {
             linkTemplate.header = new RichTextField(JSON.stringify(rtf2), "");
 
             doc["template-button-link"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize", system: true
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(linkTemplate) as any as Doc, title: "link view", icon: "window-maximize", system: true
             });
         }
 
@@ -184,9 +156,8 @@ export class CurrentUserUtils {
             box.isTemplateDoc = makeTemplate(box, true, "switch");
 
             doc["template-button-switch"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(box) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "data switch", icon: "toggle-on", system: true
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(box) as any as Doc, title: "data switch", icon: "toggle-on", system: true
             });
         }
 
@@ -199,9 +170,9 @@ export class CurrentUserUtils {
                 onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F", system: true
             });
 
-            const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true, system: true });
-            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true, system: true });
-            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350, _autoHeight: true, system: true });
+            const details = TextDocument("", { title: "details", _height: 200, _autoHeight: true, system: true });
+            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 75, _autoHeight: true, system: true });
+            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 150, _autoHeight: true, system: true });
 
             const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
             const detailedTemplate = {
@@ -217,7 +188,7 @@ export class CurrentUserUtils {
             details.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
 
             const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
-            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12px" };
             const descriptionWrapperOpts = { title: "descriptions", _height: 300, _columnWidth: -1, treeViewHideTitle: true, _pivotField: "title", system: true };
 
             const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
@@ -234,25 +205,23 @@ export class CurrentUserUtils {
             long.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: new PrefetchProxy(detailView) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize", system: true
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc, title: "detail view", icon: "window-maximize", system: true
             });
         }
 
         const requiredTypes = [
             doc["template-button-slides"] as Doc,
-            doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc,
             doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-link"] as Doc,
-            doc["template-button-switch"] as Doc];
+            //doc["template-button-switch"] as Doc]
+        ];
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 hidden: ComputedField.MakeFunction("self.userDoc.noviceMode") as any,
-                userDoc: doc,
+                userDoc: doc, _stayInCollection: true, _hideContextMenu: true,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
@@ -302,13 +271,11 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-notes"] === undefined) {
-            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc,
-            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
+            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc], // doc["template-note-Todo"] as any as Doc],
                 { title: "Note Layouts", _height: 75, system: true }));
         } else {
             const curNoteTypes = Cast(doc["template-notes"], Doc, null);
-            const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc,
-            doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc];
+            const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc];//, doc["template-note-Todo"] as any as Doc];
             DocListCastAsync(curNoteTypes.data).then(async curNotes => {
                 await Promise.all(curNotes!);
                 requiredTypes.map(ntype => Doc.AddDocToList(curNoteTypes, "data", ntype));
@@ -394,32 +361,80 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
                 { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyCollection as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyPane === undefined) {
-            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _width: 500, _height: 800, title: "Untitled Tab", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
+        }
+        if (doc.emptySlide === undefined) {
+            const textDoc = Docs.Create.TextDocument("Slide", { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            Doc.GetProto(textDoc).layout = CollectionView.LayoutString("data");
+            Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
+            Doc.GetProto(textDoc).data = new List<Doc>([]);
+            FormattedTextBox.SelectOnLoad = textDoc[Id];
+            doc.emptySlide = textDoc;
+        }
+        if ((doc.emptyHeader as Doc)?.version !== headerViewVersion) {
+            const json = {
+                doc: {
+                    type: "doc",
+                    content: [
+                        {
+                            type: "paragraph", attrs: {}, content: [{
+                                type: "dashField",
+                                attrs: { fieldKey: "author", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }, {
+                                type: "dashField",
+                                attrs: { fieldKey: "creationDate", docid: "", hideKey: false },
+                                marks: [{ type: "strong" }]
+                            }]
+                        }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            headerTemplate[DataSym].layout =
+                "<div style={'height:100%'}>" +
+                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
+                "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
+                "</div>";
+            (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
+            doc.emptyHeader = headerTemplate;
+            ((doc.emptyHeader as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScript === undefined) {
             doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyScript as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyScreenshot === undefined) {
             doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
-            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "audio recording", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
+        }
+        if (doc.emptyNote === undefined) {
+            doc.emptyNote = Docs.Create.TextDocument("", { _width: 200, title: "text note", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyNote as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyImage === undefined) {
             doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat", system: true });
         }
         if (doc.emptyButton === undefined) {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyButton as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
@@ -427,40 +442,30 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _fitWidth: true, isTemplateDoc: true, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { toolTip: "Tap to create a collection in a new pane, drag for a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.clickFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc, noviceMode: true, clickFactory: doc.emptyPane as Doc, },
-            { toolTip: "Tap to create a webpage in a new pane, drag for a webpage", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
-            { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
-            { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
-            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
-            //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
-            { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
-
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
-            { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
-            { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
-            // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
+            { toolTip: "Tap to create a note in a new pane, drag for a note", title: "Note", icon: "sticky-note", click: 'openOnRight(copyDragFactory(this.clickFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyNote as Doc, noviceMode: true, clickFactory: doc.emptyNote as Doc, },
+            { toolTip: "Tap to create a collection in a new pane, drag for a collection", title: "Col", icon: "folder", click: 'openOnRight(copyDragFactory(this.clickFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyCollection as Doc, noviceMode: true, clickFactory: doc.emptyPane as Doc, },
+            { toolTip: "Tap to create a webpage in a new pane, drag for a webpage", title: "Web", icon: "globe-asia", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
+            { toolTip: "Tap to create a progressive slide", title: "Slide", icon: "file", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySlide as Doc, noviceMode: true },
+            { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
+            { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
+            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc },
+            { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
+            { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
-            // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
-            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
-            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
-            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a custom header note document, drag for a custom header note", title: "Custom", icon: "window-maximize", click: 'openOnRight(delegateDragFactory(this.dragFactory))', drag: 'delegateDragFactory(this.dragFactory)', dragFactory: doc.emptyHeader as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
-            { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
-
-
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static async setupCreatorButtons(doc: Doc) {
@@ -475,7 +480,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory, noviceMode, clickFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 35, _height: 35,
             icon,
             title,
             toolTip,
@@ -486,16 +491,19 @@ export class CurrentUserUtils {
             ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
             activeInkPen,
             backgroundColor,
-            removeDropProperties: new List<string>(["dropAction"]),
+            _hideContextMenu: true,
+            removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+            _stayInCollection: true,
             dragFactory,
             clickFactory,
             userDoc: noviceMode ? undefined as any : doc,
-            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"), system: true
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"),
+            system: true
         }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0,
+                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
@@ -506,41 +514,45 @@ export class CurrentUserUtils {
     }
 
     static menuBtnDescriptions(doc: Doc): {
-        title: string, icon: string, click: string, watchedDocuments?: Doc
+        title: string, target: Doc, icon: string, click: string, watchedDocuments?: Doc
     }[] {
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
-            { title: "Sharing", icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
-            { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Import", icon: "upload", click: 'selectMainMenu(self)' },
-            { title: "Tools", icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Help", icon: "question-circle", click: 'selectMainMenu(self)' },
-            { title: "Settings", icon: "cog", click: 'selectMainMenu(self)' },
-            { title: "User Doc", icon: "address-card", click: 'selectMainMenu(self)' },
+            { title: "Dashboards", target: Cast(doc.myDashboards, Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
+            { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
+            { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
+            { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
+            { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
+            { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
+            { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
         ];
     }
 
     static setupSearchPanel(doc: Doc) {
-        if (doc["search-panel"] === undefined) {
-            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
-                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true,
+        if (doc.mySearchPanelDoc === undefined) {
+            doc.mySearchPanelDoc = new PrefetchProxy(Docs.Create.SearchDocument({
+                _width: 500, _height: 300, backgroundColor: "dimGray", ignoreClick: true, _searchDoc: true,
                 childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", system: true
             })) as any as Doc;
         }
     }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, icon, click, watchedDocuments }) =>
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
                     iconShape: "square",
+                    _stayInCollection: true,
+                    _hideContextMenu: true,
                     title,
+                    target,
                     _backgroundColor: "black",
                     dropAction: "alias",
-                    removeDropProperties: new List<string>(["dropAction"]),
-                    childDropAction: "same",
+                    removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
                     _height: 60,
                     watchedDocuments,
@@ -552,6 +564,7 @@ export class CurrentUserUtils {
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
+                childDropAction: "alias",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
                 _backgroundColor: "black",
                 _gridGap: 0,
@@ -591,7 +604,7 @@ export class CurrentUserUtils {
     // SEts up mobile buttons for inside mobile menu
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "WORKSPACES", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
+            { title: "DASHBOARDS", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Dashboards from your mobile, and navigate through all of your documents. " },
             { title: "UPLOAD", icon: "upload", click: 'openMobileUploads()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
             { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploadCollection()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
@@ -627,13 +640,13 @@ export class CurrentUserUtils {
     // Sets up the title of the button
     static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
-        dropAction: undefined, title: buttonTitle, _fontSize: "37pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", system: true
+        dropAction: undefined, title: buttonTitle, _fontSize: "37px", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", system: true
     }) as any as Doc
 
     // Sets up the description of the button
     static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
-        dropAction: undefined, title: "info", _fontSize: "25pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
+        dropAction: undefined, title: "info", _fontSize: "25px", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2, system: true
     }) as any as Doc
 
 
@@ -688,11 +701,11 @@ export class CurrentUserUtils {
     }
 
     static setupLibrary(userDoc: Doc) {
-        return CurrentUserUtils.setupWorkspaces(userDoc);
+        return CurrentUserUtils.setupDashboards(userDoc);
     }
 
-    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
-    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
+    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
+    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
@@ -709,98 +722,93 @@ export class CurrentUserUtils {
         // setup a color picker
         if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
-                title: "color picker", _width: 300, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"]), system: true
+                title: "color picker", _width: 300, dropAction: "alias", _hideContextMenu: true, _stayInCollection: true, forceActive: true, removeDropProperties: new List<string>(["dropAction", "_stayInCollection", "_hideContextMenu", "forceActive"]), system: true
             });
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
-        if (doc["sidebar-tools"] === undefined) {
+        if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "sidebar-tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true, system: true
+                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
             })) as any as Doc;
 
-            doc["sidebar-tools"] = toolsStack;
+            doc.myTools = toolsStack;
         }
     }
 
-    static async setupWorkspaces(doc: Doc) {
-        // setup workspaces library item
-        await doc.myWorkspaces;
-        if (doc.myWorkspaces === undefined) {
-            doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
-            }));
-        }
-        if (doc["sidebar-workspaces"] === undefined) {
-            const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
-            (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
-            (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
-
-            const workspaces = doc.myWorkspaces as Doc;
-
-            doc["sidebar-workspaces"] = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
+    static async setupDashboards(doc: Doc) {
+        // setup dashboards library item
+        await doc.myDashboards;
+        if (doc.myDashboards === undefined) {
+            doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
-        }
-        return doc.myWorkspaces as any as Doc;
-    }
-
-    static setupCatalog(doc: Doc) {
-        doc.myCatalog === undefined;
-        if (doc.myCatalog === undefined) {
-            doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
-                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", _stayInCollection: true, treeViewOpen: true, system: true
             }));
+            const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
+            (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
+            (doc.myDashboards as any as Doc).contextMenuLabels = new List<string>(["Create New Dashboard"]);
         }
-
-        if (doc["sidebar-catalog"] === undefined) {
-            const catalog = doc.myCatalog as Doc;
-
-            doc["sidebar-catalog"] = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
-                title: "sidebar-catalog",
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
-        }
+        return doc.myDashboards as any as Doc;
     }
-    static setupRecentlyClosed(doc: Doc) {
+
+    static async setupPresentations(doc: Doc) {
+        await doc.myPresentations;
+        if (doc.myPresentations === undefined) {
+            doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "My Presentations", _height: 100,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            }));
+            const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
+            (doc.myPresentations as any as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
+            (doc.myPresentations as any as Doc).contextMenuLabels = new List<string>(["Create New Presentation"]);
+            const presentations = doc.myPresentations as any as Doc;
+        }
+        return doc.myPresentations as any as Doc;
+    }
+
+    static setupRecentlyClosedDocs(doc: Doc) {
         // setup Recently Closed library item
-        doc.myRecentlyClosed === undefined;
-        if (doc.myRecentlyClosed === undefined) {
-            doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true
-            }));
-        }
-        // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
-        PromiseValue(Cast(doc.myRecentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
-        if (doc["sidebar-recentlyClosed"] === undefined) {
-            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-            (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
-
-            const recentlyClosed = doc.myRecentlyClosed as Doc;
-
-            doc["sidebar-recentlyClosed"] = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
-                title: "sidebar-recentlyClosed",
+        doc.myRecentlyClosedDocs === undefined;
+        if (doc.myRecentlyClosedDocs === undefined) {
+            doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            })) as any as Doc;
+            }));
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
+            (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        }
+    }
+    static setupFilterDocs(doc: Doc) {
+        // setup Recently Closed library item
+        doc.myFilter === undefined;
+        if (doc.myFilter === undefined) {
+            doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
+                title: "FilterDoc", _height: 500,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            }));
+            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
+            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 
 
     static setupUserDoc(doc: Doc) {
-        if (doc["sidebar-userDoc"] === undefined) {
+        if (doc.myUserDoc === undefined) {
             doc.treeViewOpen = true;
             doc.treeViewExpandedView = "fields";
-            doc["sidebar-userDoc"] = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "sidebar-userDoc",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+            doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
@@ -810,7 +818,6 @@ export class CurrentUserUtils {
         if (doc.sidebar === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
-            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
             sidebarContainer.system = true;
             doc.sidebar = new PrefetchProxy(sidebarContainer);
         }
@@ -821,9 +828,10 @@ export class CurrentUserUtils {
     static async setupSidebarButtons(doc: Doc) {
         CurrentUserUtils.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
-        CurrentUserUtils.setupWorkspaces(doc);
-        CurrentUserUtils.setupCatalog(doc);
-        CurrentUserUtils.setupRecentlyClosed(doc);
+        CurrentUserUtils.setupDashboards(doc);
+        CurrentUserUtils.setupPresentations(doc);
+        CurrentUserUtils.setupRecentlyClosedDocs(doc);
+        CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
@@ -834,16 +842,16 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
+        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction", "stayInCollection"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40, system: true
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
         if (doc.dockedBtns === undefined) {
             doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
@@ -851,8 +859,8 @@ export class CurrentUserUtils {
     }
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
-        if (doc.myOverlayDocuments === undefined) {
-            doc.myOverlayDocuments = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "overlay documents", backgroundColor: "#aca3a6", system: true }));
+        if (doc.myOverlayDocs === undefined) {
+            doc.myOverlayDocs = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "overlay documents", backgroundColor: "#aca3a6", system: true }));
         }
     }
 
@@ -867,27 +875,29 @@ export class CurrentUserUtils {
 
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
-        if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+        if (doc.mySharedDocs === undefined) {
+            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
-        if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+        if (doc.myImportDocs === undefined) {
+            doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
+                title: "My ImportDocuments", forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
+                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true
+            }));
         }
-        if (doc["sidebar-import"] === undefined) {
-            const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
-            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
-            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
+        if (doc.myImportPanel === undefined) {
+            const uploads = Cast(doc.myImportDocs, Doc, null);
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, lockedPosition: true, system: true }));
         }
     }
 
-
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
-            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target 
+            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "docCast(thisContainer.target).then((target) => target && (target.proto.data = new List([self]))) ",
                 { thisContainer: Doc.name }), {
@@ -937,6 +947,8 @@ export class CurrentUserUtils {
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
+        doc.userColor = doc.userColor || "#12121233";
+        doc._raiseWhenDragged = true;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
@@ -945,7 +957,7 @@ export class CurrentUserUtils {
         doc.activeArrowStart = StrCast(doc.activeArrowStart, "");
         doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "");
         doc.activeDash = StrCast(doc.activeDash, "0");
-        doc.fontSize = StrCast(doc.fontSize, "12pt");
+        doc.fontSize = StrCast(doc.fontSize, "12px");
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
@@ -960,11 +972,11 @@ export class CurrentUserUtils {
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
-        this.setupMenuPanel(doc);
         this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
+        this.setupMenuPanel(doc);
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
         doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
@@ -975,8 +987,18 @@ export class CurrentUserUtils {
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
         doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
+        // uncomment this to setup a default note style that uses the custom header layout
+        // PromiseValue(doc.emptyHeader).then(factory => {
+        //     if (Cast(doc.defaultTextLayout, Doc, null)?.version !== headerViewVersion) {
+        //         const deleg = Doc.delegateDragFactory(factory as Doc);
+        //         deleg.title = "header";
+        //         doc.defaultTextLayout = new PrefetchProxy(deleg);
+        //         Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
+        //     }
+        // });
         return doc;
     }
+
     public static async loadCurrentUser() {
         return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {
@@ -1000,12 +1022,156 @@ export class CurrentUserUtils {
             }
         });
     }
+
+    public static _urlState: HistoryUtil.DocUrl;
+
+    public static openDashboard = (userDoc: Doc, doc: Doc, fromHistory = false) => {
+        CurrentUserUtils.MainDocId = doc[Id];
+
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest dashboard
+            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
+            userDoc ? (userDoc.activeDashboard = doc) : (CurrentUserUtils.GuestDashboard = doc);
+        }
+        const state = CurrentUserUtils._urlState;
+        if (state.sharing === true && !userDoc) {
+            DocServer.Control.makeReadOnly();
+        } else {
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (doc.readOnly) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
+        }
+
+        return true;
+    }
+
+    public static importDocument = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc) {
+                        setTimeout(() => SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs =>
+                            docs.docs.forEach(d => LinkManager.Instance.addLink(d))), 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const importDocs = Cast(Doc.UserDoc().myImportDocs, Doc, null);
+                const disposer = OverlayView.ShowSpinner();
+                DocListCastAsync(importDocs.data).then(async list => {
+                    const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    list?.splice(0, 0, ...results);
+                    disposer();
+                });
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
+
+    public static snapshotDashboard = (userDoc: Doc) => {
+        const copy = CollectionDockingView.Copy(CurrentUserUtils.ActiveDashboard);
+        Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
+        CurrentUserUtils.openDashboard(userDoc, copy);
+    }
+
+    public static createNewDashboard = (userDoc: Doc, id?: string) => {
+        const myPresentations = userDoc.myPresentations as Doc;
+        const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
+        const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
+        const dashboardCount = DocListCast(dashboards.data).length + 1;
+        const emptyPane = Cast(userDoc.emptyPane, Doc, null);
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+        const freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            _width: 1500,
+            _height: 1000,
+            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
+        };
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
+        Doc.AddDocToList(myPresentations, "data", presentation);
+        userDoc.activePresentation = presentation;
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
+        const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
+
+        Doc.AddDocToList(dashboards, "data", dashboardDoc);
+        CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
+    }
+
+    public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number, noMargins?: boolean) {
+        const tbox = Docs.Create.TextDocument("", {
+            _xMargin: noMargins ? 0 : undefined, _yMargin: noMargins ? 0 : undefined,
+            _width: width || 200, _height: height || 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
+        });
+        const template = FormattedTextBox.DefaultLayout;
+        if (template instanceof Doc) {
+            tbox._width = NumCast(template._width);
+            tbox.layoutKey = "layout_" + StrCast(template.title);
+            Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
+        }
+        return tbox;
+    }
+
+    public static get MySearchPanelDoc() { return Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null); }
+    public static get ActiveDashboard() { return Cast(Doc.UserDoc().activeDashboard, Doc, null); }
+    public static get ActivePresentation() { return Cast(Doc.UserDoc().activePresentation, Doc, null); }
+    public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
+    public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
+    public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
 }
 
-Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
-    "creates a new workspace when called");
-
+Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
+    const copy = Doc.copyDragFactory(dragFactory);
+    if (copy) {
+        CollectionDockingView.AddSplit(copy, "right");
+        const view = DocumentManager.Instance.getFirstDocumentView(copy);
+        view && SelectionManager.SelectDoc(view, false);
+    }
+});
+Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
+    "creates a snapshot copy of a dashboard");
+Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },
+    "creates a new dashboard when called");
+Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
+    "creates a new presentation when called");
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
     "returns all the links directly to the document", "(doc: any)");
+Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
+    "imports files from device directly into the import sidebar");

@@ -132,7 +132,6 @@ export namespace InteractionUtils {
         if (isNaN(scaley)) {
             scaley = 1;
         }
-        console.log(pts.length);
         return pts;
     }
 
@@ -140,7 +139,7 @@ export namespace InteractionUtils {
 
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
-        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+        dash: string | undefined, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
@@ -182,13 +181,13 @@ export namespace InteractionUtils {
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
-        const dashArray = String(Number(width) * Number(dash));
+        const dashArray = dash && Number(dash) ? String(Number(width) * Number(dash)) : undefined;
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
 
         const addables = pts.map((pts, i) =>
             <svg height="10" width="10">
-                <circle cx={(pts.X - left - width / 2) * scalex + width / 2} cy={(pts.Y - top - width / 2) * scaley + width / 2} r={strokeWidth / 2} stroke="black" stroke-width={1} fill="blue"
+                <circle cx={(pts.X - left - width / 2) * scalex + width / 2} cy={(pts.Y - top - width / 2) * scaley + width / 2} r={strokeWidth / 2} stroke="black" strokeWidth={1} fill="blue"
                     onDoubleClick={(e) => { console.log(i); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
@@ -210,7 +209,7 @@ export namespace InteractionUtils {
                 points={strpts}
                 style={{
                     filter: drawHalo ? "url(#inkSelectionHalo)" : undefined,
-                    fill: fill ? fill : "transparent",
+                    fill: fill ? fill : "none",
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
@@ -230,7 +229,7 @@ export namespace InteractionUtils {
     export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
         if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {
             //pointer is up (first and last points are the same)
-            if (shape === "arrow" || shape === "line") {
+            if (shape === "arrow" || shape === "line" || shape === "circle") {
                 //if arrow or line, the two end points should be the starting and the ending point
                 var left = points[0].X;
                 var top = points[0].Y;
@@ -252,7 +251,7 @@ export namespace InteractionUtils {
             left = points[0].X;
             bottom = points[points.length - 1].Y;
             top = points[0].Y;
-            if (shape !== "arrow" && shape !== "line") {
+            if (shape !== "arrow" && shape !== "line" && shape !== "circle") {
                 //switch left/right and top/bottom if needed
                 if (left > right) {
                     const temp = right;
@@ -300,19 +299,36 @@ export namespace InteractionUtils {
 
                 return points;
             case "circle":
-                const centerX = (right + left) / 2;
-                const centerY = (bottom + top) / 2;
-                const radius = bottom - centerY;
-                for (var y = top; y < bottom; y++) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    points.push({ X: x, Y: y });
+
+
+                const centerX = (Math.max(left, right) + Math.min(left, right)) / 2;
+                const centerY = (Math.max(top, bottom) + Math.min(top, bottom)) / 2;
+                const radius = Math.max(centerX - Math.min(left, right), centerY - Math.min(top, bottom));
+                if (centerX - Math.min(left, right) < centerY - Math.min(top, bottom)) {
+                    for (var y = Math.min(top, bottom); y < Math.max(top, bottom); y++) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        points.push({ X: x, Y: y });
+                    }
+                    for (var y = Math.max(top, bottom); y > Math.min(top, bottom); y--) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        const newX = centerX - (x - centerX);
+                        points.push({ X: newX, Y: y });
+                    }
+                    points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((Math.min(top, bottom) - centerY), 2))) + centerX, Y: Math.min(top, bottom) });
+
+                } else {
+                    for (var x = Math.min(left, right); x < Math.max(left, right); x++) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        points.push({ X: x, Y: y });
+                    }
+                    for (var x = Math.max(left, right); x > Math.min(left, right); x--) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        const newY = centerY - (y - centerY);
+                        points.push({ X: x, Y: newY });
+                    }
+                    points.push({ X: Math.min(left, right), Y: Math.sqrt(Math.pow(radius, 2) - (Math.pow((Math.min(left, right) - centerX), 2))) + centerY });
+
                 }
-                for (var y = bottom; y > top; y--) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    const newX = centerX - (x - centerX);
-                    points.push({ X: newX, Y: y });
-                }
-                points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 return points;
             // case "arrow":
             //     const x1 = left;
@@ -333,7 +349,6 @@ export namespace InteractionUtils {
             //     points.push({ X: x2, Y: y2 });
             //     return points;
             case "line":
-
                 points.push({ X: left, Y: top });
                 points.push({ X: right, Y: bottom });
                 return points;

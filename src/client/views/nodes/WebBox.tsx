@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym, HeightSym, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
-import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue } from "../../../Utils";
+import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -24,13 +24,16 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import Annotation from "../pdf/Annotation";
-import PDFMenu from "../pdf/PDFMenu";
+import { Annotation } from "../pdf/Annotation";
+import { PDFMenu } from "../pdf/PDFMenu";
 import { PdfViewerMarquee } from "../pdf/PDFViewer";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import "../pdf/PDFViewer.scss";
 import React = require("react");
+import { Tooltip } from '@material-ui/core';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { FormattedTextBox } from './formattedText/FormattedTextBox';
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -67,6 +70,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _iframeDragRef = React.createRef<HTMLDivElement>();
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
+    constructor(props: any) {
+        super(props);
+        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 850));
+        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, this.Document[HeightSym]() / this.Document[WidthSym]() * 850));
+    }
+
     iframeLoaded = action((e: any) => {
         const iframe = this._iframeRef.current;
         if (iframe && iframe.contentDocument) {
@@ -100,10 +109,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scrollTop = e.target?.children?.[0].scrollTop;
-        const scrollLeft = e.target?.children?.[0].scrollLeft;
-        this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-        this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        if (e.target?.children) {
+            e.target.children[0].scrollLeft = 0;
+            const scrollTop = e.target.children[0].scrollTop;
+            const scrollLeft = e.target.children[0].scrollLeft;
+            this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+            this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        }
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -235,80 +247,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         e.stopPropagation();
     }
 
-    toggleAnnotationMode = () => {
-        this.layoutDoc.isAnnotating = !this.layoutDoc.isAnnotating;
-    }
-
-    urlEditor() {
-        return (
-            <div className="webBox-urlEditor"
-                onDrop={this.onUrlDrop}
-                onDragOver={this.onUrlDragover} style={{ top: this._collapsed ? -70 : 0 }}>
-                <div className="urlEditor">
-                    <div className="editorBase">
-                        <button className="editor-collapse"
-                            style={{
-                                top: this._collapsed ? 70 : 0,
-                                transform: `rotate(${this._collapsed ? 180 : 0}deg) scale(${this._collapsed ? 0.5 : 1}) translate(${this._collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: (this._collapsed && !this.props.isSelected()) ? 0 : 0.9,
-                                left: (this._collapsed ? 0 : "unset"),
-                            }}
-                            title="Collapse Url Editor" onClick={this.toggleCollapse}>
-                            <FontAwesomeIcon icon="caret-up" size="2x" />
-                        </button>
-                        <div className="webBox-buttons"
-                            onDrop={this.onUrlDrop}
-                            onDragOver={this.onUrlDragover} style={{ display: this._collapsed ? "none" : "flex" }}>
-                            <div className="webBox-freeze" title={"Annotate"} style={{ background: this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
-                                <FontAwesomeIcon icon={faPen} size={"2x"} />
-                            </div>
-                            <div className="webBox-freeze" title={"Select"} style={{ background: !this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
-                                <FontAwesomeIcon icon={faMousePointer} size={"2x"} />
-                            </div>
-                            <input className="webpage-urlInput"
-                                placeholder="ENTER URL"
-                                value={this._url}
-                                onDrop={this.onUrlDrop}
-                                onDragOver={this.onUrlDragover}
-                                onChange={this.onURLChange}
-                                onKeyDown={this.onValueKeyDown}
-                                onClick={(e) => {
-                                    this._keyInput.current!.select();
-                                    e.stopPropagation();
-                                }}
-                                ref={this._keyInput}
-                            />
-                            <div style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                maxWidth: "120px",
-                            }}>
-                                <button className="submitUrl" onClick={this.submitURL}
-                                    onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
-                                    GO
-                                </button>
-                                <button className="submitUrl" onClick={this.back}>
-                                    <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
-                                </button>
-                                <button className="submitUrl" onClick={this.forward}>
-                                    <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    editToggleBtn() {
+        return <Tooltip title={<div className="dash-tooltip" >{`${this.props.Document.isAnnotating ? "Exit" : "Enter"} annotation mode`}</div>}>
+            <div className="webBox-annotationToggle"
+                style={{ color: this.props.Document.isAnnotating ? "black" : "white", backgroundColor: this.props.Document.isAnnotating ? "white" : "black" }}
+                onClick={action(() => this.layoutDoc.isAnnotating = !this.layoutDoc.isAnnotating)}>
+                <FontAwesomeIcon icon="edit" size="sm" />
             </div>
-        );
+        </Tooltip>;
     }
-
-
-    @action
-    toggleCollapse = () => {
-        this._collapsed = !this._collapsed;
-    }
-
-
 
     _ignore = 0;
     onPreWheel = (e: React.WheelEvent) => {
@@ -433,12 +380,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: (this.layoutDoc.UseCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.UseCors = !this.layoutDoc.UseCors, icon: "snowflake" });
+        funcs.push({ description: (this.layoutDoc.useCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.useCors = !this.layoutDoc.useCors, icon: "snowflake" });
+        funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : NumCast(this.layoutDoc._nativeWidth), icon: "snowflake" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
     }
@@ -453,7 +401,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (field instanceof HtmlField) {
             view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
+            const url = this.layoutDoc.useCors ? Utils.CorsProxy(field.url.href) : field.url.href;
+            //    view = <iframe className="webBox-iframe" src={url} onLoad={e => { e.currentTarget.before((e.currentTarget.contentDocument?.body || e.currentTarget.contentDocument)?.children[0]!); e.currentTarget.remove(); }}
+
             view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded}
                 // the 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' attributes are left out to prevent iframes from redirecting the top-level Dash page
                 sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"} />;
@@ -465,25 +415,23 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @computed
     get content() {
         const view = this.urlContent;
-        const decInteracting = DocumentDecorations.Instance?.Interacting;
 
-        const frozen = !this.props.isSelected() || decInteracting;
+        const frozen = !this.props.isSelected() || DocumentDecorations.Instance?.Interacting;
 
         return (<>
-            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !decInteracting ? "-interactive" : "")}
-                style={{ width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%" }}
+            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
+                style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || (Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%") }}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
-            </div>;
+            </div>
             {!frozen ? (null) :
-                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc.isBackground ? undefined : "all" }}
+                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc._isBackground ? undefined : "all" }}
                     onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
                     <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
                         <div className="indicator" ref={this._iframeIndicatorRef}></div>
                         <div className="dragger" ref={this._iframeDragRef}></div>
                     </div>
                 </div>}
-            {this.urlEditor()}
         </>);
     }
 
@@ -510,7 +458,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         TraceMobx();
         return <div className="webBox-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={emptyFunction} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }
@@ -538,7 +486,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
-        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) ? this.makeAnnotationDocument(color) : undefined;
+        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) ? this.makeAnnotationDocument(color.replace(/[0-9.]*\)/, "0.3)")) : undefined;
         annotationDoc && this.addDocument?.(annotationDoc);
         return annotationDoc ?? undefined;
     }
@@ -551,22 +499,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         e.preventDefault();
         e.stopPropagation();
 
-        const clipDoc = Doc.MakeAlias(this.dataDoc);
-        clipDoc._fitWidth = true;
-        clipDoc._width = this.marqueeWidth();
-        clipDoc._height = this.marqueeHeight();
-        clipDoc._scrollTop = this.marqueeY();
-        const targetDoc = Docs.Create.TextDocument("", { _width: 125, _height: 125, title: "Note linked to " + this.props.Document.title });
-        Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
-        clipDoc.rootDocument = targetDoc;
-        targetDoc.layoutKey = "layout";
-        const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
+        const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 125, 125);
+        FormattedTextBox.SelectOnLoad = targetDoc[Id];
+        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.35)"); // hyperlink color
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
-                        DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
+                        e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
+                        annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     }
                 }
             });
@@ -682,7 +624,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     transform: `scale(${this.props.ContentScaling()})`,
                     width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                     height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+                    pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
@@ -690,7 +632,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
                         width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%",
-                        pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none"
+                        pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc._isBackground ? "all" : "none"
                     }}
                     onWheel={e => e.stopPropagation()}
                     onPointerDown={this.onMarqueeDown}
@@ -709,14 +651,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     }}>
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.layoutDoc.scrollHeight),
-                        pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+                        pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                     }}>
-                        <CollectionFreeFormView {...this.props}
+                        <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.props.PanelWidth}
                             annotationsKey={this.annotationKey}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
                             VisibleHeight={this.visibleHeiht}
                             focus={this.props.focus}
                             setPreviewCursor={this.setPreviewCursor}
@@ -733,6 +673,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             ScreenToLocalTransform={this.scrollXf}
                             renderDepth={this.props.renderDepth + 1}
                             docFilters={this.props.docFilters}
+                            docRangeFilters={this.props.docRangeFilters}
+                            searchFilterDocs={this.props.searchFilterDocs}
                             ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                         </CollectionFreeFormView>
                     </div>
@@ -740,6 +682,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.annotationLayer}
                 <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
             </div >
+
+            {this.props.isSelected() ? this.editToggleBtn() : null}
         </div>);
     }
 }

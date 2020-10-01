@@ -1,27 +1,23 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from '../../../fields/Doc';
+import { Doc, DocListCast } from '../../../fields/Doc';
 import { Cast, StrCast } from '../../../fields/Types';
+import { WebField } from '../../../fields/URLField';
+import { emptyFunction, setupMoveUpEvents } from '../../../Utils';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from '../../util/DragManager';
+import { Hypothesis } from '../../util/HypothesisUtils';
 import { LinkManager } from '../../util/LinkManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
+import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { DocumentView } from '../nodes/DocumentView';
+import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
-import { DocumentManager } from '../../util/DocumentManager';
-import { setupMoveUpEvents, emptyFunction, Utils, simulateMouseClick } from '../../../Utils';
-import { DocumentView } from '../nodes/DocumentView';
-import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { LinkDocPreview } from '../nodes/LinkDocPreview';
-import { Hypothesis } from '../../util/HypothesisUtils';
-import { Id } from '../../../fields/FieldSymbols';
-import { Tooltip } from '@material-ui/core';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { undoBatch } from '../../util/UndoManager';
-import { WebField } from '../../../fields/URLField';
-library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
 interface LinkMenuItemProps {
@@ -37,7 +33,7 @@ interface LinkMenuItemProps {
 
 // drag links and drop link targets (aliasing them if needed)
 export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: DocumentView, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
-    const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
+    const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
 
     if (draggedDocs.length) {
         const moddrag: Doc[] = [];
@@ -146,35 +142,34 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
         e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => LinkMenuItem.followDefault(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
-    @action.bound
-    followDefault() {
+
+    @action
+    public static followDefault(linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        const linkDoc = this.props.linkDoc;
 
-        if (linkDoc.followLinkLocation === "openExternal" && this.props.destinationDoc.type === DocumentType.WEB) {
+        if (linkDoc.followLinkLocation === "openExternal" && destinationDoc.type === DocumentType.WEB) {
             window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
-            return;
         }
 
-        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "Default") {
-            const annotationOn = this.props.destinationDoc.annotationOn as Doc;
-            this.props.addDocTab(annotationOn instanceof Doc ? annotationOn : this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
+        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
+            const annotationOn = destinationDoc.annotationOn as Doc;
+            addDocTab(annotationOn instanceof Doc ? annotationOn : destinationDoc, StrCast(linkDoc.followLinkLocation));
             if (annotationOn) {
                 setTimeout(() => {
-                    const dv = DocumentManager.Instance.getFirstDocumentView(this.props.destinationDoc);
-                    dv?.props.focus(this.props.destinationDoc, false);
+                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
+                    dv?.props.focus(destinationDoc, false);
                 });
             }
         } else {
-            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, addDocTab, false);
         }
 
-        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId), this.props.destinationDoc);
+        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
     }
 
     @undoBatch
@@ -254,7 +249,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
-                                    onPointerDown={this.followDefault}>
+                                    onPointerDown={() => DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false)}>
                                     {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>
