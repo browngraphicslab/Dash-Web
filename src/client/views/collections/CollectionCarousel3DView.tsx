@@ -166,7 +166,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     render() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        const translateX = (1 - index) / this.childLayoutPairs.length * 100;
+        const translateX = 33 * (1 - index);
 
         return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
             <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}%` }}>

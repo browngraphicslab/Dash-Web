@@ -1,6 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Checkbox, Tooltip } from "@material-ui/core";
+import { intersection } from "lodash";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
@@ -10,7 +11,7 @@ import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { GetEffectiveAcl, SharingPermissions } from "../../fields/util";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne } from "../../Utils";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -26,7 +27,6 @@ import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
-import { intersection } from "lodash";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -910,9 +910,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                         />
                                         <div className="propertiesView-acls-checkbox-text">Layout</div>
                                     </div>) : (null)}
-                                    <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
-                                        <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
-                                    </button>
+                                    <Tooltip title={<><div className="dash-tooltip">{"Re-distribute sharing settings"}</div></>}>
+                                        <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
+                                            <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
+                                        </button>
+                                    </Tooltip>
                                 </div>
                                 {this.sharingTable}
                             </div>}
