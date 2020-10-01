@@ -7,7 +7,7 @@ import * as RequestPromise from "request-promise";
 import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from "../../fields/util";
+import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
@@ -154,13 +154,13 @@ export class SharingManager extends React.Component<{}> {
     setInternalGroupSharing = (group: Doc | { groupName: string }, permission: string, targetDoc?: Doc) => {
 
         const target = targetDoc || this.targetDoc!;
-        const key = StrCast(group.groupName).replace(".", "_");
+        const key = normalizeEmail(StrCast(group.groupName));
         const acl = `acl-${key}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (group instanceof Doc) {
@@ -246,13 +246,13 @@ export class SharingManager extends React.Component<{}> {
     setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
         const { user, notificationDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
-        const key = user.email.replace('.', '_');
+        const key = normalizeEmail(user.email);
         const acl = `acl-${key}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, doc);
@@ -456,8 +456,8 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${user.email.replace('.', '_')}`) : docs[0]?.author !== user.email).map(({ user, notificationDoc, userColor }) => {
-            const userKey = `acl-${user.email.replace('.', '_')}`;
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, notificationDoc, userColor }) => {
+            const userKey = `acl-${normalizeEmail(user.email)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
 
@@ -514,7 +514,7 @@ export class SharingManager extends React.Component<{}> {
                         <span className={"padding"}>Me</span>
                         <div className="edit-actions">
                             <div className={"permissions-dropdown"}>
-                                {targetDoc?.[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`]}
+                                {targetDoc?.[`acl-${Doc.CurrentUserEmailNormalized}`]}
                             </div>
                         </div>
                     </div>
