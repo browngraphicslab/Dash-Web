@@ -566,7 +566,7 @@ export class CurrentUserUtils {
                 title: "menuItemPanel",
                 childDropAction: "alias",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-                _backgroundColor: "black",
+                _backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled", system: true
@@ -729,7 +729,7 @@ export class CurrentUserUtils {
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
+                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -743,7 +743,7 @@ export class CurrentUserUtils {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
@@ -759,7 +759,7 @@ export class CurrentUserUtils {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
@@ -777,7 +777,7 @@ export class CurrentUserUtils {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -792,7 +792,7 @@ export class CurrentUserUtils {
             doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
@@ -808,7 +808,7 @@ export class CurrentUserUtils {
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false,
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }

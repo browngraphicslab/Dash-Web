@@ -234,8 +234,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {
+        const target = this.document !== Doc.UserDoc().sidebar ? this.document : this.document.proto as Doc;
         //@ts-ignore
-        this.document._viewType = e.target.selectedOptions[0].value;
+        target._viewType = e.target.selectedOptions[0].value;
     }
 
     commandChanged = (e: React.ChangeEvent) => {
