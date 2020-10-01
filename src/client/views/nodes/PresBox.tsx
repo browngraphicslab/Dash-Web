@@ -118,7 +118,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
-        this.layoutDoc._gridGap = 5;
+        this.layoutDoc._gridGap = 0;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(async pres => {
             await Promise.all(pres!);
@@ -277,7 +277,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "inPlace") : this.props.addDocTab(activeItem, "replace:right");
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -526,7 +526,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // pivot field may be set by the user in timeline view (or some other way) -- need to reset it here
         viewType === CollectionViewType.Stacking && (this.rootDoc._pivotField = undefined);
         this.rootDoc._viewType = viewType;
-        if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 5;
+        if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
 
     /**
@@ -1684,6 +1684,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </Tooltip>
                 <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                     <div className={`toolbar-button ${this.rootDoc.expandBoolean ? "active" : ""}`} onClick={this.toggleExpandMode}>
+                        {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                         <FontAwesomeIcon icon={"eye"} />
                     </div>
                 </Tooltip>
