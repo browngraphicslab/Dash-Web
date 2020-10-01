@@ -60,6 +60,7 @@ import React = require("react");
 import { DocumentManager } from '../../../util/DocumentManager';
 import { CollectionStackingView } from '../../collections/CollectionStackingView';
 import { CollectionViewType } from '../../collections/CollectionView';
+import { SnappingManager } from '../../../util/SnappingManager';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -1596,7 +1597,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const active = this.active();
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground;
+        const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && !this.layoutDoc._isBackground;
         selected && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props)); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!selected && FormattedTextBoxComment.textBox === this) { FormattedTextBoxComment.Hide(); }
         const minimal = this.props.ignoreAutoHeight;
@@ -1646,13 +1647,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer`} ref={this._scrollRef}
-                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active ? "none" : undefined }}
+                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
-                                pointerEvents: !active ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
+                                pointerEvents: !active && !SnappingManager.GetIsDragging() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}
                         />
                     </div>

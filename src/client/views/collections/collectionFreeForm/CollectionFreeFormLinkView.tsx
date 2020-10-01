@@ -26,7 +26,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this._anchorDisposer?.();
     }
     @action
-    timeout = action(() => (Date.now() < this._start++ + 1000) && (this._timeout = setTimeout(this.timeout, 25)))
+    timeout = action(() => (Date.now() < this._start++ + 1000) && (this._timeout = setTimeout(this.timeout, 25)));
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {

@@ -52,7 +52,7 @@ export class KeyManager {
 
     public unhandle = action((e: KeyboardEvent) => {
         if (e.key.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = false;
-    })
+    });
 
     public handle = action(async (e: KeyboardEvent) => {
         if (e.key.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = true;
@@ -75,7 +75,7 @@ export class KeyManager {
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
-    })
+    });
 
     private handleGreedy = action((keyname: string) => {
         switch (keyname) {
@@ -149,7 +149,7 @@ export class KeyManager {
             stopPropagation: stopPropagation,
             preventDefault: preventDefault
         };
-    })
+    });
 
     private alt = action((keyname: string) => {
         const stopPropagation = true;
