@@ -37,50 +37,15 @@ $slide-active: #5B9FDD;
         overflow: hidden;
     }
 
-    .presItem-slide {
-        position: relative;
-        background-color: #d5dce2;
-        border-radius: 5px;
-        /* margin-left: 20px; */
-        height: calc(100% - 5px);
-        width: 100%;
-        display: grid;
-        grid-template-columns: max-content max-content max-content max-content auto;
-
-        .presItem-name {
-            z-index: 300;
-            align-self: center;
-            font-size: 13px;
-            font-family: Roboto;
-            font-weight: 500;
-            position: relative;
-            top: 1px;
-            padding-left: 10px;
-            padding-right: 10px;
-            letter-spacing: normal;
-            width: max-content;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: pre;
-        }
-    }
-
-    .presItem-slide.active {
-        border: solid 2px $dark-blue;
-    }
-
-    .presItem-slide:hover {
-        background: $slide-hover;
-    }
+    
 }
 
 .presItem-slide {
     position: relative;
     background-color: #d5dce2;
     border-radius: 5px;
-    /* margin-left: 20px; */
     height: calc(100% - 5px);
-    width: 100%;
+    width: calc(100% - 5px);
     display: grid;
     grid-template-columns: max-content max-content max-content max-content auto;
 
@@ -102,55 +67,17 @@ $slide-active: #5B9FDD;
     }
 }
 
-.presElementBox-highlight {
-    position: absolute;
-    transform: translate(-100px, -4px);
-    z-index: -1;
-    width: calc(100% + 200px);
-    height: calc(100% + 8px);
-    background-color: $light-blue;
+.presItem-slide.active {
+    border: solid 2px $dark-blue;
 }
 
-.presElementBox-highlightTop {
-    position: absolute;
-    transform: translate(-100px, -4px);
-    z-index: -1;
-    width: calc(100% + 200px);
-    height: calc(50% + 4px);
-}
-
-.presElementBox-highlightBottom {
-    position: absolute;
-    transform: translate(-100px, 0px);
-    z-index: -1;
-    top: 50%;
-    width: calc(100% + 200px);
-    height: calc(50% + 4px);
+.presItem-slide:hover {
+    background: $slide-hover;
 }
 
 .documentView-node {
     position: absolute;
     z-index: 1;
-}
-
-.presElementBox-item-above {
-    border-top: black 2px solid;
-}
-
-.presElementBox-item-below {
-    border-bottom: black 2px solid;
-}
-
-.presElementBox-item:hover {
-    transition: all .1s;
-    background: #98b7da;
-    border-radius: 6px;
-}
-
-.presElementBox-active {
-    color: black;
-    border-radius: 6px;
-    border: solid 2px $dark-blue;
 }
 
 .presElementBox-buttons {
@@ -174,19 +101,6 @@ $slide-active: #5B9FDD;
         width: 20px;
         height: 20px;
     }
-}
-
-.presElementBox-number {
-    font-size: 12px;
-    width: 20;
-    font-weight: 700;
-    text-align: right;
-    justify-content: center;
-    align-content: center;
-    left: -20;
-    position: absolute;
-    display: inline-block;
-    overflow: hidden;
 }
 
 .presElementBox-name {
