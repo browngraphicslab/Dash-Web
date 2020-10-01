@@ -88,7 +88,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltipInput.type = "checkbox";
             FormattedTextBoxComment.tooltip = document.createElement("div");
             FormattedTextBoxComment.tooltipText = document.createElement("div");
-            FormattedTextBoxComment.tooltipText.style.width = "100%";
+            //FormattedTextBoxComment.tooltipText.style.width = "100%";
             FormattedTextBoxComment.tooltipText.style.height = "100%";
             FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
@@ -234,6 +234,7 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
                 } catch (e) { }
                 FormattedTextBoxComment.tooltipText = document.createElement("div");
+                FormattedTextBoxComment.tooltipText.className = "FormattedTextBoxComment-toolTipText";
                 FormattedTextBoxComment.tooltipText.style.width = "100%";
                 FormattedTextBoxComment.tooltipText.style.height = "100%";
                 FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
@@ -329,7 +330,7 @@ export class FormattedTextBoxComment {
 
                                 ReactDOM.render(docPreview, FormattedTextBoxComment.tooltipText);
 
-                                FormattedTextBoxComment.tooltip.style.width = "100%";
+                                //FormattedTextBoxComment.tooltip.style.width = "100%";
                                 FormattedTextBoxComment.tooltip.style.height = "100%";
                             }
                         }

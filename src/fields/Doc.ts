@@ -1026,6 +1026,8 @@ export namespace Doc {
         const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
+            const docs = vals.some(v => (v as any) instanceof Doc);
+            if (docs) return value === Field.toString(fieldVal as Field);
             return vals.some(v => v.includes(value));  // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
         }
         const fieldStr = Field.toString(fieldVal as Field);
