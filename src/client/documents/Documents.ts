@@ -574,7 +574,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
+        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data", protoId?: string) {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
 
             protoProps.system = delegateProps.system;
@@ -590,7 +590,7 @@ export namespace Docs {
 
             protoProps.isPrototype = true;
 
-            const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
+            const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey, protoId);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
             // so that the list of annotations is already initialised, prevents issues in addonly.
@@ -620,8 +620,8 @@ export namespace Docs {
          * @param options initial values to apply to this new delegate
          * @param value the data to store in this new delegate
          */
-        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D, fieldKey: string = "data") {
-            const deleg = Doc.MakeDelegate(proto);
+        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D, fieldKey: string = "data", id: string | undefined = undefined) {
+            const deleg = Doc.MakeDelegate(proto, id);
             if (value !== undefined) {
                 deleg[fieldKey] = value;
             }
@@ -807,8 +807,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
-        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Stacking }, id);
+        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Stacking }, id, undefined, protoId);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {

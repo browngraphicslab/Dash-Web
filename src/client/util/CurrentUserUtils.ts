@@ -30,6 +30,7 @@ import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
+import { SharingPermissions } from "../../fields/util";
 
 
 const headerViewVersion = "0.1";
@@ -874,11 +875,13 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static async setupSharingSidebar(doc: Doc, sharingDocumentId: string) {
         if (doc.mySharedDocs === undefined) {
-            let sharedDocs = await DocServer.GetRefField(sharingDocumentId);
+            let sharedDocs = await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
-                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true
-                }, sharingDocumentId);
+                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
+                    _showTitle: "title", ignoreClick: true, lockedPosition: true,
+                }, sharingDocumentId + "outer", sharingDocumentId);
+                (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
                 sharedDocs.userColor = sharedDocs.userColor || "#12121233";

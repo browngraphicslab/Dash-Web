@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -166,7 +166,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     if (this.props.Document[AclSym]) {
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                                if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
                                 //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
                                 // else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }

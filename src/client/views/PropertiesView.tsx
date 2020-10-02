@@ -10,7 +10,7 @@ import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
-import { GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { GetEffectiveAcl, SharingPermissions, denormalizeEmail } from "../../fields/util";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne } from "../../Utils";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
@@ -409,20 +409,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
         if (commonKeys.length) {
             for (const key of commonKeys) {
-                const name = key.substring(4).replace("_", ".");
+                const name = denormalizeEmail(key.substring(4));
                 const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[key] === docs[0]?.[AclSym]?.[key] : doc?.[DataSym]?.[AclSym]?.[key] === docs[0]?.[DataSym]?.[AclSym]?.[key]);
                 if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public" && name !== "Override"/* && sidebarUsersDisplayed![name] !== false*/) {
                     tableEntries.push(this.sharingItem(name, showAdmin, uniform ? AclMap.get(this.layoutDocAcls ? target[AclSym][key] : target[DataSym][AclSym][key])! : "-multiple-"));
                 }
             }
         }
-
-        //     if (Doc.UserDoc().sidebarUsersDisplayed) {
-        //         for (const [name, value] of Object.entries(sidebarUsersDisplayed!)) {
-        //             if (value === true && !this.selectedDoc![`acl-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
-        //         }
-        //     }
-        // })
 
         const ownerSame = Doc.CurrentUserEmail !== target.author && docs.filter(doc => doc).every(doc => doc.author === docs[0].author);
         // shifts the current user, owner, public to the top of the doc.
