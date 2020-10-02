@@ -8,18 +8,22 @@
   <fieldType name="text" class="solr.TextField" positionIncrementGap="100" multiValued="true">
     <analyzer type="index">
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
-      <!-- <tokenizer class="solr.StandardTokenizerFactory"/> -->
         <filter class="solr.StopFilterFactory" words="stopwords.txt"/>
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.WordDelimiterGraphFilterFactory" preserveOriginal="1" catenateWords="1"/>
+        <filter class="solr.FlattenGraphFilterFactory"/> <!-- required on index analyzers after graph filters -->
+        <!-- <tokenizer class="solr.StandardTokenizerFactory"/> -->
         <!-- <filter class="solr.PorterStemFilterFactory"/>
         <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="12"/> -->
         <!-- <filter catenateAll="0" catenateNumbers="0" catenateWords="0" class="solr.WordDelimiterFilterFactory" generateNumberParts="1" generateWordParts="1" splitOnCaseChange="1" types="characters.txt"/> -->
     </analyzer>
     <analyzer type="query">
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
+        <!-- <tokenizer class="solr.EdgeNGramTokenizerFactory" minGramSize="2" maxGramSize="15"/> -->
       <!-- <tokenizer class="solr.StandardTokenizerFactory"/> -->
         <filter class="solr.StopFilterFactory" words="stopwords.txt"/>
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.WordDelimiterGraphFilterFactory" preserveOriginal="1" catenateWords="1"/>
         <!-- <filter class="solr.PorterStemFilterFactory"/> -->
         <!-- <filter catenateAll="0" catenateNumbers="0" catenateWords="0" class="solr.WordDelimiterFilterFactory" generateNumberParts="1" generateWordParts="1" splitOnCaseChange="1" types="characters.txt"/> -->
     </analyzer>
