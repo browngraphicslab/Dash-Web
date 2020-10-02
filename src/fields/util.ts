@@ -117,10 +117,10 @@ export function OVERRIDE_acl(val: boolean) {
 }
 
 export function normalizeEmail(email: string) {
-    return email.replace('.', '__');
+    return email.replace(/\./g, '__');
 }
 export function denormalizeEmail(email: string) {
-    return email.replace('__', '.');
+    return email.replace(/__/g, '.');
 }
 
 // playground mode allows the user to add/delete documents or make layout changes without them saving to the server
