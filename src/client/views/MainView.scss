@@ -319,6 +319,9 @@
 .mainView-libraryFlyout-out {
     transition: width .25s;
     box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
+    .mainView-docButtons {
+        left: 0;
+    }
 }
 
 

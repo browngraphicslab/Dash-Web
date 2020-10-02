@@ -312,7 +312,9 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
-        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out"}`} style={{ width: 0 }} /> :
+        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
+            {this.docButtons}
+        </div> :
             <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
                 <div className="mainView-contentArea" >
                     <DocumentView
