@@ -1020,10 +1020,10 @@ export class CurrentUserUtils {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
-            const { userDocumentId, sharingDocumentId } = JSON.parse(ids) as any;
+            const { userDocumentId, sharingDocumentId } = JSON.parse(ids);
             if (userDocumentId !== "guest") {
                 return DocServer.GetRefField(userDocumentId).then(async field =>
-                    await this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId));
+                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
