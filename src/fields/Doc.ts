@@ -888,7 +888,7 @@ export namespace Doc {
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
-    export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
+    export function SetUserDoc(doc: Doc) { return (manager._user_doc = doc); }
 
     export function IsSearchMatch(doc: Doc) {
         return computedFn(function IsSearchMatch(doc: Doc) {

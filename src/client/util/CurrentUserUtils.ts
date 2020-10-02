@@ -1023,7 +1023,7 @@ export class CurrentUserUtils {
             const { userDocumentId, sharingDocumentId } = JSON.parse(ids) as any;
             if (userDocumentId !== "guest") {
                 return DocServer.GetRefField(userDocumentId).then(async field =>
-                    Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(userDocumentId, true), sharingDocumentId)));
+                    await this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
