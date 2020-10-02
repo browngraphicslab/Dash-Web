@@ -25,7 +25,7 @@ import { SearchBox } from "../views/search/SearchBox";
 
 export interface User {
     email: string;
-    userDocumentId: string;
+    sharingDocumentId: string;
 }
 
 /**
@@ -50,11 +50,10 @@ const storage = "data";
  * A user who also has a notificationDoc.
  */
 interface ValidatedUser {
-    user: User;
-    notificationDoc: Doc;
-    userColor: string;
+    user: User;         // database minimal info to identify / communicate with a user (email, sharing doc id)
+    sharingDoc: Doc;    // document to share/message another user
+    userColor: string;  // stored on the sharinDoc, extracted for convenience?
 }
-
 
 @observer
 export class SharingManager extends React.Component<{}> {
@@ -119,7 +118,7 @@ export class SharingManager extends React.Component<{}> {
     }
 
     /**
-     * Populates the list of validated users (this.users) by adding registered users which have a mySharedDocs.
+     * Populates the list of validated users (this.users) by adding registered users which have a sharingDocument.
      */
     populateUsers = async () => {
         if (!this.populating) {
@@ -130,15 +129,9 @@ export class SharingManager extends React.Component<{}> {
             const evaluating = raw.map(async user => {
                 const isCandidate = user.email !== Doc.CurrentUserEmail;
                 if (isCandidate) {
-                    const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                    if (userDocument instanceof Doc) {
-                        const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
-                        const userColor = StrCast(userDocument.userColor);
-                        runInAction(() => {
-                            if (notificationDoc instanceof Doc) {
-                                this.users.push({ user, notificationDoc, userColor });
-                            }
-                        });
+                    const userSharingDoc = await DocServer.GetRefField(user.sharingDocumentId);
+                    if (userSharingDoc instanceof Doc) {
+                        runInAction(() => this.users.push({ user, sharingDoc: userSharingDoc, userColor: StrCast(userSharingDoc.userColor) }));
                     }
                 }
             });
@@ -170,7 +163,7 @@ export class SharingManager extends React.Component<{}> {
                 // if documents have been shared, add the doc to that list if it doesn't already exist, otherwise create a new list with the doc
                 group.docsShared ? Doc.IndexOf(doc, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(doc) : group.docsShared = new List<Doc>([doc]);
 
-                users.forEach(({ user, notificationDoc }) => {
+                users.forEach(({ user, sharingDoc: notificationDoc }) => {
                     if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, doc); // add the doc to the notificationDoc if it hasn't already been added
                     else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
                 });
@@ -185,7 +178,7 @@ export class SharingManager extends React.Component<{}> {
      */
     shareWithAddedMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
-        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
     }
 
     /**
@@ -216,7 +209,7 @@ export class SharingManager extends React.Component<{}> {
 
         if (group.docsShared) {
             DocListCast(group.docsShared).forEach(doc => {
-                Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc); // remove the doc only if it is in the list
+                Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
             });
         }
     }
@@ -235,7 +228,7 @@ export class SharingManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-                users.forEach(({ notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
+                users.forEach(({ sharingDoc: notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
             });
         }
     }
@@ -244,7 +237,7 @@ export class SharingManager extends React.Component<{}> {
      * Shares the document with a user.
      */
     setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
-        const { user, notificationDoc } = recipient;
+        const { user, sharingDoc: notificationDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
         const key = normalizeEmail(user.email);
         const acl = `acl-${key}`;
@@ -456,7 +449,7 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, notificationDoc, userColor }) => {
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, sharingDoc: notificationDoc, userColor }) => {
             const userKey = `acl-${normalizeEmail(user.email)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
@@ -472,7 +465,7 @@ export class SharingManager extends React.Component<{}> {
                             <select
                                 className={"permissions-dropdown"}
                                 value={permissions}
-                                onChange={e => this.setInternalSharing({ user, notificationDoc, userColor }, e.currentTarget.value)}
+                                onChange={e => this.setInternalSharing({ user, sharingDoc: notificationDoc, userColor }, e.currentTarget.value)}
                             >
                                 {this.sharingOptions(uniform)}
                             </select>

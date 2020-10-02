@@ -64,14 +64,10 @@ export class GroupManager extends React.Component<{}> {
             const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
             const raw = JSON.parse(userList) as User[];
             const evaluating = raw.map(async user => {
-                const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
-                    runInAction(() => {
-                        if (notificationDoc instanceof Doc) {
-                            this.users.push(user.email);
-                        }
-                    });
+                const userSharingDocument = await DocServer.GetRefField(user.sharingDocumentId);
+                if (userSharingDocument instanceof Doc) {
+                    const notificationDoc = await Cast(userSharingDocument.mySharedDocs, Doc, null);
+                    runInAction(() => notificationDoc && this.users.push(user.email));
                 }
             });
             return Promise.all(evaluating).then(() => this.populating = false);

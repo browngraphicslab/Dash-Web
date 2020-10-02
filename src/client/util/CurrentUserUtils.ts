@@ -404,7 +404,7 @@ export class CurrentUserUtils {
             const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
                 "<div style={'height:100%'}>" +
-                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.userColor}' />" +
+                "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.mySharedDocs.userColor}' />" +
                 "    <FormattedTextBox {...props} fieldKey={'text'} position='absolute' top='{(this._headerHeight)*scale}px' height='calc({100/scale}% - {this._headerHeight}px)'/>" +
                 "</div>";
             (headerTemplate.proto as Doc).isTemplateDoc = makeTemplate(headerTemplate.proto as Doc, true, "headerView");
@@ -513,10 +513,7 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static menuBtnDescriptions(doc: Doc): {
-        title: string, target: Doc, icon: string, click: string, watchedDocuments?: Doc
-    }[] {
-        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+    static async menuBtnDescriptions(doc: Doc) {
         return [
             { title: "Dashboards", target: Cast(doc.myDashboards, Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
@@ -540,9 +537,10 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
-    static setupMenuPanel(doc: Doc) {
+    static async setupMenuPanel(doc: Doc, sharingDocumentId: string) {
         if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, target, icon, click, watchedDocuments }) =>
+            await this.setupSharingSidebar(doc, sharingDocumentId);  // sets up the right sidebar collection for mobile upload documents and sharing
+            const menuBtns = (await CurrentUserUtils.menuBtnDescriptions(doc)).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
                     iconShape: "square",
@@ -874,9 +872,18 @@ export class CurrentUserUtils {
     }
 
     // Sharing sidebar is where shared documents are contained
-    static setupSharingSidebar(doc: Doc) {
+    static async setupSharingSidebar(doc: Doc, sharingDocumentId: string) {
         if (doc.mySharedDocs === undefined) {
-            doc.mySharedDocs = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
+            let sharedDocs = await DocServer.GetRefField(sharingDocumentId);
+            if (!sharedDocs) {
+                sharedDocs = Docs.Create.StackingDocument([], {
+                    title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15, _showTitle: "title", ignoreClick: true, lockedPosition: true
+                }, sharingDocumentId);
+            }
+            if (sharedDocs instanceof Doc) {
+                sharedDocs.userColor = sharedDocs.userColor || "#12121233";
+            }
+            doc.mySharedDocs = new PrefetchProxy(sharedDocs);
         }
     }
 
@@ -943,11 +950,10 @@ export class CurrentUserUtils {
         return doc.clickFuncs as Doc;
     }
 
-    static async updateUserDocument(doc: Doc) {
+    static async updateUserDocument(doc: Doc, sharingDocumentId: string) {
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
-        doc.userColor = doc.userColor || "#12121233";
         doc._raiseWhenDragged = true;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
@@ -976,7 +982,7 @@ export class CurrentUserUtils {
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
-        this.setupMenuPanel(doc);
+        await this.setupMenuPanel(doc, sharingDocumentId);
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
         doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
@@ -1013,10 +1019,11 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         Doc.CurrentUserEmail = email;
-        await rp.get(Utils.prepend("/getUserDocumentId")).then(id => {
-            if (id && id !== "guest") {
-                return DocServer.GetRefField(id).then(async field =>
-                    Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(id, true))));
+        await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
+            const { userDocumentId, sharingDocumentId } = JSON.parse(ids) as any;
+            if (userDocumentId !== "guest") {
+                return DocServer.GetRefField(userDocumentId).then(async field =>
+                    Doc.SetUserDoc(await this.updateUserDocument(field instanceof Doc ? field : new Doc(userDocumentId, true), sharingDocumentId)));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

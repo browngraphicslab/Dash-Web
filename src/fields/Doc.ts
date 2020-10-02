@@ -867,6 +867,7 @@ export namespace Doc {
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
+        @observable _sharing_doc: Doc = undefined!;
         @observable _searchQuery: string = "";
     }
 
@@ -883,6 +884,7 @@ export namespace Doc {
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
+    export function SharingDoc(): Doc { return Cast(Doc.UserDoc().mySharedDocs, Doc, null); }
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }

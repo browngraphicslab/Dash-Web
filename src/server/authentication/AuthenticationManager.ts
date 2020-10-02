@@ -47,7 +47,8 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const model = {
         email,
         password,
-        userDocumentId: Utils.GenerateGuid()
+        userDocumentId: Utils.GenerateGuid(),
+        sharingDocumentId: Utils.GenerateGuid()
     } as Partial<DashUserModel>;
 
     const user = new User(model);

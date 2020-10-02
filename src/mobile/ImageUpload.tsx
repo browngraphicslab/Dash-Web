@@ -63,11 +63,11 @@ export class Uploader extends React.Component<ImageUploadProps> {
                                 doc = Docs.Create.ImageDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
                             }
                             this.setOpacity(4, "1"); // Slab 4
-                            const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                            const res = await rp.get(Utils.prepend("/getUserDocumentIds"));
                             if (!res) {
                                 throw new Error("No user id returned");
                             }
-                            const field = await DocServer.GetRefField(res);
+                            const field = await DocServer.GetRefField(JSON.parse(res).userDocumentId);
                             let pending: Opt<Doc>;
                             if (field instanceof Doc) {
                                 pending = col;
