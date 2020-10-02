@@ -66,8 +66,7 @@ export class GroupManager extends React.Component<{}> {
             const evaluating = raw.map(async user => {
                 const userSharingDocument = await DocServer.GetRefField(user.sharingDocumentId);
                 if (userSharingDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userSharingDocument.data, Doc, null);
-                    runInAction(() => notificationDoc && this.users.push(user.email));
+                    runInAction(() => this.users.push(user.email));
                 }
             });
             return Promise.all(evaluating).then(() => this.populating = false);
@@ -398,7 +397,7 @@ export class GroupManager extends React.Component<{}> {
                 <div className="group-heading">
                     <p><b>Manage Groups</b></p>
                     <button onClick={action(() => this.createGroupModalOpen = true)}>
-                        <FontAwesomeIcon icon={"plus-hexagon"} size={"sm"} /> Create Group
+                        <FontAwesomeIcon icon={"plus"} size={"sm"} /> Create Group
                     </button>
                     <div className={"close-button"} onClick={this.close}>
                         <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
