@@ -116,6 +116,13 @@ export function OVERRIDE_acl(val: boolean) {
     _overrideAcl = val;
 }
 
+export function normalizeEmail(email: string) {
+    return email.replace(/\./g, '__');
+}
+export function denormalizeEmail(email: string) {
+    return email.replace(/__/g, '.');
+}
+
 // playground mode allows the user to add/delete documents or make layout changes without them saving to the server
 // let playgroundMode = false;
 
@@ -184,7 +191,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
         for (const [key, value] of Object.entries(target[AclSym])) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
-            const entity = key.substring(4).replace('_', '.'); // an individual or a group
+            const entity = denormalizeEmail(key.substring(4)); // an individual or a group
             if (currentUserGroups.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;

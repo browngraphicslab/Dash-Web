@@ -53,7 +53,7 @@ export class AudioUpload extends React.Component {
      * Pushing the audio doc onto Dash Web through the right side bar
      */
     uploadAudio = () => {
-        const audioRightSidebar = Cast(Doc.UserDoc().mySharedDocs, Doc) as Doc;
+        const audioRightSidebar = Cast(Doc.SharingDoc(), Doc, null);
         const audioDoc = this._audioCol;
         const data = Cast(audioRightSidebar.data, listSpec(Doc));
         for (let i = 1; i < 8; i++) {

@@ -312,39 +312,40 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
-        return <div className={`mainView-libraryFlyout${this._flyoutWidth ? "" : "-out"}`} style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
-            <div className="mainView-contentArea" >
-                <DocumentView
-                    Document={this._sidebarContent}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={this.addDocTabFunc}
-                    pinToPres={emptyFunction}
-                    rootSelected={returnTrue}
-                    removeDocument={returnFalse}
-                    onClick={undefined}
-                    ScreenToLocalTransform={this.mainContainerXf}
-                    ContentScaling={returnOne}
-                    PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getContentsHeight}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={this.defaultBackgroundColors}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    docFilters={returnEmptyFilter}
-                    docRangeFilters={returnEmptyFilter}
-                    searchFilterDocs={returnEmptyDoclist}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    relative={true}
-                    forcedBackgroundColor={() => "lightgrey"}
-                />
-            </div>
-            {this.docButtons}
-        </div>;
+        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out"}`} style={{ width: 0 }} /> :
+            <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
+                <div className="mainView-contentArea" >
+                    <DocumentView
+                        Document={this._sidebarContent}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        addDocument={undefined}
+                        addDocTab={this.addDocTabFunc}
+                        pinToPres={emptyFunction}
+                        rootSelected={returnTrue}
+                        removeDocument={returnFalse}
+                        onClick={undefined}
+                        ScreenToLocalTransform={this.mainContainerXf}
+                        ContentScaling={returnOne}
+                        PanelWidth={this.flyoutWidthFunc}
+                        PanelHeight={this.getContentsHeight}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={this.defaultBackgroundColors}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                        relative={true}
+                        forcedBackgroundColor={() => "lightgrey"}
+                    />
+                </div>
+                {this.docButtons}
+            </div>;
     }
 
     @computed get menuPanel() {
@@ -393,6 +394,8 @@ export class MainView extends React.Component {
                 case "Catalog":
                     SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.enter(undefined);
+                    break;
+                case "Help":
                     break;
                 default:
                     this.expandFlyout(button);

@@ -3,7 +3,8 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { DataSym, Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
 import { ComputedField } from "../../../../fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../fields/Types";
+import { NumCast, StrCast } from "../../../../fields/Types";
+import { normalizeEmail } from "../../../../fields/util";
 import { returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -11,7 +12,6 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import { RichTextMenu } from "./RichTextMenu";
 import { schema } from "./schema_rts";
-import { List } from "../../../../fields/List";
 
 export class RichTextRules {
     public Document: Doc;
@@ -271,7 +271,7 @@ export class RichTextRules {
                 (state, match, start, end) => {
                     const fieldKey = match[1];
                     const rawdocid = match[3]?.substring(1);
-                    const docid = rawdocid ? (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "@" + rawdocid : rawdocid).replace(".", "_") : undefined;
+                    const docid = rawdocid ? (!rawdocid.includes("@") ? normalizeEmail(Doc.CurrentUserEmail) + "@" + rawdocid : rawdocid) : undefined;
                     const value = match[2]?.substring(1);
                     if (!fieldKey) {
                         const linkId = Utils.GenerateGuid();
@@ -304,7 +304,7 @@ export class RichTextRules {
                     const fieldKey = match[1] || "";
                     const fieldParam = match[2]?.replace("…", "...") || "";
                     const rawdocid = match[3]?.substring(1);
-                    const docid = rawdocid ? (!rawdocid.includes("@") ? Doc.CurrentUserEmail + "@" + rawdocid : rawdocid).replace(".", "_") : undefined;
+                    const docid = rawdocid ? (!rawdocid.includes("@") ? normalizeEmail(Doc.CurrentUserEmail) + "@" + rawdocid : rawdocid) : undefined;
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {

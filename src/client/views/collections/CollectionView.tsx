@@ -10,7 +10,7 @@ import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
 import { BoolCast, Cast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
+import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail, denormalizeEmail } from '../../../fields/util';
 import { returnFalse, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -143,7 +143,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 if (this.props.Document[AclSym]) {
                     added.forEach(d => {
                         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                            if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                            if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
                             //else if (this.props.Document[key] === SharingPermissions.Admin) distributeAcls(key, SharingPermissions.Add, d, true);
                             //else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                         }

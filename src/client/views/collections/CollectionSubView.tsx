@@ -1,6 +1,6 @@
 import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
+import { Doc, Opt, Field, DocListCast, AclPrivate } from "../../../fields/Doc";
 import { Id, ToString } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -101,7 +101,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
             const { Document, DataDoc } = this.props;
-            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).filter(pair => pair.layout);
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).
+                filter(pair => {  // filter out any documents that have a proto that we don't have permissions to (which we determine by not having any keys
+                    return pair.layout && (!pair.layout.proto || (pair.layout.proto instanceof Doc && Object.keys(pair.layout.proto).length));
+                });
             return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {

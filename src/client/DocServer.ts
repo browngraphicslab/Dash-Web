@@ -9,6 +9,7 @@ import { GestureOverlay } from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
+import { StrCast } from '../fields/Types';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -25,6 +26,15 @@ import { ObjectField } from '../fields/ObjectField';
  */
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
+
+    export function PRINT_CACHE() {
+        const strings: string[] = [];
+        Array.from(Object.keys(_cache)).forEach(key => {
+            const doc = _cache[key];
+            if (doc instanceof Doc) strings.push(StrCast(doc.author) + " " + StrCast(doc.title) + " " + StrCast(Doc.GetT(doc, "title", "string", true)));
+        });
+        strings.sort().forEach((str, i) => console.log(i.toString() + " " + str));
+    }
     export let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
     let GUID: string;

@@ -1049,7 +1049,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const titleView = (!this.ShowTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: this.showOverlappingTitle ? "absolute" : "relative",
-                background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.UserDoc().userColor) : "rgba(0,0,0,0.4)"),
+                background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}

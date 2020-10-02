@@ -105,7 +105,7 @@ export class FontIconBadge extends React.Component<FontIconBadgeProps> {
 
     render() {
         if (!(this.props.collection instanceof Doc)) return (null);
-        const length = DocListCast(this.props.collection.data).length;
+        const length = DocListCast(this.props.collection.data).filter(d => Object.keys(d).length).length; // filter out any documents that we can't read
         return <div className="fontIconBadge-container" style={{ width: 15, height: 15, top: 12 }} ref={this._notifsRef}>
             <div className="fontIconBadge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}
                 onPointerDown={this.onPointerDown} >

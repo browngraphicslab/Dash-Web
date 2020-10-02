@@ -19,42 +19,30 @@ import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions } from "./util";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions, normalizeEmail } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { SelectionManager } from "../client/util/SelectionManager";
+import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
         const onDelegate = Object.keys(doc).includes(key);
-
         const field = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-        if (Field.IsField(field)) {
-            return (onDelegate ? "=" : "") + (field instanceof ComputedField ? `:=${field.script.originalScript}` : Field.toScriptString(field));
-        }
-        return "";
+        return !Field.IsField(field) ? "" : (onDelegate ? "=" : "") + (field instanceof ComputedField ? `:=${field.script.originalScript}` : Field.toScriptString(field));
     }
     export function toScriptString(field: Field): string {
-        if (typeof field === "string") {
-            return `"${field}"`;
-        } else if (typeof field === "number" || typeof field === "boolean") {
-            return String(field);
-        } else {
-            return field[ToScriptString]();
-        }
+        if (typeof field === "string") return `"${field}"`;
+        if (typeof field === "number" || typeof field === "boolean") return String(field);
+        return field[ToScriptString]();
     }
     export function toString(field: Field): string {
-        if (typeof field === "string") {
-            return field;
-        } else if (typeof field === "number" || typeof field === "boolean") {
-            return String(field);
-        } else if (field instanceof ObjectField) {
-            return field[ToString]();
-        } else if (field instanceof RefField) {
-            return field[ToString]();
-        }
+        if (typeof field === "string") return field;
+        if (typeof field === "number" || typeof field === "boolean") return String(field);
+        if (field instanceof ObjectField) return field[ToString]();
+        if (field instanceof RefField) return field[ToString]();
         return "";
     }
     export function IsField(field: any): field is Field;
@@ -86,16 +74,10 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
     return list ? Promise.all(list).then(() => list) : Promise.resolve(defaultValue);
 }
 
-export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
-    return Cast(field, Doc);
-}
+export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> { return Cast(field, Doc); }
 
-export function DocListCast(field: FieldResult): Doc[] {
-    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
-}
-export function DocListCastOrNull(field: FieldResult) {
-    return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined;
-}
+export function DocListCast(field: FieldResult) { return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[]; }
+export function DocListCastOrNull(field: FieldResult) { return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined; }
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
@@ -127,10 +109,6 @@ export function fetchProto(doc: Doc) {
     Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
 
     if (Object.keys(permissions).length) doc[AclSym] = permissions;
-
-    if (GetEffectiveAcl(doc) === AclPrivate) {
-        runInAction(() => doc[FieldsSym](true));
-    }
 
     if (doc.proto instanceof Promise) {
         doc.proto.then(fetchProto);
@@ -193,17 +171,11 @@ export class Doc extends RefField {
         }
     }
     private get __fieldKeys() { return this.___fieldKeys; }
-    private set __fieldKeys(value) {
-        this.___fieldKeys = value;
-    }
+    private set __fieldKeys(value) { this.___fieldKeys = value; }
 
-    @observable
-    private ___fields: any = {};
-
-    @observable
-    private ___fieldKeys: any = {};
-    @observable
-    public [AclSym]: { [key: string]: symbol };
+    @observable private ___fields: any = {};
+    @observable private ___fieldKeys: any = {};
+    @observable public [AclSym]: { [key: string]: symbol };
 
     private [UpdatingFromServer]: boolean = false;
 
@@ -213,7 +185,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym](clear?: boolean) { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
+    public [FieldsSym](clear?: boolean) {
+        const self = this[SelfProxy];
+        runInAction(() => clear && Array.from(Object.keys(self)).forEach(key => delete self[key]));
+        return this.___fields;
+    }
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
@@ -242,6 +218,7 @@ export class Doc extends RefField {
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
+    public static get CurrentUserEmailNormalized() { return normalizeEmail(Doc.CurrentUserEmail); }
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
         const sameAuthor = this.author === Doc.CurrentUserEmail;
@@ -262,6 +239,11 @@ export class Doc extends RefField {
                     this[UpdatingFromServer] = false;
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
+                    }
+                    if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
+                        this[UpdatingFromServer] = true;
+                        this[FieldsSym](true);
+                        this[UpdatingFromServer] = false;
                     }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
@@ -885,6 +867,7 @@ export namespace Doc {
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
+        @observable _sharing_doc: Doc = undefined!;
         @observable _searchQuery: string = "";
     }
 
@@ -901,10 +884,11 @@ export namespace Doc {
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
+    export function SharingDoc(): Doc { return Cast(Doc.UserDoc().mySharedDocs, Doc, null); }
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
-    export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
+    export function SetUserDoc(doc: Doc) { return (manager._user_doc = doc); }
 
     export function IsSearchMatch(doc: Doc) {
         return computedFn(function IsSearchMatch(doc: Doc) {

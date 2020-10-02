@@ -10,6 +10,7 @@ export type DashUserModel = mongoose.Document & {
     passwordResetExpires?: Date,
 
     userDocumentId: string;
+    sharingDocumentId: string;
 
     profile: {
         name: string,
@@ -35,7 +36,8 @@ const userSchema = new mongoose.Schema({
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    userDocumentId: String,
+    userDocumentId: String,    // id that identifies a document which hosts all of a user's account data
+    sharingDocumentId: String, // id that identifies a document that stores documents shared to a user, their user color, and any additional info needed to communicate between users
 
     facebook: String,
     twitter: String,

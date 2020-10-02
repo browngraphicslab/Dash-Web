@@ -7,7 +7,7 @@ import * as RequestPromise from "request-promise";
 import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from "../../fields/util";
+import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
@@ -25,7 +25,7 @@ import { SearchBox } from "../views/search/SearchBox";
 
 export interface User {
     email: string;
-    userDocumentId: string;
+    sharingDocumentId: string;
 }
 
 /**
@@ -47,20 +47,19 @@ const groupType = "!groupType/";
 const storage = "data";
 
 /**
- * A user who also has a notificationDoc.
+ * A user who also has a sharing doc.
  */
 interface ValidatedUser {
-    user: User;
-    notificationDoc: Doc;
-    userColor: string;
+    user: User;         // database minimal info to identify / communicate with a user (email, sharing doc id)
+    sharingDoc: Doc;    // document to share/message another user
+    userColor: string;  // stored on the sharinDoc, extracted for convenience?
 }
-
 
 @observer
 export class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false; // whether the SharingManager modal is open or not
-    @observable public users: ValidatedUser[] = []; // the list of users with notificationDocs
+    @observable public users: ValidatedUser[] = []; // the list of users with sharing docs
     @observable private targetDoc: Doc | undefined; // the document being shared
     @observable private targetDocView: DocumentView | undefined; // the DocumentView of the document being shared
     // @observable private copied = false;
@@ -119,7 +118,7 @@ export class SharingManager extends React.Component<{}> {
     }
 
     /**
-     * Populates the list of validated users (this.users) by adding registered users which have a mySharedDocs.
+     * Populates the list of validated users (this.users) by adding registered users which have a sharingDocument.
      */
     populateUsers = async () => {
         if (!this.populating) {
@@ -130,15 +129,9 @@ export class SharingManager extends React.Component<{}> {
             const evaluating = raw.map(async user => {
                 const isCandidate = user.email !== Doc.CurrentUserEmail;
                 if (isCandidate) {
-                    const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                    if (userDocument instanceof Doc) {
-                        const notificationDoc = await Cast(userDocument.mySharedDocs, Doc);
-                        const userColor = StrCast(userDocument.userColor);
-                        runInAction(() => {
-                            if (notificationDoc instanceof Doc) {
-                                this.users.push({ user, notificationDoc, userColor });
-                            }
-                        });
+                    const userSharingDoc = await DocServer.GetRefField(user.sharingDocumentId);
+                    if (userSharingDoc instanceof Doc) {
+                        runInAction(() => this.users.push({ user, sharingDoc: userSharingDoc, userColor: StrCast(userSharingDoc.userColor) }));
                     }
                 }
             });
@@ -154,13 +147,13 @@ export class SharingManager extends React.Component<{}> {
     setInternalGroupSharing = (group: Doc | { groupName: string }, permission: string, targetDoc?: Doc) => {
 
         const target = targetDoc || this.targetDoc!;
-        const key = StrCast(group.groupName).replace(".", "_");
+        const key = normalizeEmail(StrCast(group.groupName));
         const acl = `acl-${key}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (group instanceof Doc) {
@@ -170,9 +163,9 @@ export class SharingManager extends React.Component<{}> {
                 // if documents have been shared, add the doc to that list if it doesn't already exist, otherwise create a new list with the doc
                 group.docsShared ? Doc.IndexOf(doc, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(doc) : group.docsShared = new List<Doc>([doc]);
 
-                users.forEach(({ user, notificationDoc }) => {
-                    if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, doc); // add the doc to the notificationDoc if it hasn't already been added
-                    else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
+                users.forEach(({ user, sharingDoc }) => {
+                    if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(sharingDoc[storage])) === -1 && Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
+                    else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
                 });
             }
         });
@@ -185,7 +178,7 @@ export class SharingManager extends React.Component<{}> {
      */
     shareWithAddedMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
-        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
     }
 
     /**
@@ -216,7 +209,7 @@ export class SharingManager extends React.Component<{}> {
 
         if (group.docsShared) {
             DocListCast(group.docsShared).forEach(doc => {
-                Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc); // remove the doc only if it is in the list
+                Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
             });
         }
     }
@@ -235,7 +228,7 @@ export class SharingManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-                users.forEach(({ notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
+                users.forEach(({ sharingDoc }) => Doc.RemoveDocFromList(sharingDoc, storage, doc));
             });
         }
     }
@@ -244,19 +237,18 @@ export class SharingManager extends React.Component<{}> {
      * Shares the document with a user.
      */
     setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
-        const { user, notificationDoc } = recipient;
+        const { user, sharingDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
-        const key = user.email.replace('.', '_');
-        const acl = `acl-${key}`;
+        const acl = `acl-${normalizeEmail(user.email)}`;
+        const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
-
         docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`acl-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, doc);
+            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
-            if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, doc);
-            else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (doc.aliasOf as Doc || doc));
+            if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(sharingDoc[storage])) === -1 && Doc.AddDocToList(sharingDoc, storage, doc);
+            else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
         });
     }
 
@@ -456,8 +448,8 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${user.email.replace('.', '_')}`) : docs[0]?.author !== user.email).map(({ user, notificationDoc, userColor }) => {
-            const userKey = `acl-${user.email.replace('.', '_')}`;
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, sharingDoc, userColor }) => {
+            const userKey = `acl-${normalizeEmail(user.email)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
 
@@ -472,7 +464,7 @@ export class SharingManager extends React.Component<{}> {
                             <select
                                 className={"permissions-dropdown"}
                                 value={permissions}
-                                onChange={e => this.setInternalSharing({ user, notificationDoc, userColor }, e.currentTarget.value)}
+                                onChange={e => this.setInternalSharing({ user, sharingDoc: sharingDoc, userColor }, e.currentTarget.value)}
                             >
                                 {this.sharingOptions(uniform)}
                             </select>
@@ -514,7 +506,7 @@ export class SharingManager extends React.Component<{}> {
                         <span className={"padding"}>Me</span>
                         <div className="edit-actions">
                             <div className={"permissions-dropdown"}>
-                                {targetDoc?.[`acl-${Doc.CurrentUserEmail.replace(".", "_")}`]}
+                                {targetDoc?.[`acl-${Doc.CurrentUserEmailNormalized}`]}
                             </div>
                         </div>
                     </div>
@@ -523,7 +515,7 @@ export class SharingManager extends React.Component<{}> {
 
 
         // the list of groups shared with
-        const groupListMap: (Doc | { groupName: string })[] = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${StrCast(groupName).replace('.', '_')}`) : true);
+        const groupListMap: (Doc | { groupName: string })[] = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(groupName))}`) : true);
         groupListMap.unshift({ groupName: "Public" }, { groupName: "Override" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.groupName)}`;
