@@ -123,7 +123,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @undoBatch
     @action
     public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
-        if (unpin) console.log('remove unpin');
+        if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {

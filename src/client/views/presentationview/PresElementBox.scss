@@ -37,7 +37,7 @@ $slide-active: #5B9FDD;
         overflow: hidden;
     }
 
-    
+
 }
 
 .presItem-slide {
@@ -80,46 +80,6 @@ $slide-active: #5B9FDD;
     z-index: 1;
 }
 
-.presElementBox-buttons {
-    display: grid;
-    grid-template-rows: 15px;
-    top: 15px;
-    left: -20;
-    position: absolute;
-    width: 100%;
-    height: auto;
-
-    .presElementBox-interaction {
-        display: none;
-    }
-
-    .presElementBox-interaction-selected {
-        color: grey;
-        background-color: rgba(0, 0, 0, 0);
-        float: left;
-        padding: 0px;
-        width: 20px;
-        height: 20px;
-    }
-}
-
-.presElementBox-name {
-    z-index: 300;
-    align-self: center;
-    font-size: 13px;
-    font-family: Roboto;
-    font-weight: 500;
-    position: relative;
-    top: 1px;
-    padding-left: 10px;
-    padding-right: 10px;
-    letter-spacing: normal;
-    width: max-content;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: pre;
-}
-
 .presElementBox-time {
     align-self: center;
     position: relative;
@@ -152,30 +112,12 @@ $slide-active: #5B9FDD;
     overflow: hidden;
 }
 
-.presElementBox-closeIcon {
-    cursor: pointer;
-    position: absolute;
-    border-radius: 100%;
-    z-index: 300;
-    right: 3px;
-    top: 3px;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    font-size: 75%;
-    background-color: black;
-    color: white;
-    justify-content: center;
-    align-items: center;
-}
-
-
 .presItem-slideButtons {
     display: flex;
     grid-column: 7;
-    width: 40px;
+    width: 60px;
     justify-self: right;
-    justify-content: space-evenly;
+    justify-content: flex-end;
 
     .slideButton {
         cursor: pointer;
@@ -188,7 +130,7 @@ $slide-active: #5B9FDD;
         font-size: 75%;
         justify-self: center;
         align-self: center;
-        background-color: rgba(0,0,0,0.5);
+        background-color: rgba(0, 0, 0, 0.5);
         color: white;
         justify-content: center;
         align-items: center;
@@ -199,37 +141,4 @@ $slide-active: #5B9FDD;
         background-color: rgba(0, 0, 0, 1);
         transform: scale(1.15);
     }
-}
-.presElementBox-expand {
-    cursor: pointer;
-    position: absolute;
-    border-radius: 100%;
-    z-index: 300;
-    right: 26px;
-    top: 3px;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    font-size: 75%;
-    background-color: black;
-    color: white;
-    justify-content: center;
-    align-items: center;
-}
-
-.presElementBox-expand-selected {
-    cursor: pointer;
-    position: relative;
-    border-radius: 100%;
-    z-index: 300;
-    width: 15px;
-    height: 15px;
-    display: flex;
-    font-size: 75%;
-    justify-self: right;
-    align-self: center;
-    background-color: rgba(0,0,0,0.5);
-    color: white;
-    justify-content: center;
-    align-items: center;
 }

@@ -153,7 +153,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             setTimeout(() => targetDoc._viewTransition = undefined, 1010);
             // targetDoc._currentFrame = curFrame + 1;
             this.nextKeyframe(targetDoc, activeItem);
-            // if (targetDoc.scrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(targetDoc, currentFrame);
             if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
             else targetDoc.editing = true;
             // if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
@@ -1252,22 +1251,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const currentFrame = Cast(tagDoc._currentFrame, "number", null);
         if (currentFrame === undefined) {
             tagDoc._currentFrame = 0;
-            CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
+            // CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
             CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
-        CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
+        // if (tagDoc.editScrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
         CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, tagDoc);
         tagDoc._currentFrame = Math.max(0, (currentFrame || 0) + 1);
         tagDoc.lastFrame = Math.max(NumCast(tagDoc._currentFrame), NumCast(tagDoc.lastFrame));
-        // if (curDoc.zoomProgressivize) {
-        //     const resize = document.getElementById('resizable');
-        //     if (resize) {
-        //         resize.style.width = this.checkList(tagDoc, curDoc["viewfinder-width-indexed"]) + 'px';
-        //         resize.style.height = this.checkList(tagDoc, curDoc["viewfinder-height-indexed"]) + 'px';
-        //         resize.style.top = this.checkList(tagDoc, curDoc["viewfinder-top-indexed"]) + 'px';
-        //         resize.style.left = this.checkList(tagDoc, curDoc["viewfinder-left-indexed"]) + 'px';
-        //     }
-        // }
     }
 
     @undoBatch
@@ -1281,15 +1271,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         CollectionFreeFormDocumentView.gotoKeyframe(childDocs.slice());
         tagDoc._currentFrame = Math.max(0, (currentFrame || 0) - 1);
-        // if (actItem.zoomProgressivize) {
-        //     const resize = document.getElementById('resizable');
-        //     if (resize) {
-        //         resize.style.width = this.checkList(tagDoc, actItem["viewfinder-width-indexed"]) + 'px';
-        //         resize.style.height = this.checkList(tagDoc, actItem["viewfinder-height-indexed"]) + 'px';
-        //         resize.style.top = this.checkList(tagDoc, actItem["viewfinder-top-indexed"]) + 'px';
-        //         resize.style.left = this.checkList(tagDoc, actItem["viewfinder-left-indexed"]) + 'px';
-        //     }
-        // }
     }
 
     /**
@@ -1474,7 +1455,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.scrollProgressivize = !activeItem.scrollProgressivize;
         const targetDoc: Doc = this.targetDoc;
         targetDoc.scrollProgressivize = !targetDoc.scrollProgressivize;
-        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc._currentFrame));
+        // CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc._currentFrame));
         if (targetDoc.editScrollProgressivize) {
             targetDoc.editScrollProgressivize = false;
             targetDoc._currentFrame = 0;
@@ -1803,7 +1784,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 {this.topPanel}
                 {this.toolbar}
                 {this.newDocumentToolbarDropdown}
-                <div className="presBox-listCont">
+                <div className="presBox-listCont" style={{ padding: 0 }}>
                     {mode !== CollectionViewType.Invalid ?
                         <CollectionView {...this.props}
                             ContainingCollectionDoc={this.props.Document}
