@@ -288,7 +288,6 @@ export namespace WebSocket {
                     socket.id = id;
                 } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
             }, false);
-        console.log(results, diff.diff.$set);
     }
 
     function UpdateField(socket: Socket, diff: Diff) {
