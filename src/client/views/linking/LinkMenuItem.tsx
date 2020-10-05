@@ -260,7 +260,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
-                    {this._showMore ? this.renderMetadata() : <></>}
                 </div>
 
             </div >
