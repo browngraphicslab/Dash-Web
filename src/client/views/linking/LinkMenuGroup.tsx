@@ -54,17 +54,6 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         e.stopPropagation();
     }
 
-    viewGroupAsTable = (groupType: string): JSX.Element => {
-        const keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-        const index = keys.indexOf("");
-        if (index > -1) keys.splice(index, 1);
-        const cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c, "#f1efeb"));
-        const docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        const createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { _width: 500, _height: 300, title: groupType + " table", childDropAction: "alias" }));
-        const ref = React.createRef<HTMLDivElement>();
-        return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
-    }
-
     render() {
         const set = new Set<Doc>(this.props.group);
         const groupItems = Array.from(set.keys()).map(linkDoc => {

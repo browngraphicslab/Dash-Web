@@ -986,9 +986,9 @@ export class CurrentUserUtils {
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId);
-        doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
         doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        if (!doc.myLinkDatabase) doc.myLinkDatabase = new List([]);
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 

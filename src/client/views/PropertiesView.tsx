@@ -972,7 +972,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
                     </div>
-                    <div className="propertiesView-layout">
+                    {/* <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
                             onPointerDown={action(() => this.openLayout = !this.openLayout)}
                             style={{ backgroundColor: this.openLayout ? "black" : "" }}>
@@ -982,7 +982,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
-                    </div>
+                    </div> */}
                 </div>;
             }
             if (this.isPres) {
