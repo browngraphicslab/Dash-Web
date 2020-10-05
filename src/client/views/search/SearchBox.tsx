@@ -146,7 +146,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 const mod = "_t:";
                 const newWords: string[] = [];
                 const oldWords = values[0].split(" ");
-                oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
+                oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + word) : newWords.push("AND " + key + mod + word));
                 query = `(${query}) AND (${newWords.join(" ")})`;
             }
             else {
@@ -154,7 +154,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const mod = "_t:";
                     const newWords: string[] = [];
                     const oldWords = values[i].split(" ");
-                    oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
+                    oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + word) : newWords.push("AND " + key + mod + word));
                     const v = "(" + newWords.join(" ") + ")";
                     if (i === 0) {
                         query = `(${query}) AND (${v}` + (values.length === 1 ? ")" : "");
