@@ -137,6 +137,8 @@ export class LinkManager {
         const a2 = Cast(linkDoc.anchor2, Doc, null);
         if (Doc.AreProtosEqual(anchor, a1)) return a2;
         if (Doc.AreProtosEqual(anchor, a2)) return a1;
+        if (Doc.AreProtosEqual(anchor, a1.annotationOn as Doc)) return a2;
+        if (Doc.AreProtosEqual(anchor, a2.annotationOn as Doc)) return a1;
         if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }
