@@ -276,9 +276,18 @@ export namespace WebSocket {
         delete diff.diff.$addToSet;
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const list = (results as any).fields?.[updatefield.replace("fields.", "")].fields;
+        const prelen = diff.diff.$set[updatefield].fields.length;
         list.forEach((item: any) => !diff.diff.$set[updatefield].fields.some((x: any) => x.fieldId === item.fieldId) && diff.diff.$set[updatefield].fields.push(item));
+        const sendBack = diff.diff.$set[updatefield].fields.length !== prelen;
         Database.Instance.update(diff.id, diff.diff,
-            () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
+            () => {
+                if (sendBack) {
+                    const id = socket.id;
+                    socket.id = "";
+                    socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                    socket.id = id;
+                } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+            }, false);
         console.log(results, diff.diff.$set);
     }
 
