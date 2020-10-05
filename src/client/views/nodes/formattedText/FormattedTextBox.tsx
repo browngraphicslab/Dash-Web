@@ -1124,11 +1124,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     private isActiveTab(el: Element | null | undefined) {
-        do {
-            if (el?.className.includes("lm_active")) return true;
-            el = el?.parentNode as any;
-        } while (el !== document.body);
-        return false;
+        while (el && el !== document.body) {
+            if (getComputedStyle(el).display === "none") return false;
+            el = el.parentNode as any;
+        }
+        return true;
     }
 
     private setupEditor(config: any, fieldKey: string) {
