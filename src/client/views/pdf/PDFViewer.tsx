@@ -155,6 +155,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0;
             const observer = new _global.ResizeObserver(action((entries: any) => this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0)));
             observer.observe(this._mainCont.current);
+            this._mainCont.current.addEventListener("scroll", (e) => (e.target as any).scrollLeft = 0);
         }
 
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),

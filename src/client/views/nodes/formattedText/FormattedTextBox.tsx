@@ -1123,6 +1123,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    private isActiveTab(el: Element | null | undefined) {
+        do {
+            if (el?.className.includes("lm_active")) return true;
+            el = el?.parentNode as any;
+        } while (el !== document.body);
+        return false;
+    }
+
     private setupEditor(config: any, fieldKey: string) {
         const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
         const rtfField = Cast((!curText?.Text && this.layoutDoc[this.props.fieldKey]) || this.dataDoc[fieldKey], RichTextField);
@@ -1161,7 +1169,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
 
         const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
-        if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad) {
+        if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad && this.isActiveTab(this.ProseRef)) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
             if (FormattedTextBox.SelectOnLoadChar && this._editorView) {

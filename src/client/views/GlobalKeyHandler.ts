@@ -223,6 +223,11 @@ export class KeyManager {
                 stopPropagation = false;
                 break;
             case "a":
+                if (e.target !== document.body) {
+                    stopPropagation = false;
+                    preventDefault = false;
+                };
+                break;
             case "v":
                 stopPropagation = false;
                 preventDefault = false;
