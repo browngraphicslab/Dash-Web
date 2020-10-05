@@ -226,7 +226,7 @@ export class KeyManager {
                 if (e.target !== document.body) {
                     stopPropagation = false;
                     preventDefault = false;
-                };
+                }
                 break;
             case "v":
                 stopPropagation = false;

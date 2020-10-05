@@ -201,7 +201,7 @@ export namespace WebSocket {
 
     function setField(socket: Socket, newValue: Transferable) {
         Database.Instance.update(newValue.id, newValue, () =>
-            socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+            socket.broadcast.emit(MessageStore.SetField.Message, newValue));  // broadcast set value to all other clients
         if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
             Search.updateDocument({ id: newValue.id, data: { set: (newValue as any).data } });
         }
@@ -271,7 +271,19 @@ export namespace WebSocket {
         return typeof value === "string" ? value : value[0];
     }
 
+    function updateListField(socket: Socket, diff: Diff, results?: Transferable): void {
+        diff.diff.$set = diff.diff.$addToSet;  // convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
+        delete diff.diff.$addToSet;
+        const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
+        const list = (results as any).fields?.[updatefield.replace("fields.", "")].fields;
+        list.forEach((item: any) => !diff.diff.$set[updatefield].fields.some((x: any) => x.fieldId === item.fieldId) && diff.diff.$set[updatefield].fields.push(item));
+        Database.Instance.update(diff.id, diff.diff,
+            () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
+        console.log(results, diff.diff.$set);
+    }
+
     function UpdateField(socket: Socket, diff: Diff) {
+        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => updateListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;

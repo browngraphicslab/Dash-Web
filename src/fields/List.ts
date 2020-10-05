@@ -43,7 +43,7 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.push(...items);
-        this[Update]();
+        this[Update]("$addToSet");
         return res;
     }),
     reverse() {
@@ -314,7 +314,7 @@ class ListImpl<T extends Field> extends ObjectField {
         // console.log(diff);
         const update = this[OnUpdate];
         // update && update(diff);
-        update?.();
+        update?.(diff);
     }
 
     private [Self] = this;

@@ -371,17 +371,19 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        if (true || !diff) {
+        if (diff === "$addToSet") {
+            diff = { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        } else {
             diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
-            const oldValue = current;
-            const newValue = ObjectField.MakeCopy(value);
-            current = newValue;
-            if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
-                UndoManager.AddEvent({
-                    redo() { receiver[prop] = newValue; },
-                    undo() { receiver[prop] = oldValue; }
-                });
-            }
+        }
+        const oldValue = current;
+        const newValue = ObjectField.MakeCopy(value);
+        current = newValue;
+        if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
+            UndoManager.AddEvent({
+                redo() { receiver[prop] = newValue; },
+                undo() { receiver[prop] = oldValue; }
+            });
         }
         target[Update](diff);
     };
