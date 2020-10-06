@@ -193,11 +193,13 @@ export class DocumentManager {
                             if (retryDocView) {   // we found the target in the context
                                 retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
                                 highlight();
-                            }
-                            if (delay > 2500) {
+                            } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                // targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                if (targetDoc.layout) {
+                                    Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
+                                    createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                }
                             } else {
                                 setTimeout(() => findView(delay + 250), 250);
                             }

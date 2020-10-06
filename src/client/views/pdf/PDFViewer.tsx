@@ -180,9 +180,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if ((this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current) {
-                        smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
-                    } else {
-                        console.log("Waiting for preview");
+                        smoothScroll(1000, this._mainCont.current, scrollY || 0);
+                    } else if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) { // wait for mainCont and try again to scroll
+                        setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0), 250);
                     }
                     setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
