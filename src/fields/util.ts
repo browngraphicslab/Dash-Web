@@ -11,9 +11,7 @@ import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
-import { undo } from "prosemirror-history";
 import { List } from "./List";
-
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -95,7 +93,10 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
-        UndoManager.AddEvent({
+        if (prop === "data-annotations") {
+            console.log("Yukc")
+        }
+        !receiver[UpdatingFromServer] && UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
         });
@@ -373,25 +374,43 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        const op = diff?.op === "$addToSet" ?
-            { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
-            : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        const op = diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
+            diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
+                : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
         const oldValue = current;
         const newValue = ObjectField.MakeCopy(value);
         current = newValue;
         if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
-            UndoManager.AddEvent(diff?.op === "$addToSet" ?
-                {
-                    redo: () => receiver[prop].push(...diff.items),
-                    undo: action(() => diff.items.forEach((doc: Doc) => {
-                        const ind = receiver[prop].indexOf(doc);
-                        ind !== -1 && receiver[prop].splice(ind, 1);
-                    }))
-                }
-                : {
-                    redo: () => receiver[prop] = newValue,
-                    undo: () => receiver[prop] = oldValue
-                });
+            !receiver[UpdatingFromServer] && UndoManager.AddEvent(
+                diff?.op === "$addToSet" ?
+                    {
+                        redo: () => {
+                            receiver[prop].push(...diff.items);
+                        },
+                        undo: action(() => {
+                            let curList = receiver[prop];
+                            //while (curList[ForwardUpates]) curList = curList[ForwardUpates];
+                            diff.items.forEach((doc: any) => {
+                                const ind = curList.indexOf(doc.value());
+                                ind !== -1 && curList.splice(ind, 1);
+                            });
+                        })
+                    } :
+                    diff?.op === "$remFromSet" ?
+                        {
+                            redo: action(() => {
+                                let curList = receiver[prop];
+                                diff.items.forEach((doc: any) => {
+                                    const ind = curList.indexOf(doc.value());
+                                    ind !== -1 && curList.splice(ind, 1);
+                                });
+                            }),
+                            undo: () => receiver[prop].push(...diff.items)
+                        }
+                        : {
+                            redo: () => receiver[prop] = newValue,
+                            undo: () => receiver[prop] = oldValue
+                        });
         }
         target[Update](op);
     };

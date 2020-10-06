@@ -271,16 +271,13 @@ export namespace WebSocket {
         return typeof value === "string" ? value : value[0];
     }
 
-    function updateListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
-        diff.diff.$set = diff.diff.$addToSet;  // convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
-        delete diff.diff.$addToSet;
+    function addToListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
+        diff.diff.$set = diff.diff.$addToSet; delete diff.diff.$addToSet;// convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const newListItems = diff.diff.$set[updatefield].fields;
-        const curList = (curListItems as any).fields?.[updatefield.replace("fields.", "")]?.fields;
-        const prelen = diff.diff.$set[updatefield].fields.length;
-        let insInd = 0;
-        curList?.forEach((curItem: any) => !newListItems.some((newItem: any) => newItem.fieldId === curItem.fieldId) && newListItems.splice(insInd++, 0, curItem));
-        const sendBack = curList.length !== prelen;
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => !curList.some((curItem: any) => curItem.fieldId === newItem.fieldId))];
+        const sendBack = true;//curList.length !== prelen;
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
@@ -292,8 +289,28 @@ export namespace WebSocket {
             }, false);
     }
 
+    function remFromListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
+        diff.diff.$set = diff.diff.$remFromSet; delete diff.diff.$remFromSet;
+        const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
+        const remListItems = diff.diff.$set[updatefield].fields;
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId === curItem.fieldId));
+        const sendBack = true;//curList.length + remListItems.length !== prelen;
+        Database.Instance.update(diff.id, diff.diff,
+            () => {
+                if (sendBack) {
+                    const id = socket.id;
+                    socket.id = "";
+                    socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                    socket.id = id;
+                } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+            }, false);
+    }
+
+
     function UpdateField(socket: Socket, diff: Diff) {
-        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => updateListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$remFromSet) return GetRefField([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;

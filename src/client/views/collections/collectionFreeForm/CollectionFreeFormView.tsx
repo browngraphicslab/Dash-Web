@@ -1160,7 +1160,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onCursorMove = (e: React.PointerEvent) => {
-        super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
+        //  super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
 

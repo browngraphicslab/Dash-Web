@@ -66,6 +66,7 @@ const listHandlers: any = {
         this[Self].__realFields(); // coerce retrieving entire array
         items = items.map(toObjectField);
         const list = this[Self];
+        const removed = list.__fields.filter((item: any, i: number) => i >= start && i < start + deleteCount);
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             //TODO Error checking to make sure parent doesn't already exist
@@ -76,7 +77,7 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.splice(start, deleteCount, ...items);
-        this[Update]();
+        this[Update](items.length === 0 && deleteCount ? { op: "$remFromSet", items: removed } : undefined);
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {
