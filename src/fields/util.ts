@@ -93,9 +93,6 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
-        if (prop === "data-annotations") {
-            console.log("Yukc")
-        }
         !receiver[UpdatingFromServer] && UndoManager.AddEvent({
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
