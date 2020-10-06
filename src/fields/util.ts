@@ -11,6 +11,8 @@ import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
+import { undo } from "prosemirror-history";
+import { List } from "./List";
 
 
 function _readOnlySetter(): never {
@@ -371,20 +373,26 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        if (diff === "$addToSet") {
-            diff = { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
-        } else {
-            diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
-        }
+        const op = diff?.op === "$addToSet" ?
+            { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
+            : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
         const oldValue = current;
         const newValue = ObjectField.MakeCopy(value);
         current = newValue;
         if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
-            UndoManager.AddEvent({
-                redo() { receiver[prop] = newValue; },
-                undo() { receiver[prop] = oldValue; }
-            });
+            UndoManager.AddEvent(diff?.op === "$addToSet" ?
+                {
+                    redo: () => receiver[prop].push(...(newValue as List<Doc>)),
+                    undo: action(() => (newValue as List<Doc>).forEach(doc => {
+                        const ind = receiver[prop].indexOf(doc);
+                        ind !== -1 && receiver[prop].splice(ind, 1);
+                    }))
+                }
+                : {
+                    redo: () => receiver[prop] = newValue,
+                    undo: () => receiver[prop] = oldValue
+                });
         }
-        target[Update](diff);
+        target[Update](op);
     };
 }

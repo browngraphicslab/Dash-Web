@@ -43,7 +43,7 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.push(...items);
-        this[Update]("$addToSet");
+        this[Update]({ op: "$addToSet", items });
         return res;
     }),
     reverse() {

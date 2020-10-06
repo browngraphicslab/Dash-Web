@@ -271,14 +271,16 @@ export namespace WebSocket {
         return typeof value === "string" ? value : value[0];
     }
 
-    function updateListField(socket: Socket, diff: Diff, results?: Transferable): void {
+    function updateListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
         diff.diff.$set = diff.diff.$addToSet;  // convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
         delete diff.diff.$addToSet;
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
-        const list = (results as any).fields?.[updatefield.replace("fields.", "")]?.fields;
+        const newListItems = diff.diff.$set[updatefield].fields;
+        const curList = (curListItems as any).fields?.[updatefield.replace("fields.", "")]?.fields;
         const prelen = diff.diff.$set[updatefield].fields.length;
-        list?.forEach((item: any) => !diff.diff.$set[updatefield].fields.some((x: any) => x.fieldId === item.fieldId) && diff.diff.$set[updatefield].fields.push(item));
-        const sendBack = diff.diff.$set[updatefield].fields.length !== prelen;
+        let insInd = 0;
+        curList?.forEach((curItem: any) => !newListItems.some((newItem: any) => newItem.fieldId === curItem.fieldId) && newListItems.splice(insInd++, 0, curItem));
+        const sendBack = curList.length !== prelen;
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
