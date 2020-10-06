@@ -157,7 +157,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     });
                 }
                 else {
-                    added.map(doc => {
+                    added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
                         const context = Cast(doc.context, Doc, null);
                         if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
@@ -186,9 +186,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @action.bound
     removeDocument = (doc: any): boolean => {
         const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
-        const docAcl = GetEffectiveAcl(doc);
-        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || docAcl === AclAdmin) {
-            const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+        const indocs = doc instanceof Doc ? [doc] : doc as Doc[];
+        const docs = indocs.filter(doc => effectiveAcl === AclEdit || effectiveAcl === AclAdmin || GetEffectiveAcl(doc) === AclAdmin);
+        if (docs.length) {
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
             const toRemove = value.filter(v => docs.includes(v));
