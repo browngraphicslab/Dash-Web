@@ -884,7 +884,7 @@ export class CurrentUserUtils {
                 (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
-                sharedDocs.userColor = sharedDocs.userColor || "#12121233";
+                sharedDocs.userColor = sharedDocs.userColor || "#121212";
             }
             doc.mySharedDocs = new PrefetchProxy(sharedDocs);
         }

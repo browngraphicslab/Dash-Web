@@ -382,8 +382,8 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
         if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
             UndoManager.AddEvent(diff?.op === "$addToSet" ?
                 {
-                    redo: () => receiver[prop].push(...(newValue as List<Doc>)),
-                    undo: action(() => (newValue as List<Doc>).forEach(doc => {
+                    redo: () => receiver[prop].push(...diff.items),
+                    undo: action(() => diff.items.forEach((doc: Doc) => {
                         const ind = receiver[prop].indexOf(doc);
                         ind !== -1 && receiver[prop].splice(ind, 1);
                     }))
