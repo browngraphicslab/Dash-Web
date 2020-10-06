@@ -275,9 +275,9 @@ export namespace WebSocket {
         diff.diff.$set = diff.diff.$addToSet;  // convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
         delete diff.diff.$addToSet;
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
-        const list = (results as any).fields?.[updatefield.replace("fields.", "")].fields;
+        const list = (results as any).fields?.[updatefield.replace("fields.", "")]?.fields;
         const prelen = diff.diff.$set[updatefield].fields.length;
-        list.forEach((item: any) => !diff.diff.$set[updatefield].fields.some((x: any) => x.fieldId === item.fieldId) && diff.diff.$set[updatefield].fields.push(item));
+        list?.forEach((item: any) => !diff.diff.$set[updatefield].fields.some((x: any) => x.fieldId === item.fieldId) && diff.diff.$set[updatefield].fields.push(item));
         const sendBack = diff.diff.$set[updatefield].fields.length !== prelen;
         Database.Instance.update(diff.id, diff.diff,
             () => {
