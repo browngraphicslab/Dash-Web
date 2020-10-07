@@ -916,11 +916,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
+                    let hadStart = start !== 0;
                     frag.forEach((node, index) => {
                         const examinedNode = findLinkNode(node, editor);
-                        if (examinedNode?.textContent) {
-                            nodes.push(examinedNode);
-                            !start && (start = index);
+                        if (examinedNode?.node.textContent) {
+                            nodes.push(examinedNode.node);
+                            !hadStart && (start = index + examinedNode.start);
+                            hadStart = true;
                         }
                     });
                     return { frag: Fragment.fromArray(nodes), start };
@@ -928,11 +930,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {
                         const content = findLinkFrag(node.content, editor);
-                        return node.copy(content.frag);
+                        return { node: node.copy(content.frag), start: content.start };
                     }
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.linkAnchor);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? { node, start: 0 } : undefined;
                 };
 
                 let start = 0;

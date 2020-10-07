@@ -184,7 +184,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     } else if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) { // wait for mainCont and try again to scroll
                         setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0), 250);
                     }
-                    setTimeout(() => this.Document._scrollY = undefined, 1000);
+                    setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, 1000);
                 }
             },
             { fireImmediately: true }

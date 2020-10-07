@@ -385,7 +385,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                             receiver[prop].push(...diff.items);
                         },
                         undo: action(() => {
-                            let curList = receiver[prop];
+                            const curList = receiver[prop];
                             //while (curList[ForwardUpates]) curList = curList[ForwardUpates];
                             diff.items.forEach((doc: any) => {
                                 const ind = curList.indexOf(doc.value());
@@ -396,7 +396,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                     diff?.op === "$remFromSet" ?
                         {
                             redo: action(() => {
-                                let curList = receiver[prop];
+                                const curList = receiver[prop];
                                 diff.items.forEach((doc: any) => {
                                     const ind = curList.indexOf(doc.value());
                                     ind !== -1 && curList.splice(ind, 1);

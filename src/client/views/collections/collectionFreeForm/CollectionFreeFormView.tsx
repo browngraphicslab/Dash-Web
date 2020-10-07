@@ -888,17 +888,27 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const annotOn = Cast(doc.annotationOn, Doc) as Doc;
             let delay = 1000;
             if (!annotOn) {
-                this.props.focus(doc);
+                !dontCenter && this.props.focus(doc);
+                afterFocus && setTimeout(afterFocus, delay);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
                 const offset = annotOn && (contextHgt / 2);
-                const scrollTo = NumCast(doc.y) - ((Number.isNaN(offset) ? 150 : offset));
-                this.props.Document._scrollY = scrollTo;
-                delay = Math.abs(scrollTo - NumCast(this.props.Document._scrollTop)) > 5 ? 1000 : 0;
+                const curScroll = NumCast(this.props.Document._scrollTop);
+                let scrollTo = curScroll;
+                if (curScroll + contextHgt < NumCast(doc.y)) {
+                    scrollTo = NumCast(doc.y) + NumCast(doc._height) - contextHgt;
+                } else if (curScroll > NumCast(doc.y)) {
+                    scrollTo = NumCast(doc.y);
+                }
+                if (curScroll !== scrollTo) {
+                    this.props.Document._scrollY = scrollTo;
+                    delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
+                    !dontCenter && delay && this.props.focus(this.props.Document);
+                    afterFocus && setTimeout(afterFocus, delay);
+                    // @ts-ignore
+                } else afterFocus(true);  // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
             }
 
-            !dontCenter && this.props.focus(this.props.Document);
-            afterFocus && setTimeout(afterFocus, delay);
         } else {
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;

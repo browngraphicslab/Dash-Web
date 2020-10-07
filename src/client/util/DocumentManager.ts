@@ -159,17 +159,24 @@ export class DocumentManager {
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
+            const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
-                docView.props.Document.hidden = !docView.props.Document.hidden;
+                const hide = !docView.props.Document.hidden;
+                (!hide || !sameContext) && (docView.props.Document.hidden = !docView.props.Document.hidden);
+                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target
+                    notfocused && hide && (docView.props.Document.hidden = true);
+                    return focusAndFinish();
+                    // @ts-ignore   bcz: Argh TODO: Need to add a parameter to focus() everywhere for whether focus should center the target's container in the view or not. // here we don't want to focus the container if the source and target are in the same container
+                }, sameContext);
                 finished?.();
             }
             else {
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 // @ts-ignore
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, annotatedDoc && annotatedDoc === originatingDoc?.context);
-                highlight();
+                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext);
             }
+            highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
             const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc)) ? docContext : undefined;
