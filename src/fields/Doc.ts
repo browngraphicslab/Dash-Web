@@ -104,6 +104,7 @@ const AclMap = new Map<string, symbol>([
 ]);
 
 export function fetchProto(doc: Doc) {
+    if (!doc) return;
     const permissions: { [key: string]: symbol } = {};
 
     Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
