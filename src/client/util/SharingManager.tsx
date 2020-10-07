@@ -470,7 +470,7 @@ export class SharingManager extends React.Component<{}> {
                             </select>
                         ) : (
                                 <div className={"permissions-dropdown"}>
-                                    {permissions}
+                                    {permissions === SharingPermissions.Add ? "Can Augment" : permissions}
                                 </div>
                             )}
                     </div>
