@@ -15,6 +15,7 @@ interface IAnnotationProps {
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc, unpin?: boolean) => void;
     focus: (doc: Doc) => void;
+    select: (isCtrlPressed: boolean) => void;
     dataDoc: Doc;
     fieldKey: string;
     showInfo: (anno: Opt<Doc>) => void;
@@ -25,7 +26,7 @@ export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a =>
-            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
+            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} select={this.props.select} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
     }
 }
 
@@ -37,6 +38,7 @@ interface IRegionAnnotationProps {
     height: number;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc, unpin: boolean) => void;
+    select: (isCtrlPressed: boolean) => void;
     document: Doc;
     dataDoc: Doc;
     fieldKey: string;
@@ -115,7 +117,8 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             e.persist();
             e.stopPropagation();
             PromiseValue(this.props.document.group).then(annoGroup => annoGroup instanceof Doc &&
-                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined)
+                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined,
+                    () => this.props.select(false))
             );
         }
     }

@@ -460,7 +460,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         const hit = document.elementFromPoint(e.clientX, e.clientY);
-        if (hit && hit.localName === "span" && this.props.isSelected(true)) {  // drag selecting text stops propagation
+        if (hit && hit.localName === "span" && this.annotationsActive(true)) {  // drag selecting text stops propagation
             e.button === 0 && e.stopPropagation();
         }
         // if alt+left click, drag and annotate
@@ -557,6 +557,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onSelectEnd = (e: PointerEvent): void => {
         clearStyleSheetRules(PDFViewer._annotationStyle);
+        this.props.select(false);
         this._savedAnnotations.clear();
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
@@ -694,7 +695,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         TraceMobx();
         return <div className="pdfViewerDash-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} showInfo={this.showInfo} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={this.showInfo} select={this.props.select} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }
@@ -763,7 +764,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewerDash" + (this.active() ? "-interactive" : "")} ref={this._mainCont}
+        return <div className={"pdfViewerDash" + (this.annotationsActive() ? "-interactive" : "")} ref={this._mainCont}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,

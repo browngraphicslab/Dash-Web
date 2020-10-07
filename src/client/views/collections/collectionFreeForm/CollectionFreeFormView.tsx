@@ -867,7 +867,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean, dontCenter?: boolean) => {
         const state = HistoryUtil.getState();
 
         // TODO This technically isn't correct if type !== "doc", as
@@ -886,16 +886,19 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             const annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            let delay = 1000;
             if (!annotOn) {
                 this.props.focus(doc);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
                 const offset = annotOn && (contextHgt / 2);
-                this.props.Document._scrollY = NumCast(doc.y) - ((Number.isNaN(offset) ? 150 : offset));
+                const scrollTo = NumCast(doc.y) - ((Number.isNaN(offset) ? 150 : offset));
+                this.props.Document._scrollY = scrollTo;
+                delay = Math.abs(scrollTo - NumCast(this.props.Document._scrollTop)) > 5 ? 1000 : 0;
             }
 
-            this.props.focus(this.props.Document);
-            afterFocus && setTimeout(afterFocus, 1000);
+            !dontCenter && this.props.focus(this.props.Document);
+            afterFocus && setTimeout(afterFocus, delay);
         } else {
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;

@@ -151,7 +151,7 @@ export class DocumentManager {
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
         let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
-        if (annotatedDoc && annotatedDoc !== docContext && !targetDoc?.isPushpin) {
+        if (annotatedDoc && annotatedDoc !== originatingDoc?.context && !targetDoc?.isPushpin) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
@@ -166,7 +166,8 @@ export class DocumentManager {
             else {
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
+                // @ts-ignore
+                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, annotatedDoc && annotatedDoc === originatingDoc?.context);
                 highlight();
             }
         } else {
