@@ -267,11 +267,11 @@ export class RichTextRules {
             // [[fieldKey]] => show field   
             // [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\.\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@:\.\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
-                    const rawdocid = match[3]?.substring(1);
-                    const docid = rawdocid ? (!rawdocid.includes("@") ? normalizeEmail(Doc.CurrentUserEmail) + "@" + rawdocid : rawdocid) : undefined;
+                    const rawdocid = match[3];
+                    const docid = rawdocid ? normalizeEmail((!rawdocid.includes("@") ? Doc.CurrentUserEmail + rawdocid : rawdocid.substring(1))) : undefined;
                     const value = match[2]?.substring(1);
                     if (!fieldKey) {
                         const linkId = Utils.GenerateGuid();

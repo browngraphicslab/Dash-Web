@@ -1321,6 +1321,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
                 y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
             }
+            this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props);
             setTimeout(() => window.document.activeElement === this.ProseRef?.children[0] && RichTextMenu.Instance.jumpTo(x, y), 250);
         }
     }
@@ -1557,9 +1558,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             <div className="formattedTextBox-sidebar-handle"
                 style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : undefined }}
                 onPointerDown={this.sidebarDown}
-                onClick={e => {
-                    console.log(e);
-                }}
             />;
     }
 
@@ -1608,7 +1606,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && !this.layoutDoc._isBackground;
-        selected && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props)); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!selected && FormattedTextBoxComment.textBox === this) { FormattedTextBoxComment.Hide(); }
         const minimal = this.props.ignoreAutoHeight;
         const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
