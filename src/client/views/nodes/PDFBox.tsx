@@ -260,7 +260,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
-                fieldKey={this.props.fieldKey} startupLive={true} />
+                fieldKey={this.props.fieldKey} startupLive={!this.props.renderDepth} />
             {this.settingsPanel()}
         </div>;
     }

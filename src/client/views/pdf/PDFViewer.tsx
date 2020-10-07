@@ -103,6 +103,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _showCover = false;
     @observable private _zoomed = 1;
     @observable private _overlayAnnoInfo: Opt<Doc>;
+    @observable private _coverPath: any;
+    @observable private _coverPathPlus: any;
 
     private _pdfViewer: any;
     private _styleRule: any; // stylesheet rule for making hyperlinks clickable
@@ -117,7 +119,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _startY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
-    private _coverPath: any;
     private _lastSearch = false;
     private _viewerIsSetup = false;
 
@@ -126,11 +127,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
     @computed get nonDocAnnotations() { return this.allAnnotations.filter(a => a.annotations); }
 
-    componentDidMount = async () => {
+    componentDidMount = action(() => {
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const { url: relative } = this.props;
+        this._coverPath = { path: "http://cs.brown.edu/~bcz/face.gif", width: 100, height: 100 };//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         if (relative.includes("/pdfs/")) {
             const pathComponents = relative.split("/pdfs/")[1].split("/");
             const coreFilename = pathComponents.pop()!.split(".")[0];
@@ -141,15 +143,23 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             if (pathComponents.length) {
                 params.subtree = `${pathComponents.join("/")}/`;
             }
-            this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
+            Networking.PostToServer("/thumbnail", params).then(action(path => {
+                this._coverPath = path;
+            }));
+            const paramsPlus: any = {
+                coreFilename,
+                pageNum: Math.min(this.props.pdf.numPages, Math.max(1, (this.Document._curPage || 1) + 1)),
+            };
+            Networking.PostToServer("/thumbnail", paramsPlus).then(action(path => {
+                this._coverPathPlus = path;
+            }));
         } else {
             const params: any = {
                 coreFilename: relative.split("/")[relative.split("/").length - 1],
                 pageNum: Math.min(this.props.pdf.numPages, Math.max(1, this.Document._curPage || 1)),
             };
-            this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        runInAction(() => this._showWaiting = true);
+        this._showWaiting = true;
         this.props.startupLive && this.setupPdfJsViewer();
         if (this._mainCont.current) {
             this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0;
@@ -170,6 +180,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
                     PDFMenu.Instance.fadeOut(true);
+                } else {
+                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                 }
                 (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer();
             },
@@ -194,7 +206,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
             { fireImmediately: true }
         );
-    }
+    })
 
     componentWillUnmount = () => {
         Object.values(this._disposers).forEach(disposer => disposer?.());
@@ -264,6 +276,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (this._pdfViewer._setDocumentViewerElement.offsetParent) {
             this._pdfViewer.currentScaleValue = this._zoomed = 1;
             this.gotoPage(this.Document._curPage || 1);
+            this.layoutDoc._scrollTop && this._mainCont.current && (this._mainCont.current.scrollTop = NumCast(this.layoutDoc._scrollTop));
         }
         document.removeEventListener("pagesinit", this.pagesinit);
     });
@@ -460,7 +473,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         const hit = document.elementFromPoint(e.clientX, e.clientY);
-        if (hit && hit.localName === "span" && this.props.isSelected(true)) {  // drag selecting text stops propagation
+        if (hit && hit.localName === "span" && this.annotationsActive()) {  // drag selecting text stops propagation
             e.button === 0 && e.stopPropagation();
         }
         // if alt+left click, drag and annotate
@@ -673,9 +686,18 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         const nativeWidth = (this.Document._nativeWidth || 0);
         const nativeHeight = (this.Document._nativeHeight || 0);
-        const resolved = Utils.prepend(this._coverPath.path);
-        return <img key={resolved} src={resolved} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
-            style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
+        const resolved = this._coverPath ? Utils.prepend(this._coverPath.path) : "http://www.cs.brown.edu/~bcz/face.gif";
+        const resolvedPlus = this._coverPathPlus ? Utils.prepend(this._coverPathPlus.path) : undefined;
+        const pageSize = this._pageSizes?.length ? this._pageSizes[0]?.height || 1056 : 1056;
+        const page = Math.round(Math.max(0, NumCast(this.props.Document._scrollTop) - 518) / pageSize);
+        const scrollOff = this._pageSizes?.reduce((r, p, i) => i < page ? p?.height + r : r, 0) || page * pageSize;
+        console.log("Soff = " + scrollOff + " " + page + " " + this.props.Document._scrollTop);
+        return <>
+            <img key={resolved} src={resolved} onError={action(e => console.log("PDF cover error: ", e))} //donLoad={action(() => this._showWaiting = false)}
+                style={{ zIndex: -1, position: "absolute", display: "inline-block", top: scrollOff, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />
+            {!resolvedPlus ? (null) : <img key={resolvedPlus} src={resolvedPlus} onError={action(e => console.log("PDF cover error: ", e))} //donLoad={action(() => this._showWaiting = false)}
+                style={{ zIndex: -1, position: "absolute", display: "inline-block", top: scrollOff + 1056, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />}
+        </>
     }
 
     @action
@@ -750,8 +772,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {
         return <>
-            {this._showCover ? this.getCoverImage() : (null)}
-            {this._showWaiting ? <img className="pdfViewerDash-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
+            {this._showWaiting ? this.getCoverImage() : (null)}
+            {/* {this._showWaiting ? <img className="pdfViewerDash-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)} */}
         </>;
     }
     marqueeWidth = () => this._marqueeWidth;
@@ -763,7 +785,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewerDash" + (this.active() ? "-interactive" : "")} ref={this._mainCont}
+        return <div className={"pdfViewerDash" + (this.annotationsActive() ? "-interactive" : "")} ref={this._mainCont}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
