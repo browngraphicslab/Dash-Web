@@ -740,6 +740,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
+        this.Document.followLinkLocation = "inPlace";
         this.Document.followLinkZoom = true;
         this.Document.isLinkButton = true;
     }
