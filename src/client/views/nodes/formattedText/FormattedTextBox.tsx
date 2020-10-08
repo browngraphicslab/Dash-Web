@@ -1450,6 +1450,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static LiveTextUndo: UndoManager.Batch | undefined;
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
+        RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();

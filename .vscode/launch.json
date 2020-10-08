@@ -44,7 +44,8 @@
             "name": "Launch Chrome against Dash server",
             "sourceMaps": true,
             "breakOnLoad": true,
-            "url": "http://dash-web.eastus2.cloudapp.azure.com:1050/login",
+            "url": "https://browndash.com/login",
+            //"url": "http://dash-web.eastus2.cloudapp.azure.com:1050/login",
             "webRoot": "${workspaceFolder}",
         },
         {

@@ -1,6 +1,7 @@
 
 interface IGlobalScss {
     contextMenuZindex: string;  // context menu shows up over everything
+    SCHEMA_DIVIDER_WIDTH: string;
     COLLECTION_BORDER_WIDTH: string;
     MINIMIZED_ICON_SIZE: string;
     MAX_ROW_HEIGHT: string;

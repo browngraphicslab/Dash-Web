@@ -30,7 +30,7 @@
     .collectionSchemaView-dividerDragger {
         position: relative;
         height: 100%;
-        width: 20px;
+        width: $SCHEMA_DIVIDER_WIDTH;
         z-index: 20;
         right: 0;
         top: 0;
@@ -228,6 +228,9 @@
     position: absolute;
     background: white;
     padding: 5px;
+    position: fixed;
+    background: white;
+    border: black 1px solid;
 
     .collectionSchema-header-toggler {
         z-index: 100;

@@ -132,19 +132,28 @@ export class SharingManager extends React.Component<{}> {
     populateUsers = async () => {
         if (!this.populating) {
             this.populating = true;
-            runInAction(() => this.users = []);
             const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
             const raw = JSON.parse(userList) as User[];
+            const sharingDocs: ValidatedUser[] = [];
             const evaluating = raw.map(async user => {
                 const isCandidate = user.email !== Doc.CurrentUserEmail;
                 if (isCandidate) {
-                    const userSharingDoc = await DocServer.GetRefField(user.sharingDocumentId);
-                    if (userSharingDoc instanceof Doc) {
-                        runInAction(() => this.users.push({ user, sharingDoc: userSharingDoc, userColor: StrCast(userSharingDoc.userColor) }));
+                    const sharingDoc = await DocServer.GetRefField(user.sharingDocumentId);
+                    if (sharingDoc instanceof Doc) {
+                        sharingDocs.push({ user, sharingDoc, userColor: StrCast(sharingDoc.color) });
                     }
                 }
             });
-            return Promise.all(evaluating).then(() => this.populating = false);
+            return Promise.all(evaluating).then(() => {
+                runInAction(() => {
+                    for (let i = 0; i < sharingDocs.length; i++) {
+                        if (!this.users.find(user => user.user.email === sharingDocs[i].user.email)) {
+                            this.users.push(sharingDocs[i]);
+                        }
+                    }
+                });
+                this.populating = false;
+            });
         }
     }
 
