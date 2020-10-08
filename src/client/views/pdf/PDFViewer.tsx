@@ -400,11 +400,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
-            this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
             this.pageDelay && clearTimeout(this.pageDelay);
             this.pageDelay = setTimeout(() => {
+                this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
                 this.pageDelay = undefined;
-                this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
+                //this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
             }, 250);
         }
     }
