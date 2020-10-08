@@ -11,12 +11,12 @@ import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, setupMoveUpEvents } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
-import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
+import { COLLECTION_BORDER_WIDTH, SCHEMA_DIVIDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import '../DocumentDecorations.scss';
@@ -47,24 +47,26 @@ const columnTypes: Map<string, ColumnType> = new Map([
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _previewCont?: HTMLDivElement;
-    private DIVIDER_WIDTH = 4;
 
-    @observable previewDoc: Doc | undefined = undefined;
-    @observable private _focusedTable: Doc = this.props.Document;
-
-    @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
-    @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
-    @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
-    @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
-
+    @observable _previewDoc: Doc | undefined = undefined;
+    @observable _focusedTable: Doc = this.props.Document;
+    @observable _col: any = "";
     @observable _menuWidth = 0;
     @observable _headerOpen = false;
     @observable _headerIsEditing = false;
-    @observable _col: any = "";
     @observable _menuHeight = 0;
     @observable _pointerX = 0;
     @observable _pointerY = 0;
     @observable _openTypes: boolean = false;
+
+    @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
+    @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
+    @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - Number(SCHEMA_DIVIDER_WIDTH) - this.previewWidth(); }
+    @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
+    @computed get scale() { return this.props.ScreenToLocalTransform().Scale; }
+    @computed get columns() { return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []); }
+    set columns(columns: SchemaHeaderField[]) { this.props.Document._schemaHeaders = new List<SchemaHeaderField>(columns); }
+
     @computed get menuCoordinates() {
         let searchx = 0;
         let searchy = 0;
@@ -81,15 +83,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
-    @computed get scale() { return this.props.ScreenToLocalTransform().Scale; }
-
-    @computed get columns() {
-        return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
-    }
-    set columns(columns: SchemaHeaderField[]) {
-        this.props.Document._schemaHeaders = new List<SchemaHeaderField>(columns);
-    }
-
     get documentKeys() {
         const docs = this.childDocs;
         const keys: { [key: string]: boolean } = {};
@@ -104,27 +97,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns.forEach(key => keys[key.heading] = true);
         return Array.from(Object.keys(keys));
     }
-    @computed get possibleKeys() { return this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1); }
 
     @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
 
-
-    @action
-    changeColumnType = (type: ColumnType, col: any): void => {
-        this._openTypes = false;
-        this.setColumnType(col, type);
-    }
-
-    changeColumnSort = (desc: boolean | undefined, col: any): void => {
-        this.setColumnSort(col, desc);
-    }
-
-    changeColumnColor = (color: string, col: any): void => {
-        this.setColumnColor(col, color);
-    }
-
     @undoBatch
     setColumnType = (columnField: SchemaHeaderField, type: ColumnType): void => {
+        this._openTypes = false;
         if (columnTypes.get(columnField.heading)) return;
 
         const columns = this.columns;
@@ -165,42 +143,42 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
         const type = col.type;
 
-        const anyType = <div className={"columnMenu-option" + (type === ColumnType.Any ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Any, col)}>
+        const anyType = <div className={"columnMenu-option" + (type === ColumnType.Any ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Any)}>
             <FontAwesomeIcon icon={"align-justify"} size="sm" />
                 Any
             </div>;
 
-        const numType = <div className={"columnMenu-option" + (type === ColumnType.Number ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Number, col)}>
+        const numType = <div className={"columnMenu-option" + (type === ColumnType.Number ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Number)}>
             <FontAwesomeIcon icon={"hashtag"} size="sm" />
                 Number
             </div>;
 
-        const textType = <div className={"columnMenu-option" + (type === ColumnType.String ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.String, col)}>
+        const textType = <div className={"columnMenu-option" + (type === ColumnType.String ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.String)}>
             <FontAwesomeIcon icon={"font"} size="sm" />
             Text
             </div>;
 
-        const boolType = <div className={"columnMenu-option" + (type === ColumnType.Boolean ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Boolean, col)}>
+        const boolType = <div className={"columnMenu-option" + (type === ColumnType.Boolean ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Boolean)}>
             <FontAwesomeIcon icon={"check-square"} size="sm" />
             Checkbox
             </div>;
 
-        const listType = <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List, col)}>
+        const listType = <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.List)}>
             <FontAwesomeIcon icon={"list-ul"} size="sm" />
             List
             </div>;
 
-        const docType = <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc, col)}>
+        const docType = <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Doc)}>
             <FontAwesomeIcon icon={"file"} size="sm" />
             Document
             </div>;
 
-        const imageType = <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image, col)}>
+        const imageType = <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Image)}>
             <FontAwesomeIcon icon={"image"} size="sm" />
             Image
             </div>;
 
-        const dateType = <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Date, col)}>
+        const dateType = <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.setColumnType(col, ColumnType.Date)}>
             <FontAwesomeIcon icon={"calendar"} size="sm" />
                 Date
                 </div>;
@@ -239,15 +217,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchema-headerMenu-group">
                 <label>Sort by:</label>
                 <div className="columnMenu-sort">
-                    <div className={"columnMenu-option" + (sort === true ? " active" : "")} onClick={() => this.changeColumnSort(true, col)}>
+                    <div className={"columnMenu-option" + (sort === true ? " active" : "")} onClick={() => this.setColumnSort(col, true)}>
                         <FontAwesomeIcon icon="sort-amount-down" size="sm" />
                         Sort descending
                     </div>
-                    <div className={"columnMenu-option" + (sort === false ? " active" : "")} onClick={() => this.changeColumnSort(false, col)}>
+                    <div className={"columnMenu-option" + (sort === false ? " active" : "")} onClick={() => this.setColumnSort(col, false)}>
                         <FontAwesomeIcon icon="sort-amount-up" size="sm" />
                         Sort ascending
                     </div>
-                    <div className="columnMenu-option" onClick={() => this.changeColumnSort(undefined, col)}>
+                    <div className="columnMenu-option" onClick={() => this.setColumnSort(col, undefined)}>
                         <FontAwesomeIcon icon="times" size="sm" />
                         Clear sorting
                     </div>
@@ -270,12 +248,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchema-headerMenu-group">
                 <label>Color:</label>
                 <div className="columnMenu-colors">
-                    <div className={"columnMenu-colorPicker" + (selected === pink ? " active" : "")} style={{ backgroundColor: pink }} onClick={() => this.changeColumnColor(pink!, col)}></div>
-                    <div className={"columnMenu-colorPicker" + (selected === purple ? " active" : "")} style={{ backgroundColor: purple }} onClick={() => this.changeColumnColor(purple!, col)}></div>
-                    <div className={"columnMenu-colorPicker" + (selected === blue ? " active" : "")} style={{ backgroundColor: blue }} onClick={() => this.changeColumnColor(blue!, col)}></div>
-                    <div className={"columnMenu-colorPicker" + (selected === yellow ? " active" : "")} style={{ backgroundColor: yellow }} onClick={() => this.changeColumnColor(yellow!, col)}></div>
-                    <div className={"columnMenu-colorPicker" + (selected === red ? " active" : "")} style={{ backgroundColor: red }} onClick={() => this.changeColumnColor(red!, col)}></div>
-                    <div className={"columnMenu-colorPicker" + (selected === gray ? " active" : "")} style={{ backgroundColor: gray }} onClick={() => this.changeColumnColor(gray, col)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === pink ? " active" : "")} style={{ backgroundColor: pink }} onClick={() => this.setColumnColor(col, pink!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === purple ? " active" : "")} style={{ backgroundColor: purple }} onClick={() => this.setColumnColor(col, purple!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === blue ? " active" : "")} style={{ backgroundColor: blue }} onClick={() => this.setColumnColor(col, blue!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === yellow ? " active" : "")} style={{ backgroundColor: yellow }} onClick={() => this.setColumnColor(col, yellow!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === red ? " active" : "")} style={{ backgroundColor: red }} onClick={() => this.setColumnColor(col, red!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === gray ? " active" : "")} style={{ backgroundColor: gray }} onClick={() => this.setColumnColor(col, gray)}></div>
                 </div>
             </div>
         );
@@ -320,8 +298,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     closeHeader = () => { this._headerOpen = false; }
 
-
-
     @undoBatch
     @action
     deleteColumn = (key: string) => {
@@ -351,15 +327,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onWheel(e: React.WheelEvent) {
         const scale = this.props.ScreenToLocalTransform().Scale;
         this.props.active(true) && e.stopPropagation();
-        //this.menuCoordinates[0] -= e.screenX / scale;
-        //this.menuCoordinates[1] -= e.screenY / scale;
     }
 
     @computed get renderMenuContent() {
         TraceMobx();
         return <div className="collectionSchema-header-menuOptions">
             {this.renderTypes(this._col)}
-            {/* {this.renderSorting(this._col)} */}
             {this.renderColors(this._col)}
             <div className="collectionSchema-headerMenu-group">
                 <button onClick={() => { this.deleteColumn(this._col.heading); }}
@@ -379,7 +352,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setPreviewDoc = (doc: Opt<Doc>) => {
         SelectionManager.SelectSchemaDoc(this, doc);
-        this.previewDoc = doc;
+        this._previewDoc = doc;
     }
 
     //toggles preview side-panel of schema
@@ -389,7 +362,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onDividerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, this.onDividerMove, emptyFunction, action(() => this.toggleExpander()));
+        setupMoveUpEvents(this, e, this.onDividerMove, emptyFunction, this.toggleExpander);
     }
     @action
     onDividerMove = (e: PointerEvent, down: number[], delta: number[]) => {
@@ -405,21 +378,19 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected(true)) e.stopPropagation();
-            else {
-                this.props.select(false);
-            }
+            else this.props.select(false);
         }
     }
 
     @computed
-    get previewDocument(): Doc | undefined { return this.previewDoc; }
+    get previewDocument(): Doc | undefined { return this._previewDoc; }
 
     @computed
     get dividerDragger() {
         return this.previewWidth() === 0 ? (null) :
-            <div className="collectionSchemaView-dividerDragger"
-                onPointerDown={this.onDividerDown}
-                style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
+            <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} >
+                <div className="collectionSchemaView-dividerDragger" />
+            </div>;
     }
 
     @computed
@@ -501,18 +472,19 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return <div className="collectionSchemaView-toolbar">
             <div className="collectionSchemaView-toolbar-item">
                 <div id="preview-schema-checkbox-div">
-                    <input type="checkbox"
-                        key={"Show Preview"} checked={this.previewWidth() !== 0}
-                        onChange={this.toggleExpander} />Show Preview</div>
+                    <input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />
+                    Show Preview
+                </div>
             </div>
         </div>;
     }
+
     onSpecificMenu = (e: React.MouseEvent) => {
         if ((e.target as any)?.className?.includes?.("collectionSchemaView-cell") || (e.target instanceof HTMLSpanElement)) {
             const cm = ContextMenu.Instance;
             const options = cm.findByDescription("Options...");
             const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-            optionItems.push({ description: "remove", event: () => this.previewDoc && this.props.removeDocument(this.previewDoc), icon: "trash" });
+            optionItems.push({ description: "remove", event: () => this._previewDoc && this.props.removeDocument(this._previewDoc), icon: "trash" });
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
             cm.displayMenu(e.clientX, e.clientY);
             (e.nativeEvent as any).SchemaHandled = true; // not sure why this is needed, but if you right-click quickly on a cell, the Document/Collection contextMenu handlers still fire without this.
@@ -558,39 +530,16 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
-    onZoomMenu = (e: React.WheelEvent) => {
-        this.props.active(true) && e.stopPropagation();
-        if (this.menuCoordinates[0] > e.screenX) {
-            this.menuCoordinates[0] -= e.screenX; //* this.scale;
-        } else {
-            this.menuCoordinates[0] += e.screenX; //* this.scale;
-        }
-        if (this.menuCoordinates[1] > e.screenY) {
-            this.menuCoordinates[1] -= e.screenY; //* this.scale;
-        } else {
-            this.menuCoordinates[1] += e.screenY; //* this.scale;
-        }
-    }
+    onZoomMenu = (e: React.WheelEvent) => { this.props.active(true) && e.stopPropagation(); }
 
-
-
-    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    }
     render() {
-        let name = "collectionSchemaView-container";
-        if (this.props.Document._searchDoc) {
-            name = "collectionSchemaView-searchContainer";
-        }
-        if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
         TraceMobx();
+        if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
         const menuContent = this.renderMenuContent;
         const menu = <div className="collectionSchema-header-menu"
             onWheel={e => this.onZoomMenu(e)}
             onPointerDown={e => this.onHeaderClick(e)}
-            style={{
-                position: "fixed", background: "white", border: "black 1px solid",
-                transform: `translate(${(this.menuCoordinates[0])}px, ${(this.menuCoordinates[1])}px)`
-            }}>
+            style={{ transform: `translate(${(this.menuCoordinates[0])}px, ${(this.menuCoordinates[1])}px)` }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
                 this._menuWidth = dim[0]; this._menuHeight = dim[1];
@@ -598,7 +547,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
             </Measure>
         </div>;
-        return <div className={name}
+        return <div className={"collectionSchemaView" + (this.props.Document._searchDoc ? "-searchContainer" : "-container")}
             style={{
                 overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
                 pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
@@ -606,7 +555,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
-                onKeyPress={this.onKeyPress}
                 onContextMenu={this.onSpecificMenu}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}

@@ -17,7 +17,7 @@ import { Docs, DocumentOptions } from "../../documents/Documents";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
-import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
+import { COLLECTION_BORDER_WIDTH, SCHEMA_DIVIDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
@@ -90,8 +90,6 @@ export interface SchemaTableProps {
 
 @observer
 export class SchemaTable extends React.Component<SchemaTableProps> {
-    private DIVIDER_WIDTH = 4;
-
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: { row: number, col: number } = { row: 0, col: 0 };
     @observable _openCollections: Set<number> = new Set;
@@ -104,7 +102,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
-    @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
+    @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - Number(SCHEMA_DIVIDER_WIDTH) - this.previewWidth(); }
 
     @computed get childDocs() {
         if (this.props.childDocs) return this.props.childDocs;

@@ -528,9 +528,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
-    @computed get isText() {
-        return this.selectedDoc?.type === DocumentType.RTF || RichTextMenu.Instance?.view ? true : false;
-    }
+    @computed get isText() { return this.selectedDoc?.type === DocumentType.RTF || RichTextMenu.Instance?.view ? true : false; }
 
     @undoBatch
     @action

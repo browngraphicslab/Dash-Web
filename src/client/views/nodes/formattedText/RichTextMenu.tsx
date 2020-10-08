@@ -153,11 +153,11 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     public delayHide = () => this._delayHide = true;
 
     @action
-    public updateMenu(view: EditorView, lastState: EditorState | undefined, props: any) {
+    public updateMenu(view: EditorView | undefined, lastState: EditorState | undefined, props: any) {
+        this.view = view;
         if (!view || !view.hasFocus()) {
             return;
         }
-        this.view = view;
         props && (this.editorProps = props);
 
         // Don't do anything if the document/selection didn't change
