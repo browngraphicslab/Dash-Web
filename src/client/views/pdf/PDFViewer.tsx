@@ -405,7 +405,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
                 this.pageDelay = undefined;
                 //this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
-            }, 250);
+            }, 1000);
         }
     }
 
