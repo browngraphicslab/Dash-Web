@@ -83,7 +83,6 @@ export class SharingManager extends React.Component<{}> {
     // }
 
     public open = (target?: DocumentView, target_doc?: Doc) => {
-        runInAction(() => this.users = []);
         this.populateUsers();
         runInAction(() => {
             this.targetDocView = target;
