@@ -26,6 +26,25 @@ export default class UserManager extends ApiManager {
         });
 
         register({
+            method: Method.POST,
+            subscription: "/setCacheDocumentIds",
+            secureHandler: async ({ user, req, res }) => {
+                const result: any = {};
+                user.cacheDocumentIds = req.body.cacheDocumentIds;
+                user.save(err => {
+                    if (err) {
+                        result.error = [{ msg: "Error while caching documents" }];
+                    }
+                });
+
+                // Database.Instance.update(id, { "$set": { "fields.cacheDocumentIds": cacheDocumentIds } }, e => {
+                //     console.log(e);
+                // });
+                res.send(result);
+            }
+        });
+
+        register({
             method: Method.GET,
             subscription: "/getUserDocumentIds",
             secureHandler: ({ res, user }) => res.send({ userDocumentId: user.userDocumentId, sharingDocumentId: user.sharingDocumentId })
@@ -40,7 +59,7 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/getCurrentUser",
-            secureHandler: ({ res, user: { _id, email } }) => res.send(JSON.stringify({ id: _id, email })),
+            secureHandler: ({ res, user: { _id, email, cacheDocumentIds } }) => res.send(JSON.stringify({ id: _id, email, cacheDocumentIds })),
             publicHandler: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });
 

@@ -11,6 +11,7 @@ export type DashUserModel = mongoose.Document & {
 
     userDocumentId: string;
     sharingDocumentId: string;
+    cacheDocumentIds: string;
 
     profile: {
         name: string,
@@ -38,6 +39,7 @@ const userSchema = new mongoose.Schema({
 
     userDocumentId: String,    // id that identifies a document which hosts all of a user's account data
     sharingDocumentId: String, // id that identifies a document that stores documents shared to a user, their user color, and any additional info needed to communicate between users
+    cacheDocumentIds: String,
 
     facebook: String,
     twitter: String,

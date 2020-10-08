@@ -31,8 +31,10 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 import { SharingPermissions } from "../../fields/util";
+import { Networking } from "../Network";
 
 
+export let resolvedPorts: { server: number, socket: number };
 const headerViewVersion = "0.1";
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -1009,9 +1011,13 @@ export class CurrentUserUtils {
     }
 
     public static async loadCurrentUser() {
-        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(async response => {
             if (response) {
-                const result: { id: string, email: string } = JSON.parse(response);
+                const result: { id: string, email: string, cacheDocumentIds: string } = JSON.parse(response);
+                Doc.CurrentUserEmail = result.email;
+                resolvedPorts = JSON.parse(await Networking.FetchFromServer("/resolvedPorts"));
+                DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, result.email);
+                result.cacheDocumentIds && (await DocServer.GetRefFields(result.cacheDocumentIds.split(";")));
                 return result;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
@@ -1019,9 +1025,8 @@ export class CurrentUserUtils {
         });
     }
 
-    public static async loadUserDocument({ id, email }: { id: string, email: string }) {
+    public static async loadUserDocument(id: string) {
         this.curr_id = id;
-        Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
             const { userDocumentId, sharingDocumentId } = JSON.parse(ids);
             if (userDocumentId !== "guest") {

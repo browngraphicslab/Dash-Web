@@ -10,6 +10,7 @@ import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
 import { StrCast } from '../fields/Types';
+import * as rp from 'request-promise';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -34,6 +35,12 @@ export namespace DocServer {
             if (doc instanceof Doc) strings.push(StrCast(doc.author) + " " + StrCast(doc.title) + " " + StrCast(Doc.GetT(doc, "title", "string", true)));
         });
         strings.sort().forEach((str, i) => console.log(i.toString() + " " + str));
+        rp.post(Utils.prepend("/setCacheDocumentIds"), {
+            body: {
+                cacheDocumentIds: Array.from(Object.keys(_cache)).join(";"),
+            },
+            json: true,
+        });
     }
     export let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
