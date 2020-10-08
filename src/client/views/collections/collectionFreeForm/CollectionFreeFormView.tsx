@@ -901,7 +901,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     scrollTo = NumCast(doc.y);
                 }
                 if (curScroll !== scrollTo) {
-                    this.props.Document._scrollY = scrollTo;
+                    this.props.Document._scrollPY = this.props.Document._scrollY = scrollTo;
                     delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
                     !dontCenter && delay && this.props.focus(this.props.Document);
                     afterFocus && setTimeout(afterFocus, delay);

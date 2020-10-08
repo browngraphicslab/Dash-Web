@@ -179,12 +179,25 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    if ((this.props.renderDepth === -1 || (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc)) && this._mainCont.current) {
-                        smoothScroll(1000, this._mainCont.current, scrollY || 0);
-                    } else if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) { // wait for mainCont and try again to scroll
-                        setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0), 250);
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
+                        setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, Math.abs(scrollY || 0)), delay);
+                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, 1000 + delay);
                     }
-                    setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, 1000);
+                }
+            },
+            { fireImmediately: true }
+        );
+        this._disposers.scrollPY = reaction(
+            () => Cast(this.Document._scrollPY, "number", null),
+            (scrollY) => {
+                if (scrollY !== undefined) {
+                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
+                    if (this.props.renderDepth === -1 && scrollY >= 0) {
+                        if (!this._mainCont.current) setTimeout(() => smoothScroll(1000, this._mainCont.current!, scrollY || 0));
+                        else smoothScroll(1000, this._mainCont.current, scrollY || 0);
+                        this.Document._scrollPY = undefined;
+                    }
                 }
             },
             { fireImmediately: true }

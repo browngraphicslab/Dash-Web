@@ -10,6 +10,8 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
+import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
+import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -187,7 +189,7 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
+                targetDocContext._scrollY = targetDocContext._scrollPY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
@@ -224,6 +226,8 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
+        LinkDocPreview.TargetDoc = undefined;
+        FormattedTextBoxComment.linkDoc = undefined;
         const linkDocs = link ? [link] : DocListCast(doc.links);
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
