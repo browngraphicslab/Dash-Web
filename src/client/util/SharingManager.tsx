@@ -76,7 +76,16 @@ export class SharingManager extends React.Component<{}> {
     @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
     private populating: boolean = false; // whether the list of users is populating or not
     @observable private layoutDocAcls: boolean = false; // whether the layout doc or data doc's acls are to be used
-    @observable private myDocAcls: boolean = false;
+    @observable private myDocAcls: boolean = false; // whether the My Docs checkbox is selected or not
+
+    // maps acl symbols to SharingPermissions
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
+    ]);
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -368,20 +377,12 @@ export class SharingManager extends React.Component<{}> {
     }
 
     distributeOverCollection = (targetDoc?: Doc) => {
-        const AclMap = new Map<symbol, string>([
-            [AclPrivate, SharingPermissions.None],
-            [AclReadonly, SharingPermissions.View],
-            [AclAddonly, SharingPermissions.Add],
-            [AclEdit, SharingPermissions.Edit],
-            [AclAdmin, SharingPermissions.Admin]
-        ]);
-
         const target = targetDoc || this.targetDoc!;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
         docs.forEach(doc => {
             for (const [key, value] of Object.entries(doc[AclSym])) {
-                distributeAcls(key, AclMap.get(value)! as SharingPermissions, target);
+                distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
             }
         });
     }
@@ -442,7 +443,8 @@ export class SharingManager extends React.Component<{}> {
         const targetDoc = docs[0];
 
         // tslint:disable-next-line: no-unnecessary-callback-wrapper
-        const admin = this.myDocAcls ? Boolean(docs.length) : docs.map(doc => GetEffectiveAcl(doc)).every(acl => acl === AclAdmin); // if the user has admin access to all selected docs
+        const effectiveAcls = docs.map(doc => GetEffectiveAcl(doc));
+        const admin = this.myDocAcls ? Boolean(docs.length) : effectiveAcls.every(acl => acl === AclAdmin);
 
         // users in common between all docs
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
@@ -506,7 +508,7 @@ export class SharingManager extends React.Component<{}> {
                         <span className={"padding"}>Me</span>
                         <div className="edit-actions">
                             <div className={"permissions-dropdown"}>
-                                {targetDoc?.[`acl-${Doc.CurrentUserEmailNormalized}`]}
+                                {effectiveAcls.every(acl => acl === effectiveAcls[0]) ? this.AclMap.get(effectiveAcls[0])! : "-multiple-"}
                             </div>
                         </div>
                     </div>
