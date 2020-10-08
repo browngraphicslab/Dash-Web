@@ -530,7 +530,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
-    onZoomMenu = (e: React.WheelEvent) => { this.props.active(true) && e.stopPropagation(); }
+    onZoomMenu = (e: React.WheelEvent) => this.props.active(true) && e.stopPropagation();
 
     render() {
         TraceMobx();

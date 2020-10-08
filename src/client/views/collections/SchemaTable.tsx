@@ -344,9 +344,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
 
-            const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
-            pdoc && this.props.setPreviewDoc(pdoc);
-            e.stopPropagation();
+            if (direction) {
+                const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
+                pdoc && this.props.setPreviewDoc(pdoc);
+                e.stopPropagation();
+            }
         } else if (e.keyCode === 27) {
             this.props.setPreviewDoc(undefined);
             e.stopPropagation(); // stopPropagation for left/right arrows 
