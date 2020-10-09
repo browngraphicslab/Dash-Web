@@ -956,6 +956,9 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc, sharingDocumentId: string) {
+        if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
+        UserGroups.Current;
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
@@ -989,10 +992,7 @@ export class CurrentUserUtils {
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         if (!doc.myLinkDatabase) doc.myLinkDatabase = new List([]);
-        const x = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
-        UserGroups.setCurrentUserGroups((doc.globalGroupDatabase as Doc).data as List<Doc>);
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 

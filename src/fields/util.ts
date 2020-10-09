@@ -4,7 +4,7 @@ import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
-import { action, trace, observable, reaction } from "mobx";
+import { action, trace, observable, reaction, computed } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate, ToString, ToScriptString } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
@@ -24,19 +24,28 @@ export function TraceMobx() {
 
 // the list of groups that the current user is a member of 
 export class UserGroups {
-    @observable static Current: string[];
-    @action static setCurrentUserGroups(groupList: List<Doc>) {
-        reaction(() => groupList,
-            groupList => {
-                UserGroups.Current = [
+    static computing = false;
+    static cachedGroups: string[] = [];
+    static globalGroupDoc: Doc | undefined;
+    static get Current() {
+        if (!Doc.UserDoc() || UserGroups.computing) return UserGroups.cachedGroups;
+        UserGroups.computing = true;
+        if (!UserGroups.globalGroupDoc) UserGroups.globalGroupDoc = Doc.UserDoc().globalGroupDatabase as Doc;
+        if (UserGroups.globalGroupDoc) {
+            const dbgroups = DocListCast(UserGroups.globalGroupDoc.data);
+            if (dbgroups.length !== UserGroups.cachedGroups.length - 1) {
+                UserGroups.cachedGroups = [
                     "Public",
-                    ...(groupList as List<Doc>).
+                    ...dbgroups?.
                         filter(group => group instanceof Doc).
                         map(group => group as Doc).
                         filter(group => JSON.parse(StrCast(group.members))?.includes(Doc.CurrentUserEmail)).
                         map(group => StrCast(group.title))
                 ];
-            }, { fireImmediately: true });
+            }
+        }
+        UserGroups.computing = false;
+        return UserGroups.cachedGroups;
     }
 }
 
@@ -174,7 +183,6 @@ export enum SharingPermissions {
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
-    if (target[Id] === "groupdbProto" || target[Id]?.startsWith("GROUP:")) return AclAdmin;
 
     // all changes received fromt the server must be processed as Admin
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;

@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
+import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
@@ -189,7 +189,9 @@ export class SharingManager extends React.Component<{}> {
         const self = this;
         if (group.docsShared) {
             if (!user) retry && this.populateUsers().then(() => self.shareWithAddedMember(group, emailId, false));
-            else DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+            else DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
+                Doc.AddDocToList(user.sharingDoc, storage, doc);
+            }));
         }
     }
 
@@ -220,9 +222,9 @@ export class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => {
-                Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
-            });
+            DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
+                Doc.RemoveDocFromList(user.sharingDoc, storage, doc);
+            }));
         }
     }
 
