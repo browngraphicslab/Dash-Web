@@ -1441,7 +1441,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
-        !this.fitToContent && this._layoutElements?.length && setTimeout(() => this.Document._renderContentBounds = new List<number>([this.contentBounds.x, this.contentBounds.y, this.contentBounds.r, this.contentBounds.b]), 0);
+        !this.fitToContent && !this.props.annotationsKey && this._layoutElements?.length && setTimeout(() => this.Document._renderContentBounds = new List<number>([this.contentBounds.x, this.contentBounds.y, this.contentBounds.r, this.contentBounds.b]), 0);
         return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget}
             onPointerOver={this.onPointerOver}
             onWheel={this.onPointerWheel}

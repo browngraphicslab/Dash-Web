@@ -132,12 +132,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     textCallback = (char: string) => {
-        return this.addDocument(char, false);
+        return this.addDocument("", false, true);
     }
 
     @action
-    addDocument = (value: string, shiftDown?: boolean) => {
-        if (!value) return false;
+    addDocument = (value: string, shiftDown?: boolean, forceEmptyNote?: boolean) => {
+        if (!value && !forceEmptyNote) return false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
@@ -145,7 +145,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
         newDoc.heading = heading;
         FormattedTextBox.SelectOnLoad = newDoc[Id];
-        FormattedTextBox.SelectOnLoadChar = " ";
+        FormattedTextBox.SelectOnLoadChar = forceEmptyNote ? "" : " ";
         return this.props.parent.props.addDocument(newDoc);
     }
 
