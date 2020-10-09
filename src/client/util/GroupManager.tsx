@@ -41,12 +41,7 @@ export class GroupManager extends React.Component<{}> {
         GroupManager.Instance = this;
     }
 
-    /**
-     * Populates the list of users and groups.
-     */
-    componentDidMount() {
-        this.populateUsers();
-    }
+    componentDidMount() { this.populateUsers(); }
 
     /**
      * Fetches the list of users stored on the database.
@@ -90,24 +85,24 @@ export class GroupManager extends React.Component<{}> {
     /**
      * @returns the database of groups.
      */
-    @computed get GroupManagerDoc(): Doc | undefined {
-        return Doc.UserDoc().globalGroupDatabase as Doc;
-    }
+    @computed get GroupManagerDoc(): Doc | undefined { return Doc.UserDoc().globalGroupDatabase as Doc; }
 
     /**
      * @returns a list of all group documents.
      */
-    @computed get allGroups(): Doc[] {
-        return DocListCast(this.GroupManagerDoc?.data);
-    }
+    @computed get allGroups(): Doc[] { return DocListCast(this.GroupManagerDoc?.data); }
+
+    /**
+     * @returns the members of the admin group.
+     */
+    @computed get adminGroupMembers(): string[] { return this.getGroup("Admin") ? JSON.parse(StrCast(this.getGroup("Admin")!.members)) : ""; }
 
     /**
      * @returns a group document based on the group name.
      * @param groupName 
      */
     getGroup(groupName: string): Doc | undefined {
-        const groupDoc = this.allGroups.find(group => group.title === groupName);
-        return groupDoc;
+        return this.allGroups.find(group => group.title === groupName);
     }
 
     /**
@@ -115,15 +110,9 @@ export class GroupManager extends React.Component<{}> {
      */
     getGroupMembers(group: string | Doc): string[] {
         if (group instanceof Doc) return JSON.parse(StrCast(group.members)) as string[];
-        else return JSON.parse(StrCast(this.getGroup(group)!.members)) as string[];
+        return JSON.parse(StrCast(this.getGroup(group)!.members)) as string[];
     }
 
-    /**
-     * @returns the members of the admin group.
-     */
-    get adminGroupMembers(): string[] {
-        return this.getGroup("Admin") ? JSON.parse(StrCast(this.getGroup("Admin")!.members)) : "";
-    }
 
     /**
      * @returns a boolean indicating whether the current user has access to edit group documents.
@@ -192,7 +181,7 @@ export class GroupManager extends React.Component<{}> {
      */
     addMemberToGroup(groupDoc: Doc, email: string) {
         if (this.hasEditAccess(groupDoc)) {
-            const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
+            const memberList = JSON.parse(StrCast(groupDoc.members));
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
             SharingManager.Instance.shareWithAddedMember(groupDoc, email);
@@ -206,7 +195,7 @@ export class GroupManager extends React.Component<{}> {
      */
     removeMemberFromGroup(groupDoc: Doc, email: string) {
         if (this.hasEditAccess(groupDoc)) {
-            const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
+            const memberList = JSON.parse(StrCast(groupDoc.members));
             const index = memberList.indexOf(email);
             if (index !== -1) {
                 const user = memberList.splice(index, 1)[0];
@@ -347,8 +336,7 @@ export class GroupManager extends React.Component<{}> {
             return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
         };
 
-        let groups = this.allGroups;
-        groups = this.groupSort === "ascending" ? groups.sort(sortGroups) : this.groupSort === "descending" ? groups.sort(sortGroups).reverse() : groups;
+        const groups = this.groupSort === "ascending" ? this.allGroups.sort(sortGroups) : this.groupSort === "descending" ? this.allGroups.sort(sortGroups).reverse() : this.allGroups;
 
         return (
             <div className="group-interface">
@@ -397,16 +385,13 @@ export class GroupManager extends React.Component<{}> {
     }
 
     render() {
-        return (
-            <MainViewModal
-                contents={this.groupInterface}
-                isDisplayed={this.isOpen}
-                interactive={true}
-                dialogueBoxStyle={{ zIndex: 1002 }}
-                overlayStyle={{ zIndex: 1001 }}
-                closeOnExternalClick={this.close}
-            />
-        );
+        return <MainViewModal
+            contents={this.groupInterface}
+            isDisplayed={this.isOpen}
+            interactive={true}
+            dialogueBoxStyle={{ zIndex: 1002 }}
+            overlayStyle={{ zIndex: 1001 }}
+            closeOnExternalClick={this.close}
+        />;
     }
-
 }
