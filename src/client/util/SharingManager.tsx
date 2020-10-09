@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
+import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
@@ -152,10 +152,10 @@ export class SharingManager extends React.Component<{}> {
      * @param group 
      * @param permission 
      */
-    setInternalGroupSharing = (group: Doc | { groupName: string }, permission: string, targetDoc?: Doc) => {
+    setInternalGroupSharing = (group: Doc | { title: string }, permission: string, targetDoc?: Doc) => {
 
         const target = targetDoc || this.targetDoc!;
-        const key = normalizeEmail(StrCast(group.groupName));
+        const key = normalizeEmail(StrCast(group.title));
         const acl = `acl-${key}`;
 
         const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
@@ -189,7 +189,9 @@ export class SharingManager extends React.Component<{}> {
         const self = this;
         if (group.docsShared) {
             if (!user) retry && this.populateUsers().then(() => self.shareWithAddedMember(group, emailId, false));
-            else DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+            else DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
+                Doc.AddDocToList(user.sharingDoc, storage, doc);
+            }));
         }
     }
 
@@ -220,9 +222,9 @@ export class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => {
-                Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
-            });
+            DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
+                Doc.RemoveDocFromList(user.sharingDoc, storage, doc);
+            }));
         }
     }
 
@@ -233,7 +235,7 @@ export class SharingManager extends React.Component<{}> {
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
             DocListCast(group.docsShared).forEach(doc => {
-                const acl = `acl-${StrCast(group.groupName)}`;
+                const acl = `acl-${StrCast(group.title)}`;
 
                 distributeAcls(acl, SharingPermissions.None, doc);
 
@@ -411,8 +413,8 @@ export class SharingManager extends React.Component<{}> {
      * Sorting algorithm to sort groups.
      */
     sortGroups = (group1: Doc, group2: Doc) => {
-        const g1 = StrCast(group1.groupName);
-        const g2 = StrCast(group2.groupName);
+        const g1 = StrCast(group1.title);
+        const g2 = StrCast(group2.title);
         return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
     }
 
@@ -421,9 +423,9 @@ export class SharingManager extends React.Component<{}> {
      */
     @computed get sharingInterface() {
         TraceMobx();
-        const groupList = GroupManager.Instance?.getAllGroups() || [];
+        const groupList = GroupManager.Instance?.allGroups || [];
         const sortedUsers = this.users.slice().sort(this.sortUsers).map(({ user: { email } }) => ({ label: email, value: indType + email }));
-        const sortedGroups = groupList.slice().sort(this.sortGroups).map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
+        const sortedGroups = groupList.slice().sort(this.sortGroups).map(({ title }) => ({ label: StrCast(title), value: groupType + StrCast(title) }));
 
         // the next block handles the users shown (individuals/groups/both)
         const options: GroupedOptions[] = [];
@@ -527,19 +529,19 @@ export class SharingManager extends React.Component<{}> {
 
 
         // the list of groups shared with
-        const groupListMap: (Doc | { groupName: string })[] = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(groupName))}`) : true);
-        groupListMap.unshift({ groupName: "Public" }, { groupName: "Override" });
+        const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
+        groupListMap.unshift({ title: "Public" }, { title: "Override" });
         const groupListContents = groupListMap.map(group => {
-            const groupKey = `acl-${StrCast(group.groupName)}`;
+            const groupKey = `acl-${StrCast(group.title)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
-            const permissions = uniform ? StrCast(targetDoc?.[`acl-${StrCast(group.groupName)}`]) : "-multiple-";
+            const permissions = uniform ? StrCast(targetDoc?.[`acl-${StrCast(group.title)}`]) : "-multiple-";
 
             return !permissions ? (null) : (
                 <div
                     key={groupKey}
                     className={"container"}
                 >
-                    <div className={"padding"}>{group.groupName}</div>
+                    <div className={"padding"}>{group.title}</div>
                     {group instanceof Doc ?
                         (<div className="group-info" onClick={action(() => GroupManager.Instance.currentGroup = group)}>
                             <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
@@ -552,7 +554,7 @@ export class SharingManager extends React.Component<{}> {
                                 value={permissions}
                                 onChange={e => this.setInternalGroupSharing(group, e.currentTarget.value)}
                             >
-                                {this.sharingOptions(uniform, group.groupName === "Override")}
+                                {this.sharingOptions(uniform, group.title === "Override")}
                             </select>
                         ) : (
                                 <div className={"permissions-dropdown"}>
