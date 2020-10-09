@@ -4,7 +4,7 @@ import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
-import { action, trace } from "mobx";
+import { action, trace, observable, reaction } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate, ToString, ToScriptString } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
@@ -20,6 +20,24 @@ function _readOnlySetter(): never {
 const tracing = false;
 export function TraceMobx() {
     tracing && trace();
+}
+
+// the list of groups that the current user is a member of 
+export class UserGroups {
+    @observable static Current: string[];
+    @action static setCurrentUserGroups(groupList: List<Doc>) {
+        reaction(() => groupList,
+            groupList => {
+                UserGroups.Current = [
+                    "Public",
+                    ...(groupList as List<Doc>).
+                        filter(group => group instanceof Doc).
+                        map(group => group as Doc).
+                        filter(group => JSON.parse(StrCast(group.members))?.includes(Doc.CurrentUserEmail)).
+                        map(group => StrCast(group.title))
+                ];
+            }, { fireImmediately: true });
+    }
 }
 
 export interface GetterResult {
@@ -130,14 +148,6 @@ export function denormalizeEmail(email: string) {
 //     playgroundMode = !playgroundMode;
 // }
 
-// the list of groups that the current user is a member of 
-let currentUserGroups: string[] = [];
-
-// called from GroupManager once the groups have been fetched from the server
-export function setGroups(groups: string[]) {
-    currentUserGroups = groups;
-}
-
 /**
  * These are the various levels of access a user can have to a document.
  * 
@@ -164,6 +174,7 @@ export enum SharingPermissions {
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
+    if (target[Id] === "groupdbProto" || target[Id]?.startsWith("GROUP:")) return AclAdmin;
 
     // all changes received fromt the server must be processed as Admin
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
@@ -171,7 +182,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
-    if (currentUserGroups.includes("Admin")) return AclAdmin;
+    if (UserGroups.Current?.includes("Admin")) return AclAdmin;
 
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
@@ -192,7 +203,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
             const entity = denormalizeEmail(key.substring(4)); // an individual or a group
-            if (currentUserGroups.includes(entity) || userChecked === entity) {
+            if (UserGroups.Current?.includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) return effectiveAcl;
@@ -308,12 +319,10 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
 
-    if (in_prop === "toString" || in_prop === ToString || in_prop === ToScriptString || in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
+    if (in_prop === "toString" || (in_prop !== HeightSym && in_prop !== WidthSym && in_prop !== LayoutSym && typeof prop === "symbol")) return target.__fields[prop] || target[prop];
     if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
-    if (prop === LayoutSym) {
-        return target.__LAYOUT__;
-    }
+    if (prop === LayoutSym) return target.__LAYOUT__;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);

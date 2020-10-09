@@ -30,7 +30,7 @@ import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
-import { SharingPermissions } from "../../fields/util";
+import { SharingPermissions, UserGroups } from "../../fields/util";
 import { Networking } from "../Network";
 
 
@@ -988,9 +988,10 @@ export class CurrentUserUtils {
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId);
-        doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
+        if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         if (!doc.myLinkDatabase) doc.myLinkDatabase = new List([]);
+        UserGroups.setCurrentUserGroups((doc.globalGroupDatabase as Doc).data as List<Doc>);
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 

@@ -244,6 +244,7 @@ export namespace Docs {
                 view: LayoutSource,
                 dataField: string
             },
+            data?: any,
             options?: Partial<DocumentOptions>
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
@@ -464,6 +465,7 @@ export namespace Docs {
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view?.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options });
+            doc.data = template.data;
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
         }
