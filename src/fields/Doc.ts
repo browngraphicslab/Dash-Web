@@ -25,7 +25,6 @@ import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { SelectionManager } from "../client/util/SelectionManager";
-import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
