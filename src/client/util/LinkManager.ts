@@ -3,6 +3,7 @@ import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { SharingManager } from "./SharingManager";
+import { computedFn } from "mobx-utils";
 
 /* 
  * link doc: 
@@ -59,13 +60,18 @@ export class LinkManager {
         });
         return related;
     }
-    // finds all links that contain the given anchor
-    public getAllRelatedLinks(anchor: Doc): Doc[] {
+
+    relatedLinker = computedFn(function realtedLinker(this: any, anchor: Doc) {
         const related = LinkManager.Instance.getAllDirectLinks(anchor);
         DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
         });
         return related;
+    }.bind(this));
+
+    // finds all links that contain the given anchor
+    public getAllRelatedLinks(anchor: Doc): Doc[] {
+        return this.relatedLinker(anchor);
     }
 
     public deleteAllLinksOnAnchor(anchor: Doc) {

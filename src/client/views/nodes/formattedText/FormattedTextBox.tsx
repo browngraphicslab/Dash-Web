@@ -1429,7 +1429,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const self = this;
         return new Plugin({
             view(newView) {
-                self.props.isSelected(true) && RichTextMenu.Instance && (RichTextMenu.Instance.view = newView);
+                runInAction(() => self.props.isSelected(true) && RichTextMenu.Instance && (RichTextMenu.Instance.view = newView));
                 return self.menuPlugin = new RichTextMenuPlugin({ editorProps: this.props });
             }
         });
