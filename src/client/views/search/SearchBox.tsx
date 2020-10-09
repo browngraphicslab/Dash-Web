@@ -24,6 +24,7 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
 import { undoBatch } from "../../util/UndoManager";
+import { DocServer } from "../../DocServer";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -503,7 +504,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                         </div>
                         </div>
-                        <div className="searchBox-lozenge">
+                        <div className="searchBox-lozenge" onClick={() => DocServer.PRINT_CACHE()}>
                             {`UI project`}
                         </div>
                         <div className="searchBox-lozenge-dashboard"  >
