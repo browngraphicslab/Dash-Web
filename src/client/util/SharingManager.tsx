@@ -184,9 +184,13 @@ export class SharingManager extends React.Component<{}> {
      * @param group 
      * @param emailId 
      */
-    shareWithAddedMember = (group: Doc, emailId: string) => {
-        const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
-        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+    shareWithAddedMember = (group: Doc, emailId: string, retry: boolean = true) => {
+        const user = this.users.find(({ user: { email } }) => email === emailId)!;
+        const self = this;
+        if (group.docsShared) {
+            if (!user) retry && this.populateUsers().then(() => self.shareWithAddedMember(group, emailId, false));
+            else DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+        }
     }
 
     /**
