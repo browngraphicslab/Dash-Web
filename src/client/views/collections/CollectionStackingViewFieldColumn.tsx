@@ -131,6 +131,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     @action
+    textCallback = (char: string) => {
+        return this.addDocument(char, false);
+    }
+
+    @action
     addDocument = (value: string, shiftDown?: boolean) => {
         if (!value) return false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
@@ -300,6 +305,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const newEditableViewProps = {
             GetValue: () => "",
             SetValue: this.addDocument,
+            textCallback: this.textCallback,
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
