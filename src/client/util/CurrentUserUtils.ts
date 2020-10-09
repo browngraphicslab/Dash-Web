@@ -10,10 +10,12 @@ import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ComputedField, ScriptField } from "../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
+import { SharingPermissions, UserGroups } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
 import { DocumentType } from "../documents/DocumentTypes";
+import { Networking } from "../Network";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
@@ -30,8 +32,6 @@ import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
-import { SharingPermissions, UserGroups } from "../../fields/util";
-import { Networking } from "../Network";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -231,7 +231,7 @@ export class CurrentUserUtils {
         } else {
             const curButnTypes = Cast(doc["template-buttons"], Doc, null);
             DocListCastAsync(curButnTypes.data).then(async curBtns => {
-                await Promise.all(curBtns!);
+                curBtns && await Promise.all(curBtns);
                 requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
             });
         }
@@ -280,7 +280,7 @@ export class CurrentUserUtils {
             const curNoteTypes = Cast(doc["template-notes"], Doc, null);
             const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc];//, doc["template-note-Todo"] as any as Doc];
             DocListCastAsync(curNoteTypes.data).then(async curNotes => {
-                await Promise.all(curNotes!);
+                curNotes && await Promise.all(curNotes);
                 requiredTypes.map(ntype => Doc.AddDocToList(curNoteTypes, "data", ntype));
             });
         }
@@ -351,7 +351,7 @@ export class CurrentUserUtils {
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-button"] as Doc,
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
-                await Promise.all(curIcons!);
+                curIcons && await Promise.all(curIcons);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
             });
         }
@@ -989,8 +989,9 @@ export class CurrentUserUtils {
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         if (!doc.myLinkDatabase) doc.myLinkDatabase = new List([]);
+        const x = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
         UserGroups.setCurrentUserGroups((doc.globalGroupDatabase as Doc).data as List<Doc>);
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered

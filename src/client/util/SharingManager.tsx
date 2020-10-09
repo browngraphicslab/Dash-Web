@@ -423,7 +423,7 @@ export class SharingManager extends React.Component<{}> {
         TraceMobx();
         const groupList = GroupManager.Instance?.allGroups || [];
         const sortedUsers = this.users.slice().sort(this.sortUsers).map(({ user: { email } }) => ({ label: email, value: indType + email }));
-        const sortedGroups = groupList.slice().sort(this.sortGroups).map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
+        const sortedGroups = groupList.slice().sort(this.sortGroups).map(({ title }) => ({ label: StrCast(title), value: groupType + StrCast(title) }));
 
         // the next block handles the users shown (individuals/groups/both)
         const options: GroupedOptions[] = [];
@@ -527,7 +527,7 @@ export class SharingManager extends React.Component<{}> {
 
 
         // the list of groups shared with
-        const groupListMap: (Doc | { title: string })[] = groups.filter(({ groupName }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(groupName))}`) : true);
+        const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
         groupListMap.unshift({ title: "Public" }, { title: "Override" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.title)}`;

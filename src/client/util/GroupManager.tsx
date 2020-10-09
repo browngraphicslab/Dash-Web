@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from 'react-select';
 import * as RequestPromise from "request-promise";
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
-import { Cast, StrCast } from "../../fields/Types";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
+import { StrCast, Cast } from "../../fields/Types";
 import { Utils } from "../../Utils";
 import { MainViewModal } from "../views/MainViewModal";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
@@ -98,8 +98,7 @@ export class GroupManager extends React.Component<{}> {
      * @returns a list of all group documents.
      */
     @computed get allGroups(): Doc[] {
-        const groupDoc = this.GroupManagerDoc;
-        return groupDoc ? DocListCast(groupDoc.data) : [];
+        return DocListCast(this.GroupManagerDoc?.data);
     }
 
     /**
@@ -141,10 +140,9 @@ export class GroupManager extends React.Component<{}> {
      * @param groupName 
      * @param memberEmails 
      */
-    @action
     createGroupDoc(groupName: string, memberEmails: string[] = []) {
         const name = groupName.toLowerCase() === "admin" ? "Admin" : groupName;
-        const groupDoc = new Doc("GROUP:" + name);
+        const groupDoc = new Doc("GROUP:" + name, true);
         groupDoc.title = name;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
