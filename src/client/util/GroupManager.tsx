@@ -369,9 +369,9 @@ export class GroupManager extends React.Component<{}> {
                         {groups.map(group =>
                             <div
                                 className="group-row"
-                                key={StrCast(group.title)}
+                                key={StrCast(group.title || group.groupName)}
                             >
-                                <div className="group-name" >{group.title}</div>
+                                <div className="group-name" >{group.title || group.groupName}</div>
                                 <div className="group-info" onClick={action(() => this.currentGroup = group)}>
                                     <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                                 </div>
