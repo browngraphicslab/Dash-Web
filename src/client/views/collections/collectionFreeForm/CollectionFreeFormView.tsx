@@ -896,7 +896,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const curScroll = NumCast(this.props.Document._scrollTop);
                 let scrollTo = curScroll;
                 if (curScroll + contextHgt < NumCast(doc.y)) {
-                    scrollTo = NumCast(doc.y) + NumCast(doc._height) - contextHgt;
+                    scrollTo = NumCast(doc.y) + Math.max(NumCast(doc._height), 50) - contextHgt;
                 } else if (curScroll > NumCast(doc.y)) {
                     scrollTo = NumCast(doc.y);
                 }
