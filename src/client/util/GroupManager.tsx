@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, autorun, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from 'react-select';
 import * as RequestPromise from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
-import { Cast, StrCast } from "../../fields/Types";
+import { StrCast } from "../../fields/Types";
 import { setGroups } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -34,10 +34,12 @@ export class GroupManager extends React.Component<{}> {
     @observable private createGroupModalOpen: boolean = false;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
     private createGroupButtonRef: React.RefObject<HTMLButtonElement> = React.createRef(); // the ref for the group creation button
-    private currentUserGroups: string[] = []; // the list of groups the current user is a member of
+    private currentUserGroups: string[] = ["Public"]; // the list of groups the current user is a member of
     @observable private buttonColour: "#979797" | "black" = "#979797";
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
     private populating: boolean = false;
+    private groupListener: Opt<Lambda>;
+    private observableAllGroups: Doc[] = observable([]);
 
 
 
@@ -51,7 +53,11 @@ export class GroupManager extends React.Component<{}> {
      */
     componentDidMount() {
         this.populateUsers();
-        this.populateGroups();
+        this.groupListener = autorun(this.populateGroups);
+    }
+
+    componentWillUnmount() {
+        this.groupListener?.();
     }
 
     /**
@@ -77,13 +83,15 @@ export class GroupManager extends React.Component<{}> {
      * Populates the list of groups the current user is a member of and sets this list to be used in the GetEffectiveAcl in util.ts
      */
     populateGroups = () => {
+        this.observableAllGroups.map(g => g.members);
         DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
             groups?.forEach(group => {
                 const members: string[] = JSON.parse(StrCast(group.members));
-                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+                if (members.includes(Doc.CurrentUserEmail) && this.currentUserGroups.indexOf(StrCast(group.groupName)) === -1) this.currentUserGroups.push(StrCast(group.groupName));
+                if (this.observableAllGroups.indexOf(group) === -1) runInAction(() => this.observableAllGroups.push(group));
             });
-            this.currentUserGroups.push("Public");
             setGroups(this.currentUserGroups);
+            console.log("populating groups");
         });
     }
 

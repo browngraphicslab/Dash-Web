@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly } from "../../fields/Doc";
+import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
@@ -145,9 +145,9 @@ export class SharingManager extends React.Component<{}> {
             });
             return Promise.all(evaluating).then(() => {
                 runInAction(() => {
-                    for (let i = 0; i < sharingDocs.length; i++) {
-                        if (!this.users.find(user => user.user.email === sharingDocs[i].user.email)) {
-                            this.users.push(sharingDocs[i]);
+                    for (const sharingDoc of sharingDocs) {
+                        if (!this.users.find(user => user.user.email === sharingDoc.user.email)) {
+                            this.users.push(sharingDoc);
                         }
                     }
                 });
@@ -195,7 +195,21 @@ export class SharingManager extends React.Component<{}> {
      */
     shareWithAddedMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
-        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+        if (group.docsShared) {
+            DocListCastAsync(group.docsShared).then(async docs => {
+                if (docs) {
+                    const memberDocs = await DocListCastAsync(user.sharingDoc[storage]);
+                    memberDocs && docs.forEach(doc => {
+                        const index = Doc.IndexOf(doc, memberDocs);
+                        console.log(index);
+                        console.log(doc);
+                        index === -1 && (console.log(Doc.AddDocToList(user.sharingDoc, storage, doc)));
+                    });
+                }
+
+            });
+            //  === -1 && Doc.AddDocToList(user.sharingDoc, storage, doc));
+        }
     }
 
     /**
@@ -225,9 +239,16 @@ export class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => {
-                Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
+            DocListCastAsync(group.docsShared).then(docs => {
+                docs?.forEach(doc => {
+                    DocListCastAsync(user.sharingDoc[storage]).then(sharedDocs => {
+                        sharedDocs && Doc.IndexOf(doc, sharedDocs) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc);
+                    });
+                });
             });
+            // DocListCast(group.docsShared).forEach(doc => {
+            //     Doc.IndexOf(doc, DocListCast(user.sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.sharingDoc, storage, doc); // remove the doc only if it is in the list
+            // });
         }
     }
 
