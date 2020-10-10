@@ -8,9 +8,9 @@ import { RichTextField } from "../../fields/RichTextField";
 import { listSpec } from "../../fields/Schema";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ComputedField, ScriptField } from "../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, DateCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
-import { SharingPermissions, UserGroups } from "../../fields/util";
+import { SharingPermissions } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
@@ -32,6 +32,7 @@ import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
+import { SnappingManager } from "./SnappingManager";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -957,8 +958,13 @@ export class CurrentUserUtils {
 
     static async updateUserDocument(doc: Doc, sharingDocumentId: string) {
         if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
-        await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
-        UserGroups.Current;
+        const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
+        reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
+            async () => {
+                const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
+                const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
+                SnappingManager.SetCachedGroups(["Public", ...mygroups?.map(g => StrCast(g.title))]);
+            }, { fireImmediately: true });
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;

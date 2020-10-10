@@ -22,6 +22,7 @@ import "./SharingManager.scss";
 import { SelectionManager } from "./SelectionManager";
 import { intersection } from "lodash";
 import { SearchBox } from "../views/search/SearchBox";
+import { listSpec } from "../../fields/Schema";
 
 export interface User {
     email: string;
@@ -172,8 +173,8 @@ export class SharingManager extends React.Component<{}> {
                 group.docsShared ? Doc.IndexOf(doc, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(doc) : group.docsShared = new List<Doc>([doc]);
 
                 users.forEach(({ user, sharingDoc }) => {
-                    if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(sharingDoc[storage])) === -1 && Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
-                    else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
+                    if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
+                    else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
                 });
             }
         });
@@ -189,9 +190,13 @@ export class SharingManager extends React.Component<{}> {
         const self = this;
         if (group.docsShared) {
             if (!user) retry && this.populateUsers().then(() => self.shareWithAddedMember(group, emailId, false));
-            else DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
-                Doc.AddDocToList(user.sharingDoc, storage, doc);
-            }));
+            else {
+                DocListCastAsync(user.sharingDoc[storage]).then(userdocs =>
+                    DocListCastAsync(group.docsShared).then(dl => {
+                        const filtered = dl?.filter(doc => !userdocs?.includes(doc));
+                        filtered && userdocs?.push(...filtered);
+                    }));
+            }
         }
     }
 
@@ -222,9 +227,12 @@ export class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
-            DocListCastAsync(group.docsShared).then(dl => dl?.forEach(doc => {
-                Doc.RemoveDocFromList(user.sharingDoc, storage, doc);
-            }));
+            DocListCastAsync(user.sharingDoc[storage]).then(userdocs =>
+                DocListCastAsync(group.docsShared).then(dl => {
+                    const remaining = userdocs?.filter(doc => !dl?.includes(doc)) || [];
+                    userdocs?.splice(0, userdocs.length, ...remaining);
+                })
+            );
         }
     }
 
@@ -261,8 +269,8 @@ export class SharingManager extends React.Component<{}> {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
-            if (permission !== SharingPermissions.None) Doc.IndexOf(doc, DocListCast(sharingDoc[storage])) === -1 && Doc.AddDocToList(sharingDoc, storage, doc);
-            else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.IndexOf((doc.aliasOf as Doc || doc), DocListCast(sharingDoc[storage])) !== -1 && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
+            else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
         });
     }
 

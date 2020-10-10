@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset, DocListCastAsync } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -8,10 +8,13 @@ import { action, trace, observable, reaction, computed } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate, ToString, ToScriptString } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
-import { ScriptCast, StrCast } from "./Types";
+import { ScriptCast, StrCast, DateCast, Cast, NumCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
 import { List } from "./List";
+import { listSpec } from "./Schema";
+import { DateField } from "./DateField";
+import { SnappingManager } from "../client/util/SnappingManager";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -22,32 +25,6 @@ export function TraceMobx() {
     tracing && trace();
 }
 
-// the list of groups that the current user is a member of 
-export class UserGroups {
-    static computing = false;
-    static cachedGroups: string[] = [];
-    static globalGroupDoc: Doc | undefined;
-    static get Current() {
-        if (!Doc.UserDoc() || UserGroups.computing) return UserGroups.cachedGroups;
-        UserGroups.computing = true;
-        if (!UserGroups.globalGroupDoc) UserGroups.globalGroupDoc = Doc.UserDoc().globalGroupDatabase as Doc;
-        if (UserGroups.globalGroupDoc) {
-            const dbgroups = DocListCast(UserGroups.globalGroupDoc.data);
-            if (dbgroups.length !== UserGroups.cachedGroups.length - 1) {
-                UserGroups.cachedGroups = [
-                    "Public",
-                    ...dbgroups?.
-                        filter(group => group instanceof Doc).
-                        map(group => group as Doc).
-                        filter(group => JSON.parse(StrCast(group.members))?.includes(Doc.CurrentUserEmail)).
-                        map(group => StrCast(group.title))
-                ];
-            }
-        }
-        UserGroups.computing = false;
-        return UserGroups.cachedGroups;
-    }
-}
 
 export interface GetterResult {
     value: FieldResult;
@@ -190,7 +167,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
-    if (UserGroups.Current?.includes("Admin")) return AclAdmin;
+    if (SnappingManager.GetCachedGroups().includes("Admin")) return AclAdmin;
 
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
@@ -211,7 +188,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
             const entity = denormalizeEmail(key.substring(4)); // an individual or a group
-            if (UserGroups.Current?.includes(entity) || userChecked === entity) {
+            if (SnappingManager.GetCachedGroups().includes(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) return effectiveAcl;
@@ -388,9 +365,12 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        const op = diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
-            diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
-                : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        const op =
+            diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
+                diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
+                    : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        !op['$set'] && ((op as any).length = diff.length);
+
         const oldValue = current;
         const newValue = ObjectField.MakeCopy(value);
         current = newValue;

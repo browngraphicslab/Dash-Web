@@ -294,7 +294,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 const docs = this.childDocList;
                 if (docs) {
                     newDocs.map((doc, i) => {
-                        console.log(doc.title);
                         if (i === 0) {
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(this.filteredChildren[targInd]);

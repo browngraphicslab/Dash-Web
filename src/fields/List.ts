@@ -43,7 +43,7 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.push(...items);
-        this[Update]({ op: "$addToSet", items });
+        this[Update]({ op: "$addToSet", items, length: length + items.length });
         return res;
     }),
     reverse() {
@@ -77,7 +77,8 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.splice(start, deleteCount, ...items);
-        this[Update](items.length === 0 && deleteCount ? { op: "$remFromSet", items: removed } : undefined);
+        this[Update](items.length === 0 && deleteCount ? { op: "$remFromSet", items: removed, length: list.__fields.length } :
+            items.length && !deleteCount ? { op: "$addToSet", items, length: list.__fields.length } : undefined);
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {

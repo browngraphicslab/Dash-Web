@@ -13,6 +13,7 @@ import "./GroupManager.scss";
 import { GroupMemberView } from "./GroupMemberView";
 import { SharingManager, User } from "./SharingManager";
 import { listSpec } from "../../fields/Schema";
+import { DateField } from "../../fields/DateField";
 
 /**
  * Interface for options for the react-select component
@@ -144,6 +145,7 @@ export class GroupManager extends React.Component<{}> {
      */
     addGroup(groupDoc: Doc): boolean {
         if (this.GroupManagerDoc) {
+            this.GroupManagerDoc.lastModified = new DateField;
             Doc.AddDocToList(this.GroupManagerDoc, "data", groupDoc);
             return true;
         }
@@ -158,6 +160,7 @@ export class GroupManager extends React.Component<{}> {
     deleteGroup(group: Doc): boolean {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
+                this.GroupManagerDoc.lastModified = new DateField;
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
                 SharingManager.Instance.removeGroup(group);
                 const members = JSON.parse(StrCast(group.members));
@@ -184,6 +187,7 @@ export class GroupManager extends React.Component<{}> {
             const memberList = JSON.parse(StrCast(groupDoc.members));
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
+            this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
             SharingManager.Instance.shareWithAddedMember(groupDoc, email);
         }
     }
@@ -200,6 +204,7 @@ export class GroupManager extends React.Component<{}> {
             if (index !== -1) {
                 const user = memberList.splice(index, 1)[0];
                 groupDoc.members = JSON.stringify(memberList);
+                this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
                 SharingManager.Instance.removeMember(groupDoc, email);
             }
         }
