@@ -12,7 +12,6 @@
 
 .formattedTextBox-cont {
     touch-action: none;
-    cursor: text;
     background: inherit;
     padding: 0;
     border-width: 0px;
@@ -108,6 +107,7 @@
 }
 .formattedTextBox-inner-rounded-selected,
 .formattedTextBox-inner-selected {
+    cursor: text;
     .ProseMirror {
         padding:10px;
     }
@@ -357,7 +357,6 @@ footnote::after {
 
     .formattedTextBox-cont {
         touch-action: none;
-        cursor: text;
         background: inherit;
         padding: 0;
         border-width: 0px;
@@ -399,7 +398,7 @@ footnote::after {
         height: 35px;
         background: lightgray;
         border-radius: 20px;
-        cursor:grabbing;
+        cursor: grabbing;
     }
 
     .formattedTextBox-sidebar,
