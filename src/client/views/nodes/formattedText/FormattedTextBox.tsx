@@ -1654,7 +1654,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     })}
                     onDoubleClick={this.onDoubleClick}
                 >
-                    <div className={`formattedTextBox-outer`} ref={this._scrollRef}
+                    <div className={`formattedTextBox-outer${selclass}`} ref={this._scrollRef}
                         style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}

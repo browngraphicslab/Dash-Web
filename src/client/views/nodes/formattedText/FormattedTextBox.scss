@@ -37,12 +37,16 @@
     }
 }
 
+.formattedTextBox-outer-selected,
 .formattedTextBox-outer {
     position: relative;
     overflow: auto;
     display: inline-block;
     width: 100%;
     height: unset;
+}
+.formattedTextBox-outer-selected {
+    cursor: text;
 }
     
 .formattedTextBox-sidebar-handle {
@@ -107,7 +111,6 @@
 }
 .formattedTextBox-inner-rounded-selected,
 .formattedTextBox-inner-selected {
-    cursor: text;
     .ProseMirror {
         padding:10px;
     }
@@ -382,6 +385,7 @@ footnote::after {
         }
     }
 
+    .formattedTextBox-outer-selected,
     .formattedTextBox-outer {
         position: relative;
         overflow: auto;
