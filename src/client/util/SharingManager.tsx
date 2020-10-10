@@ -22,11 +22,11 @@ import "./SharingManager.scss";
 import { SelectionManager } from "./SelectionManager";
 import { intersection } from "lodash";
 import { SearchBox } from "../views/search/SearchBox";
-import { listSpec } from "../../fields/Schema";
 
 export interface User {
     email: string;
     sharingDocumentId: string;
+    linkDatabaseId: string;
 }
 
 /**
@@ -53,6 +53,7 @@ const storage = "data";
 interface ValidatedUser {
     user: User;         // database minimal info to identify / communicate with a user (email, sharing doc id)
     sharingDoc: Doc;    // document to share/message another user
+    linkDatabase: Doc;
     userColor: string;  // stored on the sharinDoc, extracted for convenience?
 }
 
@@ -130,8 +131,10 @@ export class SharingManager extends React.Component<{}> {
                 const isCandidate = user.email !== Doc.CurrentUserEmail;
                 if (isCandidate) {
                     const sharingDoc = await DocServer.GetRefField(user.sharingDocumentId);
-                    if (sharingDoc instanceof Doc) {
-                        sharingDocs.push({ user, sharingDoc, userColor: StrCast(sharingDoc.color) });
+                    const linkDatabase = await DocServer.GetRefField(user.linkDatabaseId);
+                    if (sharingDoc instanceof Doc && linkDatabase instanceof Doc) {
+                        await DocListCastAsync(linkDatabase.data);
+                        sharingDocs.push({ user, sharingDoc, linkDatabase, userColor: StrCast(sharingDoc.color) });
                     }
                 }
             });

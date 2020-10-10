@@ -36,17 +36,21 @@ export class LinkManager {
 
 
     public getAllLinks(): Doc[] {
-        const lset = new Set<Doc>(DocListCast(Doc.UserDoc().myLinkDatabase));
-        SharingManager.Instance.users.forEach(user => DocListCast(user.sharingDoc.myLinkDatabase).map(lset.add));
+        const lset = new Set<Doc>(DocListCast(Doc.LinkDBDoc().data));
+        SharingManager.Instance.users.forEach(user => {
+            DocListCast((user.linkDatabase as Doc)?.data).map(doc => {
+                lset.add(doc);
+            });
+        });
         return Array.from(lset);
     }
 
     public addLink(linkDoc: Doc): boolean {
-        return Doc.AddDocToList(Doc.UserDoc(), "myLinkDatabase", linkDoc);
+        return Doc.AddDocToList(Doc.LinkDBDoc(), "data", linkDoc);
     }
 
     public deleteLink(linkDoc: Doc): boolean {
-        return Doc.RemoveDocFromList(Doc.UserDoc(), "myLinkDatabase", linkDoc);
+        return Doc.RemoveDocFromList(Doc.LinkDBDoc(), "data", linkDoc);
     }
 
     // finds all links that contain the given anchor

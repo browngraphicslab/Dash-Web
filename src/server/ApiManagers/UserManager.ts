@@ -19,9 +19,9 @@ export default class UserManager extends ApiManager {
             method: Method.GET,
             subscription: "/getUsers",
             secureHandler: async ({ res }) => {
-                const cursor = await Database.Instance.query({}, { email: 1, sharingDocumentId: 1 }, "users");
+                const cursor = await Database.Instance.query({}, { email: 1, linkDatabaseId: 1, sharingDocumentId: 1 }, "users");
                 const results = await cursor.toArray();
-                res.send(results.map(user => ({ email: user.email, sharingDocumentId: user.sharingDocumentId })));
+                res.send(results.map(user => ({ email: user.email, linkDatabaseId: user.linkDatabaseId, sharingDocumentId: user.sharingDocumentId })));
             }
         });
 
@@ -47,13 +47,19 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/getUserDocumentIds",
-            secureHandler: ({ res, user }) => res.send({ userDocumentId: user.userDocumentId, sharingDocumentId: user.sharingDocumentId })
+            secureHandler: ({ res, user }) => res.send({ userDocumentId: user.userDocumentId, linkDatabaseId: user.linkDatabaseId, sharingDocumentId: user.sharingDocumentId })
         });
 
         register({
             method: Method.GET,
             subscription: "/getSharingDocumentId",
             secureHandler: ({ res, user }) => res.send(user.sharingDocumentId)
+        });
+
+        register({
+            method: Method.GET,
+            subscription: "/getLinkDatabaseId",
+            secureHandler: ({ res, user }) => res.send(user.linkDatabaseId)
         });
 
         register({

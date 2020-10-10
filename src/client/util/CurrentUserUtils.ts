@@ -1,6 +1,6 @@
 import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
-import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, AclReadonly } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { List } from "../../fields/List";
 import { PrefetchProxy } from "../../fields/Proxy";
@@ -541,9 +541,9 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
-    static async setupMenuPanel(doc: Doc, sharingDocumentId: string) {
+    static async setupMenuPanel(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (doc.menuStack === undefined) {
-            await this.setupSharingSidebar(doc, sharingDocumentId);  // sets up the right sidebar collection for mobile upload documents and sharing
+            await this.setupSharingSidebar(doc, sharingDocumentId, linkDatabaseId);  // sets up the right sidebar collection for mobile upload documents and sharing
             const menuBtns = (await CurrentUserUtils.menuBtnDescriptions(doc)).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
@@ -876,7 +876,16 @@ export class CurrentUserUtils {
     }
 
     // Sharing sidebar is where shared documents are contained
-    static async setupSharingSidebar(doc: Doc, sharingDocumentId: string) {
+    static async setupSharingSidebar(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
+        if (doc.myLinkDatabase === undefined) {
+            let linkDocs = await DocServer.GetRefField(linkDatabaseId);
+            if (!linkDocs) {
+                linkDocs = new Doc(linkDatabaseId, true);
+                (linkDocs as Doc).data = new List<Doc>([]);
+                (linkDocs as Doc)["acl-Public"] = SharingPermissions.Add;
+            }
+            doc.myLinkDatabase = new PrefetchProxy(linkDocs);
+        }
         if (doc.mySharedDocs === undefined) {
             let sharedDocs = await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
@@ -956,7 +965,7 @@ export class CurrentUserUtils {
         return doc.clickFuncs as Doc;
     }
 
-    static async updateUserDocument(doc: Doc, sharingDocumentId: string) {
+    static async updateUserDocument(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
         reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
@@ -996,9 +1005,8 @@ export class CurrentUserUtils {
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
-        await this.setupMenuPanel(doc, sharingDocumentId);
+        await this.setupMenuPanel(doc, sharingDocumentId, linkDatabaseId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        if (!doc.myLinkDatabase) doc.myLinkDatabase = new List([]);
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 
@@ -1036,10 +1044,10 @@ export class CurrentUserUtils {
     public static async loadUserDocument(id: string) {
         this.curr_id = id;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
-            const { userDocumentId, sharingDocumentId } = JSON.parse(ids);
+            const { userDocumentId, sharingDocumentId, linkDatabaseId } = JSON.parse(ids);
             if (userDocumentId !== "guest") {
                 return DocServer.GetRefField(userDocumentId).then(async field =>
-                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId));
+                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId, linkDatabaseId));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

@@ -145,8 +145,8 @@ export class GroupManager extends React.Component<{}> {
      */
     addGroup(groupDoc: Doc): boolean {
         if (this.GroupManagerDoc) {
-            this.GroupManagerDoc.lastModified = new DateField;
             Doc.AddDocToList(this.GroupManagerDoc, "data", groupDoc);
+            this.GroupManagerDoc.lastModified = new DateField;
             return true;
         }
         return false;
@@ -160,7 +160,6 @@ export class GroupManager extends React.Component<{}> {
     deleteGroup(group: Doc): boolean {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
-                this.GroupManagerDoc.lastModified = new DateField;
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
                 SharingManager.Instance.removeGroup(group);
                 const members = JSON.parse(StrCast(group.members));
@@ -168,6 +167,7 @@ export class GroupManager extends React.Component<{}> {
                     const index = DocListCast(this.GroupManagerDoc.data).findIndex(grp => grp === group);
                     index !== -1 && Cast(this.GroupManagerDoc.data, listSpec(Doc), [])?.splice(index, 1);
                 }
+                this.GroupManagerDoc.lastModified = new DateField;
                 if (group === this.currentGroup) {
                     this.currentGroup = undefined;
                 }
@@ -187,8 +187,8 @@ export class GroupManager extends React.Component<{}> {
             const memberList = JSON.parse(StrCast(groupDoc.members));
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
-            this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
             SharingManager.Instance.shareWithAddedMember(groupDoc, email);
+            this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
         }
     }
 
@@ -204,8 +204,8 @@ export class GroupManager extends React.Component<{}> {
             if (index !== -1) {
                 const user = memberList.splice(index, 1)[0];
                 groupDoc.members = JSON.stringify(memberList);
-                this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
                 SharingManager.Instance.removeMember(groupDoc, email);
+                this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
             }
         }
     }

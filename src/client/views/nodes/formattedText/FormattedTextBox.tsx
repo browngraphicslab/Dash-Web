@@ -289,10 +289,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             } else {
-
-                const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
-                json.selection = state.toJSON().selection;
-                this._editorView.updateState(EditorState.fromJSON(this.config, json));
+                const jsonstring = Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!;
+                if (jsonstring) {
+                    const json = JSON.parse(jsonstring);
+                    json.selection = state.toJSON().selection;
+                    this._editorView.updateState(EditorState.fromJSON(this.config, json));
+                }
             }
         }
     }
@@ -1554,7 +1556,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     @computed get sidebarHandle() {
-        const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.title).length;
+        const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.author).length;
         return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
                 style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : undefined }}
