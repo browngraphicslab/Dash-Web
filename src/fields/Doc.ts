@@ -1053,10 +1053,11 @@ export namespace Doc {
         const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
-            for (let i = 0; i < docFilters.length; i += 3) {
-                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
-                    if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
-                    docFilters.splice(i, 3);
+            for (let i = 0; i < docFilters.length; i++) {
+                const fields = docFilters[i].split(":"); // split key:value:modifier
+                if (fields[0] === key && (fields[1] === value || modifiers === "match" || modifiers === "remove")) {
+                    if (fields[2] === modifiers && modifiers && fields[1] === value) return;
+                    docFilters.splice(i, 1);
                     container._docFilters = new List<string>(docFilters);
                     break;
                 }
@@ -1065,9 +1066,7 @@ export namespace Doc {
                 if (!docFilters.length && modifiers === "match" && value === undefined) {
                     container._docFilters = undefined;
                 } else if (modifiers !== "remove") {
-                    docFilters.push(key);
-                    docFilters.push(value);
-                    docFilters.push(modifiers);
+                    docFilters.push(key + ":" + value + ":" + modifiers);
                     container._docFilters = new List<string>(docFilters);
                 }
             }

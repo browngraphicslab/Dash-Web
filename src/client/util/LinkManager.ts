@@ -36,7 +36,7 @@ export class LinkManager {
     public getAllLinks(): Doc[] {
         const lset = new Set<Doc>(DocListCast(Doc.LinkDBDoc().data));
         SharingManager.Instance.users.forEach(user => {
-            DocListCast((user.linkDatabase as Doc)?.data).map(doc => {
+            DocListCast(user.linkDatabase?.data).map(doc => {
                 lset.add(doc);
             });
         });
