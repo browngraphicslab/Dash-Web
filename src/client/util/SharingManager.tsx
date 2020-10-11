@@ -473,7 +473,7 @@ export class SharingManager extends React.Component<{}> {
         const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym]?.[AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         // the list of users shared with
-        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, sharingDoc, userColor }) => {
+        const userListContents: (JSX.Element | null)[] = users.filter(({ user }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(user.email)}`) : docs[0]?.author !== user.email).map(({ user, linkDatabase, sharingDoc, userColor }) => {
             const userKey = `acl-${normalizeEmail(user.email)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[userKey] === docs[0]?.[AclSym]?.[userKey] : doc?.[DataSym]?.[AclSym]?.[userKey] === docs[0]?.[DataSym]?.[AclSym]?.[userKey]);
             const permissions = uniform ? StrCast(targetDoc?.[userKey]) : "-multiple-";
@@ -489,7 +489,7 @@ export class SharingManager extends React.Component<{}> {
                             <select
                                 className={"permissions-dropdown"}
                                 value={permissions}
-                                onChange={e => this.setInternalSharing({ user, sharingDoc: sharingDoc, userColor }, e.currentTarget.value)}
+                                onChange={e => this.setInternalSharing({ user, linkDatabase, sharingDoc, userColor }, e.currentTarget.value)}
                             >
                                 {this.sharingOptions(uniform)}
                             </select>

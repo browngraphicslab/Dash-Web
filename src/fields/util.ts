@@ -12,8 +12,6 @@ import { ScriptCast, StrCast, DateCast, Cast, NumCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
 import { List } from "./List";
-import { listSpec } from "./Schema";
-import { DateField } from "./DateField";
 import { SnappingManager } from "../client/util/SnappingManager";
 
 function _readOnlySetter(): never {
@@ -167,7 +165,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
-    if (SnappingManager.GetCachedGroups().includes("Admin")) return AclAdmin;
+    if (SnappingManager.GetCachedGroupByName("Admin")) return AclAdmin;
 
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
@@ -188,7 +186,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
             const entity = denormalizeEmail(key.substring(4)); // an individual or a group
-            if (SnappingManager.GetCachedGroups().includes(entity) || userChecked === entity) {
+            if (SnappingManager.GetCachedGroupByName(entity) || userChecked === entity) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) return effectiveAcl;
@@ -369,7 +367,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
             diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
                 diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
                     : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
-        !op['$set'] && ((op as any).length = diff.length);
+        !op.$set && ((op as any).length = diff.length);
 
         const oldValue = current;
         const newValue = ObjectField.MakeCopy(value);

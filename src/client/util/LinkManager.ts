@@ -1,6 +1,4 @@
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
-import { List } from "../../fields/List";
-import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { SharingManager } from "./SharingManager";
 import { computedFn } from "mobx-utils";
@@ -71,7 +69,7 @@ export class LinkManager {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
         });
         return related;
-    }.bind(this));
+    }.bind(this), true);
 
     // finds all links that contain the given anchor
     public getAllRelatedLinks(anchor: Doc): Doc[] {
