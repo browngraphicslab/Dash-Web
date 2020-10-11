@@ -134,7 +134,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
             }
 
-            const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
+            const docs = rawdocs.filter(d => !(d instanceof Promise) && Object.keys(d).length).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 

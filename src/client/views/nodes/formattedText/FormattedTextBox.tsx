@@ -885,7 +885,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             ({ width, autoHeight }) => width !== undefined && setTimeout(() => this.tryUpdateHeight(), 0)
         );
         this._disposers.height = reaction(
-            () => NumCast(this.layoutDoc._height),
+            () => Cast(this.layoutDoc._height, "number", null),
             action(height => {
                 if (height !== undefined && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
                     this.layoutDoc._delayAutoHeight = height;
