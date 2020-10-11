@@ -7,7 +7,7 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
-import { createSchema, makeInterface } from "../../../../fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../../fields/Schema";
 import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
@@ -88,6 +88,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
+    private _boundsReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
     private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
     private _cachedPool: Map<string, PoolData> = new Map();
@@ -1159,12 +1160,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+        if (!this.props.annotationsKey) {
+            this._boundsReaction = reaction(() => this.contentBounds,
+                bounds => (!this.fitToContent && this._layoutElements?.length) && setTimeout(() => {
+                    const rbounds = Cast(this.Document._renderContentBounds, listSpec("number"), [0, 0, 0, 0]);
+                    if (rbounds[0] !== bounds.x || rbounds[1] !== bounds.y || rbounds[2] !== bounds.r || rbounds[3] !== bounds.b) {
+                        this.Document._renderContentBounds = new List<number>([bounds.x, bounds.y, bounds.r, bounds.b]);
+                    }
+                }));
+        }
 
         this._marqueeRef.current?.addEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+        this._boundsReaction?.();
         this._marqueeRef.current?.removeEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
@@ -1438,10 +1449,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return wscale < hscale ? wscale : hscale;
     }
     @computed get backgroundEvents() { return this.layoutDoc._isBackground && SnappingManager.GetIsDragging(); }
+
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
-        !this.fitToContent && !this.props.annotationsKey && this._layoutElements?.length && setTimeout(() => this.Document._renderContentBounds = new List<number>([this.contentBounds.x, this.contentBounds.y, this.contentBounds.r, this.contentBounds.b]), 0);
         return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget}
             onPointerOver={this.onPointerOver}
             onWheel={this.onPointerWheel}

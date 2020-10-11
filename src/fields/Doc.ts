@@ -240,11 +240,11 @@ export class Doc extends RefField {
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
                     }
-                    if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
-                        this[UpdatingFromServer] = true;
-                        this[FieldsSym](true);
-                        this[UpdatingFromServer] = false;
-                    }
+                    // if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
+                    //     this[UpdatingFromServer] = true;
+                    //     this[FieldsSym](true);
+                    //     this[UpdatingFromServer] = false;
+                    // }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];

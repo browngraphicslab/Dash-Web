@@ -38,8 +38,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.linearViewIsExpanded ? 1 : 0),
-            () => this.props.Document._width = 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+            width => this.childDocs.length && (this.props.Document._width = width),
             { fireImmediately: true }
         );
 

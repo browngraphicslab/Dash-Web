@@ -1514,7 +1514,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
-        this.rootDoc[this.fieldKey + "-height"] = 0;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
@@ -1545,7 +1544,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.rootDoc[this.fieldKey + "-height"] = finalHeight;
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
-        }
+        } else this.rootDoc[this.fieldKey + "-height"] = 0;
     }
 
     @computed get audioHandle() {
