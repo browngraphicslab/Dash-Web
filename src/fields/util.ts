@@ -154,7 +154,7 @@ export enum SharingPermissions {
     None = "Not Shared"
 }
 
-// return acl from cache or cache the acl and return.
+// return acl from cache or cache the acl and return. bcz: Argh!  NOT WORKING ... nothing gets invalidated properly....
 const getEffectiveAclCache = computedFn(function (target: any, playgroundProp: boolean, user?: string) { return getEffectiveAcl(target, playgroundProp, user); }, true);
 
 /**
@@ -164,7 +164,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
     if (!target) return AclPrivate;
     if (in_prop === UpdatingFromServer) return AclAdmin;  // requesting the UpdatingFromServer prop must always go through to keep the local DB consistent
     const playgroundProp = in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()) ? true : false;
-    return getEffectiveAclCache(target, playgroundProp, user);
+    return getEffectiveAcl(target, playgroundProp, user);
 }
 
 function getEffectiveAcl(target: any, playgroundProp: boolean, user?: string): symbol {
