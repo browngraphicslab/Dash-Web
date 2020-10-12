@@ -102,22 +102,28 @@ const AclMap = new Map<string, symbol>([
     [SharingPermissions.Admin, AclAdmin]
 ]);
 
-export function fetchProto(doc: Doc) {
+// caches the document access permissions for the current user.
+// this recursively updates all protos as well.
+export function updateCachedAcls(doc: Doc) {
     if (!doc) return;
     const permissions: { [key: string]: symbol } = {};
 
+    doc[UpdatingFromServer] = true;
     Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
+    doc[UpdatingFromServer] = false;
 
-    if (Object.keys(permissions).length) doc[AclSym] = permissions;
+    if (Object.keys(permissions).length) {
+        doc[AclSym] = permissions;
+    }
 
     if (doc.proto instanceof Promise) {
-        doc.proto.then(fetchProto);
+        doc.proto.then(updateCachedAcls);
         return doc.proto;
     }
 }
 
 @scriptingGlobal
-@Deserializable("Doc", fetchProto).withFields(["id"])
+@Deserializable("Doc", updateCachedAcls).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -233,17 +239,15 @@ export class Doc extends RefField {
                     const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
-                    if (fKey.startsWith("acl")) {
-                        fetchProto(this);
-                    }
                     this[UpdatingFromServer] = false;
+                    if (fKey.startsWith("acl")) {
+                        updateCachedAcls(this);
+                    }
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
                     }
                     // if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
-                    //     this[UpdatingFromServer] = true;
                     //     this[FieldsSym](true);
-                    //     this[UpdatingFromServer] = false;
                     // }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {

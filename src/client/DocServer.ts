@@ -1,6 +1,6 @@
 import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc, fetchProto, FieldsSym, UpdatingFromServer } from '../fields/Doc';
+import { Opt, Doc, UpdatingFromServer } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';

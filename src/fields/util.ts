@@ -1,14 +1,14 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset, DocListCastAsync } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
-import { action, trace, observable, reaction, computed } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate, ToString, ToScriptString } from "./FieldSymbols";
+import { action, trace, } from "mobx";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
-import { ScriptCast, StrCast, DateCast, Cast, NumCast } from "./Types";
+import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
 import { List } from "./List";
@@ -114,10 +114,6 @@ export function makeReadOnly() {
 export function makeEditable() {
     _setter = _setterImpl;
 }
-var _overrideAcl = false;
-export function OVERRIDE_acl(val: boolean) {
-    _overrideAcl = val;
-}
 
 export function normalizeEmail(email: string) {
     return email.replace(/\./g, '__');
@@ -154,18 +150,19 @@ export enum SharingPermissions {
     None = "Not Shared"
 }
 
-// return acl from cache or cache the acl and return. bcz: Argh!  NOT WORKING ... nothing gets invalidated properly....
+// return acl from cache or cache the acl and return.
 const getEffectiveAclCache = computedFn(function (target: any, user?: string) { return getEffectiveAcl(target, user); }, true);
 
 /**
  * Calculates the effective access right to a document for the current user.
  */
 export function GetEffectiveAcl(target: any, user?: string): symbol {
-    return target ? getEffectiveAcl(target, user) : AclPrivate;
+    return !target ? AclPrivate :
+        target[UpdatingFromServer] ? AclAdmin : getEffectiveAclCache(target, user);// all changes received from the server must be processed as Admin.  return this directly so that the acls aren't cached (UpdatingFromServer is not observable)
 }
 
 function getPropAcl(target: any, prop: string | symbol | number) {
-    if (prop === UpdatingFromServer) return AclAdmin;  // requesting the UpdatingFromServer prop must always go through to keep the local DB consistent
+    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop == AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
     if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
     return GetEffectiveAcl(target);
 }
@@ -173,16 +170,12 @@ function getPropAcl(target: any, prop: string | symbol | number) {
 let HierarchyMapping: Map<symbol, number> | undefined;
 
 function getEffectiveAcl(target: any, user?: string): symbol {
-    if (target[UpdatingFromServer]) return AclAdmin; // all changes received from the server must be processed as Admin
-    // if the current user is the author of the document / the current user is a member of the admin group
-    const userChecked = user || Doc.CurrentUserEmail;
+    const targetAcls = target[AclSym];
+    const userChecked = user || Doc.CurrentUserEmail;    // if the current user is the author of the document / the current user is a member of the admin group
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin; // target may be a Doc of Proxy, so check __fields.author and .author
     if (SnappingManager.GetCachedGroupByName("Admin")) return AclAdmin;
-    const targetAcls = target[AclSym];
 
     if (targetAcls && Object.keys(targetAcls).length) {
-        if (_overrideAcl) return AclEdit;
-
         HierarchyMapping = HierarchyMapping || new Map<symbol, number>([
             [AclPrivate, 0],
             [AclReadonly, 1],
@@ -199,7 +192,6 @@ function getEffectiveAcl(target: any, user?: string): symbol {
             if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                 if (SnappingManager.GetCachedGroupByName(entity) || userChecked === entity) {
                     effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
             }
         }
@@ -278,8 +270,8 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         });
     }
 
-    layoutDocChanged && fetchProto(target); // updates target[AclSym] when changes to acls have been made
-    dataDocChanged && fetchProto(dataDoc);
+    layoutDocChanged && updateCachedAcls(target); // updates target[AclSym] when changes to acls have been made
+    dataDocChanged && updateCachedAcls(dataDoc);
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
@@ -312,9 +304,9 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
 
-    if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
+    if (in_prop === AclSym) return target[AclSym];
     if (in_prop === "toString" || (in_prop !== HeightSym && in_prop !== WidthSym && in_prop !== LayoutSym && typeof prop === "symbol")) return target.__fields[prop] || target[prop];
-    if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
+    if (GetEffectiveAcl(target) === AclPrivate) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
     if (prop === LayoutSym) return target.__LAYOUT__;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
