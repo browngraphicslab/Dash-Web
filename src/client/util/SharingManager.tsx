@@ -177,7 +177,7 @@ export class SharingManager extends React.Component<{}> {
 
                 users.forEach(({ user, sharingDoc }) => {
                     if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc); // add the doc to the sharingDoc if it hasn't already been added
-                    else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
+                    else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc)); // remove the doc from the list if it already exists
                 });
             }
         });
@@ -273,7 +273,7 @@ export class SharingManager extends React.Component<{}> {
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
-            else GetEffectiveAcl(doc, undefined, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
         });
     }
 

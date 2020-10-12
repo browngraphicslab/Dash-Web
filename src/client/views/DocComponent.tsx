@@ -164,7 +164,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     return false;
                 }
                 else {
-                    if (this.props.Document[AclSym]) {
+                    if (this.props.Document[AclSym] && Object.keys(this.props.Document[AclSym]).length) {
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
                                 if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);

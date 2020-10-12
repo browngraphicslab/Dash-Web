@@ -155,32 +155,35 @@ export enum SharingPermissions {
 }
 
 // return acl from cache or cache the acl and return. bcz: Argh!  NOT WORKING ... nothing gets invalidated properly....
-const getEffectiveAclCache = computedFn(function (target: any, playgroundProp: boolean, user?: string) { return getEffectiveAcl(target, playgroundProp, user); }, true);
+const getEffectiveAclCache = computedFn(function (target: any, user?: string) { return getEffectiveAcl(target, user); }, true);
 
 /**
  * Calculates the effective access right to a document for the current user.
  */
-export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
-    if (!target) return AclPrivate;
-    if (in_prop === UpdatingFromServer) return AclAdmin;  // requesting the UpdatingFromServer prop must always go through to keep the local DB consistent
-    const playgroundProp = in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()) ? true : false;
-    return getEffectiveAcl(target, playgroundProp, user);
+export function GetEffectiveAcl(target: any, user?: string): symbol {
+    return target ? getEffectiveAcl(target, user) : AclPrivate;
 }
 
-function getEffectiveAcl(target: any, playgroundProp: boolean, user?: string): symbol {
+function getPropAcl(target: any, prop: string | symbol | number) {
+    if (prop === UpdatingFromServer) return AclAdmin;  // requesting the UpdatingFromServer prop must always go through to keep the local DB consistent
+    if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
+    return GetEffectiveAcl(target);
+}
+
+let HierarchyMapping: Map<symbol, number> | undefined;
+
+function getEffectiveAcl(target: any, user?: string): symbol {
     if (target[UpdatingFromServer]) return AclAdmin; // all changes received from the server must be processed as Admin
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
-    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
+    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin; // target may be a Doc of Proxy, so check __fields.author and .author
     if (SnappingManager.GetCachedGroupByName("Admin")) return AclAdmin;
+    const targetAcls = target[AclSym];
 
-    if (target[AclSym] && Object.keys(target[AclSym]).length) {
+    if (targetAcls && Object.keys(targetAcls).length) {
+        if (_overrideAcl) return AclEdit;
 
-        // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
-        if (_overrideAcl || playgroundProp) return AclEdit;
-
-        let effectiveAcl = AclPrivate;
-        const HierarchyMapping = new Map<symbol, number>([
+        HierarchyMapping = HierarchyMapping || new Map<symbol, number>([
             [AclPrivate, 0],
             [AclReadonly, 1],
             [AclAddonly, 2],
@@ -188,12 +191,13 @@ function getEffectiveAcl(target: any, playgroundProp: boolean, user?: string): s
             [AclAdmin, 4]
         ]);
 
-        for (const [key, value] of Object.entries(target[AclSym])) {
+        let effectiveAcl = AclPrivate;
+        for (const [key, value] of Object.entries(targetAcls)) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
             const entity = denormalizeEmail(key.substring(4)); // an individual or a group
-            if (SnappingManager.GetCachedGroupByName(entity) || userChecked === entity) {
-                if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
+            if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
+                if (SnappingManager.GetCachedGroupByName(entity) || userChecked === entity) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
@@ -201,8 +205,8 @@ function getEffectiveAcl(target: any, playgroundProp: boolean, user?: string): s
         }
 
         // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned if the user isn't an admin of the document
-        const override = target[AclSym]["acl-Override"];
-        if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
+        const override = targetAcls["acl-Override"];
+        if (override !== AclUnset && override !== undefined) effectiveAcl = override;
 
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
@@ -282,7 +286,7 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    const effectiveAcl = GetEffectiveAcl(target, in_prop);
+    const effectiveAcl = getPropAcl(target, prop);
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
