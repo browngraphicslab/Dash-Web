@@ -891,12 +891,11 @@ export namespace Doc {
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { return (manager._user_doc = doc); }
 
-    export function IsSearchMatch(doc: Doc) {
-        return computedFn(function IsSearchMatch(doc: Doc) {
-            return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
-                brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
-        })(doc);
-    }
+    const isSearchMatchCache = computedFn(function IsSearchMatch(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    });
+    export function IsSearchMatch(doc: Doc) { return isSearchMatchCache(doc); }
     export function IsSearchMatchUnmemoized(doc: Doc) {
         return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
             brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
@@ -918,11 +917,9 @@ export namespace Doc {
         brushManager.SearchMatchDoc.clear();
     }
 
-    export function IsBrushed(doc: Doc) {
-        return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
-        })(doc);
-    }
+    const isBrushedCache = computedFn(function IsBrushed(doc: Doc) { return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc)); });
+    export function IsBrushed(doc: Doc) { return isBrushedCache(doc); }
+
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;

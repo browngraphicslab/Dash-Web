@@ -35,7 +35,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     private _scriptValue: string = "";
     private _searchString: string = "";
     private _initialScale: number = 0;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live.
-    private _everActive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
+    private _displayPdfLive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
     private _searchRef = React.createRef<HTMLInputElement>();
     private _keyRef = React.createRef<HTMLInputElement>();
@@ -44,7 +44,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     private _selectReactionDisposer: IReactionDisposer | undefined;
 
     @observable private _searching: boolean = false;
-    @observable private _flyout: boolean = false;
     @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _pageControls = false;
 
@@ -54,6 +53,11 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
         const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
+        if (pdfUrl) {
+            if (PDFBox.pdfcache.get(pdfUrl.url.href)) runInAction(() => this._pdf = PDFBox.pdfcache.get(pdfUrl.url.href));
+            else if (PDFBox.pdfpromise.get(pdfUrl.url.href)) PDFBox.pdfpromise.get(pdfUrl.url.href)?.then(action(pdf => this._pdf = pdf));
+        }
 
         const backup = "oldPath";
         const { Document } = this.props;
@@ -265,22 +269,23 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         </div>;
     }
 
-    _pdfjsRequested = false;
+    static pdfcache = new Map<string, Pdfjs.PDFDocumentProxy>();
+    static pdfpromise = new Map<string, Pdfjs.PDFPromise<Pdfjs.PDFDocumentProxy>>();
     render() {
         TraceMobx();
-        const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (true) {//this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) {
-            this._everActive = true;
+            this._displayPdfLive = true;
         }
-        if (pdfUrl && this._everActive) {
-            if (pdfUrl instanceof PdfField && this._pdf) {
-                return this.renderPdfView;
-            }
-            if (!this._pdfjsRequested) {
-                this._pdfjsRequested = true;
-                const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
-                promise.then(action(pdf => this._pdf = pdf));
+        if (this._displayPdfLive) {
+            if (this._pdf) return this.renderPdfView;
 
+            const href = Cast(this.dataDoc[this.props.fieldKey], PdfField, null)?.url.href;
+            if (href) {
+                if (PDFBox.pdfcache.get(href)) setTimeout(action(() => this._pdf = PDFBox.pdfcache.get(href)));
+                else {
+                    if (!PDFBox.pdfpromise.get(href)) PDFBox.pdfpromise.set(href, Pdfjs.getDocument(href).promise);
+                    PDFBox.pdfpromise.get(href)?.then(action(pdf => PDFBox.pdfcache.set(href, this._pdf = pdf)));
+                }
             }
         }
         return this.renderTitleBox;

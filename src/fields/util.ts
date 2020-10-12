@@ -154,30 +154,30 @@ export enum SharingPermissions {
     None = "Not Shared"
 }
 
+// return acl from cache or cache the acl and return.
+const getEffectiveAclCache = computedFn(function (target: any, playgroundProp: boolean, user?: string) { return getEffectiveAcl(target, playgroundProp, user); }, true);
+
 /**
  * Calculates the effective access right to a document for the current user.
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
-    return computedFn(function (target: any, in_prop?: string | symbol | number, user?: string) {
-        return getEffectiveAcl(target, in_prop, user);
-    }, true)(target, in_prop, user);
-}
-function getEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
+    if (in_prop === UpdatingFromServer) return AclAdmin;  // requesting the UpdatingFromServer prop must always go through to keep the local DB consistent
+    const playgroundProp = in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()) ? true : false;
+    return getEffectiveAclCache(target, playgroundProp, user);
+}
 
-    // all changes received fromt the server must be processed as Admin
-    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
-
+function getEffectiveAcl(target: any, playgroundProp: boolean, user?: string): symbol {
+    if (target[UpdatingFromServer]) return AclAdmin; // all changes received from the server must be processed as Admin
     // if the current user is the author of the document / the current user is a member of the admin group
     const userChecked = user || Doc.CurrentUserEmail;
     if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
     if (SnappingManager.GetCachedGroupByName("Admin")) return AclAdmin;
 
-
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
         // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
-        if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
+        if (_overrideAcl || playgroundProp) return AclEdit;
 
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([
