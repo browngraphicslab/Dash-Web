@@ -783,10 +783,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
         if (deltaScale < 0) deltaScale = -deltaScale;
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
+        const invTransform = this.getLocalTransform().inverse();
+        if (deltaScale * invTransform.Scale > 20) {
+            deltaScale = 20 / invTransform.Scale;
+        }
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
         if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
-            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
+            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 20);
             this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
         }
