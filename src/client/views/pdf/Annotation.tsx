@@ -71,6 +71,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         this._reactionDisposer && this._reactionDisposer();
     }
 
+    @undoBatch
     deleteAnnotation = () => {
         const annotation = DocListCast(this.props.dataDoc[this.props.fieldKey + "-annotations"]);
         const group = FieldValue(Cast(this.props.document.group, Doc));
@@ -86,6 +87,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         PDFMenu.Instance.fadeOut(true);
     }
 
+    @undoBatch
     pinToPres = () => {
         const group = FieldValue(Cast(this.props.document.group, Doc));
         const isPinned = group && Doc.isDocPinned(group) ? true : false;

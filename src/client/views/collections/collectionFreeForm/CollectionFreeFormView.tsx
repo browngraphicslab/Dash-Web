@@ -893,21 +893,24 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 afterFocus && setTimeout(afterFocus, delay);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
-                const offset = annotOn && (contextHgt / 2);
                 const curScroll = NumCast(this.props.Document._scrollTop);
                 let scrollTo = curScroll;
                 if (curScroll + contextHgt < NumCast(doc.y)) {
-                    scrollTo = NumCast(doc.y) + Math.max(NumCast(doc._height), 50) - contextHgt;
+                    scrollTo = NumCast(doc.y) + Math.max(NumCast(doc._height), 100) - contextHgt;
                 } else if (curScroll > NumCast(doc.y)) {
-                    scrollTo = NumCast(doc.y);
+                    scrollTo = Math.max(0, NumCast(doc.y) - 50);
                 }
-                if (curScroll !== scrollTo) {
+                if (curScroll !== scrollTo || this.props.Document._viewTransition) {
                     this.props.Document._scrollPY = this.props.Document._scrollY = scrollTo;
                     delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
-                    !dontCenter && delay && this.props.focus(this.props.Document);
+                    !dontCenter && this.props.focus(this.props.Document);
                     afterFocus && setTimeout(afterFocus, delay);
+                } else {
+                    !dontCenter && delay && this.props.focus(this.props.Document);
                     // @ts-ignore
-                } else afterFocus(true);  // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
+                    afterFocus(true);  // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
+
+                }
             }
 
         } else {
@@ -929,14 +932,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             willZoom && this.setScaleToZoom(layoutdoc, scale);
             Doc.linkFollowHighlight(doc);
 
+            const notFocused = newPanX === savedState.px && newPanY === savedState.py;
             afterFocus && setTimeout(() => {
-                if (afterFocus?.()) {
+                // @ts-ignore
+                if (afterFocus?.(notFocused)) { // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
                     this.Document._panX = savedState.px;
                     this.Document._panY = savedState.py;
                     this.Document[this.scaleFieldKey] = savedState.s;
                     this.Document._viewTransition = savedState.pt;
                 }
-            }, 500);
+            }, notFocused ? 0 : 500);
         }
 
     }

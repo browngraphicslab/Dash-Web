@@ -194,7 +194,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if (this.props.renderDepth === -1 && scrollY >= 0) {
-                        if (!this._mainCont.current) setTimeout(() => smoothScroll(1000, this._mainCont.current!, scrollY || 0));
+                        if (!this._mainCont.current) setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0));
                         else smoothScroll(1000, this._mainCont.current, scrollY || 0);
                         this.Document._scrollPY = undefined;
                     }

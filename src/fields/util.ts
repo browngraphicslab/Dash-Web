@@ -13,6 +13,7 @@ import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
 import { List } from "./List";
 import { SnappingManager } from "../client/util/SnappingManager";
+import { computedFn } from "mobx-utils";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -139,7 +140,7 @@ export function denormalizeEmail(email: string) {
  * 
  * Edit: a user with edit access to a document can remove/edit that document, add/remove/edit annotations (depending on permissions), but not change any access rights to that document.
  * 
- * Add: a user with add access to a document can add documents/annotations to that document but cannot edit or delete anything.
+ * Add: a user with add access to a document can augment documents/annotations to that document but cannot edit or delete anything.
  * 
  * View: a user with view access to a document can only view it - they cannot add/remove/edit anything.
  * 
@@ -148,7 +149,7 @@ export function denormalizeEmail(email: string) {
 export enum SharingPermissions {
     Admin = "Admin",
     Edit = "Can Edit",
-    Add = "Can Add",
+    Add = "Can Augment",
     View = "Can View",
     None = "Not Shared"
 }
@@ -157,6 +158,11 @@ export enum SharingPermissions {
  * Calculates the effective access right to a document for the current user.
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
+    return computedFn(function (target: any, in_prop?: string | symbol | number, user?: string) {
+        return getEffectiveAcl(target, in_prop, user);
+    }, true)(target, in_prop, user);
+}
+function getEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
 
     // all changes received fromt the server must be processed as Admin
@@ -219,7 +225,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     const HierarchyMapping = new Map<string, number>([
         ["Not Shared", 0],
         ["Can View", 1],
-        ["Can Add", 2],
+        ["Can Augment", 2],
         ["Can Edit", 3],
         ["Admin", 4]
     ]);
@@ -281,7 +287,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
     if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "None"].includes(value))) return true;
-    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Augment", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {

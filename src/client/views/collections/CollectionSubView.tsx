@@ -103,7 +103,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { Document, DataDoc } = this.props;
             const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).
                 filter(pair => {  // filter out any documents that have a proto that we don't have permissions to (which we determine by not having any keys
-                    return pair.layout && (!pair.layout.proto || (pair.layout.proto instanceof Doc && Object.keys(pair.layout.proto).length));
+                    return pair.layout && (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
                 });
             return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
@@ -134,7 +134,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
             }
 
-            const docs = rawdocs.filter(d => !(d instanceof Promise) && Object.keys(d).length).map(d => d as Doc);
+            const docs = rawdocs.filter(d => !(d instanceof Promise) && GetEffectiveAcl(d) !== AclPrivate).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
@@ -502,4 +502,5 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
 import { Hypothesis } from "../../util/HypothesisUtils";
+import { GetEffectiveAcl } from "../../../fields/util";
 
