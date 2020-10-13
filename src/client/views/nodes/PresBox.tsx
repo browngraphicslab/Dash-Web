@@ -118,7 +118,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
-        this.layoutDoc._gridGap = 5;
+        this.layoutDoc._gridGap = 0;
+        this.layoutDoc._yMargin = 0;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
@@ -151,7 +152,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             setTimeout(() => targetDoc._viewTransition = undefined, 1010);
             // targetDoc._currentFrame = curFrame + 1;
             this.nextKeyframe(targetDoc, activeItem);
-            // if (targetDoc.scrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(targetDoc, currentFrame);
             if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
             else targetDoc.editing = true;
             // if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
@@ -275,7 +275,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "inPlace") : this.props.addDocTab(activeItem, "replace:right");
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
@@ -524,7 +524,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // pivot field may be set by the user in timeline view (or some other way) -- need to reset it here
         viewType === CollectionViewType.Stacking && (this.rootDoc._pivotField = undefined);
         this.rootDoc._viewType = viewType;
-        if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 5;
+        if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
 
     /**
@@ -1253,19 +1253,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
             CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
-        CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
+        if (tagDoc.editScrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
         CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, tagDoc);
         tagDoc._currentFrame = Math.max(0, (currentFrame || 0) + 1);
         tagDoc.lastFrame = Math.max(NumCast(tagDoc._currentFrame), NumCast(tagDoc.lastFrame));
-        // if (curDoc.zoomProgressivize) {
-        //     const resize = document.getElementById('resizable');
-        //     if (resize) {
-        //         resize.style.width = this.checkList(tagDoc, curDoc["viewfinder-width-indexed"]) + 'px';
-        //         resize.style.height = this.checkList(tagDoc, curDoc["viewfinder-height-indexed"]) + 'px';
-        //         resize.style.top = this.checkList(tagDoc, curDoc["viewfinder-top-indexed"]) + 'px';
-        //         resize.style.left = this.checkList(tagDoc, curDoc["viewfinder-left-indexed"]) + 'px';
-        //     }
-        // }
     }
 
     @undoBatch
@@ -1279,15 +1270,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         CollectionFreeFormDocumentView.gotoKeyframe(childDocs.slice());
         tagDoc._currentFrame = Math.max(0, (currentFrame || 0) - 1);
-        // if (actItem.zoomProgressivize) {
-        //     const resize = document.getElementById('resizable');
-        //     if (resize) {
-        //         resize.style.width = this.checkList(tagDoc, actItem["viewfinder-width-indexed"]) + 'px';
-        //         resize.style.height = this.checkList(tagDoc, actItem["viewfinder-height-indexed"]) + 'px';
-        //         resize.style.top = this.checkList(tagDoc, actItem["viewfinder-top-indexed"]) + 'px';
-        //         resize.style.left = this.checkList(tagDoc, actItem["viewfinder-left-indexed"]) + 'px';
-        //     }
-        // }
     }
 
     /**
@@ -1328,11 +1310,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} selected
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Contents</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: activeItem.presProgressivize ? "inline-flex" : "none" }}>
+                            {/* <div className="ribbon-doubleButton" style={{ display: activeItem.presProgressivize ? "inline-flex" : "none" }}>
                                 <div className="presBox-subheading">Active text color</div>
                                 <div className="ribbon-colorBox" style={{ backgroundColor: activeFontColor, height: 15, width: 15 }} onClick={action(() => { this.openActiveColorPicker = !this.openActiveColorPicker; })}>
                                 </div>
@@ -1343,7 +1325,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-colorBox" style={{ backgroundColor: viewedFontColor, height: 15, width: 15 }} onClick={action(() => this.openViewedColorPicker = !this.openViewedColorPicker)}>
                                 </div>
                             </div>
-                            {this.viewedColorPicker}
+                            {this.viewedColorPicker} */}
                             {/* <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Zoom</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.zoomProgressivize ? 1 : 0.4, backgroundColor: activeItem.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Edit</div>
@@ -1369,6 +1351,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     </div>
                                 </div>
                                 <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div className="ribbon-property">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
+                            </div>
+                            <div className="ribbon-frameList">
+                                <div className="frameList-header">
+
+                                </div>
+                                <div className="frameList-item">
+                                    {this.frameList}
+                                </div>
                             </div>
                             <div className="ribbon-toggle" style={{ height: 20, backgroundColor: "#AEDDF8" }} onClick={() => console.log(" TODO: play frames")}>Play</div>
                         </div>
@@ -1524,7 +1514,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
             targetDoc.lastFrame = targetDoc.lastFrame ? NumCast(targetDoc.lastFrame) : docs.length - 1;
         } else {
-            targetDoc.editProgressivize = false;
+            // targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
             targetDoc._currentFrame = 0;
@@ -1682,6 +1672,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </Tooltip>
                 <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                     <div className={`toolbar-button ${this.rootDoc.expandBoolean ? "active" : ""}`} onClick={this.toggleExpandMode}>
+                        {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                         <FontAwesomeIcon icon={"eye"} />
                     </div>
                 </Tooltip>
@@ -1730,6 +1721,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </div>
             </div>
         );
+    }
+
+    @computed get frameList() {
+        const activeItem: Doc = this.activeItem;
+        const targetDoc: Doc = this.targetDoc;
+        const frameList: number[] = [];
+        frameList.length = NumCast(targetDoc.lastFrame);
+        const frameItems = frameList.map((value) => {
+            <div className="frameItem">
+
+            </div>
+        })
+        return <div>
+            {frameItems}
+        </div>;
     }
 
     @computed get playButtonFrames() {
