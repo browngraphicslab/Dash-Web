@@ -71,10 +71,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton;
     }
 
-    embedHeight = () => 97;
+    embedHeight = (): number => 97;
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
-    embedWidth = () => this.props.PanelWidth() - 30;
+    embedWidth = (): number => this.props.PanelWidth() - 30;
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -155,7 +155,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     headerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    stopDrag = (e: PointerEvent) => {
+        console.log('stop drag')
         const activeItem = this.rootDoc;
+        activeItem.dragging = false;
         e.stopPropagation();
         e.preventDefault();
     }
@@ -184,7 +191,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        const rect = slide!.getBoundingClientRect();
+        const rect = slide?.getBoundingClientRect();
         let y = e.clientY - rect.top;  //y position within the element.
         let height = slide.clientHeight;
         let halfLine = height / 2;
@@ -201,9 +208,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     onPointerLeave = (e: any) => {
-        console.log('pointerLeave');
-        this._itemRef.current!.style.borderTop = "0px"
-        this._itemRef.current!.style.borderBottom = "0px"
+        this._itemRef.current!.style.borderTop = "0px";
+        this._itemRef.current!.style.borderBottom = "0px";
         document.removeEventListener("pointermove", this.onPointerMove);
     }
 
@@ -240,6 +246,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get mainItem() {
         const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
         const isDragging: boolean = BoolCast(this.rootDoc.dragging);
+        const toolbarWidth: number = PresBox.Instance.toolbarWidth;
+        const showMore: boolean = PresBox.Instance.toolbarWidth >= 300;
+        const targetDoc: Doc = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
+        const activeItem: Doc = this.rootDoc;
         return (
             <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
@@ -260,7 +270,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     }
                 }}
                 onDoubleClick={e => {
-                    console.log('double click to open');
                     this.toggleProperties();
                     this.props.focus(this.rootDoc);
                     this.clearArrays();
@@ -274,7 +283,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     {`${this.indexInPres + 1}.`}
                 </div>
                 <div ref={this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
-                    <div className="presItem-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>
                         {isSelected ? <EditableView
                             ref={this._titleRef}
                             contents={this.rootDoc.title}
@@ -287,10 +296,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             this.rootDoc.title
                         }
                     </div>
-                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presItem-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presItem-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.transition}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.duration}</div></Tooltip>
                     <div className={"presItem-slideButtons"}>
+                        <Tooltip title={<><div className="dash-tooltip">{"Update view"}</div></>}>
+                            <div className="slideButton"
+                                onClick={e => {
+                                    const x = targetDoc._panX;
+                                    const y = targetDoc._panY;
+                                    const scale = targetDoc._viewScale;
+                                    activeItem.presPinViewX = x;
+                                    activeItem.presPinViewY = y;
+                                    activeItem.presPinViewScale = scale;
+                                }}
+                                style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
+                        </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>

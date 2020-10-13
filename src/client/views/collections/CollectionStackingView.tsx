@@ -295,7 +295,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 if (docs) {
                     newDocs.map((doc, i) => {
                         if (i === 0) {
-                            doc.dragging = false;
+                            if (doc.presentationTargetDoc) doc.dragging = false; //glr: so it only applies to items in presentation
                             DragManager.docsBeingDragged = [];
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(this.filteredChildren[targInd]);
@@ -303,7 +303,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                             docs.splice(srcInd, 1);
                             docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
                         } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
-                            doc.dragging = false;
+                            if (doc.presentationTargetDoc) doc.dragging = false;
                             DragManager.docsBeingDragged = [];
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(newDocs[0]) + 1;
