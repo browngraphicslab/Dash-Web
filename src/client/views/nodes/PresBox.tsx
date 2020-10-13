@@ -120,10 +120,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
         this.turnOffEdit(true);
-        DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(async pres => {
-            await Promise.all(pres!);
-            if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
-        });
+        DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
+            !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
     }
 
     updateCurrentPresentation = () => {
