@@ -220,7 +220,7 @@ export class DocumentManager {
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
                     createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
-                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
+                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
                 }
             }
         }
