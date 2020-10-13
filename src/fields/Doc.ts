@@ -679,16 +679,15 @@ export namespace Doc {
             } else {
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 if (!targetDoc[expandedLayoutFieldKey]) {
-                    const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                    // the template's arguments are stored in params which is derefenced to find
-                    // the actual field key where the parameterized template data is stored.
-                    newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
-                    newLayoutDoc.rootDocument = targetDoc;
-                    const dataDoc = Doc.GetProto(targetDoc);
-                    newLayoutDoc.resolvedDataDoc = dataDoc;
-
                     _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
                     setTimeout(() => {
+                        const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                        // the template's arguments are stored in params which is derefenced to find
+                        // the actual field key where the parameterized template data is stored.
+                        newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
+                        newLayoutDoc.rootDocument = targetDoc;
+                        const dataDoc = Doc.GetProto(targetDoc);
+                        newLayoutDoc.resolvedDataDoc = dataDoc;
                         if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && (templateLayoutDoc[templateField] as any).length) {
                             dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
