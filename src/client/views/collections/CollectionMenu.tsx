@@ -529,12 +529,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
-        if (this.selectedDoc) {
-            const layoutField = Doc.LayoutField(this.selectedDoc);
-            const layoutStr = this.selectedDocumentView?.props.LayoutTemplateString || StrCast(layoutField);
-            return (document.activeElement as any)?.className.includes("ProseMirror") || layoutStr.includes("FormattedText") || StrCast((layoutField as Doc)?.layout).includes("FormattedText");
-        }
-        else return false;
+        return this.selectedDoc?.type === DocumentType.RTF || (RichTextMenu.Instance?.view as any)?.focused ? true : false;
     }
 
     @undoBatch
@@ -843,22 +838,26 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                {!Doc.UserDoc().noviceMode && !this.isText && !this.props.isDoc ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
-                    <div className="backKeyframe" onClick={this.prevKeyframe}>
-                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                    </div>
-                </Tooltip> : null}
-                {!Doc.UserDoc().noviceMode && !this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
-                    <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
-                        onClick={action(() => this.document.editing = !this.document.editing)} >
-                        {NumCast(this.document._currentFrame)}
-                    </div>
-                </Tooltip> : null}
-                {!Doc.UserDoc().noviceMode && !this.isText && !this.props.isDoc ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
-                    <div className="fwdKeyframe" onClick={this.nextKeyframe}>
-                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                    </div>
-                </Tooltip> : null}
+                {!Doc.UserDoc().noviceMode && !this.isText && !this.props.isDoc ?
+                    <>
+                        <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
+                            <div className="backKeyframe" onClick={this.prevKeyframe}>
+                                <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                            </div>
+                        </Tooltip>
+                        <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
+                            <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
+                                onClick={action(() => this.document.editing = !this.document.editing)} >
+                                {NumCast(this.document._currentFrame)}
+                            </div>
+                        </Tooltip>
+                        <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
+                            <div className="fwdKeyframe" onClick={this.nextKeyframe}>
+                                <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                            </div>
+                        </Tooltip>
+                    </>
+                    : null}
 
                 {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
                     this.urlEditor
@@ -872,7 +871,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </> :
                     (null)
                 }
-                {this.isText ? <RichTextMenu /> : null}
+                {<div style={{ display: !this.isText ? "none" : undefined }}><RichTextMenu /></div>}
             </div>;
     }
 }

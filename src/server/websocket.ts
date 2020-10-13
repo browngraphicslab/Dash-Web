@@ -201,7 +201,7 @@ export namespace WebSocket {
 
     function setField(socket: Socket, newValue: Transferable) {
         Database.Instance.update(newValue.id, newValue, () =>
-            socket.broadcast.emit(MessageStore.SetField.Message, newValue));
+            socket.broadcast.emit(MessageStore.SetField.Message, newValue));  // broadcast set value to all other clients
         if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
             Search.updateDocument({ id: newValue.id, data: { set: (newValue as any).data } });
         }
@@ -271,7 +271,48 @@ export namespace WebSocket {
         return typeof value === "string" ? value : value[0];
     }
 
+    function addToListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
+        diff.diff.$set = diff.diff.$addToSet; delete diff.diff.$addToSet;// convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
+        const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
+        const newListItems = diff.diff.$set[updatefield].fields;
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
+        const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
+        delete diff.diff.length;
+        Database.Instance.update(diff.id, diff.diff,
+            () => {
+                if (sendBack) {
+                    const id = socket.id;
+                    socket.id = "";
+                    socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                    socket.id = id;
+                } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+            }, false);
+    }
+
+    function remFromListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
+        diff.diff.$set = diff.diff.$remFromSet; delete diff.diff.$remFromSet;
+        const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
+        const remListItems = diff.diff.$set[updatefield].fields;
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId ? remItem.fieldId === curItem.fieldId : remItem.heading ? remItem.heading === curItem.heading : remItem === curItem));
+        const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
+        delete diff.diff.length;
+        Database.Instance.update(diff.id, diff.diff,
+            () => {
+                if (sendBack) {
+                    const id = socket.id;
+                    socket.id = "";
+                    socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                    socket.id = id;
+                } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+            }, false);
+    }
+
+
     function UpdateField(socket: Socket, diff: Diff) {
+        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$remFromSet) return GetRefField([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;

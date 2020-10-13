@@ -14,7 +14,7 @@ import { RichTextField } from '../fields/RichTextField';
 import { DateField } from '../fields/DateField';
 import { ScriptField } from '../fields/ScriptField';
 import CursorField from '../fields/CursorField';
-import { resolvedPorts } from '../client/views/Main';
+import { resolvedPorts } from '../client/util/CurrentUserUtils';
 
 DateField;
 URLField;

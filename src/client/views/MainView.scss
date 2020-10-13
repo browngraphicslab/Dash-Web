@@ -293,7 +293,6 @@
 .mainView-libraryFlyout-out,
 .mainView-libraryFlyout {
     height: 100%;
-    width: 100%;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -319,6 +318,9 @@
 .mainView-libraryFlyout-out {
     transition: width .25s;
     box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
+    .mainView-docButtons {
+        left: 0;
+    }
 }
 
 

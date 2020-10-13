@@ -90,19 +90,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         return true;
     }
 
-    renderMetadata = (): JSX.Element => {
-        const index = StrCast(this.props.linkDoc.title).toUpperCase() === this.props.groupType.toUpperCase() ? 0 : -1;
-        const mdDoc = index > -1 ? this.props.linkDoc : undefined;
-
-        let mdRows: Array<JSX.Element> = [];
-        if (mdDoc) {
-            const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-            mdRows = keys.map(key => <div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
-        }
-
-        return (<div className="link-metadata">{mdRows}</div>);
-    }
-
     @action
     onLinkButtonDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
@@ -191,8 +178,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     render() {
-        const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-        const canExpand = keys ? keys.length > 0 : false;
 
         const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
 
@@ -230,7 +215,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         return (
             <div className="linkMenu-item">
-                <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
+                <div className={"linkMenu-item-content expand-two"}>
 
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
@@ -257,8 +242,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 {StrCast(this.props.linkDoc.description)}</p> : null} </div>
 
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
-                            {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
-                                <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show link" : "Hide link"}</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
@@ -277,7 +260,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
-                    {this._showMore ? this.renderMetadata() : <></>}
                 </div>
 
             </div >

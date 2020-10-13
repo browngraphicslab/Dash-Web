@@ -33,8 +33,8 @@ export class GroupMemberView extends React.Component<GroupMemberViewProps> {
                     <input
                         className="group-title"
                         style={{ marginLeft: !hasEditAccess ? "-14%" : 0 }}
-                        value={StrCast(this.props.group.groupName)}
-                        onChange={e => this.props.group.groupName = e.currentTarget.value}
+                        value={StrCast(this.props.group.title || this.props.group.groupName)}
+                        onChange={e => this.props.group.title = e.currentTarget.value}
                         disabled={!hasEditAccess}
                     >
                     </input>

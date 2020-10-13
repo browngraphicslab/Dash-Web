@@ -22,73 +22,62 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     @observable _start = 0;
     _anchorDisposer: IReactionDisposer | undefined;
     _timeout: NodeJS.Timeout | undefined;
-    componentWillUnmount() {
-        this._anchorDisposer?.();
-    }
-    @action
-    timeout = action(() => (Date.now() < this._start++ + 1000) && (this._timeout = setTimeout(this.timeout, 25)));
+    componentWillUnmount() { this._anchorDisposer?.(); }
+    @action timeout = action(() => (Date.now() < this._start++ + 1000) && (this._timeout = setTimeout(this.timeout, 25)));
     componentDidMount() {
-        this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
+        this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform()],
             action(() => {
                 this._start = Date.now();
                 this._timeout && clearTimeout(this._timeout);
                 this._timeout = setTimeout(this.timeout, 25);
-                if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv) return;
-                setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
-                setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
-                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
-                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
-                const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
-                const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
-                const a = adiv.getBoundingClientRect();
-                const b = bdiv.getBoundingClientRect();
-                const abounds = adiv.parentElement!.getBoundingClientRect();
-                const bbounds = bdiv.parentElement!.getBoundingClientRect();
-                const apt = Utils.closestPtBetweenRectangles(abounds.left, abounds.top, abounds.width, abounds.height,
-                    bbounds.left, bbounds.top, bbounds.width, bbounds.height,
-                    a.left + a.width / 2, a.top + a.height / 2);
-                const bpt = Utils.closestPtBetweenRectangles(bbounds.left, bbounds.top, bbounds.width, bbounds.height,
-                    abounds.left, abounds.top, abounds.width, abounds.height,
-                    apt.point.x, apt.point.y);
-                const afield = this.props.A.props.LayoutTemplateString?.indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
-                const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
-
-                // really hacky stuff to make the LinkAnchorBox display where we want it to:
-                //   if there's an element in the DOM with a classname containing the link's id and a data-targetids attribute containing the other end of the link, 
-                //   then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
-                //   otherwise, we just use the computed nearest point on the document boundary to the target Document
-                const linkId = this.props.LinkDocs[0][Id]; // this link's Id
-                const AanchorId = (this.props.LinkDocs[0][afield] as Doc)[Id]; // anchor a's id
-                const BanchorId = (this.props.LinkDocs[0][bfield] as Doc)[Id]; // anchor b's id
-                const linkEles = Array.from(window.document.getElementsByClassName(linkId));
-                const targetAhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes(AanchorId));
-                const targetBhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes(BanchorId));
-                if (!targetBhyperlink) {
-                    this.props.A.rootDoc[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
-                    this.props.A.rootDoc[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
-                } else {
-                    setTimeout(() => {
-                        (this.props.A.rootDoc[(this.props.A.props as any).fieldKey] as Doc);
-                        const m = targetBhyperlink.getBoundingClientRect();
-                        const mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.A.rootDoc[afield + "_x"] = Math.min(1, mp[0] / this.props.A.props.PanelWidth()) * 100;
-                        this.props.A.rootDoc[afield + "_y"] = Math.min(1, mp[1] / this.props.A.props.PanelHeight()) * 100;
-                    }, 0);
-                }
-                if (!targetAhyperlink) {
-                    this.props.A.rootDoc[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
-                    this.props.A.rootDoc[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
-                } else {
-                    setTimeout(() => {
-                        (this.props.B.rootDoc[(this.props.B.props as any).fieldKey] as Doc);
-                        const m = targetAhyperlink.getBoundingClientRect();
-                        const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.rootDoc[bfield + "_x"] = Math.min(1, mp[0] / this.props.B.props.PanelWidth()) * 100;
-                        this.props.B.rootDoc[bfield + "_y"] = Math.min(1, mp[1] / this.props.B.props.PanelHeight()) * 100;
-                    }, 0);
-                }
+                setTimeout(this.placeAnchors);
             })
             , { fireImmediately: true });
+    }
+    placeAnchors = () => {
+        const { A, B, LinkDocs } = this.props;
+        const linkDoc = LinkDocs[0];
+        if (SnappingManager.GetIsDragging() || !A.ContentDiv || !B.ContentDiv) return;
+        setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
+        setTimeout(action(() => (!LinkDocs.length || !linkDoc.linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
+        const acont = A.props.Document.type === DocumentType.LINK ? A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+        const bcont = B.props.Document.type === DocumentType.LINK ? B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+        const adiv = (acont.length ? acont[0] : A.ContentDiv);
+        const bdiv = (bcont.length ? bcont[0] : B.ContentDiv);
+        const a = adiv.getBoundingClientRect();
+        const b = bdiv.getBoundingClientRect();
+        const { left: aleft, top: atop, width: awidth, height: aheight } = adiv.parentElement!.getBoundingClientRect();
+        const { left: bleft, top: btop, width: bwidth, height: bheight } = bdiv.parentElement!.getBoundingClientRect();
+        const apt = Utils.closestPtBetweenRectangles(aleft, atop, awidth, aheight, bleft, btop, bwidth, bheight, a.left + a.width / 2, a.top + a.height / 2);
+        const bpt = Utils.closestPtBetweenRectangles(bleft, btop, bwidth, bheight, aleft, atop, awidth, aheight, apt.point.x, apt.point.y);
+        const afield = A.props.LayoutTemplateString?.indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
+        const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
+
+        // really hacky stuff to make the LinkAnchorBox display where we want it to:
+        //   if there's an element in the DOM with a classname containing the link's id and a data-targetids attribute containing the other end of the link, 
+        //   then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
+        //   otherwise, we just use the computed nearest point on the document boundary to the target Document
+        const linkEles = Array.from(window.document.getElementsByClassName(linkDoc[Id]));
+        const targetAhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[afield] as Doc)[Id]));
+        const targetBhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[bfield] as Doc)[Id]));
+        if (!targetBhyperlink) {
+            A.rootDoc[afield + "_x"] = (apt.point.x - aleft) / awidth * 100;
+            A.rootDoc[afield + "_y"] = (apt.point.y - atop) / aheight * 100;
+        } else {
+            const m = targetBhyperlink.getBoundingClientRect();
+            const mp = A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
+            A.rootDoc[afield + "_x"] = Math.min(1, mp[0] / A.props.PanelWidth()) * 100;
+            A.rootDoc[afield + "_y"] = Math.min(1, mp[1] / A.props.PanelHeight()) * 100;
+        }
+        if (!targetAhyperlink) {
+            B.rootDoc[bfield + "_x"] = (bpt.point.x - bleft) / bwidth * 100;
+            B.rootDoc[bfield + "_y"] = (bpt.point.y - btop) / bheight * 100;
+        } else {
+            const m = targetAhyperlink.getBoundingClientRect();
+            const mp = B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
+            B.rootDoc[bfield + "_x"] = Math.min(1, mp[0] / B.props.PanelWidth()) * 100;
+            B.rootDoc[bfield + "_y"] = Math.min(1, mp[1] / B.props.PanelHeight()) * 100;
+        }
     }
 
 
@@ -111,13 +100,15 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let rect = el.getBoundingClientRect();
         const top = rect.top, height = rect.height;
         var el = el.parentNode;
-        do {
-            rect = el.getBoundingClientRect();
-            if (top <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
-            // Check if the element is out of view due to a container scrolling
-            if ((top + height) <= rect.top && getComputedStyle(el).overflow === "hidden") return rect.top;
+        while (el && el !== document.body) {
+            if (el.hasOwnProperty("getBoundingClientRect")) {
+                rect = el.getBoundingClientRect();
+                if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
+                // Check if the element is out of view due to a container scrolling
+                if ((top + height) <= rect.top && getComputedStyle(el).overflow === "hidden") return rect.top;
+            }
             el = el.parentNode;
-        } while (el !== document.body);
+        }
         // Check its within the document viewport
         return top; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
     }
@@ -125,27 +116,27 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let rect = el.getBoundingClientRect();
         const left = rect.left, width = rect.width;
         var el = el.parentNode;
-        do {
-            rect = el.getBoundingClientRect();
-            if (left <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.right;
-            // Check if the element is out of view due to a container scrolling
-            if ((left + width) <= rect.left && getComputedStyle(el).overflow === "hidden") return rect.left;
+        while (el && el !== document.body) {
+            if (el.hasOwnProperty("getBoundingClientRect")) {
+                rect = el.getBoundingClientRect();
+                if (left <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.right;
+                // Check if the element is out of view due to a container scrolling
+                if ((left + width) <= rect.left && getComputedStyle(el).overflow === "hidden") return rect.left;
+            }
             el = el.parentNode;
-        } while (el !== document.body);
+        }
         // Check its within the document viewport
         return left; //top <= document.documentElement.clientHeight && getComputedStyle(document.documentElement).overflow === "hidden";
     }
 
     @computed.struct get renderData() {
         this._start; SnappingManager.GetIsDragging();
-        if (!this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) {
-            return undefined;
-        }
-        this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
-        const acont = this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-        const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-        const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
-        const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
+        const { A, B, LinkDocs } = this.props;
+        if (!A.ContentDiv || !B.ContentDiv || !LinkDocs.length) return undefined;
+        const acont = A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const bcont = B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const adiv = (acont.length ? acont[0] : A.ContentDiv);
+        const bdiv = (bcont.length ? bcont[0] : B.ContentDiv);
         for (let apdiv = adiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
         for (let apdiv = bdiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
         const a = adiv.getBoundingClientRect();
@@ -154,12 +145,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const btop = this.visibleY(bdiv);
         const aleft = this.visibleX(adiv);
         const bleft = this.visibleX(bdiv);
-        const apt = Utils.closestPtBetweenRectangles(aleft, atop, a.width, a.height,
-            bleft, btop, b.width, b.height,
-            a.left + a.width / 2, a.top + a.height / 2);
-        const bpt = Utils.closestPtBetweenRectangles(bleft, btop, b.width, b.height,
-            aleft, atop, a.width, a.height,
-            apt.point.x, apt.point.y);
+        const clipped = aleft !== a.left || atop !== a.top || bleft !== b.left || btop !== b.top;
+        const apt = Utils.closestPtBetweenRectangles(aleft, atop, a.width, a.height, bleft, btop, b.width, b.height, a.left + a.width / 2, a.top + a.height / 2);
+        const bpt = Utils.closestPtBetweenRectangles(bleft, btop, b.width, b.height, aleft, atop, a.width, a.height, apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
         const pt1vec = [pt1[0] - (aleft + a.width / 2), pt1[1] - (atop + a.height / 2)];
@@ -167,14 +155,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
         const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
         const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;
-        const pt1norm = [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
-        const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
-        const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const bActive = this.props.B.isSelected() || Doc.IsBrushed(this.props.B.props.Document);
-        if (aleft !== a.left || atop !== a.top || bleft !== b.left || btop !== b.top) return { a, b, pt1norm: [0, 0], pt2norm: [0, 0], aActive, bActive, textX: undefined, textY: undefined, pt1, pt2 };
+        const pt1norm = clipped ? [0, 0] : [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
+        const pt2norm = clipped ? [0, 0] : [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
+        const aActive = A.isSelected() || Doc.IsBrushed(A.props.Document);
+        const bActive = B.isSelected() || Doc.IsBrushed(B.props.Document);
 
-        const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetX);
-        const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
+        const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(LinkDocs[0].linkOffsetX);
+        const textY = (pt1[1] + pt2[1]) / 2 + NumCast(LinkDocs[0].linkOffsetY);
         return { a, b, pt1norm, pt2norm, aActive, bActive, textX, textY, pt1, pt2 };
     }
 

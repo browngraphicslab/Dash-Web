@@ -43,7 +43,7 @@ export namespace SerializationHelper {
         }
 
         if (!obj.__type) {
-            if (ClientUtils.RELEASE) {
+            if (true || ClientUtils.RELEASE) {
                 console.warn("No property 'type' found in JSON.");
                 return undefined;
             } else {

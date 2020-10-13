@@ -12,7 +12,6 @@
 
 .formattedTextBox-cont {
     touch-action: none;
-    cursor: text;
     background: inherit;
     padding: 0;
     border-width: 0px;
@@ -38,12 +37,16 @@
     }
 }
 
+.formattedTextBox-outer-selected,
 .formattedTextBox-outer {
     position: relative;
     overflow: auto;
     display: inline-block;
     width: 100%;
     height: unset;
+}
+.formattedTextBox-outer-selected {
+    cursor: text;
 }
     
 .formattedTextBox-sidebar-handle {
@@ -357,7 +360,6 @@ footnote::after {
 
     .formattedTextBox-cont {
         touch-action: none;
-        cursor: text;
         background: inherit;
         padding: 0;
         border-width: 0px;
@@ -383,6 +385,7 @@ footnote::after {
         }
     }
 
+    .formattedTextBox-outer-selected,
     .formattedTextBox-outer {
         position: relative;
         overflow: auto;
@@ -399,7 +402,7 @@ footnote::after {
         height: 35px;
         background: lightgray;
         border-radius: 20px;
-        cursor:grabbing;
+        cursor: grabbing;
     }
 
     .formattedTextBox-sidebar,

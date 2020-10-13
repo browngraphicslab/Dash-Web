@@ -1,8 +1,7 @@
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
-import { List } from "../../fields/List";
-import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
-import { CurrentUserUtils } from "./CurrentUserUtils";
+import { SharingManager } from "./SharingManager";
+import { computedFn } from "mobx-utils";
 
 /* 
  * link doc: 
@@ -33,31 +32,23 @@ export class LinkManager {
     private constructor() {
     }
 
-    // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
-    // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
-    public get LinkManagerDoc(): Doc | undefined {
-        return Doc.UserDoc().globalLinkDatabase as Doc;
-    }
 
     public getAllLinks(): Doc[] {
-        const ldoc = LinkManager.Instance.LinkManagerDoc;
-        return ldoc ? DocListCast(ldoc.data) : [];
+        const lset = new Set<Doc>(DocListCast(Doc.LinkDBDoc().data));
+        SharingManager.Instance.users.forEach(user => {
+            DocListCast(user.linkDatabase?.data).map(doc => {
+                lset.add(doc);
+            });
+        });
+        return Array.from(lset);
     }
 
     public addLink(linkDoc: Doc): boolean {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            Doc.AddDocToList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
-            return true;
-        }
-        return false;
+        return Doc.AddDocToList(Doc.LinkDBDoc(), "data", linkDoc);
     }
 
     public deleteLink(linkDoc: Doc): boolean {
-        if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
-            Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
-            return true;
-        }
-        return false;
+        return Doc.RemoveDocFromList(Doc.LinkDBDoc(), "data", linkDoc);
     }
 
     // finds all links that contain the given anchor
@@ -71,61 +62,23 @@ export class LinkManager {
         });
         return related;
     }
-    // finds all links that contain the given anchor
-    public getAllRelatedLinks(anchor: Doc): Doc[] {
+
+    relatedLinker = computedFn(function realtedLinker(this: any, anchor: Doc) {
         const related = LinkManager.Instance.getAllDirectLinks(anchor);
         DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
         });
         return related;
+    }.bind(this), true);
+
+    // finds all links that contain the given anchor
+    public getAllRelatedLinks(anchor: Doc): Doc[] {
+        return this.relatedLinker(anchor);
     }
 
     public deleteAllLinksOnAnchor(anchor: Doc) {
         const related = LinkManager.Instance.getAllRelatedLinks(anchor);
         related.forEach(linkDoc => LinkManager.Instance.deleteLink(linkDoc));
-    }
-
-    public addGroupType(groupType: string): boolean {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>([]);
-            const groupTypes = LinkManager.Instance.getAllGroupTypes();
-            groupTypes.push(groupType);
-            LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>(groupTypes);
-            return true;
-        }
-        return false;
-    }
-
-    // removes all group docs from all links with the given group type
-    public deleteGroupType(groupType: string): boolean {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            if (LinkManager.Instance.LinkManagerDoc[groupType]) {
-                const groupTypes = LinkManager.Instance.getAllGroupTypes();
-                const index = groupTypes.findIndex(type => type.toUpperCase() === groupType.toUpperCase());
-                if (index > -1) groupTypes.splice(index, 1);
-                LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>(groupTypes);
-                LinkManager.Instance.LinkManagerDoc[groupType] = undefined;
-                LinkManager.Instance.getAllLinks().forEach(async linkDoc => {
-                    const anchor1 = await Cast(linkDoc.anchor1, Doc);
-                    const anchor2 = await Cast(linkDoc.anchor2, Doc);
-                    anchor1 && LinkManager.Instance.removeGroupFromAnchor(linkDoc, anchor1, groupType);
-                    anchor2 && LinkManager.Instance.removeGroupFromAnchor(linkDoc, anchor2, groupType);
-                });
-            }
-            return true;
-        } else return false;
-    }
-
-    public getAllGroupTypes(): string[] {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            if (LinkManager.Instance.LinkManagerDoc.allGroupTypes) {
-                return Cast(LinkManager.Instance.LinkManagerDoc.allGroupTypes, listSpec("string"), []);
-            } else {
-                LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>([]);
-                return [];
-            }
-        }
-        return [];
     }
 
     // gets the groups associates with an anchor in a link
@@ -164,22 +117,6 @@ export class LinkManager {
         return anchorGroups;
     }
 
-    // gets a list of strings representing the keys of the metadata associated with the given group type
-    public getMetadataKeysInGroup(groupType: string): string[] {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            return LinkManager.Instance.LinkManagerDoc[groupType] ? Cast(LinkManager.Instance.LinkManagerDoc[groupType], listSpec("string"), []) : [];
-        }
-        return [];
-    }
-
-    public setMetadataKeysForGroup(groupType: string, keys: string[]): boolean {
-        if (LinkManager.Instance.LinkManagerDoc) {
-            LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>(keys);
-            return true;
-        }
-        return false;
-    }
-
     // returns a list of all metadata docs associated with the given group type
     public getAllMetadataDocsInGroup(groupType: string): Array<Doc> {
         const md: Doc[] = [];
@@ -208,6 +145,8 @@ export class LinkManager {
         const a2 = Cast(linkDoc.anchor2, Doc, null);
         if (Doc.AreProtosEqual(anchor, a1)) return a2;
         if (Doc.AreProtosEqual(anchor, a2)) return a1;
+        if (Doc.AreProtosEqual(anchor, a1.annotationOn as Doc)) return a2;
+        if (Doc.AreProtosEqual(anchor, a2.annotationOn as Doc)) return a1;
         if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }

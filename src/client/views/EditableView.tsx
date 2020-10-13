@@ -47,6 +47,7 @@ export interface EditableProps {
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
     menuCallback?: (x: number, y: number) => void;
+    textCallback?: (char: string) => boolean;
     showMenuOnLoad?: boolean;
     HeadingObject?: SchemaHeaderField | undefined;
     toggle?: () => void;
@@ -119,6 +120,12 @@ export class EditableView extends React.Component<EditableProps> {
             case ":":
                 this.props.menuCallback?.(e.currentTarget.getBoundingClientRect().x, e.currentTarget.getBoundingClientRect().y);
                 break;
+            case "Shift": case "Alt": case "Meta": case "Control": break;
+            default:
+                if (this.props.textCallback?.(e.key)) {
+                    this._editing = false;
+                    this.props.isEditingCallback?.(false,);
+                }
         }
     }
 

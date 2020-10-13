@@ -1,6 +1,6 @@
 import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
-import { DataSym, Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, AclReadonly } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { List } from "../../fields/List";
 import { PrefetchProxy } from "../../fields/Proxy";
@@ -8,12 +8,14 @@ import { RichTextField } from "../../fields/RichTextField";
 import { listSpec } from "../../fields/Schema";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ComputedField, ScriptField } from "../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from "../../fields/Types";
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast, DateCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
+import { SharingPermissions } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
 import { DocumentType } from "../documents/DocumentTypes";
+import { Networking } from "../Network";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
@@ -30,9 +32,10 @@ import { Scripting } from "./Scripting";
 import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
-import { SharingPermissions } from "../../fields/util";
+import { SnappingManager } from "./SnappingManager";
 
 
+export let resolvedPorts: { server: number, socket: number };
 const headerViewVersion = "0.1";
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -229,7 +232,7 @@ export class CurrentUserUtils {
         } else {
             const curButnTypes = Cast(doc["template-buttons"], Doc, null);
             DocListCastAsync(curButnTypes.data).then(async curBtns => {
-                await Promise.all(curBtns!);
+                curBtns && await Promise.all(curBtns);
                 requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
             });
         }
@@ -278,7 +281,7 @@ export class CurrentUserUtils {
             const curNoteTypes = Cast(doc["template-notes"], Doc, null);
             const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc];//, doc["template-note-Todo"] as any as Doc];
             DocListCastAsync(curNoteTypes.data).then(async curNotes => {
-                await Promise.all(curNotes!);
+                curNotes && await Promise.all(curNotes);
                 requiredTypes.map(ntype => Doc.AddDocToList(curNoteTypes, "data", ntype));
             });
         }
@@ -349,7 +352,7 @@ export class CurrentUserUtils {
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-button"] as Doc,
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
-                await Promise.all(curIcons!);
+                curIcons && await Promise.all(curIcons);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
             });
         }
@@ -538,9 +541,9 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
-    static async setupMenuPanel(doc: Doc, sharingDocumentId: string) {
+    static async setupMenuPanel(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (doc.menuStack === undefined) {
-            await this.setupSharingSidebar(doc, sharingDocumentId);  // sets up the right sidebar collection for mobile upload documents and sharing
+            await this.setupSharingSidebar(doc, sharingDocumentId, linkDatabaseId);  // sets up the right sidebar collection for mobile upload documents and sharing
             const menuBtns = (await CurrentUserUtils.menuBtnDescriptions(doc)).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
@@ -873,7 +876,16 @@ export class CurrentUserUtils {
     }
 
     // Sharing sidebar is where shared documents are contained
-    static async setupSharingSidebar(doc: Doc, sharingDocumentId: string) {
+    static async setupSharingSidebar(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
+        if (doc.myLinkDatabase === undefined) {
+            let linkDocs = await DocServer.GetRefField(linkDatabaseId);
+            if (!linkDocs) {
+                linkDocs = new Doc(linkDatabaseId, true);
+                (linkDocs as Doc).data = new List<Doc>([]);
+                (linkDocs as Doc)["acl-Public"] = SharingPermissions.Add;
+            }
+            doc.myLinkDatabase = new PrefetchProxy(linkDocs);
+        }
         if (doc.mySharedDocs === undefined) {
             let sharedDocs = await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
@@ -884,7 +896,7 @@ export class CurrentUserUtils {
                 (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
             if (sharedDocs instanceof Doc) {
-                sharedDocs.userColor = sharedDocs.userColor || "#12121233";
+                sharedDocs.userColor = sharedDocs.userColor || "rgb(202, 202, 202)";
             }
             doc.mySharedDocs = new PrefetchProxy(sharedDocs);
         }
@@ -953,7 +965,15 @@ export class CurrentUserUtils {
         return doc.clickFuncs as Doc;
     }
 
-    static async updateUserDocument(doc: Doc, sharingDocumentId: string) {
+    static async updateUserDocument(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
+        if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
+        reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
+            async () => {
+                const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
+                const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
+                SnappingManager.SetCachedGroups(["Public", ...mygroups?.map(g => StrCast(g.title))]);
+            }, { fireImmediately: true });
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
@@ -985,10 +1005,8 @@ export class CurrentUserUtils {
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
-        await this.setupMenuPanel(doc, sharingDocumentId);
-        doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
-        doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+        await this.setupMenuPanel(doc, sharingDocumentId, linkDatabaseId);
+        if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 
@@ -1009,9 +1027,13 @@ export class CurrentUserUtils {
     }
 
     public static async loadCurrentUser() {
-        return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
+        return rp.get(Utils.prepend("/getCurrentUser")).then(async response => {
             if (response) {
-                const result: { id: string, email: string } = JSON.parse(response);
+                const result: { id: string, email: string, cacheDocumentIds: string } = JSON.parse(response);
+                Doc.CurrentUserEmail = result.email;
+                resolvedPorts = JSON.parse(await Networking.FetchFromServer("/resolvedPorts"));
+                DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, result.email);
+                result.cacheDocumentIds && (await DocServer.GetRefFields(result.cacheDocumentIds.split(";")));
                 return result;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
@@ -1019,14 +1041,13 @@ export class CurrentUserUtils {
         });
     }
 
-    public static async loadUserDocument({ id, email }: { id: string, email: string }) {
+    public static async loadUserDocument(id: string) {
         this.curr_id = id;
-        Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
-            const { userDocumentId, sharingDocumentId } = JSON.parse(ids);
+            const { userDocumentId, sharingDocumentId, linkDatabaseId } = JSON.parse(ids);
             if (userDocumentId !== "guest") {
                 return DocServer.GetRefField(userDocumentId).then(async field =>
-                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId));
+                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId, linkDatabaseId));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

@@ -43,7 +43,7 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.push(...items);
-        this[Update]();
+        this[Update]({ op: "$addToSet", items, length: length + items.length });
         return res;
     }),
     reverse() {
@@ -66,6 +66,7 @@ const listHandlers: any = {
         this[Self].__realFields(); // coerce retrieving entire array
         items = items.map(toObjectField);
         const list = this[Self];
+        const removed = list.__fields.filter((item: any, i: number) => i >= start && i < start + deleteCount);
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             //TODO Error checking to make sure parent doesn't already exist
@@ -76,7 +77,8 @@ const listHandlers: any = {
             }
         }
         const res = list.__fields.splice(start, deleteCount, ...items);
-        this[Update]();
+        this[Update](items.length === 0 && deleteCount ? { op: "$remFromSet", items: removed, length: list.__fields.length } :
+            items.length && !deleteCount ? { op: "$addToSet", items, length: list.__fields.length } : undefined);
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {
@@ -314,7 +316,7 @@ class ListImpl<T extends Field> extends ObjectField {
         // console.log(diff);
         const update = this[OnUpdate];
         // update && update(diff);
-        update?.();
+        update?.(diff);
     }
 
     private [Self] = this;

@@ -32,7 +32,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     static Instance: RichTextMenu;
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 
-    public view?: EditorView;
+    @observable public view?: EditorView;
     public editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
 
     public _brushMap: Map<string, Set<Mark>> = new Map();
@@ -153,11 +153,11 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     public delayHide = () => this._delayHide = true;
 
     @action
-    public updateMenu(view: EditorView, lastState: EditorState | undefined, props: any) {
-        if (!view || !(view as any).TextView?.props.isSelected(true) || !view.hasFocus()) {
+    public updateMenu(view: EditorView | undefined, lastState: EditorState | undefined, props: any) {
+        this.view = view;
+        if (!view || !view.hasFocus()) {
             return;
         }
-        this.view = view;
         props && (this.editorProps = props);
 
         // Don't do anything if the document/selection didn't change
@@ -366,7 +366,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         );
     }
 
-    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[], key: string, setter: (val: string) => {}): JSX.Element {
+    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[], key: string, setter: (val: string) => void): JSX.Element {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
@@ -378,19 +378,22 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
             e.stopPropagation();
             e.preventDefault();
-            self.TextView.endUndoTypingBatch();
-            options.forEach(({ label, mark, command }) => {
-                if (e.target.value === label && mark) {
-                    if (!self.TextView.props.isSelected(true)) {
-                        switch (mark.type) {
-                            case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
-                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "px"); break;
+            self.TextView?.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => {
+                options.forEach(({ label, mark, command }) => {
+                    if (e.target.value === label && mark) {
+                        if (!self.TextView?.props.isSelected(true)) {
+                            switch (mark.type) {
+                                case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
+                                case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "px"); break;
+                            }
                         }
+                        else self.view && mark && command(mark, self.view);
                     }
-                    else UndoManager.RunInBatch(() => self.view && mark && command(mark, self.view), "text mark dropdown");
-                }
-            });
+                });
+            }, "text mark dropdown");
         }
+
         return <Tooltip key={key} title={<div className="dash-tooltip">{key}</div>} placement="bottom">
             <select onChange={onChange} value={activeOption}>{items}</select>
         </Tooltip>;
@@ -424,9 +427,6 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
-        if ((this.view?.state.selection.$from.pos || 0) < 2) {
-            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize === Number(mark.attrs.fontSize) ? `${mark.attrs.fontSize}pt` : mark.attrs.fontSize;
-        }
         const fmark = view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize });
         this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);
         view.focus();
@@ -434,9 +434,6 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
-        if ((this.view?.state.selection.$from.pos || 0) < 2) {
-            this.TextView.layoutDoc._fontFamily = mark.attrs.family;
-        }
         const fmark = view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family });
         this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);
         view.focus();
@@ -984,8 +981,14 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row 2" style={{ display: this.collapsed ? "none" : undefined }}>
                 <div className="richTextMenu-divider" key="divider 3" />,
-                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => this.activeFontSize = val)),
-                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
+                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => {
+                    this.activeFontSize = val;
+                    SelectionManager.SelectedDocuments().map(dv => dv.props.Document._fontSize = val);
+                })),
+                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => {
+                    this.activeFontFamily = val;
+                    SelectionManager.SelectedDocuments().map(dv => dv.props.Document._fontFamily = val);
+                })),
                 <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", () => ({})),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),

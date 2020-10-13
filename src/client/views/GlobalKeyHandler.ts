@@ -51,11 +51,11 @@ export class KeyManager {
     }
 
     public unhandle = action((e: KeyboardEvent) => {
-        if (e.key.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = false;
+        if (e.key?.toLowerCase() === "shift") KeyManager.Instance.ShiftPressed = false;
     });
 
     public handle = action(async (e: KeyboardEvent) => {
-        if (e.key.toLowerCase() === "shift" && e.ctrlKey && e.altKey) KeyManager.Instance.ShiftPressed = true;
+        if (e.key?.toLowerCase() === "shift" && e.ctrlKey && e.altKey) KeyManager.Instance.ShiftPressed = true;
         if (!Doc.UserDoc().noviceMode && e.key.toLocaleLowerCase() === "shift") DocServer.PRINT_CACHE();
         const keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
@@ -223,6 +223,11 @@ export class KeyManager {
                 stopPropagation = false;
                 break;
             case "a":
+                if (e.target !== document.body) {
+                    stopPropagation = false;
+                    preventDefault = false;
+                }
+                break;
             case "v":
                 stopPropagation = false;
                 preventDefault = false;

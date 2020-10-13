@@ -24,6 +24,7 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
 import { undoBatch } from "../../util/UndoManager";
+import { DocServer } from "../../DocServer";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -121,22 +122,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         const filters: string[] = [];
 
-        for (let i = 0; i < initialfilters.length; i = i + 3) {
-            if (initialfilters[i + 2] !== undefined) {
-                filters.push(initialfilters[i]);
-                filters.push(initialfilters[i + 1]);
-                filters.push(initialfilters[i + 2]);
+        for (let i = 0; i < initialfilters.length; i++) {
+            const fields = initialfilters[i].split(":");
+            if (fields[2] !== undefined) {
+                filters.push(fields[0]);
+                filters.push(fields[1]);
+                filters.push(fields[2]);
             }
         }
 
         const finalfilters: { [key: string]: string[] } = {};
 
-        for (let i = 0; i < filters.length; i = i + 3) {
-            if (finalfilters[filters[i]] !== undefined) {
-                finalfilters[filters[i]].push(filters[i + 1]);
+        for (let i = 0; i < filters.length; i = i++) {
+            const fields = filters[i].split(":");
+            if (finalfilters[fields[0]] !== undefined) {
+                finalfilters[fields[0]].push(fields[1]);
             }
             else {
-                finalfilters[filters[i]] = [filters[i + 1]];
+                finalfilters[fields[0]] = [fields[1]];
             }
         }
 
@@ -146,7 +149,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 const mod = "_t:";
                 const newWords: string[] = [];
                 const oldWords = values[0].split(" ");
-                oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
+                oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + word) : newWords.push("AND " + key + mod + word));
                 query = `(${query}) AND (${newWords.join(" ")})`;
             }
             else {
@@ -154,7 +157,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const mod = "_t:";
                     const newWords: string[] = [];
                     const oldWords = values[i].split(" ");
-                    oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
+                    oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + word) : newWords.push("AND " + key + mod + word));
                     const v = "(" + newWords.join(" ") + ")";
                     if (i === 0) {
                         query = `(${query}) AND (${v}` + (values.length === 1 ? ")" : "");
@@ -503,7 +506,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                         </div>
                         </div>
-                        <div className="searchBox-lozenge">
+                        <div className="searchBox-lozenge" onClick={() => DocServer.PRINT_CACHE()}>
                             {`UI project`}
                         </div>
                         <div className="searchBox-lozenge-dashboard"  >

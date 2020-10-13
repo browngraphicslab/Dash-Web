@@ -10,6 +10,8 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
+import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
+import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -151,7 +153,7 @@ export class DocumentManager {
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
         let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
-        if (annotatedDoc && !targetDoc?.isPushpin) {
+        if (annotatedDoc && annotatedDoc !== originatingDoc?.context && !targetDoc?.isPushpin) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
@@ -159,15 +161,25 @@ export class DocumentManager {
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
+            const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
-                docView.props.Document.hidden = !docView.props.Document.hidden;
+                const hide = !docView.props.Document.hidden;
+                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target  
+                    if (notfocused || docView.props.Document.hidden) {
+                        docView.props.Document.hidden = !docView.props.Document.hidden;
+                    }
+                    return focusAndFinish();
+                    // @ts-ignore   bcz: Argh TODO: Need to add a parameter to focus() everywhere for whether focus should center the target's container in the view or not. // here we don't want to focus the container if the source and target are in the same container
+                }, sameContext);
+                //finished?.();
             }
             else {
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
-                highlight();
+                // @ts-ignore
+                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext);
             }
+            highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
             const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc)) ? docContext : undefined;
@@ -178,7 +190,7 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
+                targetDocContext._scrollY = targetDocContext._scrollPY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
@@ -193,11 +205,13 @@ export class DocumentManager {
                             if (retryDocView) {   // we found the target in the context
                                 retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
                                 highlight();
-                            }
-                            if (delay > 2500) {
+                            } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                // targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                if (targetDoc.layout) {
+                                    Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
+                                    createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
+                                }
                             } else {
                                 setTimeout(() => findView(delay + 250), 250);
                             }
@@ -213,8 +227,9 @@ export class DocumentManager {
     }
 
     public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
+        LinkDocPreview.TargetDoc = undefined;
+        FormattedTextBoxComment.linkDoc = undefined;
         const linkDocs = link ? [link] : DocListCast(doc.links);
-        SelectionManager.DeselectAll();
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
         const fwdLinkWithoutTargetView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);

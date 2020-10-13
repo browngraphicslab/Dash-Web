@@ -8,11 +8,12 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { StrCast, Cast, ScriptCast } from '../../../fields/Types';
 import { Utils, setupMoveUpEvents, returnFalse, emptyFunction } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
-import { Doc, DocListCast } from '../../../fields/Doc';
+import { Doc, DocListCast, AclPrivate } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
 import { DragManager } from '../../util/DragManager';
+import { GetEffectiveAcl } from '../../../fields/util';
 const FontIconSchema = createSchema({
     icon: "string",
 });
@@ -105,7 +106,7 @@ export class FontIconBadge extends React.Component<FontIconBadgeProps> {
 
     render() {
         if (!(this.props.collection instanceof Doc)) return (null);
-        const length = DocListCast(this.props.collection.data).filter(d => Object.keys(d).length).length; // filter out any documents that we can't read
+        const length = DocListCast(this.props.collection.data).filter(d => GetEffectiveAcl(d) !== AclPrivate).length; //  Object.keys(d).length).length; // filter out any documents that we can't read
         return <div className="fontIconBadge-container" style={{ width: 15, height: 15, top: 12 }} ref={this._notifsRef}>
             <div className="fontIconBadge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}
                 onPointerDown={this.onPointerDown} >

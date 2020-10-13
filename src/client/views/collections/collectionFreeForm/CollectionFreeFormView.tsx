@@ -7,7 +7,7 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
-import { createSchema, makeInterface } from "../../../../fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../../fields/Schema";
 import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
@@ -88,6 +88,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
+    private _boundsReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
     private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
     private _cachedPool: Map<string, PoolData> = new Map();
@@ -782,10 +783,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
         if (deltaScale < 0) deltaScale = -deltaScale;
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
+        const invTransform = this.getLocalTransform().inverse();
+        if (deltaScale * invTransform.Scale > 20) {
+            deltaScale = 20 / invTransform.Scale;
+        }
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
         if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
-            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
+            const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 20);
             this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
         }
@@ -867,7 +872,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean, dontCenter?: boolean) => {
         const state = HistoryUtil.getState();
 
         // TODO This technically isn't correct if type !== "doc", as
@@ -886,15 +891,32 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             const annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            let delay = 1000;
             if (!annotOn) {
-                this.props.focus(doc);
+                !dontCenter && this.props.focus(doc);
+                afterFocus && setTimeout(afterFocus, delay);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
-                const offset = annotOn && (contextHgt / 2);
-                this.props.Document._scrollY = NumCast(doc.y) - offset;
+                const curScroll = NumCast(this.props.Document._scrollTop);
+                let scrollTo = curScroll;
+                if (curScroll + contextHgt < NumCast(doc.y)) {
+                    scrollTo = NumCast(doc.y) + Math.max(NumCast(doc._height), 100) - contextHgt;
+                } else if (curScroll > NumCast(doc.y)) {
+                    scrollTo = Math.max(0, NumCast(doc.y) - 50);
+                }
+                if (curScroll !== scrollTo || this.props.Document._viewTransition) {
+                    this.props.Document._scrollPY = this.props.Document._scrollY = scrollTo;
+                    delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
+                    !dontCenter && this.props.focus(this.props.Document);
+                    afterFocus && setTimeout(afterFocus, delay);
+                } else {
+                    !dontCenter && delay && this.props.focus(this.props.Document);
+                    // @ts-ignore
+                    afterFocus(true);  // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
+
+                }
             }
 
-            afterFocus && setTimeout(afterFocus, 1000);
         } else {
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;
@@ -914,14 +936,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             willZoom && this.setScaleToZoom(layoutdoc, scale);
             Doc.linkFollowHighlight(doc);
 
+            const notFocused = newPanX === savedState.px && newPanY === savedState.py;
             afterFocus && setTimeout(() => {
-                if (afterFocus?.()) {
+                // @ts-ignore
+                if (afterFocus?.(notFocused)) { // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
                     this.Document._panX = savedState.px;
                     this.Document._panY = savedState.py;
                     this.Document[this.scaleFieldKey] = savedState.s;
                     this.Document._viewTransition = savedState.pt;
                 }
-            }, 500);
+            }, notFocused ? 0 : 500);
         }
 
     }
@@ -1145,12 +1169,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+        if (!this.props.annotationsKey) {
+            this._boundsReaction = reaction(() => this.contentBounds,
+                bounds => (!this.fitToContent && this._layoutElements?.length) && setTimeout(() => {
+                    const rbounds = Cast(this.Document._renderContentBounds, listSpec("number"), [0, 0, 0, 0]);
+                    if (rbounds[0] !== bounds.x || rbounds[1] !== bounds.y || rbounds[2] !== bounds.r || rbounds[3] !== bounds.b) {
+                        this.Document._renderContentBounds = new List<number>([bounds.x, bounds.y, bounds.r, bounds.b]);
+                    }
+                }));
+        }
 
         this._marqueeRef.current?.addEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+        this._boundsReaction?.();
         this._marqueeRef.current?.removeEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
@@ -1159,7 +1193,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onCursorMove = (e: React.PointerEvent) => {
-        super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
+        //  super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
 
@@ -1424,10 +1458,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return wscale < hscale ? wscale : hscale;
     }
     @computed get backgroundEvents() { return this.layoutDoc._isBackground && SnappingManager.GetIsDragging(); }
+
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
-        !this.fitToContent && this._layoutElements?.length && setTimeout(() => this.Document._renderContentBounds = new List<number>([this.contentBounds.x, this.contentBounds.y, this.contentBounds.r, this.contentBounds.b]), 0);
         return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget}
             onPointerOver={this.onPointerOver}
             onWheel={this.onPointerWheel}

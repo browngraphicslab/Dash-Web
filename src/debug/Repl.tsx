@@ -7,7 +7,7 @@ import { makeInterface } from '../fields/Schema';
 import { ObjectField } from '../fields/ObjectField';
 import { RefField } from '../fields/RefField';
 import { DocServer } from '../client/DocServer';
-import { resolvedPorts } from '../client/views/Main';
+import { resolvedPorts } from '../client/util/CurrentUserUtils';
 
 @observer
 class Repl extends React.Component {

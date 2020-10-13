@@ -19,16 +19,35 @@ export default class UserManager extends ApiManager {
             method: Method.GET,
             subscription: "/getUsers",
             secureHandler: async ({ res }) => {
-                const cursor = await Database.Instance.query({}, { email: 1, sharingDocumentId: 1 }, "users");
+                const cursor = await Database.Instance.query({}, { email: 1, linkDatabaseId: 1, sharingDocumentId: 1 }, "users");
                 const results = await cursor.toArray();
-                res.send(results.map(user => ({ email: user.email, sharingDocumentId: user.sharingDocumentId })));
+                res.send(results.map(user => ({ email: user.email, linkDatabaseId: user.linkDatabaseId, sharingDocumentId: user.sharingDocumentId })));
+            }
+        });
+
+        register({
+            method: Method.POST,
+            subscription: "/setCacheDocumentIds",
+            secureHandler: async ({ user, req, res }) => {
+                const result: any = {};
+                user.cacheDocumentIds = req.body.cacheDocumentIds;
+                user.save(err => {
+                    if (err) {
+                        result.error = [{ msg: "Error while caching documents" }];
+                    }
+                });
+
+                // Database.Instance.update(id, { "$set": { "fields.cacheDocumentIds": cacheDocumentIds } }, e => {
+                //     console.log(e);
+                // });
+                res.send(result);
             }
         });
 
         register({
             method: Method.GET,
             subscription: "/getUserDocumentIds",
-            secureHandler: ({ res, user }) => res.send({ userDocumentId: user.userDocumentId, sharingDocumentId: user.sharingDocumentId })
+            secureHandler: ({ res, user }) => res.send({ userDocumentId: user.userDocumentId, linkDatabaseId: user.linkDatabaseId, sharingDocumentId: user.sharingDocumentId })
         });
 
         register({
@@ -39,8 +58,14 @@ export default class UserManager extends ApiManager {
 
         register({
             method: Method.GET,
+            subscription: "/getLinkDatabaseId",
+            secureHandler: ({ res, user }) => res.send(user.linkDatabaseId)
+        });
+
+        register({
+            method: Method.GET,
             subscription: "/getCurrentUser",
-            secureHandler: ({ res, user: { _id, email } }) => res.send(JSON.stringify({ id: _id, email })),
+            secureHandler: ({ res, user: { _id, email, cacheDocumentIds } }) => res.send(JSON.stringify({ id: _id, email, cacheDocumentIds })),
             publicHandler: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });
 

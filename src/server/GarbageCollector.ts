@@ -65,7 +65,7 @@ async function GarbageCollect(full: boolean = true) {
     // await new Promise(res => setTimeout(res, 3000));
     const cursor = await Database.Instance.query({}, { userDocumentId: 1 }, 'users');
     const users = await cursor.toArray();
-    const ids: string[] = [...users.map(user => user.userDocumentId), ...users.map(user => user.sharingDocumentId)]];
+    const ids: string[] = [...users.map(user => user.userDocumentId), ...users.map(user => user.sharingDocumentId), ...users.map(user => user.linkDatabaseId)];
     const visited = new Set<string>();
     const files: { [name: string]: string[] } = {};
 

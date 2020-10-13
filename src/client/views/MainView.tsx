@@ -86,7 +86,7 @@ export class MainView extends React.Component {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -312,7 +312,9 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
-        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out"}`} style={{ width: 0 }} /> :
+        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
+            {this.docButtons}
+        </div> :
             <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
                 <div className="mainView-contentArea" >
                     <DocumentView
