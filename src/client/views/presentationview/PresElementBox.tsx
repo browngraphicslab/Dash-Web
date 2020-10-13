@@ -160,7 +160,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     stopDrag = (e: PointerEvent) => {
-        console.log('stop drag')
         const activeItem = this.rootDoc;
         activeItem.dragging = false;
         e.stopPropagation();
