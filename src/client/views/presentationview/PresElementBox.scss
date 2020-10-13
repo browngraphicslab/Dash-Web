@@ -25,13 +25,12 @@ $slide-active: #5B9FDD;
     align-items: center;
 
     .presItem-number {
+        margin-top: 7px;
         font-size: 12px;
         font-weight: 700;
         text-align: center;
         justify-self: center;
-        align-self: center;
-        /* padding-right: 3%; */
-        /* width: 8%; */
+        align-self: flex-start;
         position: relative;
         display: inline-block;
         overflow: hidden;
@@ -44,7 +43,7 @@ $slide-active: #5B9FDD;
     position: relative;
     background-color: #d5dce2;
     border-radius: 5px;
-    height: calc(100% - 5px);
+    height: calc(100% - 8px);
     width: calc(100% - 5px);
     display: grid;
     grid-template-columns: max-content max-content max-content max-content auto;
@@ -68,17 +67,12 @@ $slide-active: #5B9FDD;
 }
 
 .presItem-slide.active {
-    border: solid 2px $dark-blue;
+    box-shadow: 0 0 0px 1.5px $dark-blue;
 }
 
-.presItem-slide:hover {
-    background: $slide-hover;
-}
-
-.documentView-node {
-    position: absolute;
-    z-index: 1;
-}
+// .presItem-slide:hover {
+//     background: $slide-hover;
+// }
 
 .presElementBox-time {
     align-self: center;
@@ -135,6 +129,7 @@ $slide-active: #5B9FDD;
         justify-content: center;
         align-items: center;
         transition: 0.2s;
+        margin-right: 3px;
     }
 
     .slideButton:hover {

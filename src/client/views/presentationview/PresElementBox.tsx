@@ -178,21 +178,16 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     onPointerOver = (e: any) => {
-        console.log('pointerOver');
         document.removeEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointermove", this.onPointerMove);
     }
 
     onPointerMove = (e: PointerEvent) => {
-        console.log('pointerMove');
         const slide = this._itemRef.current!;
         const rect = slide!.getBoundingClientRect();
         let y = e.clientY - rect.top;  //y position within the element.
         let height = slide.clientHeight;
         let halfLine = height / 2;
-        console.log(y);
-        console.log(height);
-        console.log(halfLine);
         if (DragManager.docsBeingDragged.length > 1) {
             if (y <= halfLine) {
                 slide.style.borderTop = "solid 2px #5B9FDD";
@@ -248,7 +243,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         return (
             <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
-                style={{ backgroundColor: isSelected ? "#AEDDF8" : "rgba(0,0,0,0)" }}
+                style={{ backgroundColor: isSelected ? "#AEDDF8" : "rgba(0,0,0,0)", opacity: isDragging ? 0.3 : 1 }}
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -278,9 +273,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 <div className="presItem-number">
                     {`${this.indexInPres + 1}.`}
                 </div>
-                <div ref={this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ opacity: isDragging ? 0.3 : 1 }}>
-                    <div className="presItem-name" onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); isSelected ? console.log('selected') : console.log('not selected'); }} style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
-                        <EditableView
+                <div ref={this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
+                    <div className="presItem-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
+                        {isSelected ? <EditableView
                             ref={this._titleRef}
                             contents={this.rootDoc.title}
                             GetValue={() => StrCast(this.rootDoc.title)}
@@ -288,7 +283,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                                 this.onSetValue(value);
                                 return true;
                             })}
-                        />
+                        /> :
+                            this.rootDoc.title
+                        }
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>

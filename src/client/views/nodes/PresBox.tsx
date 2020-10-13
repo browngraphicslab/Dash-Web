@@ -119,6 +119,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 0;
+        this.layoutDoc._yMargin = 0;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(async pres => {
             await Promise.all(pres!);
