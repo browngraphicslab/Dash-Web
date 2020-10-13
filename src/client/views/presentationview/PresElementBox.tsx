@@ -71,7 +71,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton;
     }
 
-    embedHeight = () => 100;
+    embedHeight = () => 97;
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = () => this.props.PanelWidth() - 30;
@@ -81,7 +81,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
      */
     @computed get renderEmbeddedInline() {
         return !this.rootDoc.presExpandInlineButton || !this.targetDoc ? (null) :
-            <div className="presElementBox-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
+            <div className="presItem-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
@@ -110,7 +110,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     ContainingCollectionDoc={undefined}
                     ContentScaling={returnOne}
                 />
-                <div className="presElementBox-embeddedMask" />
+                <div className="presItem-embeddedMask" />
             </div>;
     }
 
@@ -287,9 +287,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             this.rootDoc.title
                         }
                     </div>
-                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presElementBox-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presItem-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presItem-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
                     <div className={"presItem-slideButtons"}>
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />

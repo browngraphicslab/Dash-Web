@@ -1312,7 +1312,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} selected
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Contents</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
@@ -1501,18 +1501,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc: Doc = this.targetDoc;
         const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
         if (!activeItem.presProgressivize) {
-            targetDoc.editing = false;
+            // targetDoc.editing = false;
             activeItem.presProgressivize = true;
             targetDoc.presProgressivize = true;
             targetDoc._currentFrame = 0;
             docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
             targetDoc.lastFrame = targetDoc.lastFrame ? NumCast(targetDoc.lastFrame) : docs.length - 1;
         } else {
-            targetDoc.editProgressivize = false;
+            // targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
             targetDoc._currentFrame = 0;
-            targetDoc.editing = true;
+            // targetDoc.editing = true;
         }
     }
 
@@ -1785,7 +1785,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 {this.topPanel}
                 {this.toolbar}
                 {this.newDocumentToolbarDropdown}
-                <div className="presBox-listCont" style={{ padding: 0 }}>
+                <div className="presBox-listCont">
                     {mode !== CollectionViewType.Invalid ?
                         <CollectionView {...this.props}
                             ContainingCollectionDoc={this.props.Document}

@@ -43,9 +43,10 @@ $slide-active: #5B9FDD;
     position: relative;
     background-color: #d5dce2;
     border-radius: 5px;
-    height: calc(100% - 8px);
+    height: calc(100% - 7px);
     width: calc(100% - 5px);
     display: grid;
+    grid-template-rows: 23px auto;
     grid-template-columns: max-content max-content max-content max-content auto;
 
     .presItem-name {
@@ -64,6 +65,75 @@ $slide-active: #5B9FDD;
         overflow: hidden;
         white-space: pre;
     }
+
+    .presItem-time {
+        align-self: center;
+        position: relative;
+        top: 2px;
+        padding-right: 10px;
+        font-size: 10;
+        font-weight: 300;
+        font-family: Roboto;
+        z-index: 300;
+        letter-spacing: normal;
+    }
+    
+    .presItem-embedded {
+        overflow: hidden;
+        grid-column: 1/8;
+        position: relative;
+        display: flex;
+        width: auto;
+        justify-content: center;
+        margin: auto;
+        margin-bottom: 2px;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+    
+    .presItem-embeddedMask {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        border-radius: 3px;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        overflow: hidden;
+    }
+
+
+    .presItem-slideButtons {
+        display: flex;
+        grid-column: 7;
+        width: 60px;
+        justify-self: right;
+        justify-content: flex-end;
+
+        .slideButton {
+            cursor: pointer;
+            position: relative;
+            border-radius: 100%;
+            z-index: 300;
+            width: 15px;
+            height: 15px;
+            display: flex;
+            font-size: 75%;
+            justify-self: center;
+            align-self: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            transition: 0.2s;
+            margin-right: 3px;
+        }
+
+        .slideButton:hover {
+            background-color: rgba(0, 0, 0, 1);
+            transform: scale(1.15);
+        }
+    }
 }
 
 .presItem-slide.active {
@@ -74,66 +144,4 @@ $slide-active: #5B9FDD;
 //     background: $slide-hover;
 // }
 
-.presElementBox-time {
-    align-self: center;
-    position: relative;
-    top: 2px;
-    padding-right: 10px;
-    font-size: 10;
-    font-weight: 300;
-    font-family: Roboto;
-    z-index: 300;
-    letter-spacing: normal;
-}
 
-.presElementBox-embedded {
-    grid-column: 1/8;
-    position: relative;
-    display: flex;
-    width: auto;
-    justify-content: center;
-    margin: auto;
-}
-
-.presElementBox-embeddedMask {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    border-radius: 3px;
-    top: 0;
-    left: 0;
-    z-index: 1;
-    overflow: hidden;
-}
-
-.presItem-slideButtons {
-    display: flex;
-    grid-column: 7;
-    width: 60px;
-    justify-self: right;
-    justify-content: flex-end;
-
-    .slideButton {
-        cursor: pointer;
-        position: relative;
-        border-radius: 100%;
-        z-index: 300;
-        width: 15px;
-        height: 15px;
-        display: flex;
-        font-size: 75%;
-        justify-self: center;
-        align-self: center;
-        background-color: rgba(0, 0, 0, 0.5);
-        color: white;
-        justify-content: center;
-        align-items: center;
-        transition: 0.2s;
-        margin-right: 3px;
-    }
-
-    .slideButton:hover {
-        background-color: rgba(0, 0, 0, 1);
-        transform: scale(1.15);
-    }
-}
