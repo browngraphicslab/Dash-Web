@@ -190,11 +190,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        const rect = slide?.getBoundingClientRect();
-        let y = e.clientY - rect.top;  //y position within the element.
-        let height = slide.clientHeight;
-        let halfLine = height / 2;
-        if (DragManager.docsBeingDragged.length > 1) {
+        if (slide && DragManager.docsBeingDragged.length > 1) {
+            const rect = slide.getBoundingClientRect();
+            let y = e.clientY - rect.top;  //y position within the element.
+            let height = slide.clientHeight;
+            let halfLine = height / 2;
             if (y <= halfLine) {
                 slide.style.borderTop = "solid 2px #5B9FDD";
                 slide.style.borderBottom = "0px";
