@@ -787,9 +787,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (deltaScale * invTransform.Scale > 20) {
             deltaScale = 20 / invTransform.Scale;
         }
+        if (deltaScale * invTransform.Scale < 1 && this.isAnnotationOverlay) {
+            deltaScale = 1 / invTransform.Scale;
+        }
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-        if ((localTransform.Scale > 1 || !this.props.annotationsKey) && (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling())) {
+        if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
             const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 20);
             this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
@@ -919,21 +922,21 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         } else {
             const layoutdoc = Doc.Layout(doc);
-            const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;
-            const newPanY = NumCast(doc.y) + NumCast(layoutdoc._height) / 2;
+
+            willZoom && this.setScaleToZoom(layoutdoc, scale);
+            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (NumCast(this.props.Document._nativeWidth)) / 2 / this.zoomScaling() : 0);
+            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (NumCast(this.props.Document._nativeHeight)) / 2 / this.zoomScaling() : 0);
             const newState = HistoryUtil.getState();
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
 
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
-
-            if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
+            if (DocListCast(this.dataDoc[this.props.annotationsKey || this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
                 if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             }
             Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
-            willZoom && this.setScaleToZoom(layoutdoc, scale);
             Doc.linkFollowHighlight(doc);
 
             const notFocused = newPanX === savedState.px && newPanY === savedState.py;
@@ -951,8 +954,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
-        const pw = this.props.PanelWidth();
-        const ph = this.props.PanelHeight();
+        const pw = this.isAnnotationOverlay ? NumCast(this.props.Document._nativeWidth) : this.props.PanelWidth();
+        const ph = this.isAnnotationOverlay ? NumCast(this.props.Document._nativeHeight) : this.props.PanelHeight();
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
     }
 
