@@ -881,6 +881,7 @@ export class CurrentUserUtils {
             let linkDocs = await DocServer.GetRefField(linkDatabaseId);
             if (!linkDocs) {
                 linkDocs = new Doc(linkDatabaseId, true);
+                (linkDocs as Doc).author = Doc.CurrentUserEmail;
                 (linkDocs as Doc).data = new List<Doc>([]);
                 (linkDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
