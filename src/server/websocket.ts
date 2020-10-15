@@ -276,8 +276,9 @@ export namespace WebSocket {
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const newListItems = diff.diff.$set[updatefield].fields;
         const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
-        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : false))];
-        const sendBack = true;//curList.length !== prelen;
+        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
+        const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
+        delete diff.diff.length;
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
@@ -294,8 +295,9 @@ export namespace WebSocket {
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const remListItems = diff.diff.$set[updatefield].fields;
         const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
-        diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId ? remItem.fieldId === curItem.fieldId : remItem.heading ? remItem.heading === curItem.heading : false));
-        const sendBack = true;//curList.length + remListItems.length !== prelen;
+        diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId ? remItem.fieldId === curItem.fieldId : remItem.heading ? remItem.heading === curItem.heading : remItem === curItem));
+        const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
+        delete diff.diff.length;
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {

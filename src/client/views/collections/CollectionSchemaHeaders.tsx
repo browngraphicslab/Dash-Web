@@ -261,7 +261,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
-        if (filters?.includes(this._key)) {
+        if (filters?.some(filter => filter.split(":")[0] === this._key)) {
             runInAction(() => this.closeResultsVisibility = "contents");
         }
     }
@@ -396,19 +396,21 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         });
 
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
-        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+        if (filters === undefined || filters.length === 0 || filters.some(filter => filter.split(":")[0] === this._key) === false) {
             this.props.col.setColor("rgb(241, 239, 235)");
             this.closeResultsVisibility = "none";
         }
-        for (let i = 0; i < (filters?.length ?? 0) - 1; i += 3) {
-            if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
+        for (let i = 0; i < (filters?.length ?? 0) - 1; i++) {
+            if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i].split(":")[1]) === false) {
                 keyOptions.push(filters![i + 1]);
             }
         }
         const options = keyOptions.map(key => {
             let bool = false;
             if (filters !== undefined) {
-                bool = filters.includes(key) && filters[filters.indexOf(key) + 1] === "check";
+                const ind = filters.findIndex(filter => filter.split(":")[0] === key);
+                const fields = ind === -1 ? undefined : filters[ind].split(":");
+                bool = fields ? fields[1] === "check" : false;
             }
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray", paddingLeft: 5, textAlign: "left",
@@ -453,7 +455,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     updateFilter() {
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
-        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+        if (filters === undefined || filters.length === 0 || filters.some(filter => filter.split(":")[0] === this._key) === false) {
             this.props.col.setColor("rgb(241, 239, 235)");
             this.closeResultsVisibility = "none";
         }

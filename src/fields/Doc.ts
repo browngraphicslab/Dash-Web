@@ -25,7 +25,6 @@ import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { SelectionManager } from "../client/util/SelectionManager";
-import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -103,22 +102,28 @@ const AclMap = new Map<string, symbol>([
     [SharingPermissions.Admin, AclAdmin]
 ]);
 
-export function fetchProto(doc: Doc) {
+// caches the document access permissions for the current user.
+// this recursively updates all protos as well.
+export function updateCachedAcls(doc: Doc) {
     if (!doc) return;
     const permissions: { [key: string]: symbol } = {};
 
+    doc[UpdatingFromServer] = true;
     Object.keys(doc).filter(key => key.startsWith("acl") && (permissions[key] = AclMap.get(StrCast(doc[key]))!));
+    doc[UpdatingFromServer] = false;
 
-    if (Object.keys(permissions).length) doc[AclSym] = permissions;
+    if (Object.keys(permissions).length) {
+        doc[AclSym] = permissions;
+    }
 
     if (doc.proto instanceof Promise) {
-        doc.proto.then(fetchProto);
+        doc.proto.then(updateCachedAcls);
         return doc.proto;
     }
 }
 
 @scriptingGlobal
-@Deserializable("Doc", fetchProto).withFields(["id"])
+@Deserializable("Doc", updateCachedAcls).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -234,18 +239,16 @@ export class Doc extends RefField {
                     const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
-                    if (fKey.startsWith("acl")) {
-                        fetchProto(this);
-                    }
                     this[UpdatingFromServer] = false;
+                    if (fKey.startsWith("acl")) {
+                        updateCachedAcls(this);
+                    }
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
                     }
-                    if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
-                        this[UpdatingFromServer] = true;
-                        this[FieldsSym](true);
-                        this[UpdatingFromServer] = false;
-                    }
+                    // if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
+                    //     this[FieldsSym](true);
+                    // }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
@@ -676,16 +679,15 @@ export namespace Doc {
             } else {
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 if (!targetDoc[expandedLayoutFieldKey]) {
-                    const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                    // the template's arguments are stored in params which is derefenced to find
-                    // the actual field key where the parameterized template data is stored.
-                    newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
-                    newLayoutDoc.rootDocument = targetDoc;
-                    const dataDoc = Doc.GetProto(targetDoc);
-                    newLayoutDoc.resolvedDataDoc = dataDoc;
-
                     _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
                     setTimeout(() => {
+                        const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                        // the template's arguments are stored in params which is derefenced to find
+                        // the actual field key where the parameterized template data is stored.
+                        newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
+                        newLayoutDoc.rootDocument = targetDoc;
+                        const dataDoc = Doc.GetProto(targetDoc);
+                        newLayoutDoc.resolvedDataDoc = dataDoc;
                         if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && (templateLayoutDoc[templateField] as any).length) {
                             dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
@@ -886,17 +888,17 @@ export namespace Doc {
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SharingDoc(): Doc { return Cast(Doc.UserDoc().mySharedDocs, Doc, null); }
+    export function LinkDBDoc(): Doc { return Cast(Doc.UserDoc().myLinkDatabase, Doc, null); }
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { return (manager._user_doc = doc); }
 
-    export function IsSearchMatch(doc: Doc) {
-        return computedFn(function IsSearchMatch(doc: Doc) {
-            return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
-                brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
-        })(doc);
-    }
+    const isSearchMatchCache = computedFn(function IsSearchMatch(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    });
+    export function IsSearchMatch(doc: Doc) { return isSearchMatchCache(doc); }
     export function IsSearchMatchUnmemoized(doc: Doc) {
         return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
             brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
@@ -918,11 +920,9 @@ export namespace Doc {
         brushManager.SearchMatchDoc.clear();
     }
 
-    export function IsBrushed(doc: Doc) {
-        return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
-        })(doc);
-    }
+    const isBrushedCache = computedFn(function IsBrushed(doc: Doc) { return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc)); });
+    export function IsBrushed(doc: Doc) { return isBrushedCache(doc); }
+
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
@@ -1053,10 +1053,11 @@ export namespace Doc {
         const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
-            for (let i = 0; i < docFilters.length; i += 3) {
-                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
-                    if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
-                    docFilters.splice(i, 3);
+            for (let i = 0; i < docFilters.length; i++) {
+                const fields = docFilters[i].split(":"); // split key:value:modifier
+                if (fields[0] === key && (fields[1] === value || modifiers === "match" || modifiers === "remove")) {
+                    if (fields[2] === modifiers && modifiers && fields[1] === value) return;
+                    docFilters.splice(i, 1);
                     container._docFilters = new List<string>(docFilters);
                     break;
                 }
@@ -1065,9 +1066,7 @@ export namespace Doc {
                 if (!docFilters.length && modifiers === "match" && value === undefined) {
                     container._docFilters = undefined;
                 } else if (modifiers !== "remove") {
-                    docFilters.push(key);
-                    docFilters.push(value);
-                    docFilters.push(modifiers);
+                    docFilters.push(key + ":" + value + ":" + modifiers);
                     container._docFilters = new List<string>(docFilters);
                 }
             }

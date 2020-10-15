@@ -67,6 +67,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
 
+    @computed get contentScaling() { return this.props.ContentScaling(); }
+
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer?.();
         ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
@@ -266,7 +268,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     considerGooglePhotosLink = () => {
         const remoteUrl = this.dataDoc.googlePhotosUrl;
         return !remoteUrl ? (null) : (<img draggable={false}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
+            style={{ transform: `scale(${this.contentScaling})`, transformOrigin: "bottom right" }}
             id={"google-photos"}
             src={"/assets/google_photos.png"}
             onClick={() => window.open(remoteUrl)}
@@ -291,7 +293,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         return (
             <img
                 id={"upload-icon"} draggable={false}
-                style={{ transform: `scale(${1 / this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
+                style={{ transform: `scale(${1 / this.contentScaling})`, transformOrigin: "bottom right" }}
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
@@ -402,18 +404,18 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             (this.props.PanelHeight() - this.props.PanelWidth() * aspect) / 2 : 0;
     }
 
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.props.ContentScaling());
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.contentScaling);
 
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
         return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
+                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
+                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
                 pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
             }} >
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 forceScaling={true}

@@ -450,7 +450,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 height = !height || isNaN(height) ? 20 : height;
                 const scale = docView.props.ScreenToLocalTransform().Scale * docView.props.ContentScaling();
                 if (nwidth && nheight) {
-                    if (nwidth / nheight !== width / height) {
+                    if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
                     }
                     if (e.ctrlKey || (!dragBottom || !docView.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction

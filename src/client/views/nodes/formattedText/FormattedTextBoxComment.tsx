@@ -6,7 +6,7 @@ import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import wiki from "wikijs";
-import { Doc, DocCastAsync, Opt } from "../../../../fields/Doc";
+import { Doc, DocCastAsync, Opt, DocListCast } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -256,7 +256,7 @@ export class FormattedTextBoxComment {
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = href;
-                            FormattedTextBoxComment.linkDoc = linkDoc;
+                            FormattedTextBoxComment.linkDoc = DocListCast(textBox.props.Document.links).find(link => link.anchor1 === textBox.props.Document || link.anchor2 === textBox.props.Document ? link : undefined) || linkDoc;
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
                             if (anchor !== target && anchor && target) {

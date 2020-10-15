@@ -164,13 +164,14 @@ export class DocumentManager {
             const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
                 const hide = !docView.props.Document.hidden;
-                (!hide || !sameContext) && (docView.props.Document.hidden = !docView.props.Document.hidden);
-                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target
-                    notfocused && hide && (docView.props.Document.hidden = true);
+                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target  
+                    if (notfocused || docView.props.Document.hidden) {
+                        docView.props.Document.hidden = !docView.props.Document.hidden;
+                    }
                     return focusAndFinish();
                     // @ts-ignore   bcz: Argh TODO: Need to add a parameter to focus() everywhere for whether focus should center the target's container in the view or not. // here we don't want to focus the container if the source and target are in the same container
                 }, sameContext);
-                finished?.();
+                //finished?.();
             }
             else {
                 docView.select(false);
@@ -219,7 +220,7 @@ export class DocumentManager {
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
                     createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
-                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
+                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
                 }
             }
         }

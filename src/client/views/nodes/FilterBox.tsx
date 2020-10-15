@@ -94,15 +94,15 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
             if (docFilter) {
                 let index: number;
-                while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
-                    docFilter.splice(index, 3);
+                while ((index = docFilter.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+                    docFilter.splice(index, 1);
                 }
             }
             const docRangeFilters = Cast(targetDoc._docRangeFilters, listSpec("string"));
             if (docRangeFilters) {
                 let index: number;
-                while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
-                    docRangeFilters.splice(index, 3);
+                while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+                    docRangeFilters.splice(index, 1);
                 }
             }
         } else {
@@ -224,10 +224,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
     const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);
-    for (let i = 0; i < docFilters.length; i += 3) {
-        const [header, value, state] = docFilters.slice(i, i + 3);
-        if (header === facetHeader && value === facetValue) {
-            return state;
+    for (let i = 0; i < docFilters.length; i++) {
+        const fields = docFilters[i].split(":"); // split into key:value:modifiers
+        if (fields[0] === facetHeader && fields[1] === facetValue) {
+            return fields[2];
         }
     }
     return undefined;

@@ -140,7 +140,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return false;
             }
             else {
-                if (this.props.Document[AclSym]) {
+                if (this.props.Document[AclSym] && Object.keys(this.props.Document[AclSym])) {
                     added.forEach(d => {
                         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
                             if (d.author === denormalizeEmail(key.substring(4)) && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
@@ -159,7 +159,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 else {
                     added.filter(doc => [AclAdmin, AclEdit].includes(GetEffectiveAcl(doc))).map(doc => {  // only make a pushpin if we have acl's to edit the document
                         const context = Cast(doc.context, Doc, null);
-                        if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                        const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
+                        if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
                                 title: "pushpin", label: "",
                                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",

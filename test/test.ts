@@ -12,7 +12,7 @@ import { Doc } from '../src/fields/Doc';
 import { Cast } from '../src/fields/Types';
 import { createSchema, makeInterface, defaultSpec } from '../src/fields/Schema';
 import { ImageField } from '../src/fields/URLField';
-import { resolvedPorts } from '../src/client/views/Main';
+import { resolvedPorts } from '../src/client/util/CurrentUserUtils';
 describe("Document", () => {
     it('should hold fields', () => {
         const key = "Test";

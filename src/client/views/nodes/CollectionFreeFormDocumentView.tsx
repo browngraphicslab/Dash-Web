@@ -65,7 +65,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollY, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
+            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
@@ -97,24 +97,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 d["text-color"] = "grey";
             } else { d["text-color"] = "black"; }
         } else if (d.appearFrame === 0) {
-            d["text-color"] = "black";
         }
     }
 
-    public static updateScrollframe(doc: Doc, time: number) {
-        const timecode = Math.round(time);
-        const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
-        scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
-        setTimeout(() => doc.dataTransition = "inherit", 1010);
-    }
+    // public static updateScrollframe(doc: Doc, time: number) {
+    //     console.log('update scroll frame');
+    //     const timecode = Math.round(time);
+    //     const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
+    //     scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
+    //     setTimeout(() => doc.dataTransition = "inherit", 1010);
+    // }
 
-    public static setupScroll(doc: Doc, timecode: number) {
-        const scrollList = new List<number>();
-        scrollList[timecode] = NumCast(doc._scrollY);
-        doc["scroll-indexed"] = scrollList;
-        doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
-        doc._scrollY = ComputedField.MakeInterpolated("scroll", "activeFrame");
-    }
+    // public static setupScroll(doc: Doc, timecode: number) {
+    //     const scrollList = new List<number>();
+    //     scrollList[timecode] = NumCast(doc._scrollTop);
+    //     doc["scroll-indexed"] = scrollList;
+    //     doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
+    //     doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+    // }
 
 
     public static updateKeyframe(docs: Doc[], time: number, targetDoc?: Doc) {

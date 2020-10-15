@@ -294,14 +294,17 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 const docs = this.childDocList;
                 if (docs) {
                     newDocs.map((doc, i) => {
-                        console.log(doc.title);
                         if (i === 0) {
+                            if (doc.presentationTargetDoc) doc.dragging = false; //glr: so it only applies to items in presentation
+                            DragManager.docsBeingDragged = [];
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(this.filteredChildren[targInd]);
                             const srcInd = docs.indexOf(doc);
                             docs.splice(srcInd, 1);
                             docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
                         } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
+                            if (doc.presentationTargetDoc) doc.dragging = false;
+                            DragManager.docsBeingDragged = [];
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(newDocs[0]) + 1;
                             const srcInd = docs.indexOf(doc);

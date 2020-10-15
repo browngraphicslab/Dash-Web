@@ -14,7 +14,7 @@ AssignAllExtensions();
     await Docs.Prototypes.initialize();
     if (info.id !== "__guest__") {
         // a guest will not have an id registered
-        await CurrentUserUtils.loadUserDocument(info);
+        await CurrentUserUtils.loadUserDocument(info.id);
     }
     document.getElementById('root')!.addEventListener('wheel', event => {
         if (event.ctrlKey) {

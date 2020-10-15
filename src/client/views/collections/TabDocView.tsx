@@ -45,6 +45,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @observable private _document: Doc | undefined;
     @observable private _view: DocumentView | undefined;
 
+    @computed get contentScaling() { return this.ContentScaling(); }
+
     get stack(): any { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
     get view() { return this._view; }
@@ -123,7 +125,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @undoBatch
     @action
     public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
-        if (unpin) console.log('remove unpin');
+        if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
@@ -194,7 +196,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
     nativeWidth = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeWidth) || this._panelWidth : 0;
     nativeHeight = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeHeight) || this._panelHeight : 0;
-    contentScaling = () => {
+    ContentScaling = () => {
         const nativeH = NumCast(this.layoutDoc?._nativeHeight);
         const nativeW = NumCast(this.layoutDoc?._nativeWidth);
         let scaling = 1;
@@ -210,12 +212,12 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         if (this._mainCont?.children) {
             const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0]?.firstChild as HTMLElement);
             const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
+            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.ContentScaling() / scale);
         }
         return Transform.Identity();
     }
-    @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
+    @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.ContentScaling()) / 2 : 0; }
+    @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.ContentScaling()) / this._panelWidth * 100}% ` : undefined; }
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
@@ -337,7 +339,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 rootSelected={returnTrue}
                 addDocument={undefined}
                 removeDocument={undefined}
-                ContentScaling={this.contentScaling}
+                ContentScaling={this.ContentScaling}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
                 NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}

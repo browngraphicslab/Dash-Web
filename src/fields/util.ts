@@ -1,17 +1,19 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto, AclUnset } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, DataSym, DocListCast, AclAdmin, HeightSym, WidthSym, updateCachedAcls, AclUnset, DocListCastAsync } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
-import { action, trace } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate, ToString, ToScriptString } from "./FieldSymbols";
+import { action, trace, } from "mobx";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
 import CursorField from "./CursorField";
 import { List } from "./List";
+import { SnappingManager } from "../client/util/SnappingManager";
+import { computedFn } from "mobx-utils";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -21,6 +23,7 @@ const tracing = false;
 export function TraceMobx() {
     tracing && trace();
 }
+
 
 export interface GetterResult {
     value: FieldResult;
@@ -111,10 +114,6 @@ export function makeReadOnly() {
 export function makeEditable() {
     _setter = _setterImpl;
 }
-var _overrideAcl = false;
-export function OVERRIDE_acl(val: boolean) {
-    _overrideAcl = val;
-}
 
 export function normalizeEmail(email: string) {
     return email.replace(/\./g, '__');
@@ -130,14 +129,6 @@ export function denormalizeEmail(email: string) {
 //     playgroundMode = !playgroundMode;
 // }
 
-// the list of groups that the current user is a member of 
-let currentUserGroups: string[] = [];
-
-// called from GroupManager once the groups have been fetched from the server
-export function setGroups(groups: string[]) {
-    currentUserGroups = groups;
-}
-
 /**
  * These are the various levels of access a user can have to a document.
  * 
@@ -145,7 +136,7 @@ export function setGroups(groups: string[]) {
  * 
  * Edit: a user with edit access to a document can remove/edit that document, add/remove/edit annotations (depending on permissions), but not change any access rights to that document.
  * 
- * Add: a user with add access to a document can add documents/annotations to that document but cannot edit or delete anything.
+ * Add: a user with add access to a document can augment documents/annotations to that document but cannot edit or delete anything.
  * 
  * View: a user with view access to a document can only view it - they cannot add/remove/edit anything.
  * 
@@ -154,33 +145,38 @@ export function setGroups(groups: string[]) {
 export enum SharingPermissions {
     Admin = "Admin",
     Edit = "Can Edit",
-    Add = "Can Add",
+    Add = "Can Augment",
     View = "Can View",
     None = "Not Shared"
 }
 
+// return acl from cache or cache the acl and return.
+const getEffectiveAclCache = computedFn(function (target: any, user?: string) { return getEffectiveAcl(target, user); }, true);
+
 /**
  * Calculates the effective access right to a document for the current user.
  */
-export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
-    if (!target) return AclPrivate;
+export function GetEffectiveAcl(target: any, user?: string): symbol {
+    return !target ? AclPrivate :
+        target[UpdatingFromServer] ? AclAdmin : getEffectiveAclCache(target, user);// all changes received from the server must be processed as Admin.  return this directly so that the acls aren't cached (UpdatingFromServer is not observable)
+}
 
-    // all changes received fromt the server must be processed as Admin
-    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
+function getPropAcl(target: any, prop: string | symbol | number) {
+    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop == AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
+    if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
+    return GetEffectiveAcl(target);
+}
 
-    // if the current user is the author of the document / the current user is a member of the admin group
-    const userChecked = user || Doc.CurrentUserEmail;
-    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin;
-    if (currentUserGroups.includes("Admin")) return AclAdmin;
+let HierarchyMapping: Map<symbol, number> | undefined;
 
+function getEffectiveAcl(target: any, user?: string): symbol {
+    const targetAcls = target[AclSym];
+    const userChecked = user || Doc.CurrentUserEmail;    // if the current user is the author of the document / the current user is a member of the admin group
+    if (userChecked === (target.__fields?.author || target.author)) return AclAdmin; // target may be a Doc of Proxy, so check __fields.author and .author
+    if (SnappingManager.GetCachedGroupByName("Admin")) return AclAdmin;
 
-    if (target[AclSym] && Object.keys(target[AclSym]).length) {
-
-        // if the acl is being overriden or the property being modified is one of the playground fields (which can be freely modified)
-        if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
-
-        let effectiveAcl = AclPrivate;
-        const HierarchyMapping = new Map<symbol, number>([
+    if (targetAcls && Object.keys(targetAcls).length) {
+        HierarchyMapping = HierarchyMapping || new Map<symbol, number>([
             [AclPrivate, 0],
             [AclReadonly, 1],
             [AclAddonly, 2],
@@ -188,21 +184,21 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number,
             [AclAdmin, 4]
         ]);
 
-        for (const [key, value] of Object.entries(target[AclSym])) {
+        let effectiveAcl = AclPrivate;
+        for (const [key, value] of Object.entries(targetAcls)) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
             const entity = denormalizeEmail(key.substring(4)); // an individual or a group
-            if (currentUserGroups.includes(entity) || userChecked === entity) {
-                if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
+            if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
+                if (SnappingManager.GetCachedGroupByName(entity) || userChecked === entity) {
                     effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclAdmin) return effectiveAcl;
                 }
             }
         }
 
         // if there's an overriding acl set through the properties panel or sharing menu, that's what's returned if the user isn't an admin of the document
-        const override = target[AclSym]["acl-Override"];
-        if (override !== AclUnset && override !== undefined) effectiveAcl = target[AclSym]["acl-Override"];
+        const override = targetAcls["acl-Override"];
+        if (override !== AclUnset && override !== undefined) effectiveAcl = override;
 
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
@@ -225,7 +221,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     const HierarchyMapping = new Map<string, number>([
         ["Not Shared", 0],
         ["Can View", 1],
-        ["Can Add", 2],
+        ["Can Augment", 2],
         ["Can Edit", 3],
         ["Admin", 4]
     ]);
@@ -274,20 +270,20 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         });
     }
 
-    layoutDocChanged && fetchProto(target); // updates target[AclSym] when changes to acls have been made
-    dataDocChanged && fetchProto(dataDoc);
+    layoutDocChanged && updateCachedAcls(target); // updates target[AclSym] when changes to acls have been made
+    dataDocChanged && updateCachedAcls(dataDoc);
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    const effectiveAcl = GetEffectiveAcl(target, in_prop);
+    const effectiveAcl = getPropAcl(target, prop);
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
     if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "None"].includes(value))) return true;
-    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Augment", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
@@ -308,12 +304,10 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
 
-    if (in_prop === "toString" || in_prop === ToString || in_prop === ToScriptString || in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
-    if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
-    if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
-    if (prop === LayoutSym) {
-        return target.__LAYOUT__;
-    }
+    if (in_prop === AclSym) return target[AclSym];
+    if (in_prop === "toString" || (in_prop !== HeightSym && in_prop !== WidthSym && in_prop !== LayoutSym && typeof prop === "symbol")) return target.__fields[prop] || target[prop];
+    if (GetEffectiveAcl(target) === AclPrivate) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
+    if (prop === LayoutSym) return target.__LAYOUT__;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
@@ -371,9 +365,12 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
-        const op = diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
-            diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
-                : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        const op =
+            diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
+                diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
+                    : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
+        !op.$set && ((op as any).length = diff.length);
+
         const oldValue = current;
         const newValue = ObjectField.MakeCopy(value);
         current = newValue;

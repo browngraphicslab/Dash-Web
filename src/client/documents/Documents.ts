@@ -244,6 +244,7 @@ export namespace Docs {
                 view: LayoutSource,
                 dataField: string
             },
+            data?: any,
             options?: Partial<DocumentOptions>
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
@@ -464,6 +465,7 @@ export namespace Docs {
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view?.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options });
+            doc.data = template.data;
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
         }
@@ -893,8 +895,11 @@ export namespace Docs {
 export namespace DocUtils {
     export function Excluded(d: Doc, docFilters: string[]) {
         const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-        for (let i = 0; i < docFilters.length; i += 3) {
-            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+        for (let i = 0; i < docFilters.length; i++) {
+            const fields = docFilters[i].split(":");
+            const key = fields[0];
+            const value = fields[1];
+            const modifiers = fields[2];
             if (!filterFacets[key]) {
                 filterFacets[key] = {};
             }
@@ -916,8 +921,11 @@ export namespace DocUtils {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
         const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-        for (let i = 0; i < docFilters.length; i += 3) {
-            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+        for (let i = 0; i < docFilters.length; i++) {
+            const fields = docFilters[i].split(":");
+            const key = fields[0];
+            const value = fields[1];
+            const modifiers = fields[2];
             if (!filterFacets[key]) {
                 filterFacets[key] = {};
             }
