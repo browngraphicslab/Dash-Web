@@ -394,28 +394,39 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </Tooltip>;
     }
 
+    @undoBatch
+    @action
+    pinWithView = (targetDoc: Opt<Doc>) => {
+        if (targetDoc) {
+            TabDocView.PinDoc(targetDoc, false);
+            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+            if (targetDoc.type === DocumentType.PDF) {
+                const scroll = targetDoc._scrollTop;
+                activeDoc.presPinView = true;
+                activeDoc.presPinViewScroll = scroll;
+            } else {
+                const x = targetDoc._panX;
+                const y = targetDoc._panY;
+                const scale = targetDoc._viewScale;
+                activeDoc.presPinView = true;
+                activeDoc.presPinViewX = x;
+                activeDoc.presPinViewY = y;
+                activeDoc.presPinViewScale = scale;
+            }
+        }
+    }
+
     @computed
     get pinWithViewButton() {
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
-        return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
+        return (targetDoc && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
-                onClick={e => {
-                    if (targetDoc) {
-                        TabDocView.PinDoc(targetDoc, false);
-                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                        const x = targetDoc._panX;
-                        const y = targetDoc._panY;
-                        const scale = targetDoc._viewScale;
-                        activeDoc.presPinView = true;
-                        activeDoc.presPinViewX = x;
-                        activeDoc.presPinViewY = y;
-                        activeDoc.presPinViewScale = scale;
-                    }
-                }}>
+                onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
             </button>
-        </Tooltip>;
+        </Tooltip> : (null);
     }
 
 

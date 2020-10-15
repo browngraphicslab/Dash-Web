@@ -1040,7 +1040,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.optionsDropdown}
                         </div> : null}
                     </div>}
-                    <div className="propertiesView-presTrails">
+                    {/* <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openAddSlide = !this.openAddSlide; })}
                             style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
@@ -1052,7 +1052,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {this.openAddSlide ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
-                    </div>
+                    </div> */}
                 </div>;
             }
         }
