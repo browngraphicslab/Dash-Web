@@ -363,47 +363,59 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
 }
 
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {
-    let current = ObjectField.MakeCopy(value);
+    let lastValue = ObjectField.MakeCopy(value);
     return (diff?: any) => {
         const op =
             diff?.op === "$addToSet" ? { '$addToSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } } :
                 diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
                     : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
         !op.$set && ((op as any).length = diff.length);
+        let prevValue = ObjectField.MakeCopy(lastValue as List<any>);
+        lastValue = ObjectField.MakeCopy(value);
+        let newValue = ObjectField.MakeCopy(value);
 
-        const oldValue = current;
-        const newValue = ObjectField.MakeCopy(value);
-        current = newValue;
         if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
             !receiver[UpdatingFromServer] && UndoManager.AddEvent(
                 diff?.op === "$addToSet" ?
                     {
                         redo: () => {
-                            receiver[prop].push(...diff.items);
+                            receiver[prop].push(...diff.items.map((item: any) => item.value()));
+                            lastValue = ObjectField.MakeCopy(receiver[prop]);
                         },
                         undo: action(() => {
-                            const curList = receiver[prop];
-                            //while (curList[ForwardUpates]) curList = curList[ForwardUpates];
                             diff.items.forEach((doc: any) => {
-                                const ind = curList.indexOf(doc.value());
-                                ind !== -1 && curList.splice(ind, 1);
+                                const ind = receiver[prop].indexOf(doc.value());
+                                ind !== -1 && receiver[prop].splice(ind, 1);
                             });
+                            lastValue = ObjectField.MakeCopy(receiver[prop]);
                         })
                     } :
                     diff?.op === "$remFromSet" ?
                         {
                             redo: action(() => {
-                                const curList = receiver[prop];
                                 diff.items.forEach((doc: any) => {
-                                    const ind = curList.indexOf(doc.value());
-                                    ind !== -1 && curList.splice(ind, 1);
+                                    const ind = receiver[prop].indexOf(doc.value());
+                                    ind !== -1 && receiver[prop].splice(ind, 1);
                                 });
+                                lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }),
-                            undo: () => receiver[prop].push(...diff.items)
+                            undo: () => {
+                                diff.items.map((item: any) => {
+                                    const ind = (prevValue as List<any>).indexOf(diff.items[0].value());
+                                    ind !== -1 && receiver[prop].indexOf(diff.items[0].value()) === -1 && receiver[prop].splice(ind, 0, item);
+                                });
+                                lastValue = ObjectField.MakeCopy(receiver[prop]);
+                            }
                         }
                         : {
-                            redo: () => receiver[prop] = newValue,
-                            undo: () => receiver[prop] = oldValue
+                            redo: () => {
+                                receiver[prop] = ObjectField.MakeCopy(newValue as List<any>);
+                                lastValue = ObjectField.MakeCopy(receiver[prop]);
+                            },
+                            undo: () => {
+                                receiver[prop] = ObjectField.MakeCopy(prevValue as List<any>);
+                                lastValue = ObjectField.MakeCopy(receiver[prop]);
+                            }
                         });
         }
         target[Update](op);
