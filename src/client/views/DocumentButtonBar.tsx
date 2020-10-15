@@ -25,6 +25,7 @@ import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
 import { PresBox } from './nodes/PresBox';
+import { undoBatch } from '../util/UndoManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -199,7 +200,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
             <div className="documentButtonBar-linker"
-                onClick={e => {
+                onClick={undoBatch(e => {
                     if (targetDoc) {
                         TabDocView.PinDoc(targetDoc, false);
                         const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
@@ -211,7 +212,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         activeDoc.presPinViewY = y;
                         activeDoc.presPinViewScale = scale;
                     }
-                }}>
+                })}>
                 {presPinWithViewIcon}
             </div>
         </Tooltip>;

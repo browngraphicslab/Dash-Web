@@ -190,11 +190,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        const rect = slide?.getBoundingClientRect();
-        let y = e.clientY - rect.top;  //y position within the element.
-        let height = slide.clientHeight;
-        let halfLine = height / 2;
-        if (DragManager.docsBeingDragged.length > 1) {
+        if (slide && DragManager.docsBeingDragged.length > 1) {
+            const rect = slide.getBoundingClientRect();
+            let y = e.clientY - rect.top;  //y position within the element.
+            let height = slide.clientHeight;
+            let halfLine = height / 2;
             if (y <= halfLine) {
                 slide.style.borderTop = "solid 2px #5B9FDD";
                 slide.style.borderBottom = "0px";
@@ -240,6 +240,23 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         PresBox.Instance._eleArray.push(this._itemRef.current!);
         PresBox.Instance._dragArray = [];
         PresBox.Instance._dragArray.push(this._dragRef.current!);
+    }
+
+    @undoBatch
+    @action
+    pinWithView = (targetDoc: Doc, activeItem: Doc) => {
+        console.log(targetDoc.type);
+        if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
+            const scroll = targetDoc._scrollTop;
+            activeItem.presPinViewScroll = scroll;
+        } else {
+            const x = targetDoc._panX;
+            const y = targetDoc._panY;
+            const scale = targetDoc._viewScale;
+            activeItem.presPinViewX = x;
+            activeItem.presPinViewY = y;
+            activeItem.presPinViewScale = scale;
+        }
     }
 
     @computed get mainItem() {
@@ -300,14 +317,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className={"presItem-slideButtons"}>
                         <Tooltip title={<><div className="dash-tooltip">{"Update view"}</div></>}>
                             <div className="slideButton"
-                                onClick={e => {
-                                    const x = targetDoc._panX;
-                                    const y = targetDoc._panY;
-                                    const scale = targetDoc._viewScale;
-                                    activeItem.presPinViewX = x;
-                                    activeItem.presPinViewY = y;
-                                    activeItem.presPinViewScale = scale;
-                                }}
+                                onClick={() => this.pinWithView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
@@ -321,7 +331,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>
                     {this.renderEmbeddedInline}
                 </div>
-            </div>);
+            </div >);
     }
 
     render() {
