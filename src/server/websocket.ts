@@ -313,6 +313,9 @@ export namespace WebSocket {
     function UpdateField(socket: Socket, diff: Diff) {
         if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         if (diff.diff.$remFromSet) return GetRefField([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        return GetRefField([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
+    }
+    function SetField(socket: Socket, diff: Diff, curListItems?: Transferable) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;

@@ -399,7 +399,7 @@ export namespace Doc {
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
         if (doc instanceof Promise) {
-            console.log("GetProto: warning: got Promise insead of Doc");
+            // console.log("GetProto: warning: got Promise insead of Doc");
         }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);

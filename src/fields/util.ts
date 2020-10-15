@@ -162,7 +162,7 @@ export function GetEffectiveAcl(target: any, user?: string): symbol {
 }
 
 function getPropAcl(target: any, prop: string | symbol | number) {
-    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop == AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
+    if (prop === UpdatingFromServer || target[UpdatingFromServer] || prop === AclSym) return AclAdmin;  // requesting the UpdatingFromServer prop or AclSym must always go through to keep the local DB consistent
     if (prop && DocServer.PlaygroundFields?.includes(prop.toString())) return AclEdit; // playground props are always editable
     return GetEffectiveAcl(target);
 }

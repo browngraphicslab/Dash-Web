@@ -599,13 +599,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @action
     sortArray = (): Doc[] => {
-        const sort: Doc[] = this._selectedArray;
-        this.childDocs.forEach((doc, i) => {
-            if (this._selectedArray.includes(doc)) {
-                sort.push(doc);
-            }
-        });
-        return sort;
+        return this.childDocs.filter(doc => this._selectedArray.includes(doc));
     }
 
     /**
@@ -1731,8 +1725,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const frameItems = frameList.map((value) => {
             <div className="frameItem">
 
-            </div>
-        })
+            </div>;
+        });
         return <div>
             {frameItems}
         </div>;
