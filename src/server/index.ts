@@ -23,6 +23,7 @@ import { Logger } from "./ProcessFactory";
 import RouteManager, { Method, PublicHandler } from './RouteManager';
 import RouteSubscriber from './RouteSubscriber';
 import initializeServer, { resolvedPorts } from './server_Initialization';
+import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 
 export const AdminPriviliges: Map<string, boolean> = new Map();
 export const onWindows = process.platform === "win32";
@@ -186,9 +187,9 @@ export async function launchServer() {
  * log the output of the server process, so it's not ideal for development.
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
-// if (process.env.RELEASE) {
-//     (sessionAgent = new DashSessionAgent()).launch();
-// } else {
 (Database.Instance as Database.Database).doConnect();
-launchServer();
-// }
+if (process.env.MONITORED) {
+    (sessionAgent = new DashSessionAgent()).launch();
+} else {
+    launchServer();
+}

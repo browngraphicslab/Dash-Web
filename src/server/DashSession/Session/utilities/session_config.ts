@@ -19,7 +19,7 @@ const identifierProperties: Schema = {
 
 const portProperties: Schema = {
     type: "number",
-    minimum: 1024,
+    minimum: 443,
     maximum: 65535
 };
 
