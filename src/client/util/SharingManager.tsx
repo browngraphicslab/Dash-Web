@@ -140,9 +140,9 @@ export class SharingManager extends React.Component<{}> {
             });
             return Promise.all(evaluating).then(() => {
                 runInAction(() => {
-                    for (let i = 0; i < sharingDocs.length; i++) {
-                        if (!this.users.find(user => user.user.email === sharingDocs[i].user.email)) {
-                            this.users.push(sharingDocs[i]);
+                    for (let sharer of sharingDocs) {
+                        if (!this.users.find(user => user.user.email === sharer.user.email)) {
+                            this.users.push(sharer);
                         }
                     }
                 });

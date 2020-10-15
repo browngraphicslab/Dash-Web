@@ -224,8 +224,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
     const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);
-    for (let i = 0; i < docFilters.length; i++) {
-        const fields = docFilters[i].split(":"); // split into key:value:modifiers
+    for (let filter of docFilters) {
+        const fields = filter.split(":"); // split into key:value:modifiers
         if (fields[0] === facetHeader && fields[1] === facetValue) {
             return fields[2];
         }
