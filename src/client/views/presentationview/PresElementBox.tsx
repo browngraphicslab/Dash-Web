@@ -242,6 +242,23 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         PresBox.Instance._dragArray.push(this._dragRef.current!);
     }
 
+    @undoBatch
+    @action
+    pinWithView = (targetDoc: Doc, activeItem: Doc) => {
+        console.log(targetDoc.type);
+        if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
+            const scroll = targetDoc._scrollTop;
+            activeItem.presPinViewScroll = scroll;
+        } else {
+            const x = targetDoc._panX;
+            const y = targetDoc._panY;
+            const scale = targetDoc._viewScale;
+            activeItem.presPinViewX = x;
+            activeItem.presPinViewY = y;
+            activeItem.presPinViewScale = scale;
+        }
+    }
+
     @computed get mainItem() {
         const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
         const isDragging: boolean = BoolCast(this.rootDoc.dragging);
@@ -300,14 +317,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className={"presItem-slideButtons"}>
                         <Tooltip title={<><div className="dash-tooltip">{"Update view"}</div></>}>
                             <div className="slideButton"
-                                onClick={e => {
-                                    const x = targetDoc._panX;
-                                    const y = targetDoc._panY;
-                                    const scale = targetDoc._viewScale;
-                                    activeItem.presPinViewX = x;
-                                    activeItem.presPinViewY = y;
-                                    activeItem.presPinViewScale = scale;
-                                }}
+                                onClick={() => this.pinWithView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
@@ -321,7 +331,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>
                     {this.renderEmbeddedInline}
                 </div>
-            </div>);
+            </div >);
     }
 
     render() {

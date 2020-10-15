@@ -299,10 +299,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
             bestTarget && runInAction(() => {
-                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
-                bestTarget._panX = activeItem.presPinViewX;
-                bestTarget._panY = activeItem.presPinViewY;
-                bestTarget._viewScale = activeItem.presPinViewScale;
+                if (bestTarget.type === DocumentType.PDF) {
+                    bestTarget._scrollY = activeItem.presPinViewScroll;
+                } else {
+                    bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
+                    bestTarget._panX = activeItem.presPinViewX;
+                    bestTarget._panY = activeItem.presPinViewY;
+                    bestTarget._viewScale = activeItem.presPinViewScale;
+                }
             });
             //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
         }
@@ -451,6 +455,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             srcContext.presPathView = this.pathBoolean;
         }
     }
+
+    @undoBatch
     @action toggleExpandMode = () => {
         this.rootDoc.expandBoolean = !this.rootDoc.expandBoolean;
         this.childDocs.forEach((doc) => {
@@ -890,9 +896,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Visibility {"&"} Duration
                         <div className="ribbon-doubleButton">
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton}>Hide before</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton}>Hide after</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton)}>Hide before</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton)}>Hide after</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={undoBatch(() => activeItem.openDocument = !activeItem.openDocument)}>Open</div></Tooltip>
                         </div>
                         <div className="ribbon-doubleButton" >
                             <div className="presBox-subheading">Slide Duration</div>
@@ -924,12 +930,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openEffectDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} style={{ display: this.openEffectDropdown ? "grid" : "none" }} onPointerDown={e => e.stopPropagation()}>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'None'}>None</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Fade'}>Fade In</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Flip'}>Flip</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Rotate'}>Rotate</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Bounce'}>Bounce</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Roll'}>Roll</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'None')}>None</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Fade')}>Fade In</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Flip')}>Flip</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Rotate')}>Rotate</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Bounce')}>Bounce</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Roll')}>Roll</div>
                             </div>
                         </div>
                         <div className="ribbon-doubleButton" style={{ display: effect === 'None' ? "none" : "inline-flex" }}>
