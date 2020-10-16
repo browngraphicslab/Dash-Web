@@ -190,15 +190,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             },
             { fireImmediately: true }
         );
-        this._disposers.scrollPY = reaction(
-            () => Cast(this.Document._scrollPY, "number", null),
+        this._disposers.scrollPreviewY = reaction(
+            () => Cast(this.Document._scrollPreviewY, "number", null),
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if (this.props.renderDepth === -1 && scrollY >= 0) {
                         if (!this._mainCont.current) setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0));
                         else smoothScroll(1000, this._mainCont.current, scrollY || 0);
-                        this.Document._scrollPY = undefined;
+                        this.Document._scrollPreviewY = undefined;
                     }
                 }
             },
