@@ -370,9 +370,9 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                 diff?.op === "$remFromSet" ? { '$remFromSet': { ["fields." + prop]: SerializationHelper.Serialize(new List<Doc>(diff.items)) } }
                     : { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
         !op.$set && ((op as any).length = diff.length);
-        let prevValue = ObjectField.MakeCopy(lastValue as List<any>);
+        const prevValue = ObjectField.MakeCopy(lastValue as List<any>);
         lastValue = ObjectField.MakeCopy(value);
-        let newValue = ObjectField.MakeCopy(value);
+        const newValue = ObjectField.MakeCopy(value);
 
         if (!(value instanceof CursorField) && !(value?.some?.((v: any) => v instanceof CursorField))) {
             !receiver[UpdatingFromServer] && UndoManager.AddEvent(
