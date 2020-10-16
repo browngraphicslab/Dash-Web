@@ -78,7 +78,7 @@ const listHandlers: any = {
         }
         const res = list.__fields.splice(start, deleteCount, ...items);
         this[Update](items.length === 0 && deleteCount ? { op: "$remFromSet", items: removed, length: list.__fields.length } :
-            items.length && !deleteCount ? { op: "$addToSet", items, length: list.__fields.length } : undefined);
+            items.length && !deleteCount && start === list.__fields.length ? { op: "$addToSet", items, length: list.__fields.length } : undefined);
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {

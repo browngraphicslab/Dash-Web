@@ -23,7 +23,7 @@ import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast, BoolCast } from "../../../../fields/Types";
 import { TraceMobx, GetEffectiveAcl } from '../../../../fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents, OmitKeys, smoothScroll } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from '../../../documents/Documents';
@@ -961,7 +961,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             { fireImmediately: true }
         );
         this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
-            pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
+            pos => this._scrollRef.current?.scrollTo({ top: pos }), { fireImmediately: true }
+        );
+        this._disposers.scrollY = reaction(() => Cast(this.layoutDoc._scrollY, "number", null),
+            scrollY => {
+                if (scrollY !== undefined) {
+                    const delay = this._scrollRef.current ? 0 : 250; // wait for mainCont and try again to scroll
+                    const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                    const duration = durationStr ? Number(durationStr[1]) : 1000;
+                    setTimeout(() => this._scrollRef.current && smoothScroll(duration, this._scrollRef.current, Math.abs(scrollY || 0)), delay);
+                    setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
+                }
+            }, { fireImmediately: true }
         );
 
         setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight)));

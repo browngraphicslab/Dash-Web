@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
-import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue, OmitKeys } from "../../../Utils";
+import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue, OmitKeys, smoothScroll } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -87,8 +87,20 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc._scrollLeft);
         }
         this._scrollReactionDisposer?.();
-        this._scrollReactionDisposer = reaction(() => ({ y: this.layoutDoc._scrollY, x: this.layoutDoc._scrollX }),
-            ({ x, y }) => this.updateScroll(x, y),
+        this._scrollReactionDisposer = reaction(() => ({ scrollY: this.layoutDoc._scrollY, scrollX: this.layoutDoc._scrollX }),
+            ({ scrollY, scrollX }) => {
+                const delay = this._outerRef.current ? 0 : 250; // wait for mainCont and try again to scroll
+                const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                const duration = durationStr ? Number(durationStr[1]) : 1000;
+                if (scrollY !== undefined) {
+                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollY || 0)), delay);
+                    setTimeout(() => { this.layoutDoc._scrollTop = scrollY; this.layoutDoc._scrollY = undefined; }, duration + delay);
+                }
+                if (scrollX !== undefined) {
+                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollX || 0)), delay);
+                    setTimeout(() => { this.layoutDoc._scrollLeft = scrollX; this.layoutDoc._scrollX = undefined; }, duration + delay);
+                }
+            },
             { fireImmediately: true }
         );
     });

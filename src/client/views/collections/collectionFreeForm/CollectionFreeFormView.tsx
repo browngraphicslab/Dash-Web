@@ -908,7 +908,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     scrollTo = Math.max(0, NumCast(doc.y) - 50);
                 }
                 if (curScroll !== scrollTo || this.props.Document._viewTransition) {
-                    this.props.Document._scrollPY = this.props.Document._scrollY = scrollTo;
+                    this.props.Document._scrollPreviewY = this.props.Document._scrollY = scrollTo;
                     delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
                     !dontCenter && this.props.focus(this.props.Document);
                     afterFocus && setTimeout(afterFocus, delay);
@@ -922,6 +922,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         } else {
             const layoutdoc = Doc.Layout(doc);
+            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
             willZoom && this.setScaleToZoom(layoutdoc, scale);
             const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (NumCast(this.props.Document._nativeWidth)) / 2 / this.zoomScaling() : 0);
@@ -930,7 +931,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
 
-            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
             if (DocListCast(this.dataDoc[this.props.annotationsKey || this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
                 if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow

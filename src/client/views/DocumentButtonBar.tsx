@@ -189,7 +189,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
-                onClick={e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false))}>
+                onClick={undoBatch(e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false)))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div></Tooltip>;
     }

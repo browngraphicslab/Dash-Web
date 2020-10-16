@@ -292,25 +292,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             if (super.onInternalDrop(e, de)) {
                 const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
+                DragManager.docsBeingDragged = [];
                 if (docs) {
                     newDocs.map((doc, i) => {
-                        if (i === 0) {
-                            if (doc.presentationTargetDoc) doc.dragging = false; //glr: so it only applies to items in presentation
-                            DragManager.docsBeingDragged = [];
-                            if (targInd === -1) targInd = docs.length;
-                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
-                            const srcInd = docs.indexOf(doc);
-                            docs.splice(srcInd, 1);
-                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                        } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
-                            if (doc.presentationTargetDoc) doc.dragging = false;
-                            DragManager.docsBeingDragged = [];
-                            if (targInd === -1) targInd = docs.length;
-                            else targInd = docs.indexOf(newDocs[0]) + 1;
-                            const srcInd = docs.indexOf(doc);
-                            docs.splice(srcInd, 1);
-                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                        }
+                        targInd = targInd === -1 ? docs.length : targInd;
+                        const srcInd = docs.indexOf(doc);
+                        if (targInd !== -1) targInd = i === 0 ? docs.indexOf(this.filteredChildren[targInd]) : docs.indexOf(newDocs[0]) + 1;
+                        docs.splice(srcInd, 1);
+                        docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
                     });
                 }
             }
