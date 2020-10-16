@@ -10,7 +10,7 @@ import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { createSchema, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils, OmitKeys } from "../../../Utils";
@@ -181,8 +181,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
                         const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
-                        setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, Math.abs(scrollY || 0)), delay);
-                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, 1000 + delay);
+                        const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                        const duration = durationStr ? Number(durationStr[1]) : 1000;
+                        setTimeout(() => this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(scrollY || 0)), delay);
+                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
                     }
                 }
             },
