@@ -353,6 +353,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             mainAnnoDocProto.y = Math.max(minY, 0);
             mainAnnoDocProto.x = Math.max(maxX, 0);
             mainAnnoDocProto.type = DocumentType.PDFANNO;
+            mainAnnoDocProto.text = this._selectionText;
             mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         }
         mainAnnoDocProto.title = "Annotation on " + this.Document.title;
@@ -402,7 +403,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
             this.pageDelay && clearTimeout(this.pageDelay);
             this.pageDelay = setTimeout(() => {
-                this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
+                this.Document._scrollY === undefined && this._mainCont.current && (this.layoutDoc._scrollTop = this._mainCont.current.scrollTop);
                 this.pageDelay = undefined;
                 //this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
             }, 1000);
@@ -543,8 +544,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (rect) {
                     const scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     const scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
-                    if (rect.width !== this._mainCont.current.clientWidth &&
-                        (i === 0 || !intersectRect(clientRects[i], clientRects[i - 1]))) {
+                    if (rect.width !== this._mainCont.current.clientWidth) {
                         const annoBox = document.createElement("div");
                         annoBox.className = "pdfViewerDash-annotationBox";
                         // transforms the positions from screen onto the pdf div
