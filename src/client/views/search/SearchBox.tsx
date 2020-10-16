@@ -122,8 +122,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         const filters: string[] = [];
 
-        for (let i = 0; i < initialfilters.length; i++) {
-            const fields = initialfilters[i].split(":");
+        for (const initFilter of initialfilters) {
+            const fields = initFilter.split(":");
             if (fields[2] !== undefined) {
                 filters.push(fields[0]);
                 filters.push(fields[1]);

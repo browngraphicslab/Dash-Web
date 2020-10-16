@@ -10,7 +10,7 @@ import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { createSchema, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils, OmitKeys } from "../../../Utils";
@@ -181,22 +181,24 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
                         const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
-                        setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, Math.abs(scrollY || 0)), delay);
-                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, 1000 + delay);
+                        const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                        const duration = durationStr ? Number(durationStr[1]) : 1000;
+                        setTimeout(() => this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(scrollY || 0)), delay);
+                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
                     }
                 }
             },
             { fireImmediately: true }
         );
-        this._disposers.scrollPY = reaction(
-            () => Cast(this.Document._scrollPY, "number", null),
+        this._disposers.scrollPreviewY = reaction(
+            () => Cast(this.Document._scrollPreviewY, "number", null),
             (scrollY) => {
                 if (scrollY !== undefined) {
                     (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
                     if (this.props.renderDepth === -1 && scrollY >= 0) {
                         if (!this._mainCont.current) setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0));
                         else smoothScroll(1000, this._mainCont.current, scrollY || 0);
-                        this.Document._scrollPY = undefined;
+                        this.Document._scrollPreviewY = undefined;
                     }
                 }
             },
@@ -353,6 +355,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             mainAnnoDocProto.y = Math.max(minY, 0);
             mainAnnoDocProto.x = Math.max(maxX, 0);
             mainAnnoDocProto.type = DocumentType.PDFANNO;
+            mainAnnoDocProto.text = this._selectionText;
             mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         }
         mainAnnoDocProto.title = "Annotation on " + this.Document.title;
@@ -402,7 +405,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
             this.pageDelay && clearTimeout(this.pageDelay);
             this.pageDelay = setTimeout(() => {
-                this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
+                this.Document._scrollY === undefined && this._mainCont.current && (this.layoutDoc._scrollTop = this._mainCont.current.scrollTop);
                 this.pageDelay = undefined;
                 //this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
             }, 1000);
@@ -543,8 +546,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (rect) {
                     const scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     const scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
-                    if (rect.width !== this._mainCont.current.clientWidth &&
-                        (i === 0 || !intersectRect(clientRects[i], clientRects[i - 1]))) {
+                    if (rect.width !== this._mainCont.current.clientWidth) {
                         const annoBox = document.createElement("div");
                         annoBox.className = "pdfViewerDash-annotationBox";
                         // transforms the positions from screen onto the pdf div

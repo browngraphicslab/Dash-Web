@@ -895,8 +895,8 @@ export namespace Docs {
 export namespace DocUtils {
     export function Excluded(d: Doc, docFilters: string[]) {
         const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-        for (let i = 0; i < docFilters.length; i++) {
-            const fields = docFilters[i].split(":");
+        docFilters.forEach(filter => {
+            const fields = filter.split(":");
             const key = fields[0];
             const value = fields[1];
             const modifiers = fields[2];
@@ -904,7 +904,7 @@ export namespace DocUtils {
                 filterFacets[key] = {};
             }
             filterFacets[key][value] = modifiers;
-        }
+        });
 
         if (d.z) return false;
         for (const facetKey of Object.keys(filterFacets)) {
@@ -921,8 +921,8 @@ export namespace DocUtils {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
         const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-        for (let i = 0; i < docFilters.length; i++) {
-            const fields = docFilters[i].split(":");
+        docFilters.forEach(filter => {
+            const fields = filter.split(":");
             const key = fields[0];
             const value = fields[1];
             const modifiers = fields[2];
@@ -930,7 +930,7 @@ export namespace DocUtils {
                 filterFacets[key] = {};
             }
             filterFacets[key][value] = modifiers;
-        }
+        });
 
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
             if (d.z) return true;
