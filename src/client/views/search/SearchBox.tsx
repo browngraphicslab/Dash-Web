@@ -506,7 +506,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                         </div>
                         </div>
-                        <div className="searchBox-lozenge" onClick={() => DocServer.PRINT_CACHE()}>
+                        <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
                             {`UI project`}
                         </div>
                         <div className="searchBox-lozenge-dashboard"  >

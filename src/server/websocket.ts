@@ -207,9 +207,12 @@ export namespace WebSocket {
         }
     }
 
+    function GetRefFieldLocal([id, callback]: [string, (result?: Transferable) => void]) {
+        return Database.Instance.getDocument(id, callback);
+    }
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
         process.stdout.write(`.`);
-        Database.Instance.getDocument(id, callback);
+        GetRefFieldLocal([id, callback]);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
@@ -311,9 +314,9 @@ export namespace WebSocket {
 
 
     function UpdateField(socket: Socket, diff: Diff) {
-        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
-        if (diff.diff.$remFromSet) return GetRefField([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
-        return GetRefField([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
+        if (diff.diff.$addToSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$remFromSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
     }
     function SetField(socket: Socket, diff: Diff, curListItems?: Transferable) {
         Database.Instance.update(diff.id, diff.diff,

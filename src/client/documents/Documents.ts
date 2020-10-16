@@ -236,6 +236,8 @@ class EmptyBox {
 
 export namespace Docs {
 
+    export let newAccount: boolean = false;
+
     export namespace Prototypes {
 
         type LayoutSource = { LayoutString: (key: string) => string };
@@ -392,7 +394,7 @@ export namespace Docs {
             // non-guid string ids for each document prototype
             const prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
-            const actualProtos = await DocServer.GetRefFields(prototypeIds);
+            const actualProtos = Docs.newAccount ? {} : await DocServer.GetRefFields(prototypeIds);
 
             // update this object to include any default values: DocumentOptions for all prototypes
             prototypeIds.map(id => {
