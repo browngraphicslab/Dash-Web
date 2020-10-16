@@ -407,7 +407,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
                 targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
                 duration = NumCast(activeItem.presDuration) + NumCast(activeItem.presTransition);
-                if (duration <= 100) { duration = 2500; }
+                if (duration < 100) { duration = 2500; }
                 if (NumCast(targetDoc.lastFrame) > 0) {
                     for (var f = 0; f < NumCast(targetDoc.lastFrame); f++) {
                         await timer(duration / NumCast(targetDoc.lastFrame));
