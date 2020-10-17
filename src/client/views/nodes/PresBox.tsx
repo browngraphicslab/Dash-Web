@@ -317,6 +317,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             bestTarget && runInAction(() => {
                 if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
                     bestTarget._scrollY = activeItem.presPinViewScroll;
+                } else if (bestTarget.type === DocumentType.COMPARISON) {
+                    bestTarget._clipWidth = activeItem.presPinClipWidth;
                 } else {
                     bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
                     bestTarget._panX = activeItem.presPinViewX;

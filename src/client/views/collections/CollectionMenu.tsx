@@ -400,11 +400,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc, false);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB) {
+            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking) {
                 const scroll = targetDoc._scrollTop;
                 activeDoc.presPinView = true;
                 activeDoc.presPinViewScroll = scroll;
-            } else {
+            } else if ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG) {
                 const x = targetDoc._panX;
                 const y = targetDoc._panY;
                 const scale = targetDoc._viewScale;
@@ -412,6 +412,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 activeDoc.presPinViewX = x;
                 activeDoc.presPinViewY = y;
                 activeDoc.presPinViewScale = scale;
+            } else if (targetDoc.type === DocumentType.COMPARISON) {
+                const width = targetDoc._clipWidth;
+                activeDoc.presPinClipWidth = width;
+                activeDoc.presPinView = true;
             }
         }
     }
@@ -421,7 +425,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
         {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
-        return (targetDoc && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        return (targetDoc && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
                 onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
