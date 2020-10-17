@@ -270,7 +270,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc: Doc = this.targetDoc;
         const srcContext = await DocCastAsync(targetDoc.context);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
-        const collectionDocView = presCollection ? await DocumentManager.Instance.getDocumentView(presCollection) : undefined;
+        const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
         this.turnOffEdit();
         if (this.itemIndex >= 0) {
             if (srcContext && targetDoc) {
@@ -286,10 +286,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
-
+        const openInTab = () => {
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+        }
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            openInTab();
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
@@ -297,10 +299,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             } else if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
                 if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, () => { openInTab() }, srcContext); // documents open in new tab instead of on right
                 } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
                     //awaiting jump so that new scale can be found, since jumping is async
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, () => { openInTab() }, srcContext); // documents open in new tab instead of on right
                 }
             } else {
                 //awaiting jump so that new scale can be found, since jumping is async
