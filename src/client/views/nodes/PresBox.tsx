@@ -46,6 +46,12 @@ export enum PresEffect {
     None = "none",
 }
 
+enum PresStatus {
+    Autoplay = "auto",
+    Manual = "manual",
+    Edit = "edit"
+}
+
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
 
@@ -125,7 +131,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
-        this.layoutDoc.presStatus = "edit";
+        this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
         this.turnOffEdit(true);
@@ -164,7 +170,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             else targetDoc.editing = true;
             // if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
             // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== 'auto') {
+        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
             if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
             // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
             activeItem.playNow = false;
@@ -286,7 +292,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
-            if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
+            if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
                 this.zoomProgressivizeNext(targetDoc);
             } else if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
@@ -426,13 +432,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (i === this.childDocs.length - 1) {
                     setTimeout(() => {
                         clearTimeout(this._presTimer);
-                        if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = "manual";
+                        if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = PresStatus.Manual;
                         else if (this.layoutDoc.presLoop) this.startAutoPres(0);
                     }, duration);
                 }
             }
         };
-        this.layoutDoc.presStatus = "auto";
+        this.layoutDoc.presStatus = PresStatus.Auto;
         this.startPresentation(startSlide);
         this.gotoDocument(startSlide, this.itemIndex);
         load();
@@ -440,9 +446,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     pauseAutoPres = () => {
-        if (this.layoutDoc.presStatus === "auto") {
+        if (this.layoutDoc.presStatus === PresStatus.Auto) {
             if (this._presTimer) clearTimeout(this._presTimer);
-            this.layoutDoc.presStatus = "manual";
+            this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
         }
     }
@@ -499,12 +505,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
         if (this.layoutDoc.inOverlay) {
-            this.layoutDoc.presStatus = 'edit';
+            this.layoutDoc.presStatus = PresStatus.Edit;
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
             this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
-            this.layoutDoc.presStatus = 'edit';
+            this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
@@ -514,7 +520,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             docView.props.removeDocument?.(this.layoutDoc);
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         } else {
-            this.layoutDoc.presStatus = 'edit';
+            this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
@@ -601,7 +607,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return true;
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
-    @undoBatch removeDocument = (doc: Doc) => { Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
+    removeDocument = (doc: Doc) => { return Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
@@ -670,7 +676,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     // Key for when the presentaiton is active
     @undoBatch
-    keyEvents = action((e: KeyboardEvent) => {
+    keyEvents = action(async (e: KeyboardEvent) => {
         if (e.target instanceof HTMLInputElement) return;
         let handled = false;
         const anchorNode = document.activeElement as HTMLDivElement;
@@ -695,15 +701,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this._presTimer) clearTimeout(this._presTimer);
             handled = true;
         } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
-            if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
-            else this.next();
+            if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
+            else if (this.layoutDoc.presStatus === "auto") if (this._presTimer) clearTimeout(this._presTimer);
             handled = true;
         } if (e.keyCode === 8) { // delete selected items
             if (this.layoutDoc.presStatus === "edit") {
-                this._selectedArray.forEach((doc, i) => this.removeDocument(doc));
-                this._selectedArray = [];
-                this._eleArray = [];
-                this._dragArray = [];
+                await Promise.all<boolean>(this._selectedArray.map((doc, i): boolean => {
+                    const removed: boolean = this.removeDocument(doc);
+                    console.log("Is removed? : " + i + " | " + removed);
+                    return removed;
+                }));
+                action(() => this._selectedArray = []);
+                action(() => this._eleArray = []);
+                action(() => this._dragArray = []);
                 handled = true;
             }
         } if (handled) {

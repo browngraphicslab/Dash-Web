@@ -177,30 +177,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             doc.className = "presItem-slide";
             dragItem.push(doc);
         });
-        const addAudioTag = (dropDoc: any) => {
-            dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
-            dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
-            return dropDoc;
-        };
-        const finishDrag = (e: DragManager.DragCompleteEvent) => {
-            const docDragData = e.docDragData;
-            activeItem.dragging = false;
-            if (docDragData && !docDragData.droppedDocuments.length) {
-                docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
-                docDragData.droppedDocuments =
-                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
-                        docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
-                            docDragData.dropAction === "copy" ? Doc.MakeClone(d) : d);
-                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
-                    const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
-                    const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
-                    remProps.map(prop => drop[prop] = undefined);
-                });
-            }
-            return e;
-        };
+        const dropEvent = () => runInAction(() => this._dragging = false);
         if (activeItem) {
-            DragManager.StartDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined, finishDrag);
+            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined, dropEvent);
             runInAction(() => this._dragging = true);
             return true;
         }

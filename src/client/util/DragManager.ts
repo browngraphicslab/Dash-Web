@@ -201,7 +201,14 @@ export namespace DragManager {
     }
 
     // drag a document and drop it (or make an alias/copy on drop)
-    export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+    export function StartDocumentDrag(
+        eles: HTMLElement[],
+        dragData: DocumentDragData,
+        downX: number,
+        downY: number,
+        options?: DragOptions,
+        dropEvent?: () => any
+    ) {
         const addAudioTag = (dropDoc: any) => {
             dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
             dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
@@ -209,6 +216,7 @@ export namespace DragManager {
         };
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
+            if (dropEvent) dropEvent(); // glr: optional additional function to be called - in this case with presentation trails
             if (docDragData && !docDragData.droppedDocuments.length) {
                 docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
                 docDragData.droppedDocuments =
