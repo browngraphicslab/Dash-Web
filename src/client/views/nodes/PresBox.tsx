@@ -415,7 +415,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
                 targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
                 duration = NumCast(activeItem.presDuration) + NumCast(activeItem.presTransition);
-                if (duration <= 100) { duration = 2500; }
+                if (duration < 100) { duration = 2500; }
                 if (NumCast(targetDoc.lastFrame) > 0) {
                     for (var f = 0; f < NumCast(targetDoc.lastFrame); f++) {
                         await timer(duration / NumCast(targetDoc.lastFrame));
@@ -612,13 +612,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @action
     sortArray = (): Doc[] => {
-        const sort: Doc[] = this._selectedArray;
-        this.childDocs.forEach((doc, i) => {
-            if (this._selectedArray.includes(doc)) {
-                sort.push(doc);
-            }
-        });
-        return sort;
+        return this.childDocs.filter(doc => this._selectedArray.includes(doc));
     }
 
     /**
@@ -952,11 +946,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="effectDirection" style={{ display: effect === 'None' ? "none" : "grid", width: 40 }}>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%", cursor: "pointer" }} onClick={() => targetDoc.presEffectDirection = false}></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'left')}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'right')}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'top')}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'bottom')}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = false)}></div></Tooltip>
                         </div>
                     </div>
                     <div className="ribbon-final-box">

@@ -56,7 +56,7 @@ export class KeyManager {
 
     public handle = action(async (e: KeyboardEvent) => {
         if (e.key?.toLowerCase() === "shift" && e.ctrlKey && e.altKey) KeyManager.Instance.ShiftPressed = true;
-        if (!Doc.UserDoc().noviceMode && e.key.toLocaleLowerCase() === "shift") DocServer.PRINT_CACHE();
+        if (!Doc.UserDoc().noviceMode && e.key.toLocaleLowerCase() === "shift") DocServer.UPDATE_SERVER_CACHE(true);
         const keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 

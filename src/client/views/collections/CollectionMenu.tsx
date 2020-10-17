@@ -400,7 +400,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc, false);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            if (targetDoc.type === DocumentType.PDF) {
+            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB) {
                 const scroll = targetDoc._scrollTop;
                 activeDoc.presPinView = true;
                 activeDoc.presPinViewScroll = scroll;
