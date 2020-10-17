@@ -31,7 +31,7 @@ export class DashDocView {
     }
 
     //moved
-    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
+    contentScaling = () => Doc.NativeWidth(this._dashDoc) > 0 ? this._dashDoc![WidthSym]() / Doc.NativeWidth(this._dashDoc) : 1;
 
     //moved
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target

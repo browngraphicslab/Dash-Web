@@ -241,10 +241,10 @@ export function computePivotLayout(
         val.docs.forEach((doc, i) => {
             const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
-            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            let hgt = pivotAxisWidth / (Doc.NativeAspect(layoutDoc) || 1);
             if (hgt > pivotAxisWidth) {
                 hgt = pivotAxisWidth;
-                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+                wid = (Doc.NativeAspect(layoutDoc) || 1) * pivotAxisWidth;
             }
             docMap.set(doc[Id] + (val.replicas || ""), {
                 x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2 + (val.docs.length < numCols ? (numCols - val.docs.length) * pivotAxisWidth / 2 : 0),
@@ -368,10 +368,10 @@ export function computeTimelineLayout(
             const stack = findStack(x, stacking);
             const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
-            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            let hgt = pivotAxisWidth / (Doc.NativeAspect(layoutDoc) || 1);
             if (hgt > pivotAxisWidth) {
                 hgt = pivotAxisWidth;
-                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+                wid = (Doc.NativeAspect(layoutDoc) || 1) * pivotAxisWidth;
             }
             docMap.set(doc[Id], {
                 x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,

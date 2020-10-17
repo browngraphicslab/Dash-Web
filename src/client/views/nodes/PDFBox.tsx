@@ -50,8 +50,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     constructor(props: any) {
         super(props);
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
-        const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
-        const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
+        const nw = Doc.NativeWidth(this.Document, this.dataDoc) || 927;
+        const nh = Doc.NativeHeight(this.Document, this.dataDoc) || 1200;
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         if (pdfUrl) {
@@ -97,8 +97,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
-        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = Math.max(NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]), nw * 96 / 72);
-        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
+        Doc.SetNativeWidth(this.dataDoc, Math.max(Doc.NativeWidth(this.dataDoc), nw * 96 / 72));
+        Doc.SetNativeHeight(this.dataDoc, nh * 96 / 72);
+        this.layoutDoc._height = this.layoutDoc[WidthSym]() / (Doc.NativeAspect(this.dataDoc) || 1);
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
@@ -254,7 +255,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
         return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <div className="pdfBox-background"></div>
-            <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
+            <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
                 addDocTab={this.props.addDocTab} focus={this.props.focus} searchFilterDocs={this.props.searchFilterDocs}

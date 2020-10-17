@@ -6,7 +6,7 @@ import * as rp from 'request-promise';
 import { Doc } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { createSchema, makeInterface } from "../../../fields/Schema";
-import { Cast, StrCast } from "../../../fields/Types";
+import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -51,8 +51,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     videoLoad = () => {
         const aspect = this.player!.videoWidth / this.player!.videoHeight;
-        this.layoutDoc._nativeWidth = this.player!.videoWidth;
-        this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / aspect;
+        Doc.SetNativeWidth(this.dataDoc, this.player!.videoWidth);
+        Doc.SetNativeHeight(this.dataDoc, this.player!.videoHeight);
         this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
         this.dataDoc[this.fieldKey + "-" + "duration"] = this.player!.duration;
     }
@@ -97,7 +97,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = (this.layoutDoc._height || 0);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * (this.layoutDoc._nativeHeight || 0) / (this.layoutDoc._nativeWidth || 1);
+        canvas.height = 640 * Doc.NativeHeight(this.layoutDoc) / (Doc.NativeWidth(this.layoutDoc) || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             // ctx.rect(0, 0, canvas.width, canvas.height);
@@ -139,15 +139,15 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     private createRealSummaryLink = (relative: string) => {
         const url = this.choosePath(Utils.prepend(relative));
-        const width = (this.layoutDoc._width || 0);
-        const height = (this.layoutDoc._height || 0);
+        const width = this.layoutDoc._width || 0;
+        const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
-            _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
+            _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
             x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
-        Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
-        Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
+        Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
+        Doc.SetNativeHeight(Doc.GetProto(imageSummary), Doc.NativeHeight(this.layoutDoc));
         imageSummary.isLinkButton = true;
         this.props.addDocument?.(imageSummary);
         DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
@@ -164,11 +164,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
         if (this.youtubeVideoId) {
             const youtubeaspect = 400 / 315;
-            const nativeWidth = (this.layoutDoc._nativeWidth || 0);
-            const nativeHeight = (this.layoutDoc._nativeHeight || 0);
+            const nativeWidth = Doc.NativeWidth(this.layoutDoc);
+            const nativeHeight = Doc.NativeHeight(this.layoutDoc);
             if (!nativeWidth || !nativeHeight) {
-                if (!this.layoutDoc._nativeWidth) this.layoutDoc._nativeWidth = 600;
-                this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / youtubeaspect;
+                if (!nativeWidth) Doc.SetNativeWidth(this.dataDoc, 600);
+                Doc.SetNativeHeight(this.dataDoc, (nativeWidth || 600) / youtubeaspect);
                 this.layoutDoc._height = (this.layoutDoc._width || 0) / youtubeaspect;
             }
         }
@@ -346,17 +346,15 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         const start = untracked(() => Math.round((this.layoutDoc._currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.layoutDoc._nativeWidth || 640)} height={(this.layoutDoc._nativeHeight || 390)}
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={Doc.NativeWidth(this.layoutDoc) || 640} height={Doc.NativeHeight(this.layoutDoc) || 390}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=0&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc | Doc[]): boolean {
         const docs = doc instanceof Doc ? [doc] : doc;
-        docs.forEach(doc => {
-            const curTime = (this.layoutDoc._currentTimecode || -1);
-            curTime !== -1 && (doc.displayTimecode = curTime);
-        });
+        const curTime = NumCast(this.layoutDoc._currentTimecode);
+        docs.forEach(doc => doc.displayTimecode = curTime);
         return this.addDocument(doc);
     }
 

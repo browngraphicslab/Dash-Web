@@ -398,10 +398,10 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
         const paths = field ? [this.choosePath(field.url), ...altpaths] : altpaths;
         const url = paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
 
-        const heightToWidth = NumCast(this._rowDoc._nativeHeight) / NumCast(this._rowDoc._nativeWidth);
+        const aspect = Doc.NativeAspect(this._rowDoc);
         let width = Math.min(75, this.props.rowProps.width);
-        const height = Math.min(75, width * heightToWidth);
-        width = height / heightToWidth;
+        const height = Math.min(75, width / aspect);
+        width = height * aspect;
 
         const reference = React.createRef<HTMLDivElement>();
         return <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>

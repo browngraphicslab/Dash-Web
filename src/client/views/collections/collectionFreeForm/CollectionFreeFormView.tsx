@@ -105,11 +105,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable canPanY: boolean = true;
 
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
-    @computed get fitToContent() { return this.props.fitToBox || (this.Document._fitToBox && !this.isAnnotationOverlay); }
+    @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
-    @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), NumCast(this.Document._nativeWidth)); }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : returnVal(this.props.NativeHeight?.(), NumCast(this.Document._nativeHeight)); }
+    @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document)); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.Document)); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get scaleFieldKey() { return this.props.scaleField || "_viewScale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
@@ -120,7 +120,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this.fitToContent) {
             const zs = !this.childDocs.length ? 1 :
                 Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x));
-            return mult * (this.props.isAnnotationOverlay ? Math.min(zs, 1) : zs);
+            return mult * zs;
         }
         return mult * NumCast(this.Document[this.scaleFieldKey], 1);
     }
@@ -219,7 +219,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];
             }
-            const nd = [NumCast(layoutDoc._nativeWidth), NumCast(layoutDoc._nativeHeight)];
+            const nd = [Doc.NativeWidth(layoutDoc), Doc.NativeHeight(layoutDoc)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
             !d._isBackground && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
@@ -925,8 +925,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
             willZoom && this.setScaleToZoom(layoutdoc, scale);
-            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (NumCast(this.props.Document._nativeWidth)) / 2 / this.zoomScaling() : 0);
-            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (NumCast(this.props.Document._nativeHeight)) / 2 / this.zoomScaling() : 0);
+            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
+            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
             const newState = HistoryUtil.getState();
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
@@ -954,8 +954,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
-        const pw = this.isAnnotationOverlay ? NumCast(this.props.Document._nativeWidth) : this.props.PanelWidth();
-        const ph = this.isAnnotationOverlay ? NumCast(this.props.Document._nativeHeight) : this.props.PanelHeight();
+        const pw = this.isAnnotationOverlay ? Doc.NativeWidth(this.props.Document) : this.props.PanelWidth();
+        const ph = this.isAnnotationOverlay ? Doc.NativeHeight(this.props.Document) : this.props.PanelHeight();
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
     }
 
@@ -979,7 +979,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
-            layoutKey: StrCast(this.props.Document.childLayoutKey),
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
@@ -1297,7 +1296,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         this.props.renderDepth && optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
-            optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+            optionItems.push({ description: (!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
 
         }
@@ -1454,8 +1453,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get contentScaling() {
         if (this.props.annotationsKey && !this.props.forceScaling) return 0;
-        const nw = returnVal(this.props.NativeWidth?.(), NumCast(this.Document._nativeWidth));
-        const nh = returnVal(this.props.NativeHeight?.(), NumCast(this.Document._nativeHeight));
+        const nw = returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document));
+        const nh = returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.Document));
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
