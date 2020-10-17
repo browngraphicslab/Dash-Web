@@ -878,7 +878,7 @@ export class CurrentUserUtils {
     // Sharing sidebar is where shared documents are contained
     static async setupSharingSidebar(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (doc.myLinkDatabase === undefined) {
-            let linkDocs = await DocServer.GetRefField(linkDatabaseId);
+            let linkDocs = Docs.newAccount ? undefined : await DocServer.GetRefField(linkDatabaseId);
             if (!linkDocs) {
                 linkDocs = new Doc(linkDatabaseId, true);
                 (linkDocs as Doc).author = Doc.CurrentUserEmail;
@@ -888,7 +888,7 @@ export class CurrentUserUtils {
             doc.myLinkDatabase = new PrefetchProxy(linkDocs);
         }
         if (doc.mySharedDocs === undefined) {
-            let sharedDocs = await DocServer.GetRefField(sharingDocumentId + "outer");
+            let sharedDocs = Docs.newAccount ? undefined : await DocServer.GetRefField(sharingDocumentId + "outer");
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
@@ -1024,6 +1024,7 @@ export class CurrentUserUtils {
         //         Doc.AddDocToList(Cast(doc["template-notes"], Doc, null), "data", deleg);
         //     }
         // });
+        setTimeout(() => DocServer.UPDATE_SERVER_CACHE(), 2500);
         return doc;
     }
 
@@ -1047,8 +1048,12 @@ export class CurrentUserUtils {
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
             const { userDocumentId, sharingDocumentId, linkDatabaseId } = JSON.parse(ids);
             if (userDocumentId !== "guest") {
-                return DocServer.GetRefField(userDocumentId).then(async field =>
-                    this.updateUserDocument(Doc.SetUserDoc(field instanceof Doc ? field : new Doc(userDocumentId, true)), sharingDocumentId, linkDatabaseId));
+                return DocServer.GetRefField(userDocumentId).then(async field => {
+                    Docs.newAccount = !(field instanceof Doc);
+                    await Docs.Prototypes.initialize();
+                    const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
+                    return this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
@@ -1108,7 +1113,7 @@ export class CurrentUserUtils {
                 const response = await fetch(upload, { method: "POST", body: formData });
                 const json = await response.json();
                 if (json !== "error") {
-                    const doc = await DocServer.GetRefField(json);
+                    const doc = Docs.newAccount ? undefined : await DocServer.GetRefField(json);
                     if (doc instanceof Doc) {
                         setTimeout(() => SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs =>
                             docs.docs.forEach(d => LinkManager.Instance.addLink(d))), 2000); // need to give solr some time to update so that this query will find any link docs we've added.
