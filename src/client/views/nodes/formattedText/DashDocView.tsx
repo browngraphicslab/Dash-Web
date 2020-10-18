@@ -82,7 +82,7 @@ export class DashDocView extends React.Component<IDashDocView> {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(outerElement);
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
-    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
+    contentScaling = () => Doc.NativeWidth(this._dashDoc) > 0 ? this._dashDoc![WidthSym]() / Doc.NativeWidth(this._dashDoc) : 1;
 
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
 

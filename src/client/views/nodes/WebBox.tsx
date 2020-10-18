@@ -72,8 +72,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     constructor(props: any) {
         super(props);
-        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 850));
-        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, this.Document[HeightSym]() / this.Document[WidthSym]() * 850));
+        Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(this.dataDoc) || 850);
+        Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(this.dataDoc) || this.Document[HeightSym]() / this.Document[WidthSym]() * 850);
     }
 
     iframeLoaded = action((e: any) => {
@@ -151,13 +151,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const field = Cast(this.rootDoc[this.props.fieldKey], WebField);
         if (field?.url.href.indexOf("youtube") !== -1) {
             const youtubeaspect = 400 / 315;
-            const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
-            const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
+            const nativeWidth = Doc.NativeWidth(this.layoutDoc);
+            const nativeHeight = Doc.NativeHeight(this.layoutDoc);
             if (field) {
                 if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                    if (!nativeWidth) this.layoutDoc._nativeWidth = 600;
-                    this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
-                    this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
+                    if (!nativeWidth) Doc.SetNativeWidth(this.layoutDoc, 600);
+                    Doc.SetNativeHeight(this.layoutDoc, (nativeWidth || 600) / youtubeaspect);
+                    this.layoutDoc._height = this.layoutDoc[WidthSym]() / youtubeaspect;
                 }
             } // else it's an HTMLfield
         } else if (field?.url) {
@@ -388,17 +388,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
     }
 
-
-    @undoBatch
-    @action
-    toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
-    }
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.useCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.useCors = !this.layoutDoc.useCors, icon: "snowflake" });
-        funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : NumCast(this.layoutDoc._nativeWidth), icon: "snowflake" });
+        funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : Doc.NativeWidth(this.layoutDoc), icon: "snowflake" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
     }
@@ -468,7 +462,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="webBox-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight) }} ref={this._annotationLayer}>
+        return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
                 <Annotation {...this.props} showInfo={emptyFunction} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
@@ -543,9 +537,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             else if (this._mainCont.current) {
                 // set marquee x and y positions to the spatially transformed position
                 const boundingRect = this._mainCont.current.getBoundingClientRect();
-                const boundingHeight = (this.Document._nativeHeight || 1) / (this.Document._nativeWidth || 1) * boundingRect.width;
-                this._startX = (e.clientX - boundingRect.left) / boundingRect.width * (this.Document._nativeWidth || 1);
-                this._startY = (e.clientY - boundingRect.top) / boundingHeight * (this.Document._nativeHeight || 1);
+                const boundingHeight = (Doc.NativeHeight(this.Document) || 1) / (Doc.NativeWidth(this.Document) || 1) * boundingRect.width;
+                this._startX = (e.clientX - boundingRect.left) / boundingRect.width * (Doc.NativeWidth(this.Document) || 1);
+                this._startY = (e.clientY - boundingRect.top) / boundingHeight * (Doc.NativeHeight(this.Document) || 1);
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
@@ -560,9 +554,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (this._marqueeing && this._mainCont.current) {
             // transform positions and find the width and height to set the marquee to
             const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const boundingHeight = (this.Document._nativeHeight || 1) / (this.Document._nativeWidth || 1) * boundingRect.width;
-            const curX = (e.clientX - boundingRect.left) / boundingRect.width * (this.Document._nativeWidth || 1);
-            const curY = (e.clientY - boundingRect.top) / boundingHeight * (this.Document._nativeHeight || 1);
+            const boundingHeight = (Doc.NativeHeight(this.Document) || 1) / (Doc.NativeWidth(this.Document) || 1) * boundingRect.width;
+            const curX = (e.clientX - boundingRect.left) / boundingRect.width * (Doc.NativeWidth(this.Document) || 1);
+            const curY = (e.clientY - boundingRect.top) / boundingHeight * (Doc.NativeHeight(this.Document) || 1);
             this._marqueeWidth = curX - this._startX;
             this._marqueeHeight = curY - this._startY;
             this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
@@ -622,7 +616,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     visibleHeiht = () => {
         if (this._mainCont.current) {
             const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const scalin = (this.Document._nativeWidth || 0) / boundingRect.width;
+            const scalin = (Doc.NativeWidth(this.Document) || 0) / boundingRect.width;
             return Math.min(boundingRect.height * scalin, this.props.PanelHeight() * scalin);
         }
         return this.props.PanelHeight();

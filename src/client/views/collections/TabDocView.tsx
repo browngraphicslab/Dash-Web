@@ -191,14 +191,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
-    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
+    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), Doc.NativeWidth(this.layoutDoc)), this._panelWidth) :
         (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
     panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
-    nativeWidth = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc?._fitWidth ? Doc.NativeWidth(this.layoutDoc) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc?._fitWidth ? Doc.NativeHeight(this.layoutDoc) || this._panelHeight : 0;
     ContentScaling = () => {
-        const nativeH = NumCast(this.layoutDoc?._nativeHeight);
-        const nativeW = NumCast(this.layoutDoc?._nativeWidth);
+        const nativeW = Doc.NativeWidth(this.layoutDoc);
+        const nativeH = Doc.NativeHeight(this.layoutDoc);
         let scaling = 1;
         if (nativeW && (this.layoutDoc?._fitWidth || this._panelHeight / nativeH > this._panelWidth / nativeW)) {
             scaling = this._panelWidth / nativeW;  // width-limited or fitWidth
