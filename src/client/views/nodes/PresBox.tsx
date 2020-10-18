@@ -288,7 +288,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const willZoom = false;
         const openInTab = () => {
             collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
-        }
+        };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
             openInTab();
@@ -299,10 +299,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             } else if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
                 if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, () => { openInTab() }, srcContext); // documents open in new tab instead of on right
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext); // documents open in new tab instead of on right
                 } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
                     //awaiting jump so that new scale can be found, since jumping is async
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, () => { openInTab() }, srcContext); // documents open in new tab instead of on right
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext); // documents open in new tab instead of on right
                 }
             } else {
                 //awaiting jump so that new scale can be found, since jumping is async
@@ -442,7 +442,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 }
             }
         };
-        this.layoutDoc.presStatus = PresStatus.Auto;
+        this.layoutDoc.presStatus = PresStatus.Autoplay;
         this.startPresentation(startSlide);
         this.gotoDocument(startSlide, this.itemIndex);
         load();
@@ -450,7 +450,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     pauseAutoPres = () => {
-        if (this.layoutDoc.presStatus === PresStatus.Auto) {
+        if (this.layoutDoc.presStatus === PresStatus.Autoplay) {
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
@@ -611,7 +611,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return true;
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
-    removeDocument = (doc: Doc) => { return Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
+    removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
