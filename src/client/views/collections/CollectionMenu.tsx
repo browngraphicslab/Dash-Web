@@ -761,6 +761,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         } else {
                             history.push(this._url);
                         }
+                        this.props.docView.props.Document._scrollTop = 0;
                         future && (future.length = 0);
                     }
                     this._url = url;
