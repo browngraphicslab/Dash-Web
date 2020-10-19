@@ -283,7 +283,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             this._docXfs.map((cd, i) => {
                 const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
-                if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
+                if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && (i === this._docXfs.length - 1 || where[1] < pos1[1])) {
                     targInd = i;
                     const axis = this.Document._viewType === CollectionViewType.Masonry ? 0 : 1;
                     plusOne = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;

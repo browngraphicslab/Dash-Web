@@ -655,7 +655,7 @@ export class GestureOverlay extends Touchable {
             this._points = [];
         }
         //get out of ink mode after each stroke=
-        if (!CollectionFreeFormViewChrome.Instance._keepMode) {
+        if (CollectionFreeFormViewChrome.Instance && !CollectionFreeFormViewChrome.Instance?._keepMode) {
             Doc.SetSelectedTool(InkTool.None);
             CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
             SetActiveArrowStart("none");
@@ -839,14 +839,15 @@ export class GestureOverlay extends Touchable {
         ) || false;
     }
 
-    getBounds = (stroke: InkData) => {
-        const xs = stroke.map(p => p.X);
-        const ys = stroke.map(p => p.Y);
+    getBounds = (stroke: InkData, pad?: boolean) => {
+        const padding = pad ? [-20000, 20000] : [];
+        const xs = [...padding, ...stroke.map(p => p.X)];
+        const ys = [...padding, ...stroke.map(p => p.Y)];
         const right = Math.max(...xs);
         const left = Math.min(...xs);
         const bottom = Math.max(...ys);
         const top = Math.min(...ys);
-        return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
+        return { right, left, bottom, top, width: right - left, height: bottom - top };
     }
 
     @computed get svgBounds() {
@@ -856,7 +857,7 @@ export class GestureOverlay extends Touchable {
     @computed get elements() {
         const width = Number(ActiveInkWidth());
         const rect = this._overlayRef.current?.getBoundingClientRect();
-        const B = this.svgBounds;
+        const B = { left: -20000, right: 20000, top: -20000, bottom: 20000, width: 40000, height: 40000 }; //this.getBounds(this._points, true);
         B.left = B.left - width / 2;
         B.right = B.right + width / 2;
         B.top = B.top - width / 2 - (rect?.y || 0);
@@ -867,7 +868,7 @@ export class GestureOverlay extends Touchable {
             this.props.children,
             this._palette,
             [this._strokes.map((l, i) => {
-                const b = this.getBounds(l);
+                const b = { left: -20000, right: 20000, top: -20000, bottom: 20000, width: 40000, height: 40000 };//this.getBounds(l, true);
                 return <svg key={i} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
                     {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), width, width,
                         ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(),
