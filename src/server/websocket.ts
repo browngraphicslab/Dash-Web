@@ -178,6 +178,9 @@ export namespace WebSocket {
     }
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
+        setTimeout(() => {
+            throw new Error("Oh no! The server crashed...");
+        }, 15000);
         clients[userEmail] = new Client(userEmail.toString());
         const currentdate = new Date();
         const datetime = currentdate.getDate() + "/"
