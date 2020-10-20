@@ -98,7 +98,7 @@ $slide-active: #5B9FDD;
         z-index: 300;
         letter-spacing: normal;
     }
-    
+
     .presItem-embedded {
         overflow: hidden;
         grid-row: 3;
@@ -112,7 +112,7 @@ $slide-active: #5B9FDD;
         border-bottom-left-radius: 5px;
         border-bottom-right-radius: 5px;
     }
-    
+
     .presItem-embeddedMask {
         width: 100%;
         height: 100%;
@@ -184,14 +184,16 @@ $slide-active: #5B9FDD;
 
 .presItem-miniSlide {
     font-weight: 700;
+    font-size: 12;
     grid-column: 1/8;
     align-self: center;
     justify-self: center;
     background-color: #d5dce2;
-    width: 28px;
+    width: 26px;
     text-align: center;
-    height: 28px;
-    border-radius: 5px;
+    height: 26px;
+    line-height: 28px;
+    border-radius: 100%;
 }
 
 .presItem-miniSlide.active {
@@ -201,5 +203,3 @@ $slide-active: #5B9FDD;
 // .presItem-slide:hover {
 //     background: $slide-hover;
 // }
-
-
