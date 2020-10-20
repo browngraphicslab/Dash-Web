@@ -143,7 +143,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         e.preventDefault();
         if (element && !(e.ctrlKey || e.metaKey)) {
-            if (PresBox.Instance._eleArray.includes(this._itemRef.current!)) {
+            if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
                 PresBox.Instance._selectedArray = [];

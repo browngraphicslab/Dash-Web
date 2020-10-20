@@ -297,9 +297,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     newDocs.map((doc, i) => {
                         targInd = targInd === -1 ? docs.length : targInd;
                         const srcInd = docs.indexOf(doc);
-                        if (targInd !== -1) targInd = i === 0 ? docs.indexOf(this.filteredChildren[targInd]) : docs.indexOf(newDocs[0]) + 1;
+                        // if (i !== 0) console.log(docs.indexOf(newDocs[0])); //glr: for testing
+                        if (targInd !== -1) targInd = i === 0 ? docs.indexOf(this.filteredChildren[targInd]) : docs.indexOf(newDocs[i - 1]) + 1;
+                        // console.log("title: " + doc.title, "i: " + i, "targInd: " + targInd, "length: " + newDocs.length, "srcInd: " + srcInd); //glr: for testing
                         docs.splice(srcInd, 1);
-                        docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                        docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (i === 0 ? plusOne : 0), 0, doc);
                     });
                 }
             }
