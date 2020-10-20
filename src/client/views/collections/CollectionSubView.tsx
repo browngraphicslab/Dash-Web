@@ -406,7 +406,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     this.addDocument(alias);
                 } else {
                     console.log("Adding ...");
-                    const newDoc = Docs.Create.WebDocument(uriList, {
+                    const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                         ...options,
                         _fitWidth: true,
                         title: uriList.split("#annotations:")[0],
@@ -416,7 +416,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         useCors: true
                     });
                     console.log(" ... " + newDoc.title);
-                    newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                     console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;

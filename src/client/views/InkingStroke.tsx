@@ -38,7 +38,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
         this.props.Document.mixBlendMode = "hard-light";
         this.props.Document.color = "#9b9b9bff";
-        this.props.Document._stayInCollection = true;
+        //this.props.Document._stayInCollection = true;
         this.props.Document.isInkMask = true;
     }
 
@@ -190,8 +190,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
         return (
             <svg className="inkingStroke"
-                width={Math.max(width, height)}
-                height={Math.max(width, height)}
                 style={{
                     pointerEvents: this.props.Document.isInkMask ? "all" : "none",
                     transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,

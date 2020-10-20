@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { Doc } from "../../../fields/Doc";
+import { Doc, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
@@ -34,12 +34,12 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
 
     videoLoad = () => {
         const aspect = this.player!.videoWidth / this.player!.videoHeight;
-        const nativeWidth = (this.layoutDoc._nativeWidth || 0);
-        const nativeHeight = (this.layoutDoc._nativeHeight || 0);
+        const nativeWidth = Doc.NativeWidth(this.layoutDoc);
+        const nativeHeight = Doc.NativeHeight(this.layoutDoc);
         if (!nativeWidth || !nativeHeight) {
-            if (!this.layoutDoc._nativeWidth) this.layoutDoc._nativeWidth = 400;
-            this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / aspect;
-            this.layoutDoc._height = NumCast(this.layoutDoc._width) / aspect;
+            if (!nativeWidth) Doc.SetNativeWidth(this.dataDoc, 1200);
+            Doc.SetNativeHeight(this.dataDoc, (nativeWidth || 1200) / aspect);
+            this.layoutDoc._height = (this.layoutDoc[WidthSym]() || 0) / aspect;
         }
     }
 
@@ -48,7 +48,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
         const height = NumCast(this.layoutDoc._height);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * NumCast(this.layoutDoc._nativeHeight) / NumCast(this.layoutDoc._nativeWidth, 1);
+        canvas.height = 640 / (Doc.NativeAspect(this.layoutDoc) || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);

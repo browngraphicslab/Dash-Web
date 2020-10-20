@@ -129,8 +129,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? this.LayoutFieldKey + "-" : "_") + "nativeWidth"], (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0))); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), NumCast(this.layoutDoc[(this.props.DataDoc ? this.LayoutFieldKey + "-" : "_") + "nativeHeight"], (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0))); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
@@ -494,8 +494,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(this.props.Document);
                 const layoutDoc = Document(Doc.Layout(this.props.Document));
-                let nwidth = layoutDoc._nativeWidth || 0;
-                let nheight = layoutDoc._nativeHeight || 0;
+                let nwidth = Doc.NativeWidth(layoutDoc);
+                let nheight = Doc.NativeHeight(layoutDoc);
                 const width = (layoutDoc._width || 0);
                 const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
@@ -505,13 +505,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = e.ctrlKey || (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
-                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
+                    Doc.SetNativeWidth(layoutDoc, nwidth = layoutDoc._width || 0);
+                    Doc.SetNativeHeight(layoutDoc, nheight = layoutDoc._height || 0);
                 }
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
+                            Doc.SetNativeWidth(layoutDoc, actualdW / (layoutDoc._width || 1) * Doc.NativeWidth(layoutDoc));
                         }
                         layoutDoc._width = actualdW;
                         if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
@@ -519,7 +519,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     }
                     else {
                         if (!fixedAspect) {
-                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
+                            Doc.SetNativeHeight(layoutDoc, actualdH / (layoutDoc._height || 1) * Doc.NativeHeight(doc));
                         }
                         layoutDoc._height = actualdH;
                         if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
@@ -754,8 +754,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.props.bringToFront(this.props.Document, true);
             const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
             const hgt = this.Document[HeightSym]();
-            this.props.Document[DataSym][this.LayoutFieldKey + "-nativeWidth"] = wid;
-            this.props.Document[DataSym][this.LayoutFieldKey + "-nativeHeight"] = hgt;
+            Doc.SetNativeWidth(this.props.Document[DataSym], wid);
+            Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
         }
     }
 
@@ -907,7 +907,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const excluded = ["PresBox", /* "FormattedTextBox", */ "FontIconBox"]; // bcz: shifting the title for texst causes problems with collaborative use when some people see titles, and others don't
         return !excluded.includes(StrCast(this.layoutDoc.layout));
     }
-    chromeHeight = () => this.showOverlappingTitle ? 1 : 25;
+    chromeHeight = () => this.showOverlappingTitle ? 0 : 25;
 
     @computed get finalLayoutKey() {
         if (typeof this.props.layoutKey === "string") {

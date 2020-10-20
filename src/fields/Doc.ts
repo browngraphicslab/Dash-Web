@@ -25,6 +25,7 @@ import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { SelectionManager } from "../client/util/SelectionManager";
+import { DocumentView } from "../client/views/nodes/DocumentView";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -882,6 +883,15 @@ export namespace Doc {
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     export function LayoutFieldKey(doc: Doc): string { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
+    export function NativeAspect(doc: Doc, dataDoc?: Doc, useDim?: boolean) {
+        return Doc.NativeWidth(doc, dataDoc, useDim) / (Doc.NativeHeight(doc, dataDoc, useDim) || 1);
+    }
+    export function NativeWidth(doc?: Doc, dataDoc?: Doc, useWidth?: boolean) { return !doc ? 0 : NumCast(doc._nativeWidth, NumCast((dataDoc || doc)[Doc.LayoutFieldKey(doc) + "-nativeWidth"], useWidth ? doc[WidthSym]() : 0)); }
+    export function NativeHeight(doc?: Doc, dataDoc?: Doc, useHeight?: boolean) { return !doc ? 0 : NumCast(doc._nativeHeight, NumCast((dataDoc || doc)[Doc.LayoutFieldKey(doc) + "-nativeHeight"], useHeight ? doc[HeightSym]() : 0)); }
+    export function SetNativeWidth(doc: Doc, width: number | undefined) { doc[Doc.LayoutFieldKey(doc) + "-nativeWidth"] = width; }
+    export function SetNativeHeight(doc: Doc, height: number | undefined) { doc[Doc.LayoutFieldKey(doc) + "-nativeHeight"] = height; }
+
+
     const manager = new DocData();
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
@@ -1086,14 +1096,14 @@ export namespace Doc {
 
     export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
         runInAction(() => {
-            if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
+            if (Doc.NativeWidth(layoutDoc) || Doc.NativeHeight(layoutDoc)) {
                 layoutDoc._viewScale = NumCast(layoutDoc._viewScale, 1) * contentScale;
                 layoutDoc._nativeWidth = undefined;
                 layoutDoc._nativeHeight = undefined;
             }
             else {
                 layoutDoc._autoHeight = false;
-                if (!layoutDoc._nativeWidth) {
+                if (!Doc.NativeWidth(layoutDoc)) {
                     layoutDoc._nativeWidth = NumCast(layoutDoc._width, panelWidth);
                     layoutDoc._nativeHeight = NumCast(layoutDoc._height, panelHeight);
                 }

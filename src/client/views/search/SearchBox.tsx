@@ -354,7 +354,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             doc.x = x;
             doc.y = y;
             const size = 200;
-            const aspect = NumCast(doc._nativeHeight) / NumCast(doc._nativeWidth, 1);
+            const aspect = Doc.NativeHeight(doc) / (Doc.NativeWidth(doc) || 1);
             if (aspect > 1) {
                 doc._height = size;
                 doc._width = size / aspect;

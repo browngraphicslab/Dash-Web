@@ -533,7 +533,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     get document() { return this.props.docView.props.Document; }
     @computed get dataField() {
-        return this.document[this.props.docView.LayoutFieldKey];
+        return this.document[this.props.docView.LayoutFieldKey + (this.props.isOverlay ? "-annotations" : "")];
     }
     @computed get childDocs() {
         return DocListCast(this.dataField);
@@ -761,6 +761,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         } else {
                             history.push(this._url);
                         }
+                        this.props.docView.props.Document._scrollTop = 0;
                         future && (future.length = 0);
                     }
                     this._url = url;
