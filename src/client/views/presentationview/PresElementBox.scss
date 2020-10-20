@@ -25,7 +25,7 @@ $slide-active: #5B9FDD;
     align-items: center;
 
     .presItem-number {
-        margin-top: 7px;
+        margin-top: 3.5px;
         font-size: 12px;
         font-weight: 700;
         text-align: center;
@@ -51,9 +51,9 @@ $slide-active: #5B9FDD;
     .presItem-name {
         min-width: 20px;
         z-index: 300;
-        top: 1px;
+        top: 2px;
         align-self: center;
-        font-size: 12px;
+        font-size: 11px;
         font-family: Roboto;
         font-weight: 500;
         position: relative;

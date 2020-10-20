@@ -397,7 +397,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             pinDoc.presentationTargetDoc = doc;
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
-            pinDoc.title = curPres.title;
+            pinDoc.title = doc.title;
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             if (!DocumentManager.Instance.getDocumentView(curPres)) {

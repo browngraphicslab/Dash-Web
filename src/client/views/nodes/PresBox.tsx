@@ -476,10 +476,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this._pathBoolean = false;
             srcContext.presPathView = false;
         } else {
-            undoBatch(() => {
-                runInAction(() => this._pathBoolean = !this._pathBoolean);
-                srcContext.presPathView = this._pathBoolean;
-            })
+            runInAction(() => this._pathBoolean = !this._pathBoolean);
+            srcContext.presPathView = this._pathBoolean;
         }
     }
 
@@ -562,8 +560,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * When the movement dropdown is changes
      */
     @undoBatch
-    updateMovement = action((movement: any) => {
-        if (this._selectedArray) this._selectedArray.forEach((doc) => {
+    updateMovement = action((movement: any, all?: boolean) => {
+        if (all) {
+            this.childDocs.forEach((doc) => {
+                switch (movement) {
+                    case PresMovement.Zoom: //Pan and zoom
+                        doc.presMovement = PresMovement.Zoom;
+                        break;
+                    case PresMovement.Pan: //Pan
+                        doc.presMovement = PresMovement.Pan;
+                        break;
+                    case PresMovement.Jump: //Jump Cut
+                        doc.presJump = true;
+                        doc.presMovement = PresMovement.Jump;
+                        break;
+                    case PresMovement.None: default:
+                        doc.presMovement = PresMovement.None;
+                        break;
+                }
+            })
+        } else if (this._selectedArray) this._selectedArray.forEach((doc) => {
             switch (movement) {
                 case PresMovement.Zoom: //Pan and zoom
                     doc.presMovement = PresMovement.Zoom;
@@ -1008,6 +1024,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     applyTo = (array: Doc[]) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
+        this.updateMovement(activeItem.presMovement, true);
         array.forEach((doc) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
@@ -1016,9 +1033,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 curDoc.presDuration = activeItem.presDuration;
                 tagDoc.presEffect = targetDoc.presEffect;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;
-                tagDoc.presMovement = targetDoc.presMovement;
-                curDoc.presMovement = activeItem.presMovement;
-                this.updateMovement(activeItem.presMovement, curDoc, tagDoc);
                 curDoc.presHideTillShownButton = activeItem.presHideTillShownButton;
                 curDoc.presHideAfterButton = activeItem.presHideAfterButton;
             }
@@ -1033,12 +1047,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.playAuto ? "#aedef8" : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
                                 <div className="ribbon-toggle" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : "#aedef8" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
                             </div>
-                            {targetDoc.type === DocumentType.VID ? <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presVidFullScreen ? "#aedef8" : "" }} onClick={() => activeItem.presVidFullScreen = !activeItem.presVidFullScreen}>Full screen</div> : (null)}
-                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                            {/* {targetDoc.type === DocumentType.VID ? <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presVidFullScreen ? "#aedef8" : "" }} onClick={() => activeItem.presVidFullScreen = !activeItem.presVidFullScreen}>Full screen</div> : (null)} */}
+                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                 <div className="presBox-subheading">Start time</div>
                                 <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
                                     <input className="presBox-input"
@@ -1047,7 +1061,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })} />
                                 </div>
                             </div> : (null)}
-                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                 <div className="presBox-subheading">End time</div>
                                 <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
                                     <input className="presBox-input"
