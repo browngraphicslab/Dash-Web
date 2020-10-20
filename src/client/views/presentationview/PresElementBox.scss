@@ -174,13 +174,13 @@ $slide-active: #5B9FDD;
     justify-content: center;
     align-content: center;
     width: 100px;
-    height: 40px;
+    height: 30px;
     position: absolute;
     background-color: $dark-blue;
     z-index: 4000;
     border-radius: 10px;
     box-shadow: black 0.4vw 0.4vw 0.8vw;
-
+    line-height: 30px;
 }
 
 .presItem-miniSlide {

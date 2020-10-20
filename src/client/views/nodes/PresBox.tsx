@@ -140,6 +140,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
+        document.addEventListener("keydown", this.keyEvents, true);
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
@@ -561,22 +562,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * When the movement dropdown is changes
      */
     @undoBatch
-    updateMovement = action((movement: any, activeItem: Doc, targetDoc: Doc) => {
-        switch (movement) {
-            case PresMovement.Zoom: //Pan and zoom
-                activeItem.presMovement = PresMovement.Zoom;
-                break;
-            case PresMovement.Pan: //Pan
-                activeItem.presMovement = PresMovement.Pan;
-                break;
-            case PresMovement.Jump: //Jump Cut
-                activeItem.presJump = true;
-                activeItem.presMovement = PresMovement.Jump;
-                break;
-            case PresMovement.None: default:
-                activeItem.presMovement = PresMovement.None;
-                break;
-        }
+    updateMovement = action((movement: any) => {
+        if (this._selectedArray) this._selectedArray.forEach((doc) => {
+            switch (movement) {
+                case PresMovement.Zoom: //Pan and zoom
+                    doc.presMovement = PresMovement.Zoom;
+                    break;
+                case PresMovement.Pan: //Pan
+                    doc.presMovement = PresMovement.Pan;
+                    break;
+                case PresMovement.Jump: //Jump Cut
+                    doc.presJump = true;
+                    doc.presMovement = PresMovement.Jump;
+                    break;
+                case PresMovement.None: default:
+                    doc.presMovement = PresMovement.None;
+                    break;
+            }
+        })
     });
 
     setMovementName = action((movement: any, activeItem: Doc): string => {
@@ -685,7 +688,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     // Key for when the presentaiton is active
     @undoBatch
-    keyEvents = action(async (e: KeyboardEvent) => {
+    keyEvents = action((e: KeyboardEvent) => {
         if (e.target instanceof HTMLInputElement) return;
         let handled = false;
         const anchorNode = document.activeElement as HTMLDivElement;
@@ -713,16 +716,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
             else if (this.layoutDoc.presStatus === "auto") if (this._presTimer) clearTimeout(this._presTimer);
             handled = true;
-        } if (e.keyCode === 8) { // delete selected items
+        } if (e.keyCode === 8) { // delete (backspace) selected items
             if (this.layoutDoc.presStatus === "edit") {
-                await Promise.all<boolean>(this._selectedArray.map((doc, i): boolean => {
-                    const removed: boolean = this.removeDocument(doc);
-                    console.log("Is removed? : " + i + " | " + removed);
-                    return removed;
-                }));
-                action(() => this._selectedArray = []);
-                action(() => this._eleArray = []);
-                action(() => this._dragArray = []);
+
+                let result: any = [];
+                runInAction(() => {
+                    for (let doc of this._selectedArray) {
+                        setTimeout(() => {
+                            const removed: boolean = this.removeDocument(doc);
+                            result.push(removed)
+                            console.log("Is removed? : " + " | " + removed);
+                        }, 100);
+                    }
+                    this._selectedArray = []
+                    this._eleArray = []
+                    this._dragArray = []
+                });
                 handled = true;
             }
         } if (handled) {
@@ -737,8 +746,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } if ((e.keyCode === 39 || e.keyCode === 40) && e.shiftKey) { // left(37) / a(65) / up(38) to go back
             if (this.layoutDoc.presStatus === "edit" && this._selectedArray.length > 0) {
                 const index = this.childDocs.indexOf(this._selectedArray[this._selectedArray.length]);
-                if ((index - 1) > 0) {
-                    this._selectedArray.push(this.childDocs[index - 1]);
+                if ((index + 1) < this._selectedArray.length) {
+                    this._selectedArray.push(this.childDocs[index + 1]);
                 }
             }
             handled = true;
@@ -852,7 +861,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 10000) timeInMS = 10000;
-        if (this.activeItem) this.activeItem.presTransition = timeInMS;
+        if (this._selectedArray) this._selectedArray.forEach((doc) => {
+            doc.presTransition = timeInMS;
+        })
     }
 
     // Converts seconds to ms and updates presDuration
@@ -862,7 +873,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 20000) timeInMS = 20000;
-        if (this.activeItem) this.activeItem.presDuration = timeInMS;
+        if (this._selectedArray) this._selectedArray.forEach((doc) => {
+            doc.presDuration = timeInMS;
+        })
     }
 
 
@@ -883,10 +896,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             {this.setMovementName(activeItem.presMovement, activeItem)}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None, activeItem, targetDoc)}>None</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom, activeItem, targetDoc)}>Pan and Zoom</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan, activeItem, targetDoc)}>Pan</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump, activeItem, targetDoc)}>Jump cut</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None)}>None</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom)}>Pan and Zoom</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan)}>Pan</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump)}>Jump cut</div>
                             </div>
                         </div>
                         <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "inline-flex" : "none" }}>
@@ -972,9 +985,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
-                        <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
+                        {/* <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
                             Apply to selected
-                        </div>
+                        </div> */}
                         <div className="ribbon-final-button-hidden" onClick={() => this.applyTo(this.childDocs)}>
                             Apply to all
                         </div>

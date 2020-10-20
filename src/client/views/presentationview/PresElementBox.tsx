@@ -22,6 +22,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { DocUtils } from "../../documents/Documents";
 import { DateField } from "../../../fields/DateField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -162,7 +163,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
-        const miniView: boolean = PresBox.Instance.toolbarWidth <= 100;
+        const miniView: boolean = this.toolbarWidth <= 100;
         const activeItem = this.rootDoc;
         const dragArray = PresBox.Instance._dragArray;
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
@@ -278,11 +279,19 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    @computed
+    get toolbarWidth(): number {
+        const presBoxDocView = DocumentManager.Instance.getDocumentView(this.presBox)
+        let width: number = NumCast(this.presBox._width);
+        if (presBoxDocView) width = presBoxDocView.props.PanelWidth();
+        return width;
+    }
+
     @computed get mainItem() {
         const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
-        const toolbarWidth: number = PresBox.Instance.toolbarWidth;
-        const showMore: boolean = PresBox.Instance.toolbarWidth >= 300;
-        const miniView: boolean = PresBox.Instance.toolbarWidth <= 100;
+        const toolbarWidth: number = this.toolbarWidth;
+        const showMore: boolean = this.toolbarWidth >= 300;
+        const miniView: boolean = this.toolbarWidth <= 100;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
