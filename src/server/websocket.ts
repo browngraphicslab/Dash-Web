@@ -285,12 +285,14 @@ export namespace WebSocket {
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
+                    console.log("RET BACK");
                     const id = socket.id;
                     socket.id = "";
                     socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
                     socket.id = id;
                 } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
             }, false);
+        dispatchNextOp(diff.id);
     }
 
     function remFromListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
@@ -304,47 +306,75 @@ export namespace WebSocket {
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
+                    console.log("SEND BACK");
                     const id = socket.id;
                     socket.id = "";
                     socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
                     socket.id = id;
                 } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
             }, false);
+        dispatchNextOp(diff.id);
     }
 
+    const pendingOps = new Map<string, { diff: Diff, socket: Socket }[]>();
+
+    function dispatchNextOp(id: string) {
+        const next = pendingOps.get(id)!.shift();
+        if (next) {
+            const { diff, socket } = next;
+            if (diff.diff.$addToSet) {
+                return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+            }
+            if (diff.diff.$remFromSet) {
+                return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+            }
+            return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
+        }
+    }
 
     function UpdateField(socket: Socket, diff: Diff) {
-        if (diff.diff.$addToSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
-        if (diff.diff.$remFromSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (pendingOps.has(diff.id)) {
+            pendingOps.get(diff.id)!.push({ diff, socket });
+            return true;
+        }
+        if (diff.diff.$addToSet) {
+            pendingOps.set(diff.id, [{ diff, socket }]);
+            return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        }
+        if (diff.diff.$remFromSet) {
+            pendingOps.set(diff.id, [{ diff, socket }]);
+            return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        }
+        pendingOps.set(diff.id, [{ diff, socket }]);
         return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
     }
     function SetField(socket: Socket, diff: Diff, curListItems?: Transferable) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;
-        if (!docfield) {
-            return;
-        }
-        const update: any = { id: diff.id };
-        let dynfield = false;
-        for (let key in docfield) {
-            if (!key.startsWith("fields.")) continue;
-            dynfield = true;
-            const val = docfield[key];
-            key = key.substring(7);
-            Object.values(suffixMap).forEach(suf => { update[key + getSuffix(suf)] = { set: null }; });
-            const term = ToSearchTerm(val);
-            if (term !== undefined) {
-                const { suffix, value } = term;
-                update[key + suffix] = { set: value };
-                if (key.endsWith('lastModified')) {
-                    update["lastModified" + suffix] = value;
+        if (docfield) {
+            const update: any = { id: diff.id };
+            let dynfield = false;
+            for (let key in docfield) {
+                if (!key.startsWith("fields.")) continue;
+                dynfield = true;
+                const val = docfield[key];
+                key = key.substring(7);
+                Object.values(suffixMap).forEach(suf => { update[key + getSuffix(suf)] = { set: null }; });
+                const term = ToSearchTerm(val);
+                if (term !== undefined) {
+                    const { suffix, value } = term;
+                    update[key + suffix] = { set: value };
+                    if (key.endsWith('lastModified')) {
+                        update["lastModified" + suffix] = value;
+                    }
                 }
             }
+            if (dynfield) {
+                Search.updateDocument(update);
+            }
         }
-        if (dynfield) {
-            Search.updateDocument(update);
-        }
+        dispatchNextOp(diff.id);
     }
 
     function DeleteField(socket: Socket, id: string) {
