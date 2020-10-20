@@ -127,7 +127,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
     /**
      * Logic for interfacing with Solr. Either starts it, 
-     * stops it, or rebuilds its indicies.
+     * stops it, or rebuilds its indices.
      */
     private executeSolrCommand = async (args: string[]): Promise<void> => {
         const { exec, mainLog } = this.sessionMonitor;
@@ -224,6 +224,6 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
 export namespace DashSessionAgent {
 
-    export const notificationRecipient = "brownptcdash@gmail.com";
+    export const notificationRecipient = "browndashptc@gmail.com";
 
 }

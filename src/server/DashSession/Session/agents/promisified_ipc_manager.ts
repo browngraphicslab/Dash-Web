@@ -162,8 +162,8 @@ export class PromisifiedIPCManager {
             }
             if (!this.isDestroyed && this.target.send) {
                 const metadata = { id, isResponse: true };
-                const response: Response = { results , error };
-                const message = { name, args: response , metadata };
+                const response: Response = { results, error };
+                const message = { name, args: response, metadata };
                 delete this.pendingMessages[id];
                 this.target.send(message);
             }
