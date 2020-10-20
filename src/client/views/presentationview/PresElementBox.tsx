@@ -332,7 +332,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.indexInPres + 1}.`}
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
-                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85, cursor: isSelected ? 'text' : 'grab' }}>
                         {isSelected ? <EditableView
                             ref={this._titleRef}
                             contents={activeItem.title}
@@ -369,7 +369,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
-                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>{activeItem.presPinView ? "View of " + targetDoc.title : targetDoc.title}</div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
                 </div>}
             </div >);

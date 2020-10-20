@@ -38,12 +38,12 @@ export enum PresMovement {
 }
 
 export enum PresEffect {
-    Fade = "fade",
-    Flip = "flip",
-    Rotate = "rotate",
-    Bounce = "bounce",
-    Roll = "roll",
-    None = "none",
+    Fade = "Fade",
+    Flip = "Flip",
+    Rotate = "Rotate",
+    Bounce = "Bounce",
+    Roll = "Roll",
+    None = "None",
 }
 
 enum PresStatus {
@@ -298,7 +298,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
+            const presStatus = this.rootDoc.presStatus;
             openInTab();
+            // this still needs some fixing
+            setTimeout(() => {
+                const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
+                if (presDocView) SelectionManager.SelectDoc(presDocView, false);
+                this.rootDoc.presStatus = presStatus;
+            }, 2000)
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
@@ -481,7 +488,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
-    @undoBatch
     @action toggleExpandMode = () => {
         runInAction(() => this._expandBoolean = !this._expandBoolean);
         this.childDocs.forEach((doc) => {
@@ -846,23 +852,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * It also makes sure that the option swithches from hide-after to this one, since both
      * can't coexist.
      */
-    @action
-    onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const activeItem: Doc = this.activeItem;
-        const targetDoc: Doc = this.targetDoc;
-        activeItem.presFadeButton = !activeItem.presFadeButton;
-        if (!activeItem.presFadeButton) {
-            if (targetDoc) {
-                targetDoc.opacity = 1;
-            }
-        } else {
-            activeItem.presHideAfterButton = false;
-            if (this.rootDoc.presStatus !== "edit" && targetDoc) {
-                targetDoc.opacity = 0.5;
-            }
-        }
-    }
+    // @action
+    // onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
+    //     e.stopPropagation();
+    //     const activeItem: Doc = this.activeItem;
+    //     const targetDoc: Doc = this.targetDoc;
+    //     activeItem.presFadeButton = !activeItem.presFadeButton;
+    //     if (!activeItem.presFadeButton) {
+    //         if (targetDoc) {
+    //             targetDoc.opacity = 1;
+    //         }
+    //     } else {
+    //         activeItem.presHideAfterButton = false;
+    //         if (this.rootDoc.presStatus !== "edit" && targetDoc) {
+    //             targetDoc.opacity = 0.5;
+    //         }
+    //     }
+    // }
 
     // Converts seconds to ms and updates presTransition
     @undoBatch
@@ -888,6 +894,80 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         })
     }
 
+    @undoBatch
+    updateHideBefore = (activeItem: Doc) => {
+        activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton;
+        this._selectedArray.forEach((doc) => {
+            doc.presHideTillShownButton = activeItem.presHideTillShownButton;
+        });
+    }
+
+    @undoBatch
+    updateHideAfter = (activeItem: Doc) => {
+        activeItem.presHideAfterButton = !activeItem.presHideAfterButton;
+        this._selectedArray.forEach((doc) => {
+            doc.presHideAfterButton = activeItem.presHideAfterButton;
+        });
+    }
+
+    @undoBatch
+    updateOpenDoc = (activeItem: Doc) => {
+        activeItem.openDocument = !activeItem.openDocument;
+        this._selectedArray.forEach((doc) => {
+            doc.openDocument = activeItem.openDocument;
+        });
+    }
+
+    @undoBatch
+    updateEffect = (effect: any, all?: boolean) => {
+        if (all) {
+            this.childDocs.forEach((doc) => {
+                const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+                switch (effect) {
+                    case PresEffect.Bounce:
+                        tagDoc.presEffect = PresEffect.Bounce;
+                        break;
+                    case PresEffect.Fade:
+                        tagDoc.presEffect = PresEffect.Fade;
+                        break;
+                    case PresEffect.Flip:
+                        tagDoc.presEffect = PresEffect.Flip;
+                        break;
+                    case PresEffect.Roll:
+                        tagDoc.presEffect = PresEffect.Roll;
+                        break;
+                    case PresEffect.Rotate:
+                        tagDoc.presEffect = PresEffect.Rotate;
+                        break;
+                    case PresEffect.None: default:
+                        tagDoc.presEffect = PresEffect.None;
+                        break;
+                }
+            })
+        } else if (this._selectedArray) this._selectedArray.forEach((doc) => {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            switch (effect) {
+                case PresEffect.Bounce:
+                    tagDoc.presEffect = PresEffect.Bounce;
+                    break;
+                case PresEffect.Fade:
+                    tagDoc.presEffect = PresEffect.Fade;
+                    break;
+                case PresEffect.Flip:
+                    tagDoc.presEffect = PresEffect.Flip;
+                    break;
+                case PresEffect.Roll:
+                    tagDoc.presEffect = PresEffect.Roll;
+                    break;
+                case PresEffect.Rotate:
+                    tagDoc.presEffect = PresEffect.Rotate;
+                    break;
+                case PresEffect.None: default:
+                    tagDoc.presEffect = PresEffect.None;
+                    break;
+            }
+        })
+    }
 
     @computed get transitionDropdown() {
         const activeItem: Doc = this.activeItem;
@@ -938,9 +1018,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Visibility {"&"} Duration
                         <div className="ribbon-doubleButton">
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton)}>Hide before</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton)}>Hide after</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={undoBatch(() => activeItem.openDocument = !activeItem.openDocument)}>Open</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
                         </div>
                         <div className="ribbon-doubleButton" >
                             <div className="presBox-subheading">Slide Duration</div>
@@ -972,12 +1052,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openEffectDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} style={{ display: this.openEffectDropdown ? "grid" : "none" }} onPointerDown={e => e.stopPropagation()}>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'None')}>None</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Fade')}>Fade In</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Flip')}>Flip</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Rotate')}>Rotate</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Bounce')}>Bounce</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Roll')}>Roll</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.None)}>None</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Fade)}>Fade In</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Flip)}>Flip</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Rotate)}>Rotate</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Bounce)}>Bounce</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Roll)}>Roll</div>
                             </div>
                         </div>
                         <div className="ribbon-doubleButton" style={{ display: effect === 'None' ? "none" : "inline-flex" }}>
@@ -1025,13 +1105,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         this.updateMovement(activeItem.presMovement, true);
+        this.updateEffect(targetDoc.presEffect, true);
         array.forEach((doc) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc && targetDoc) {
                 curDoc.presTransition = activeItem.presTransition;
                 curDoc.presDuration = activeItem.presDuration;
-                tagDoc.presEffect = targetDoc.presEffect;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;
                 curDoc.presHideTillShownButton = activeItem.presHideTillShownButton;
                 curDoc.presHideAfterButton = activeItem.presHideAfterButton;
