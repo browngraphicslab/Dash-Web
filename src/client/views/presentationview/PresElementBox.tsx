@@ -161,26 +161,30 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.preventDefault();
     }
 
-    @action
-    stopDrag = (e: PointerEvent) => {
-        this._dragging = false;
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
+        const miniView: boolean = PresBox.Instance.toolbarWidth <= 100;
         const activeItem = this.rootDoc;
+        const dragArray = PresBox.Instance._dragArray;
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         const dragItem: HTMLElement[] = [];
-        PresBox.Instance._dragArray.map(ele => {
-            const doc = ele;
-            doc.className = "presItem-slide";
+        if (dragArray.length === 1) {
+            const doc = dragArray[0];
+            doc.className = miniView ? "presItem-miniSlide" : "presItem-slide";
             dragItem.push(doc);
-        });
-        const dropEvent = () => runInAction(() => this._dragging = false);
+        } else if (dragArray.length >= 1) {
+            const doc = document.createElement('div');
+            doc.className = "presItem-multiDrag";
+            doc.innerText = "Move " + dragArray.length + " slides";
+            doc.style.position = 'absolute';
+            doc.style.top = (e.clientY) + 'px';
+            doc.style.left = (e.clientX - 50) + 'px';
+            dragItem.push(doc);
+        }
+
+        // const dropEvent = () => runInAction(() => this._dragging = false);
         if (activeItem) {
-            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined, dropEvent);
-            runInAction(() => this._dragging = true);
+            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined);
+            // runInAction(() => this._dragging = true);
             return true;
         }
         return false;
@@ -233,15 +237,18 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @action
     onSetValue = (value: string) => {
-        this.rootDoc.title = value;
+        const length: number = value.length;
+        const spaces: string = new Array(value.length + 1).join(" ");
+        if (length === 0 || value === spaces) this.rootDoc.title = "-untitled-";
+        else this.rootDoc.title = value;
         return true;
     }
 
     @action
     clearArrays = () => {
         PresBox.Instance._eleArray = [];
-        PresBox.Instance._eleArray.push(this._itemRef.current!);
         PresBox.Instance._dragArray = [];
+        PresBox.Instance._eleArray.push(this._itemRef.current!);
         PresBox.Instance._dragArray.push(this._dragRef.current!);
     }
 
@@ -275,7 +282,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
         const toolbarWidth: number = PresBox.Instance.toolbarWidth;
         const showMore: boolean = PresBox.Instance.toolbarWidth >= 300;
-        const targetDoc: Doc = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
+        const miniView: boolean = PresBox.Instance.toolbarWidth <= 100;
+        const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
             <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
@@ -306,21 +314,26 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerDown={this.headerDown}
                 onPointerUp={this.headerUp}
             >
-                <div className="presItem-number">
-                    {`${this.indexInPres + 1}.`}
-                </div>
-                <div ref={this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
+                {miniView ?
+                    <div className={`presItem-miniSlide ${isSelected ? "active" : ""}`} ref={miniView ? this._dragRef : null}>
+                        {`${this.indexInPres + 1}.`}
+                    </div>
+                    :
+                    <div className="presItem-number">
+                        {`${this.indexInPres + 1}.`}
+                    </div>}
+                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>
                         {isSelected ? <EditableView
                             ref={this._titleRef}
-                            contents={this.rootDoc.title}
-                            GetValue={() => StrCast(this.rootDoc.title)}
-                            SetValue={action((value: string) => {
+                            contents={activeItem.title}
+                            GetValue={() => StrCast(activeItem.title)}
+                            SetValue={undoBatch(action((value: string) => {
                                 this.onSetValue(value);
                                 return true;
-                            })}
+                            }))}
                         /> :
-                            this.rootDoc.title
+                            activeItem.title
                         }
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.transition}</div></Tooltip>
@@ -331,6 +344,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                                 onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
+                        {/* <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
+                            <div className="slideButton"
+                                onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
+                                style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>
+                                <FontAwesomeIcon icon={""} onPointerDown={e => e.stopPropagation()} />
+                            </div>
+                        </Tooltip> */}
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
@@ -340,8 +360,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>{activeItem.presPinView ? "View of " + targetDoc.title : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
-                </div>
+                </div>}
             </div >);
     }
 
