@@ -330,6 +330,7 @@ export namespace WebSocket {
             }
             return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
         }
+        if (!pendingOps.get(id)!.length) pendingOps.delete(id);
     }
 
     function UpdateField(socket: Socket, diff: Diff) {
