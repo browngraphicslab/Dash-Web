@@ -718,19 +718,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             handled = true;
         } if (e.keyCode === 8) { // delete (backspace) selected items
             if (this.layoutDoc.presStatus === "edit") {
-
-                let result: any = [];
                 runInAction(() => {
-                    for (let doc of this._selectedArray) {
-                        setTimeout(() => {
-                            const removed: boolean = this.removeDocument(doc);
-                            result.push(removed)
-                            console.log("Is removed? : " + " | " + removed);
-                        }, 100);
+                    for (const doc of this._selectedArray) {
+                        this.removeDocument(doc);
                     }
-                    this._selectedArray = []
-                    this._eleArray = []
-                    this._dragArray = []
+                    this._selectedArray = [];
+                    this._eleArray = [];
+                    this._dragArray = [];
                 });
                 handled = true;
             }
