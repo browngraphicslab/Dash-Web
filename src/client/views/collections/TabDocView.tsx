@@ -144,7 +144,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             if (!curPresDocView) {
                 CollectionDockingView.AddSplit(curPres, "right");
             }
-            DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+            DocumentManager.Instance.jumpToDocument(doc, false, undefined);
         }
     }
 

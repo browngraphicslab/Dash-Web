@@ -54,7 +54,7 @@ export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
                     <FontAwesomeIcon icon="font" size="lg" />
                 </button>
             </Tooltip>,
-            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin with selected view</div></>} placement="bottom">
+            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin the selected region to presentation</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
                     onPointerDown={this.pinWithView}>

@@ -344,7 +344,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get viewModes() {
         const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
             [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
-        return <div className="collectionViewBaseChrome-viewModes" >
+        const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
+        return isPres ? (null) : (<div className="collectionViewBaseChrome-viewModes" >
             <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
                 <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
                     <button className={"antimodeMenu-button"}>
@@ -367,7 +368,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     </select>
                 </div>
             </Tooltip>
-        </div>;
+        </div>);
     }
 
     @computed get selectedDocumentView() {
@@ -425,7 +426,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
         {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
-        return (targetDoc && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        return (targetDoc && targetDoc.type !== DocumentType.PRES && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
                 onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
@@ -472,7 +473,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed
     get aliasButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
+        return !targetDoc || targetDoc.type === DocumentType.PRES ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
             <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "drag" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
