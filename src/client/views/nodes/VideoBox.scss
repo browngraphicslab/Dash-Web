@@ -1,5 +1,8 @@
 .videoBox {
     transform-origin: top left;
+    width: 100%;
+    height: 100%;
+    position: relative;
     .videoBox-viewer {
         opacity: 0.99;  // hack!  overcomes some kind of Chrome weirdness where buttons (e.g., snapshot) disappear at some point as the video is resized larger
     }
