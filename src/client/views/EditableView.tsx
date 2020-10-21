@@ -87,6 +87,10 @@ export class EditableView extends React.Component<EditableProps> {
             DragManager.MakeDropTarget(this._ref.current, this.props.onDrop.bind(this));
         }
     }
+    @action
+    componentWillUnmount() {
+        this._inputref.current?.value && this.finalizeEdit(this._inputref.current.value, false, true, false)
+    }
 
     _didShow = false;
 
@@ -168,6 +172,7 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     _ref = React.createRef<HTMLDivElement>();
+    _inputref = React.createRef<HTMLInputElement>();
     renderEditor() {
         return this.props.autosuggestProps
             ? <Autosuggest
@@ -185,7 +190,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onChange: this.props.autosuggestProps.onChange
                 }}
             />
-            : <input className="editableView-input"
+            : <input className="editableView-input" ref={this._inputref}
                 defaultValue={this.props.GetValue()}
                 onKeyDown={this.onKeyDown}
                 autoFocus={true}
@@ -213,7 +218,7 @@ export class EditableView extends React.Component<EditableProps> {
             <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
                 style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
-                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{
+                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >{
                     this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
                 </span>
             </div>;
