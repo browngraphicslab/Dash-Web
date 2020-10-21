@@ -110,7 +110,7 @@ export class DocumentManager {
 
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const views = this.getDocumentViews(toFind).filter(view => view.props.Document !== originatingDoc);
-        return views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
+        return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
