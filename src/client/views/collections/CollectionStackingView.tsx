@@ -294,6 +294,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 const docs = this.childDocList;
                 DragManager.docsBeingDragged = [];
                 if (docs && newDocs.length) {
+                    console.log(newDocs)
                     const insertInd = dropInd === -1 ? docs.length : dropInd + dropAfter;
                     const offset = newDocs.reduce((off, ndoc) => this.filteredChildren.find((fdoc, i) => ndoc === fdoc && i <= insertInd) ? off + 1 : off, 0);
                     newDocs.filter(ndoc => docs.indexOf(ndoc) !== -1).forEach(ndoc => docs.splice(docs.indexOf(ndoc), 1));

@@ -516,7 +516,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     /**
      * The method called to open the presentation as a minimized view
      */
-    @undoBatch
     @action
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
@@ -552,7 +551,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * Called when the user changes the view type
      * Either 'List' (stacking) or 'Slides' (carousel)
      */
-    @undoBatch
+    // @undoBatch
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
         const viewType = e.target.selectedOptions[0].value as CollectionViewType;
@@ -871,7 +870,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // }
 
     // Converts seconds to ms and updates presTransition
-    @undoBatch
     setTransitionTime = (number: String, change?: number) => {
         let timeInMS = Number(number) * 1000;
         if (change) timeInMS += change;
@@ -883,7 +881,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     // Converts seconds to ms and updates presDuration
-    @undoBatch
     setDurationTime = (number: String, change?: number) => {
         let timeInMS = Number(number) * 1000;
         if (change) timeInMS += change;
@@ -1000,10 +997,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     onChange={action((e) => this.setTransitionTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(transitionSpeed), 1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setTransitionTime(String(transitionSpeed), 1000))}>
                                     <FontAwesomeIcon icon={"caret-up"} />
                                 </div>
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(transitionSpeed), -1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setTransitionTime(String(transitionSpeed), -1000))}>
                                     <FontAwesomeIcon icon={"caret-down"} />
                                 </div>
                             </div>
@@ -1031,10 +1028,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     onChange={action((e) => this.setDurationTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), 1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), 1000))}>
                                     <FontAwesomeIcon icon={"caret-up"} />
                                 </div>
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), -1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), -1000))}>
                                     <FontAwesomeIcon icon={"caret-down"} />
                                 </div>
                             </div>
