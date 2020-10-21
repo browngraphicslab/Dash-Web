@@ -308,9 +308,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        window.addEventListener("mouseup", this.onPointerUp);
-        if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
-            this._flush = UndoManager.StartBatch("golden layout edit");
+        let hitFlyout = false;
+        for (let par = e.target as any; !hitFlyout && par; par = par.parentElement) {
+            hitFlyout = (par.className === "dockingViewButtonSelector");
+        }
+        if (!hitFlyout) {
+            window.addEventListener("mouseup", this.onPointerUp);
+            if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
+                this._flush = UndoManager.StartBatch("golden layout edit");
+            }
         }
         if (!e.nativeEvent.cancelBubble && !InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE) &&
             Doc.GetSelectedTool() !== InkTool.Highlighter && Doc.GetSelectedTool() !== InkTool.Pen) {
