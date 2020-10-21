@@ -707,6 +707,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.selectPres();
     }
 
+    //regular click
+    @action
+    regularSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement, focus: boolean) => {
+        this._selectedArray.splice(0, this._selectedArray.length, doc);
+        this._eleArray.splice(0, this._eleArray.length, ref);
+        this._dragArray.splice(0, this._dragArray.length, drag);
+        focus && this.selectElement(doc);
+        this.selectPres();
+    }
+
+    modifierSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement, focus: boolean, cmdClick: boolean, shiftClick: boolean) => {
+        if (cmdClick) this.multiSelect(doc, ref, drag);
+        else if (shiftClick) this.shiftSelect(doc, ref, drag);
+        else this.regularSelect(doc, ref, drag, focus);
+    }
+
     // Key for when the presentaiton is active
     @undoBatch
     keyEvents = action((e: KeyboardEvent) => {
