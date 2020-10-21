@@ -43,8 +43,8 @@ type InternalMessageHandler = (message: InternalMessage) => (any | Promise<any>)
  * Allows for the transmission of the error's key features over IPC.
  */
 export interface ErrorLike {
-    name?: string;
-    message?: string;
+    name: string;
+    message: string;
     stack?: string;
 }
 

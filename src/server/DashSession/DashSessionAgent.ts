@@ -10,9 +10,9 @@ import * as Archiver from "archiver";
 import { resolve } from "path";
 import rimraf = require("rimraf");
 import { AppliedSessionAgent, ExitHandler } from "./Session/agents/applied_session_agent";
-import { ServerWorker, DeconstructedError } from "./Session/agents/server_worker";
+import { ServerWorker } from "./Session/agents/server_worker";
 import { Monitor } from "./Session/agents/monitor";
-import { MessageHandler } from "./Session/agents/promisified_ipc_manager";
+import { MessageHandler, ErrorLike } from "./Session/agents/promisified_ipc_manager";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -70,7 +70,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with information regarding a crash event.
      */
     private _crashInstructions: string | undefined;
-    private generateCrashInstructions({ name, message, stack }: DeconstructedError): string {
+    private generateCrashInstructions({ name, message, stack }: ErrorLike): string {
         if (!this._crashInstructions) {
             this._crashInstructions = readFileSync(resolve(__dirname, "./templates/crash_instructions.txt"), { encoding: "utf8" });
         }
@@ -109,7 +109,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     /**
      * This sends an email with the generated crash report.
      */
-    private dispatchCrashReport: MessageHandler<{ error: DeconstructedError }> = async ({ error: crashCause }) => {
+    private dispatchCrashReport: MessageHandler<{ error: ErrorLike }> = async ({ error: crashCause }) => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         const error = await Email.dispatch({
