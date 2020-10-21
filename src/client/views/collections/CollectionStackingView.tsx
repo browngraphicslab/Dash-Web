@@ -277,32 +277,27 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const where = [de.x, de.y];
-        let targInd = -1;
-        let plusOne = 0;
+        let dropInd = -1;
+        let dropAfter = 0;
         if (de.complete.docDragData) {
             this._docXfs.map((cd, i) => {
                 const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
                 const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && (i === this._docXfs.length - 1 || where[1] < pos1[1])) {
-                    targInd = i;
+                    dropInd = i;
                     const axis = this.Document._viewType === CollectionViewType.Masonry ? 0 : 1;
-                    plusOne = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
+                    dropAfter = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
             if (super.onInternalDrop(e, de)) {
                 const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 DragManager.docsBeingDragged = [];
-                if (docs) {
-                    newDocs.map((doc, i) => {
-                        targInd = targInd === -1 ? docs.length : targInd;
-                        const srcInd = docs.indexOf(doc);
-                        // if (i !== 0) console.log(docs.indexOf(newDocs[0])); //glr: for testing
-                        if (targInd !== -1) targInd = i === 0 ? docs.indexOf(this.filteredChildren[targInd]) : docs.indexOf(newDocs[i - 1]) + 1;
-                        // console.log("title: " + doc.title, "i: " + i, "targInd: " + targInd, "length: " + newDocs.length, "srcInd: " + srcInd); //glr: for testing
-                        docs.splice(srcInd, 1);
-                        docs.splice((targInd > srcInd ? targInd - 1 : targInd) + (i === 0 ? plusOne : 0), 0, doc);
-                    });
+                if (docs && newDocs.length) {
+                    const insertInd = dropInd === -1 ? docs.length : dropInd + dropAfter;
+                    const offset = newDocs.reduce((off, ndoc) => this.filteredChildren.find((fdoc, i) => ndoc === fdoc && i <= insertInd) ? off + 1 : off, 0);
+                    newDocs.filter(ndoc => docs.indexOf(ndoc) !== -1).forEach(ndoc => docs.splice(docs.indexOf(ndoc), 1));
+                    docs.splice(insertInd - offset, 0, ...newDocs);
                 }
             }
         }
