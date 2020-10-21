@@ -520,11 +520,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
-        if (this.layoutDoc.inOverlay) {
+        if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             this.layoutDoc.presStatus = PresStatus.Edit;
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
-            this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
             this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
@@ -716,7 +715,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const anchorNode = document.activeElement as HTMLDivElement;
         if (anchorNode && anchorNode.className?.includes("lm_title")) return;
         if (e.keyCode === 27) { // Escape key
-            if (this.layoutDoc.inOverlay) { this.updateMinimize(); }
+            if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) { this.updateMinimize(); }
             else if (this.layoutDoc.presStatus === "edit") { this._selectedArray = []; this._eleArray = []; this._dragArray = []; }
             else this.layoutDoc.presStatus = "edit";
             if (this._presTimer) clearTimeout(this._presTimer);
@@ -1360,10 +1359,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presentDropdown() {
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                <div className="dropdown-play-button" onClick={(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={(undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); })))}>
                     Minimize
                 </div>
-                <div className="dropdown-play-button" onClick={(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={(undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); })))}>
                     Sidebar view
                 </div>
             </div>
@@ -1949,8 +1948,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 {this.playButtonFrames}
             </div>
             <div className="presPanel-divider"></div>
-            {this.props.PanelWidth() > 250 ? <div className="presPanel-button-text" onClick={() => { this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }}>EXIT</div>
-                : <div className="presPanel-button" onClick={() => this.layoutDoc.presStatus = "edit"}>
+            {this.props.PanelWidth() > 250 ? <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }))}>EXIT</div>
+                : <div className="presPanel-button" onClick={undoBatch(action(() => this.layoutDoc.presStatus = "edit"))}>
                     <FontAwesomeIcon icon={"times"} />
                 </div>}
         </div>);
@@ -1968,7 +1967,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // needed to ensure that the childDocs are loaded for looking up fields
         this.childDocs.slice();
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
-        return this.layoutDoc.inOverlay ?
+        return CurrentUserUtils.OverlayDocs.includes(this.rootDoc) ?
             <div className="miniPres">
                 <div className="presPanelOverlay" style={{ display: "inline-flex", height: 35, background: '#323232', top: 0, zIndex: 3000000 }}>
                     <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
@@ -1982,11 +1981,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         {this.playButtonFrames}
                     </div>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button-text" onClick={() => { this.updateMinimize(); this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }}>EXIT</div>
+                    <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.updateMinimize(); this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }))}>EXIT</div>
                 </div>
             </div>
             :
-            <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
+            <div className="presBox-cont" style={{ minWidth: CurrentUserUtils.OverlayDocs.includes(this.layoutDoc) ? 240 : undefined }} >
                 {this.topPanel}
                 {this.toolbar}
                 {this.newDocumentToolbarDropdown}

@@ -46,6 +46,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -803,7 +804,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay || this.props.Document.treeViewOutlineMode) return;
+        if (this.layoutDoc._lockedTransform || CurrentUserUtils.OverlayDocs.includes(this.props.Document) || this.props.Document.treeViewOutlineMode) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -839,7 +840,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 else if (ranges.yrange.max <= (panY - panelDim[1] / 2)) panY = ranges.yrange.min - panelDim[1] / 2;
             }
         }
-        if (!this.layoutDoc._lockedTransform || this.Document.inOverlay) {
+        if (!this.layoutDoc._lockedTransform || CurrentUserUtils.OverlayDocs.includes(this.Document)) {
             this.Document._viewTransition = panType;
             const scale = this.getLocalTransform().inverse().Scale;
             const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
