@@ -14,6 +14,7 @@ import { Scripting } from "../util/Scripting";
 import { ScriptingRepl } from './ScriptingRepl';
 import { DragManager } from "../util/DragManager";
 import { List } from "../../fields/List";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 
 export type OverlayDisposer = () => void;
 
@@ -146,12 +147,7 @@ export class OverlayView extends React.Component {
 
 
     @computed get overlayDocs() {
-        const userDocOverlays = Doc.UserDoc().myOverlayDocs;
-        if (!userDocOverlays) {
-            return null;
-        }
-        return userDocOverlays instanceof Doc && DocListCast(userDocOverlays.data).map(d => {
-            setTimeout(() => d.inOverlay = true, 0);
+        return CurrentUserUtils.OverlayDocs?.map(d => {
             let offsetx = 0, offsety = 0;
             const dref = React.createRef<HTMLDivElement>();
             const onPointerMove = action((e: PointerEvent, down: number[]) => {
@@ -161,7 +157,6 @@ export class OverlayView extends React.Component {
                 }
                 if (e.metaKey) {
                     const dragData = new DragManager.DocumentDragData([d]);
-                    d.removeDropProperties = new List<string>(["inOverlay"]);
                     dragData.offset = [-offsetx, -offsety];
                     dragData.dropAction = "move";
                     dragData.removeDocument = (doc: Doc | Doc[]) => {

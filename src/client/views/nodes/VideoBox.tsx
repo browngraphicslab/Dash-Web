@@ -358,12 +358,20 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{
+                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
+                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+            }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    forceScaling={true}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
                     annotationsKey={this.annotationKey}

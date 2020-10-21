@@ -1190,6 +1190,7 @@ export class CurrentUserUtils {
     public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
     public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
     public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
+    public static get OverlayDocs() { return DocListCast((Doc.UserDoc().myOverlayDocs as Doc)?.data); }
 }
 
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {

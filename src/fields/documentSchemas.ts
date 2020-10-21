@@ -19,7 +19,6 @@ export const documentSchema = createSchema({
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
     audioStart: "number",       // the time frame where the audio should begin playing
     audioEnd: "number",         // the time frame where the audio should stop playing

@@ -82,10 +82,23 @@ export class EditableView extends React.Component<EditableProps> {
     // }
 
     @action
+    componentDidUpdate() {
+        if (this._editing && this.props.editing === false) {
+            this._inputref.current?.value && this.finalizeEdit(this._inputref.current.value, false, true, false);
+        } else if (this.props.editing !== undefined) {
+            this._editing = this.props.editing;
+        }
+    }
+
+    @action
     componentDidMount() {
         if (this._ref.current && this.props.onDrop) {
             DragManager.MakeDropTarget(this._ref.current, this.props.onDrop.bind(this));
         }
+    }
+    @action
+    componentWillUnmount() {
+        this._inputref.current?.value && this.finalizeEdit(this._inputref.current.value, false, true, false);
     }
 
     _didShow = false;
@@ -131,14 +144,16 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onClick = (e: React.MouseEvent) => {
-        e.nativeEvent.stopPropagation();
-        if (this._ref.current && this.props.showMenuOnLoad) {
-            this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
-        } else if (!this.props.onClick?.(e)) {
-            this._editing = true;
-            this.props.isEditingCallback?.(true);
+        if (this.props.editing !== false) {
+            e.nativeEvent.stopPropagation();
+            if (this._ref.current && this.props.showMenuOnLoad) {
+                this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
+            } else if (!this.props.onClick?.(e)) {
+                this._editing = true;
+                this.props.isEditingCallback?.(true);
+            }
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     @action
@@ -168,6 +183,7 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     _ref = React.createRef<HTMLDivElement>();
+    _inputref = React.createRef<HTMLInputElement>();
     renderEditor() {
         return this.props.autosuggestProps
             ? <Autosuggest
@@ -185,7 +201,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onChange: this.props.autosuggestProps.onChange
                 }}
             />
-            : <input className="editableView-input"
+            : <input className="editableView-input" ref={this._inputref}
                 defaultValue={this.props.GetValue()}
                 onKeyDown={this.onKeyDown}
                 autoFocus={true}
@@ -213,7 +229,7 @@ export class EditableView extends React.Component<EditableProps> {
             <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
                 style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
-                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{
+                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >{
                     this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
                 </span>
             </div>;

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
@@ -20,8 +20,6 @@ import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
-import { DocUtils } from "../../documents/Documents";
-import { DateField } from "../../../fields/DateField";
 import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
@@ -146,13 +144,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
-                PresBox.Instance._selectedArray = [];
-                PresBox.Instance._selectedArray.push(this.rootDoc);
-                PresBox.Instance._eleArray = [];
-                PresBox.Instance._eleArray.push(this._itemRef.current!);
-                PresBox.Instance._dragArray = [];
-                PresBox.Instance._dragArray.push(this._dragRef.current!);
-                setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+                setupMoveUpEvents(this, e, ((e: PointerEvent) => {
+                    PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, false);
+                    return this.startDrag(e);
+                }), emptyFunction, emptyFunction);
             }
         }
     }
@@ -162,11 +157,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.preventDefault();
     }
 
-    startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
+    startDrag = (e: PointerEvent) => {
         const miniView: boolean = this.toolbarWidth <= 100;
         const activeItem = this.rootDoc;
         const dragArray = PresBox.Instance._dragArray;
-        const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
+        const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray());
         const dragItem: HTMLElement[] = [];
         if (dragArray.length === 1) {
             const doc = dragArray[0];
@@ -236,21 +231,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
     });
 
+    @undoBatch
     @action
     onSetValue = (value: string) => {
-        const length: number = value.length;
-        const spaces: string = new Array(value.length + 1).join(" ");
-        if (length === 0 || value === spaces) this.rootDoc.title = "-untitled-";
-        else this.rootDoc.title = value;
+        this.rootDoc.title = !value.trim().length ? "-untitled-" : value;
         return true;
-    }
-
-    @action
-    clearArrays = () => {
-        PresBox.Instance._eleArray = [];
-        PresBox.Instance._dragArray = [];
-        PresBox.Instance._eleArray.push(this._itemRef.current!);
-        PresBox.Instance._dragArray.push(this._dragRef.current!);
     }
 
     /**
@@ -301,23 +286,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
-                    // Command/ control click
-                    if (e.ctrlKey || e.metaKey) {
-                        PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
-                        // Shift click
-                    } else if (e.shiftKey) {
-                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
-                        // Regular click
-                    } else {
-                        this.props.focus(this.rootDoc);
-                        this.clearArrays();
-                    }
+                    PresBox.Instance.modifierSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, !e.shiftKey && !e.ctrlKey && !e.metaKey, e.ctrlKey || e.metaKey, e.shiftKey);
                 }}
-                onDoubleClick={e => {
+                onDoubleClick={action(e => {
                     this.toggleProperties();
-                    this.props.focus(this.rootDoc);
-                    this.clearArrays();
-                }}
+                    PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, true);
+                })}
                 onPointerOver={this.onPointerOver}
                 onPointerLeave={this.onPointerLeave}
                 onPointerDown={this.headerDown}
@@ -333,17 +307,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85, cursor: isSelected ? 'text' : 'grab' }}>
-                        {isSelected ? <EditableView
+                        <EditableView
                             ref={this._titleRef}
+                            editing={!isSelected ? false : undefined}
                             contents={activeItem.title}
                             GetValue={() => StrCast(activeItem.title)}
-                            SetValue={undoBatch(action((value: string) => {
-                                this.onSetValue(value);
-                                return true;
-                            }))}
-                        /> :
-                            activeItem.title
-                        }
+                            SetValue={this.onSetValue}
+                        />
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.duration}</div></Tooltip>
