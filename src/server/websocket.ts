@@ -291,8 +291,8 @@ export namespace WebSocket {
                     socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
                     socket.id = id;
                 } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                dispatchNextOp(diff.id);
             }, false);
-        dispatchNextOp(diff.id);
     }
 
     function remFromListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
@@ -312,8 +312,8 @@ export namespace WebSocket {
                     socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
                     socket.id = id;
                 } else socket.broadcast.emit(MessageStore.UpdateField.Message, diff);
+                dispatchNextOp(diff.id);
             }, false);
-        dispatchNextOp(diff.id);
     }
 
     const pendingOps = new Map<string, { diff: Diff, socket: Socket }[]>();
@@ -338,15 +338,13 @@ export namespace WebSocket {
             pendingOps.get(diff.id)!.push({ diff, socket });
             return true;
         }
+        pendingOps.set(diff.id, [{ diff, socket }]);
         if (diff.diff.$addToSet) {
-            pendingOps.set(diff.id, [{ diff, socket }]);
             return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         }
         if (diff.diff.$remFromSet) {
-            pendingOps.set(diff.id, [{ diff, socket }]);
             return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
         }
-        pendingOps.set(diff.id, [{ diff, socket }]);
         return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
     }
     function SetField(socket: Socket, diff: Diff, curListItems?: Transferable) {

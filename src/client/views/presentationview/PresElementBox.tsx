@@ -175,7 +175,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         } else if (dragArray.length >= 1) {
             const doc = document.createElement('div');
             doc.className = "presItem-multiDrag";
-            doc.innerText = "Move " + dragArray.length + " slides";
+            doc.innerText = "Move " + PresBox.Instance._selectedArray.length + " slides";
             doc.style.position = 'absolute';
             doc.style.top = (e.clientY) + 'px';
             doc.style.left = (e.clientX - 50) + 'px';
