@@ -260,7 +260,7 @@ export class FormattedTextBoxComment {
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
                             if (anchor !== target && anchor && target) {
-                                target._scrollPY = NumCast(anchor?.y);
+                                target._scrollPreviewY = NumCast(anchor?.y);
                             }
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
@@ -320,8 +320,8 @@ export class FormattedTextBoxComment {
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={target._nativeWidth ? (() => NumCast(target._nativeWidth)) : undefined}
-                                            NativeHeight={target._natvieHeight ? (() => NumCast(target._nativeHeight)) : undefined}
+                                            NativeWidth={Doc.NativeWidth(target) ? (() => Doc.NativeWidth(target)) : undefined}
+                                            NativeHeight={Doc.NativeHeight(target) ? (() => Doc.NativeHeight(target)) : undefined}
                                         />
                                     </div>
                                 </div>;

@@ -210,9 +210,12 @@ export namespace WebSocket {
         }
     }
 
+    function GetRefFieldLocal([id, callback]: [string, (result?: Transferable) => void]) {
+        return Database.Instance.getDocument(id, callback);
+    }
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
         process.stdout.write(`.`);
-        Database.Instance.getDocument(id, callback);
+        GetRefFieldLocal([id, callback]);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
@@ -278,8 +281,8 @@ export namespace WebSocket {
         diff.diff.$set = diff.diff.$addToSet; delete diff.diff.$addToSet;// convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const newListItems = diff.diff.$set[updatefield].fields;
-        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
-        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields.filter((item: any) => item !== undefined) || [];
+        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => newItem && !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
         const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
         delete diff.diff.length;
         Database.Instance.update(diff.id, diff.diff,
@@ -314,8 +317,11 @@ export namespace WebSocket {
 
 
     function UpdateField(socket: Socket, diff: Diff) {
-        if (diff.diff.$addToSet) return GetRefField([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
-        if (diff.diff.$remFromSet) return GetRefField([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$addToSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => addToListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        if (diff.diff.$remFromSet) return GetRefFieldLocal([diff.id, (result?: Transferable) => remFromListField(socket, diff, result)]); // would prefer to have Mongo handle list additions direclty, but for now handle it on our own
+        return GetRefFieldLocal([diff.id, (result?: Transferable) => SetField(socket, diff, result)]);
+    }
+    function SetField(socket: Socket, diff: Diff, curListItems?: Transferable) {
         Database.Instance.update(diff.id, diff.diff,
             () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;

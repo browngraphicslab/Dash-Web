@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
@@ -8,13 +8,11 @@ import { createSchema, makeInterface, listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, BoolCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero, numberRange, setupMoveUpEvents } from "../../../Utils";
 import { Transform } from "../../util/Transform";
-import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { PresBox, PresMovement } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
@@ -22,6 +20,8 @@ import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
+import { DocUtils } from "../../documents/Documents";
+import { DateField } from "../../../fields/DateField";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -45,6 +45,8 @@ const PresDocument = makeInterface(presSchema, documentSchema);
 export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
     _heightDisposer: IReactionDisposer | undefined;
+
+    @observable _dragging = false;
     // these fields are conditionally computed fields on the layout document that take this document as a parameter
     @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
     @computed get collapsedHeight() { return Number(this.lookupField("presCollapsedHeight")); } // the collapsed height changes depending on the state of the presBox.  We could store this on the presentation element template if it's used by only one presentation - but if it's shared by multiple, then this value must be looked up
@@ -159,9 +161,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.preventDefault();
     }
 
+    @action
     stopDrag = (e: PointerEvent) => {
-        const activeItem = this.rootDoc;
-        activeItem.dragging = false;
+        this._dragging = false;
         e.stopPropagation();
         e.preventDefault();
     }
@@ -172,12 +174,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const dragItem: HTMLElement[] = [];
         PresBox.Instance._dragArray.map(ele => {
             const doc = ele;
-            doc.className = "presItem-slide"
+            doc.className = "presItem-slide";
             dragItem.push(doc);
         });
+        const dropEvent = () => runInAction(() => this._dragging = false);
         if (activeItem) {
-            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY);
-            activeItem.dragging = true;
+            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined, dropEvent);
+            runInAction(() => this._dragging = true);
             return true;
         }
         return false;
@@ -190,11 +193,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        if (slide && DragManager.docsBeingDragged.length > 1) {
+        if (slide && DragManager.docsBeingDragged.length > 0) {
             const rect = slide.getBoundingClientRect();
-            let y = e.clientY - rect.top;  //y position within the element.
-            let height = slide.clientHeight;
-            let halfLine = height / 2;
+            const y = e.clientY - rect.top;  //y position within the element.
+            const height = slide.clientHeight;
+            const halfLine = height / 2;
             if (y <= halfLine) {
                 slide.style.borderTop = "solid 2px #5B9FDD";
                 slide.style.borderBottom = "0px";
@@ -242,13 +245,22 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         PresBox.Instance._dragArray.push(this._dragRef.current!);
     }
 
+    /**
+     * Method called for updating the view of the currently selected document
+     * 
+     * @param targetDoc 
+     * @param activeItem 
+     */
     @undoBatch
     @action
-    pinWithView = (targetDoc: Doc, activeItem: Doc) => {
+    updateView = (targetDoc: Doc, activeItem: Doc) => {
         console.log(targetDoc.type);
         if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
             const scroll = targetDoc._scrollTop;
             activeItem.presPinViewScroll = scroll;
+        } else if (targetDoc.type === DocumentType.COMPARISON) {
+            const clipWidth = targetDoc._clipWidth;
+            activeItem.presPinClipWidth = clipWidth;
         } else {
             const x = targetDoc._panX;
             const y = targetDoc._panY;
@@ -261,7 +273,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @computed get mainItem() {
         const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
-        const isDragging: boolean = BoolCast(this.rootDoc.dragging);
         const toolbarWidth: number = PresBox.Instance.toolbarWidth;
         const showMore: boolean = PresBox.Instance.toolbarWidth >= 300;
         const targetDoc: Doc = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
@@ -269,7 +280,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         return (
             <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
-                style={{ backgroundColor: isSelected ? "#AEDDF8" : "rgba(0,0,0,0)", opacity: isDragging ? 0.3 : 1 }}
+                style={{ backgroundColor: isSelected ? "#AEDDF8" : "rgba(0,0,0,0)", opacity: this._dragging ? 0.3 : 1 }}
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -317,7 +328,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className={"presItem-slideButtons"}>
                         <Tooltip title={<><div className="dash-tooltip">{"Update view"}</div></>}>
                             <div className="slideButton"
-                                onClick={() => this.pinWithView(targetDoc, activeItem)}
+                                onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>

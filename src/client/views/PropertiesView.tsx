@@ -91,9 +91,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     docWidth = () => {
         if (this.selectedDoc) {
             const layoutDoc = this.selectedDoc;
-            const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-            if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.width - 20));
-            return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.width - 20) : this.props.width - 20;
+            const aspect = Doc.NativeAspect(layoutDoc, undefined, !layoutDoc._fitWidth);
+            if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.width - 20));
+            return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.width - 20) : this.props.width - 20;
         } else {
             return 0;
         }
@@ -103,17 +103,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     docHeight = () => {
         if (this.selectedDoc && this.dataDoc) {
             const layoutDoc = this.selectedDoc;
-            return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
-                const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-                if (aspect) return this.docWidth() * aspect;
-                return layoutDoc._fitWidth ? (!this.dataDoc._nativeHeight ? NumCast(this.props.height) :
-                    Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
-                        NumCast(this.props.height)))) :
-                    NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
-            })()));
-        } else {
-            return 0;
+            return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT,
+                Doc.NativeAspect(layoutDoc, undefined, true) ? this.docWidth() / Doc.NativeAspect(layoutDoc, undefined, true) :
+                    layoutDoc._fitWidth ? (!Doc.NativeHeight(this.dataDoc) ? NumCast(this.props.height) :
+                        Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, Doc.NativeHeight(layoutDoc)) / Doc.NativeWidth(layoutDoc) || NumCast(this.props.height))) :
+                        NumCast(layoutDoc._height) || 50));
         }
+        return 0;
     }
 
     @computed get expandedField() {
@@ -972,7 +968,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
                     </div>
-                    {/* <div className="propertiesView-layout">
+                    <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
                             onPointerDown={action(() => this.openLayout = !this.openLayout)}
                             style={{ backgroundColor: this.openLayout ? "black" : "" }}>
@@ -982,7 +978,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
-                    </div> */}
+                    </div>
                 </div>;
             }
             if (this.isPres) {

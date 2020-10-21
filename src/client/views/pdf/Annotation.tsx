@@ -100,7 +100,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         group.isPushpin = !group.isPushpin;
     });
 
-    isPushpin = () => BoolCast(Cast(this.props.document.group, Doc, null).isPushpin);
+    isPushpin = () => BoolCast(Cast(this.props.document.group, Doc, null)?.isPushpin);
 
     @action
     onPointerDown = (e: React.PointerEvent) => {

@@ -23,7 +23,7 @@ import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast, BoolCast } from "../../../../fields/Types";
 import { TraceMobx, GetEffectiveAcl } from '../../../../fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents, OmitKeys, smoothScroll } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from '../../../documents/Documents';
@@ -663,7 +663,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !Doc.UserDoc().noviceMode && optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
+        optionItems.push({ description: `${!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
     }
@@ -961,7 +961,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             { fireImmediately: true }
         );
         this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
-            pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
+            pos => this._scrollRef.current?.scrollTo({ top: pos }), { fireImmediately: true }
+        );
+        this._disposers.scrollY = reaction(() => Cast(this.layoutDoc._scrollY, "number", null),
+            scrollY => {
+                if (scrollY !== undefined) {
+                    const delay = this._scrollRef.current ? 0 : 250; // wait for mainCont and try again to scroll
+                    const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                    const duration = durationStr ? Number(durationStr[1]) : 1000;
+                    setTimeout(() => this._scrollRef.current && smoothScroll(duration, this._scrollRef.current, Math.abs(scrollY || 0)), delay);
+                    setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
+                }
+            }, { fireImmediately: true }
         );
 
         setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight)));
@@ -1443,10 +1454,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     public endUndoTypingBatch() {
         const wasUndoing = this._undoTyping;
-        if (this._undoTyping) {
-            this._undoTyping.end();
-            this._undoTyping = undefined;
-        }
+        this._undoTyping?.end();
+        this._undoTyping = undefined;
         return wasUndoing;
     }
     public static LiveTextUndo: UndoManager.Batch | undefined;
@@ -1459,8 +1468,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         FormattedTextBox.LiveTextUndo?.end();
         FormattedTextBox.LiveTextUndo = undefined;
-        // move the richtextmenu offscreen
-        //if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1563,10 +1570,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             />;
     }
 
+    sidebarContentScaling = () => this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
     @computed get sidebarCollection() {
         const fitToBox = this.props.Document._fitToBox;
         const collectionProps = {
             ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
+            NativeWidth: returnZero,
+            NativeHeight: returnZero,
             PanelHeight: this.props.PanelHeight,
             PanelWidth: this.sidebarWidth,
             xMargin: 0,
@@ -1580,7 +1590,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             isSelected: this.props.isSelected,
             select: emptyFunction,
             active: this.annotationsActive,
-            ContentScaling: returnOne,
+            ContentScaling: this.sidebarContentScaling,
             whenActiveChanged: this.whenActiveChanged,
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
@@ -1615,7 +1625,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
         const selclass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
-            <div className={"formattedTextBox-cont"} ref={this._boxRef}
+            <div className="formattedTextBox-cont" ref={this._boxRef}
                 style={{
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",

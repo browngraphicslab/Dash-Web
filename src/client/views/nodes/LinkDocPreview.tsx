@@ -64,7 +64,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 this._toolTipText = "";
                 LinkDocPreview.TargetDoc = this._targetDoc = target;
                 if (anchor !== this._targetDoc && anchor && this._targetDoc) {
-                    this._targetDoc._scrollPY = NumCast(anchor?.y);
+                    this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
                 }
             });
         }

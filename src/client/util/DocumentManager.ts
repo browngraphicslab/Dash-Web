@@ -128,19 +128,24 @@ export class DocumentManager {
     }
 
 
-    static addRightSplit = (doc: Doc, finished?: () => void) => {
-        CollectionDockingView.AddSplit(doc, "right");
-        finished?.();
+    static addView = (doc: Doc, finished?: () => void, presCollection?: Doc) => {
+        if (presCollection) {
+            const collectionDocView = DocumentManager.Instance.getDocumentView(presCollection);
+            if (collectionDocView) collectionDocView.props.addDocTab(doc, "replace");
+        } else {
+            CollectionDockingView.AddSplit(doc, "right");
+            finished?.();
+        }
     }
     public jumpToDocument = async (
         targetDoc: Doc,        // document to display
         willZoom: boolean,     // whether to zoom doc to take up most of screen
-        createViewFunc = DocumentManager.addRightSplit, // how to create a view of the doc if it doesn't exist
+        createViewFunc = DocumentManager.addView, // how to create a view of the doc if it doesn't exist
         docContext?: Doc,  // context to load that should contain the target
         linkDoc?: Doc,   // link that's being followed
         closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
-        finished?: () => void
+        finished?: () => void,
     ): Promise<void> => {
         const getFirstDocView = DocumentManager.Instance.getFirstDocumentView;
         const focusAndFinish = () => { finished?.(); return false; };
@@ -190,7 +195,7 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = targetDocContext._scrollPY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
+                targetDocContext._scrollY = targetDocContext._scrollPreviewY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);

@@ -129,7 +129,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     {this.childLayoutPairs.map((pair, ind) => {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
-                        const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
                         const scalable = pair.layout.onClick || pair.layout.onDragStart;
                         return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
