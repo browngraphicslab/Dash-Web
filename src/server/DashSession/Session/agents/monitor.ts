@@ -9,7 +9,7 @@ import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
 import IPCMessageReceiver from "./process_message_router";
-import { ServerWorker } from "./server_worker";
+import { ServerWorker, DeconstructedError } from "./server_worker";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
@@ -90,7 +90,7 @@ export class Monitor extends IPCMessageReceiver {
     }
 
     public readonly coreHooks = Object.freeze({
-        onCrashDetected: (listener: MessageHandler<{ error: Error }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
+        onCrashDetected: (listener: MessageHandler<{ error: DeconstructedError }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
         onServerRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
     });
 

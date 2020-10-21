@@ -112,7 +112,9 @@ export class ServerWorker extends IPCMessageReceiver {
     private proactiveUnplannedExit = async (error: Error): Promise<void> => {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
-        this.emit(Monitor.IntrinsicEvents.CrashDetected, { error });
+        const { name, message, stack } = error;
+        const deconstructed_error: DeconstructedError = { name, message, stack };
+        this.emit(Monitor.IntrinsicEvents.CrashDetected, { error: deconstructed_error });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
         this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));
@@ -157,4 +159,10 @@ export class ServerWorker extends IPCMessageReceiver {
         this.pollServer();
     }
 
+}
+
+export interface DeconstructedError {
+    name: string;
+    message: string;
+    stack: string | undefined;
 }
