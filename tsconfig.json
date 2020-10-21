@@ -19,7 +19,8 @@
             "./src/typings"
         ],
         "types": [
-            "youtube"
+            "youtube",
+            "node"
         ]
     },
     // "exclude": [
