@@ -127,14 +127,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
 
+    @action
     componentWillUnmount() {
         document.removeEventListener("keydown", this.keyEvents, true);
-        runInAction(() => this._presKeyEventsActive = false);
+        this._presKeyEventsActive = false;
         // Turn of progressivize editors
         this.turnOffEdit(true);
     }
 
-    componentDidMount = async () => {
+    @action
+    componentDidMount = () => {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
@@ -142,7 +144,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
         document.addEventListener("keydown", this.keyEvents, true);
-        runInAction(() => this._presKeyEventsActive = true);
+        this._presKeyEventsActive = true;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
@@ -763,10 +765,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Adds the index in the pres path graphically
     @computed get order() {
         const order: JSX.Element[] = [];
-        this.childDocs.forEach((doc, index) => {
+        this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            const srcContext = Cast(tagDoc?.context, Doc, null);
-            const width = NumCast(tagDoc?._width) / 10;
+            const srcContext = Cast(tagDoc.context, Doc, null);
+            const width = NumCast(tagDoc._width) / 10;
             const height = Math.max(NumCast(tagDoc._height) / 10, 15);
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
