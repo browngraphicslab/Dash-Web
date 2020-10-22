@@ -6,7 +6,7 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
@@ -144,10 +144,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const fieldKey = CollectionDockingView.Instance.props.fieldKey;
             const sublists = DocListCast(dview[fieldKey]);
             const tabs = Cast(sublists[0], Doc, null);
-            const tabdocs = DocListCast(tabs.data);
-            if (!tabdocs.includes(curPres)) {
-                CollectionDockingView.AddSplit(curPres, "right");
-            }
+            DocListCastAsync(tabs.data).then(tabdocs => {
+                if (!tabdocs?.includes(curPres)) {
+                    CollectionDockingView.AddSplit(curPres, "right");
+                }
+            });
             DocumentManager.Instance.jumpToDocument(doc, false, undefined);
         }
     }
