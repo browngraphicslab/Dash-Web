@@ -692,14 +692,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         switch (e.key) {
             case "Backspace":
                 if (this.layoutDoc.presStatus === "edit") {
-                    undoBatch(action(() => {
+                    runInAction(() => {
                         for (const doc of this._selectedArray) {
                             this.removeDocument(doc);
                         }
                         this._selectedArray = [];
                         this._eleArray = [];
                         this._dragArray = [];
-                    }))();
+                    });
                     handled = true;
                 }
                 break;
