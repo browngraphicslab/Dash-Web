@@ -1996,7 +1996,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const presKeyEvents: boolean = (this.isPres && this._presKeyEventsActive && this.rootDoc === Doc.UserDoc().activePresentation)
         return CurrentUserUtils.OverlayDocs.includes(this.rootDoc) ?
             <div className="miniPres">
-                <div className="presPanelOverlay" style={{ display: "inline-flex", height: 35, background: '#323232', top: 0, zIndex: 3000000, boxShadow: presKeyEvents ? 'box-shadow: 0 0 0px 1.5px #AEDDF8' : undefined }}>
+                <div className="presPanelOverlay" style={{ display: "inline-flex", height: 30, background: '#323232', top: 0, zIndex: 3000000, boxShadow: presKeyEvents ? '0 0 0px 3px #AEDDF8' : undefined }}>
                     <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
