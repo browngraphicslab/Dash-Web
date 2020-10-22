@@ -1124,6 +1124,9 @@ export class CurrentUserUtils {
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
                     const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
+                    if (results.length !== input.files?.length) {
+                        alert("Error uploading files - possibly due to unsupported file types")
+                    }
                     list?.splice(0, 0, ...results);
                     disposer();
                 });
