@@ -266,7 +266,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @computed
     get toolbarWidth(): number {
-        const presBoxDocView = DocumentManager.Instance.getDocumentView(this.presBox)
+        const presBoxDocView = DocumentManager.Instance.getDocumentView(this.presBox);
         let width: number = NumCast(this.presBox._width);
         if (presBoxDocView) width = presBoxDocView.props.PanelWidth();
         return width;

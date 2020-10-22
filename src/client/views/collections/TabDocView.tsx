@@ -124,7 +124,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
      **/
     @undoBatch
     @action
-    public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
+    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
@@ -140,11 +140,15 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinDoc.presEndTime = doc.duration;
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-            const curPresDocView = DocumentManager.Instance.getDocumentView(curPres);
-            if (!curPresDocView) {
+            const dview = CollectionDockingView.Instance.props.Document;
+            const fieldKey = CollectionDockingView.Instance.props.fieldKey;
+            const sublists = DocListCast(dview[fieldKey]);
+            const tabs = Cast(sublists[0], Doc, null);
+            const tabdocs = DocListCast(tabs.data);
+            if (!tabdocs.includes(curPres)) {
                 CollectionDockingView.AddSplit(curPres, "right");
             }
-            await DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+            DocumentManager.Instance.jumpToDocument(doc, false, undefined);
         }
     }
 
