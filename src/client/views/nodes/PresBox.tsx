@@ -152,6 +152,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     updateCurrentPresentation = () => {
         Doc.UserDoc().activePresentation = this.rootDoc;
+        document.addEventListener("keydown", this.keyEvents, true);
+        this.selectPres();
         PresBox.Instance = this;
     }
 
@@ -186,7 +188,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             activeItem.playNow = false;
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
-            if (activeNext.presPinView) setTimeout(() => this.selectPres(), 0);
+            if (activeNext.presPinView || activeNext.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(), 0);
             else this.selectPres();
             const nextSelected = this.itemIndex + 1;
             if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
@@ -218,7 +220,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
-        if (prevItem.presPinView) setTimeout(() => this.selectPres(), 0);
+        if (prevItem.presPinView || prevTargetDoc === this.layoutDoc.presCollection) { setTimeout(() => this.updateCurrentPresentation(), 0); }
         else this.selectPres();
         if (lastFrame !== undefined && curFrame >= 1) {
             this.prevKeyframe(targetDoc, activeItem);
@@ -636,7 +638,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     selectElement = (doc: Doc) => {
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
-        if (doc.presPinView) setTimeout(() => this.selectPres(), 0);
+        if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(), 0);
         else this.selectPres();
     }
 
@@ -692,14 +694,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         switch (e.key) {
             case "Backspace":
                 if (this.layoutDoc.presStatus === "edit") {
-                    runInAction(() => {
+                    undoBatch(action(() => {
                         for (const doc of this._selectedArray) {
                             this.removeDocument(doc);
                         }
                         this._selectedArray = [];
                         this._eleArray = [];
                         this._dragArray = [];
-                    });
+                    }))();
                     handled = true;
                 }
                 break;
@@ -1829,7 +1831,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </Tooltip>
                         <div className="toolbar-divider" />
-                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key events are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
+                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: 'default', position: 'absolute', right: 30, fontSize: 16 }}>
                                 <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#AEDDF8' : 'white' }} />
                             </div>
