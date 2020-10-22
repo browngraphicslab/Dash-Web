@@ -379,12 +379,12 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                 diff?.op === "$addToSet" ?
                     {
                         redo: () => {
-                            receiver[prop].push(...diff.items.map((item: any) => item.hasOwnProperty("value") ? item.value() : item));
+                            receiver[prop].push(...diff.items.map((item: any) => item.value ? item.value() : item));
                             lastValue = ObjectField.MakeCopy(receiver[prop]);
                         },
                         undo: action(() => {
                             diff.items.forEach((item: any) => {
-                                const ind = receiver[prop].indexOf(item.hasOwnProperty("value") ? item.value() : item);
+                                const ind = receiver[prop].indexOf(item.value ? item.value() : item);
                                 ind !== -1 && receiver[prop].splice(ind, 1);
                             });
                             lastValue = ObjectField.MakeCopy(receiver[prop]);
@@ -394,15 +394,15 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
                         {
                             redo: action(() => {
                                 diff.items.forEach((item: any) => {
-                                    const ind = receiver[prop].indexOf(item.hasOwnProperty("value") ? item.value() : item);
+                                    const ind = receiver[prop].indexOf(item.value ? item.value() : item);
                                     ind !== -1 && receiver[prop].splice(ind, 1);
                                 });
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }),
                             undo: () => {
                                 diff.items.forEach((item: any) => {
-                                    const ind = (prevValue as List<any>).indexOf(item.hasOwnProperty("value") ? item.value() : item);
-                                    ind !== -1 && receiver[prop].indexOf(item.hasOwnProperty("value") ? item.value() : item) === -1 && receiver[prop].splice(ind, 0, item);
+                                    const ind = (prevValue as List<any>).indexOf(item.value ? item.value() : item);
+                                    ind !== -1 && receiver[prop].indexOf(item.value ? item.value() : item) === -1 && receiver[prop].splice(ind, 0, item);
                                 });
                                 lastValue = ObjectField.MakeCopy(receiver[prop]);
                             }
