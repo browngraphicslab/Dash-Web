@@ -2,14 +2,14 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { manage, MessageHandler } from "./promisified_ipc_manager";
+import { manage, MessageHandler, ErrorLike } from "./promisified_ipc_manager";
 import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
 import { validate, ValidationError } from "jsonschema";
 import { Utilities } from "../utilities/utilities";
 import { readFileSync } from "fs";
 import IPCMessageReceiver from "./process_message_router";
-import { ServerWorker, DeconstructedError } from "./server_worker";
+import { ServerWorker } from "./server_worker";
 
 /**
  * Validates and reads the configuration file, accordingly builds a child process factory
@@ -90,7 +90,7 @@ export class Monitor extends IPCMessageReceiver {
     }
 
     public readonly coreHooks = Object.freeze({
-        onCrashDetected: (listener: MessageHandler<{ error: DeconstructedError }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
+        onCrashDetected: (listener: MessageHandler<{ error: ErrorLike }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
         onServerRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
     });
 

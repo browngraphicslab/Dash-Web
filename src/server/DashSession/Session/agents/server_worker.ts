@@ -1,6 +1,6 @@
 import { ExitHandler } from "./applied_session_agent";
 import { isMaster } from "cluster";
-import { manage } from "./promisified_ipc_manager";
+import { manage, ErrorLike } from "./promisified_ipc_manager";
 import IPCMessageReceiver from "./process_message_router";
 import { red, green, white, yellow } from "colors";
 import { get } from "request-promise";
@@ -113,7 +113,7 @@ export class ServerWorker extends IPCMessageReceiver {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
         const { name, message, stack } = error;
-        const deconstructed_error: DeconstructedError = { name, message, stack };
+        const deconstructed_error: ErrorLike = { name, message, stack };
         this.emit(Monitor.IntrinsicEvents.CrashDetected, { error: deconstructed_error });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
@@ -159,10 +159,4 @@ export class ServerWorker extends IPCMessageReceiver {
         this.pollServer();
     }
 
-}
-
-export interface DeconstructedError {
-    name: string;
-    message: string;
-    stack: string | undefined;
 }
