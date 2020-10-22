@@ -205,6 +205,8 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                 const scroll = targetDoc._scrollTop;
                 activeDoc.presPinView = true;
                 activeDoc.presPinViewScroll = scroll;
+            } else if (targetDoc.type === DocumentType.VID) {
+                activeDoc.presPinTimecode = targetDoc._currentTimecode;
             } else if ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG) {
                 const x = targetDoc._panX;
                 const y = targetDoc._panY;

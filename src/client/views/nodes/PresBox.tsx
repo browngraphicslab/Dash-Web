@@ -337,6 +337,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     bestTarget._scrollY = activeItem.presPinViewScroll;
                 } else if (bestTarget.type === DocumentType.COMPARISON) {
                     bestTarget._clipWidth = activeItem.presPinClipWidth;
+                } else if (bestTarget.type === DocumentType.VID) {
+                    bestTarget._currentTimecode = activeItem.presPinTimecode;
                 } else {
                     bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
                     bestTarget._panX = activeItem.presPinViewX;
