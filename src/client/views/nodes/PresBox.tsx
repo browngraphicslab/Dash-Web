@@ -767,6 +767,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Adds the index in the pres path graphically
     @computed get order() {
         const order: JSX.Element[] = [];
+        const docs: Doc[] = [];
         this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc.context, Doc, null);
@@ -774,14 +775,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const height = Math.max(NumCast(tagDoc._height) / 10, 15);
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
-            // Case A: Document is contained within the colleciton
+            // Case A: Document is contained within the collection
             if (this.rootDoc.presCollection === srcContext) {
-                order.push(
-                    <div className="pathOrder" style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
+                if (docs.includes(tagDoc)) {
+                    docs.push(tagDoc);
+                    order.push(
+                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) + ((edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>);
+                } else {
+                    docs.push(tagDoc);
+                    order.push(
+                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>);
+                }
                 // Case B: Document is not inside of the collection
             } else {
+                docs.push(tagDoc);
                 order.push(
                     <div className="pathOrder" style={{ top: 0, left: 0 }}>
                         <div className="pathOrder-frame">{index + 1}</div>
