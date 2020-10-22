@@ -1,4 +1,4 @@
-import { red } from 'colors';
+import { red, green } from 'colors';
 import { ExifImage } from 'exif';
 import { File } from 'formidable';
 import { createWriteStream, existsSync, readFileSync, rename, unlinkSync, writeFile } from 'fs';
@@ -62,6 +62,7 @@ export namespace DashUploadUtils {
 
         const category = types[0];
         let format = `.${types[1]}`;
+        console.log(green(`Processing upload of file (${name}) with upload type (${type}) in category (${category}).`));
 
         switch (category) {
             case "image":
