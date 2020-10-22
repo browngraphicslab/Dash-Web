@@ -153,7 +153,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateCurrentPresentation = () => {
         Doc.UserDoc().activePresentation = this.rootDoc;
         document.addEventListener("keydown", this.keyEvents, true);
-        this._presKeyEventsActive = true;
         this.selectPres();
         PresBox.Instance = this;
     }
