@@ -122,13 +122,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     /**
      * Adds a document to the presentation view
      **/
-    @undoBatch
     @action
-    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
+    public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
+            const batch = UndoManager.StartBatch("pinning doc");
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
             pinDoc.title = doc.title;
@@ -144,12 +144,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const fieldKey = CollectionDockingView.Instance.props.fieldKey;
             const sublists = DocListCast(dview[fieldKey]);
             const tabs = Cast(sublists[0], Doc, null);
-            DocListCastAsync(tabs.data).then(tabdocs => {
-                if (!tabdocs?.includes(curPres)) {
-                    CollectionDockingView.AddSplit(curPres, "right");
-                }
-            });
+            const tabdocs = await DocListCastAsync(tabs.data);
+            if (!tabdocs?.includes(curPres)) {
+                tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
+                CollectionDockingView.AddSplit(curPres, "right");
+            }
             DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+            batch.end();
         }
     }
 
