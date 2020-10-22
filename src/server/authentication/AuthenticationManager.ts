@@ -177,13 +177,13 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
             const smtpTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
-                    user: 'brownptcdash@gmail.com',
-                    pass: 'browngfx1'
+                    user: 'browndashptc@gmail.com',
+                    pass: 'TsarNicholas#2'
                 }
             });
             const mailOptions = {
                 to: user.email,
-                from: 'brownptcdash@gmail.com',
+                from: 'browndashptc@gmail.com',
                 subject: 'Dash Password Reset',
                 text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                     'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
@@ -250,13 +250,13 @@ export let postReset = function (req: Request, res: Response) {
             const smtpTransport = nodemailer.createTransport({
                 service: 'Gmail',
                 auth: {
-                    user: 'brownptcdash@gmail.com',
-                    pass: 'browngfx1'
+                    user: 'browndashptc@gmail.com',
+                    pass: 'TsarNicholas#2'
                 }
             });
             const mailOptions = {
                 to: user.email,
-                from: 'brownptcdash@gmail.com',
+                from: 'browndashptc@gmail.com',
                 subject: 'Your password has been changed',
                 text: 'Hello,\n\n' +
                     'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n'
