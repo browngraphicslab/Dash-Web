@@ -305,7 +305,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
                 if (presDocView) SelectionManager.SelectDoc(presDocView, false);
                 this.rootDoc.presStatus = presStatus;
-            }, 2000)
+            }, 2000);
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
@@ -558,7 +558,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._viewType = viewType;
         if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
-
 
 
     setMovementName = action((movement: any, activeItem: Doc): string => {
@@ -856,9 +855,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 10000) timeInMS = 10000;
-        if (this._selectedArray) this._selectedArray.forEach((doc) => {
-            doc.presTransition = timeInMS;
-        })
+        this._selectedArray?.forEach((doc) => doc.presTransition = timeInMS);
     }
 
     // Converts seconds to ms and updates presDuration
@@ -867,17 +864,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 20000) timeInMS = 20000;
-        if (this._selectedArray) this._selectedArray.forEach((doc) => {
-            doc.presDuration = timeInMS;
-        })
+        this._selectedArray?.forEach((doc) => doc.presDuration = timeInMS);
     }
 
     /**
      * When the movement dropdown is changes
      */
     @undoBatch
-    @action
-    updateMovement = (movement: any, all?: boolean) => {
+    updateMovement = action((movement: any, all?: boolean) => {
         if (all) {
             this.childDocs.forEach((doc) => {
                 switch (movement) {
@@ -895,42 +889,40 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         doc.presMovement = PresMovement.None;
                         break;
                 }
-            })
-        } else if (this._selectedArray) this._selectedArray.forEach((doc) => {
-            switch (movement) {
-                case PresMovement.Zoom: //Pan and zoom
-                    doc.presMovement = PresMovement.Zoom;
-                    break;
-                case PresMovement.Pan: //Pan
-                    doc.presMovement = PresMovement.Pan;
-                    break;
-                case PresMovement.Jump: //Jump Cut
-                    doc.presJump = true;
-                    doc.presMovement = PresMovement.Jump;
-                    break;
-                case PresMovement.None: default:
-                    doc.presMovement = PresMovement.None;
-                    break;
-            }
-        })
-    };
+            });
+        } else {
+            this._selectedArray?.forEach((doc) => {
+                switch (movement) {
+                    case PresMovement.Zoom: //Pan and zoom
+                        doc.presMovement = PresMovement.Zoom;
+                        break;
+                    case PresMovement.Pan: //Pan
+                        doc.presMovement = PresMovement.Pan;
+                        break;
+                    case PresMovement.Jump: //Jump Cut
+                        doc.presJump = true;
+                        doc.presMovement = PresMovement.Jump;
+                        break;
+                    case PresMovement.None: default:
+                        doc.presMovement = PresMovement.None;
+                        break;
+                }
+            });
+        }
+    });
 
     @undoBatch
     @action
     updateHideBefore = (activeItem: Doc) => {
         activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton;
-        this._selectedArray.forEach((doc) => {
-            doc.presHideTillShownButton = activeItem.presHideTillShownButton;
-        });
+        this._selectedArray?.forEach((doc) => doc.presHideTillShownButton = activeItem.presHideTillShownButton);
     }
 
     @undoBatch
     @action
     updateHideAfter = (activeItem: Doc) => {
         activeItem.presHideAfterButton = !activeItem.presHideAfterButton;
-        this._selectedArray.forEach((doc) => {
-            doc.presHideAfterButton = activeItem.presHideAfterButton;
-        });
+        this._selectedArray?.forEach((doc) => doc.presHideAfterButton = activeItem.presHideAfterButton);
     }
 
     @undoBatch
@@ -968,30 +960,32 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         tagDoc.presEffect = PresEffect.None;
                         break;
                 }
-            })
-        } else if (this._selectedArray) this._selectedArray.forEach((doc) => {
-            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            switch (effect) {
-                case PresEffect.Bounce:
-                    tagDoc.presEffect = PresEffect.Bounce;
-                    break;
-                case PresEffect.Fade:
-                    tagDoc.presEffect = PresEffect.Fade;
-                    break;
-                case PresEffect.Flip:
-                    tagDoc.presEffect = PresEffect.Flip;
-                    break;
-                case PresEffect.Roll:
-                    tagDoc.presEffect = PresEffect.Roll;
-                    break;
-                case PresEffect.Rotate:
-                    tagDoc.presEffect = PresEffect.Rotate;
-                    break;
-                case PresEffect.None: default:
-                    tagDoc.presEffect = PresEffect.None;
-                    break;
-            }
-        })
+            });
+        } else {
+            this._selectedArray?.forEach((doc) => {
+                const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+                switch (effect) {
+                    case PresEffect.Bounce:
+                        tagDoc.presEffect = PresEffect.Bounce;
+                        break;
+                    case PresEffect.Fade:
+                        tagDoc.presEffect = PresEffect.Fade;
+                        break;
+                    case PresEffect.Flip:
+                        tagDoc.presEffect = PresEffect.Flip;
+                        break;
+                    case PresEffect.Roll:
+                        tagDoc.presEffect = PresEffect.Roll;
+                        break;
+                    case PresEffect.Rotate:
+                        tagDoc.presEffect = PresEffect.Rotate;
+                        break;
+                    case PresEffect.None: default:
+                        tagDoc.presEffect = PresEffect.None;
+                        break;
+                }
+            });
+        }
     }
 
     @computed get transitionDropdown() {

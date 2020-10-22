@@ -6,7 +6,7 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
@@ -122,13 +122,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     /**
      * Adds a document to the presentation view
      **/
-    @undoBatch
     @action
     public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
+            const batch = UndoManager.StartBatch("pinning doc");
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
             pinDoc.title = doc.title;
@@ -140,11 +140,17 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinDoc.presEndTime = doc.duration;
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-            const curPresDocView = DocumentManager.Instance.getDocumentView(curPres);
-            if (!curPresDocView) {
+            const dview = CollectionDockingView.Instance.props.Document;
+            const fieldKey = CollectionDockingView.Instance.props.fieldKey;
+            const sublists = DocListCast(dview[fieldKey]);
+            const tabs = Cast(sublists[0], Doc, null);
+            const tabdocs = await DocListCastAsync(tabs.data);
+            if (!tabdocs?.includes(curPres)) {
+                tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
                 CollectionDockingView.AddSplit(curPres, "right");
             }
-            await DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+            DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+            batch.end();
         }
     }
 

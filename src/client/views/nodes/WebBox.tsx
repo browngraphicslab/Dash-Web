@@ -72,14 +72,23 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     constructor(props: any) {
         super(props);
-        Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(this.dataDoc) || 850);
-        Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(this.dataDoc) || this.Document[HeightSym]() / this.Document[WidthSym]() * 850);
+        if (this.dataDoc[this.fieldKey] instanceof WebField) {
+            Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(this.dataDoc) || 850);
+            Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(this.dataDoc) || this.Document[HeightSym]() / this.Document[WidthSym]() * 850);
+        }
     }
 
     iframeLoaded = action((e: any) => {
         const iframe = this._iframeRef.current;
         if (iframe && iframe.contentDocument) {
             iframe.setAttribute("enable-annotation", "true");
+            iframe.contentDocument.addEventListener("click", undoBatch(action(e => {
+                const href = (e.target as any)?.href;
+                if (href) {
+                    this._url = href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin);
+                    this.submitURL();
+                }
+            })));
             iframe.contentDocument.addEventListener('pointerdown', this.iframedown, false);
             iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
@@ -178,14 +187,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._iframeRef.current?.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
     }
 
-    @action
-    onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._url = e.target.value;
-    }
-
     onUrlDragover = (e: React.DragEvent) => {
         e.preventDefault();
     }
+
+    @undoBatch
     @action
     onUrlDrop = (e: React.DragEvent) => {
         const { dataTransfer } = e;
