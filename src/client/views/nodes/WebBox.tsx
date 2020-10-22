@@ -83,7 +83,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (iframe && iframe.contentDocument) {
             iframe.setAttribute("enable-annotation", "true");
             iframe.contentDocument.addEventListener("click", undoBatch(action(e => {
-                const href = (e.target as any)?.href;
+                const href = (e.target as any).href;
                 if (href) {
                     this._url = href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin);
                     this.submitURL();
