@@ -690,14 +690,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         switch (e.key) {
             case "Backspace":
                 if (this.layoutDoc.presStatus === "edit") {
-                    runInAction(() => {
+                    undoBatch(action(() => {
                         for (const doc of this._selectedArray) {
                             this.removeDocument(doc);
                         }
                         this._selectedArray = [];
                         this._eleArray = [];
                         this._dragArray = [];
-                    });
+                    }))();
                     handled = true;
                 }
                 break;
@@ -1827,7 +1827,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </Tooltip>
                         <div className="toolbar-divider" />
-                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key events are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
+                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: 'default', position: 'absolute', right: 30, fontSize: 16 }}>
                                 <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#AEDDF8' : 'white' }} />
                             </div>
