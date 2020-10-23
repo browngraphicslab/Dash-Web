@@ -413,6 +413,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 activeDoc.presPinViewX = x;
                 activeDoc.presPinViewY = y;
                 activeDoc.presPinViewScale = scale;
+            } else if (targetDoc.type === DocumentType.VID) {
+                activeDoc.presPinTimecode = targetDoc._currentTimecode;
+                activeDoc.presPinView = true;
             } else if (targetDoc.type === DocumentType.COMPARISON) {
                 const width = targetDoc._clipWidth;
                 activeDoc.presPinClipWidth = width;
@@ -426,7 +429,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
         {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
-        return (targetDoc && targetDoc.type !== DocumentType.PRES && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        return (targetDoc && targetDoc.type !== DocumentType.PRES && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
                 onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
