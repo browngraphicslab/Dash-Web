@@ -71,7 +71,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable _presKeyEventsActive: boolean = false;
 
     @observable _selectedArray: Doc[] = [];
-    @observable _sortedSelectedArray: Doc[] = [];
     @observable _eleArray: HTMLElement[] = [];
     @observable _dragArray: HTMLElement[] = [];
     @observable _pathBoolean: boolean = false;
@@ -114,7 +113,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (PresBox.Instance?._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -261,7 +260,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
-            this._selectedArray = [this.childDocs[index]]; //Update selected array
+            this._selectedArray.splice(0, this._selectedArray.length, this.childDocs[index]); //Update selected array
             //Handles movement to element
             if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
             this.onHideDocument(); //Handles hide after/before
@@ -297,24 +296,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
+        const presStatus = this.rootDoc.presStatus;
+        const selViewCache = Array.from(this._selectedArray);
+        const dragViewCache = Array.from(this._dragArray);
+        const eleViewCache = Array.from(this._eleArray);
+        const self = this;
+        const resetSelection = action(() => {
+            const presDocView = DocumentManager.Instance.getDocumentView(self.rootDoc);
+            if (presDocView) SelectionManager.SelectDoc(presDocView, false);
+            self.rootDoc.presStatus = presStatus;
+            self._selectedArray.splice(0, self._selectedArray.length, ...selViewCache);
+            self._dragArray.splice(0, self._dragArray.length, ...dragViewCache);
+            self._eleArray.splice(0, self._eleArray.length, ...eleViewCache);
+        });
         const openInTab = () => {
-            const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === activeItem);
-            if (tab) {
-                tab.header.parent.setActiveContentItem(tab.contentItem);
-            } else {
-                collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
-            }
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            // this still needs some fixing
+            setTimeout(resetSelection, 500);
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            const presStatus = this.rootDoc.presStatus;
             openInTab();
-            // this still needs some fixing
-            setTimeout(() => {
-                const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
-                if (presDocView) SelectionManager.SelectDoc(presDocView, false);
-                this.rootDoc.presStatus = presStatus;
-            }, 2000);
         } else
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
             if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
@@ -325,7 +327,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext); // documents open in new tab instead of on right
                 } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
                     //awaiting jump so that new scale can be found, since jumping is async
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext); // documents open in new tab instead of on right
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, resetSelection); // documents open in new tab instead of on right
                 }
             } else {
                 //awaiting jump so that new scale can be found, since jumping is async
@@ -630,7 +632,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
             if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
-            else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
         return list;
     }
@@ -663,7 +665,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Shift click
     @action
     shiftSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        this._selectedArray = [];
+        this._selectedArray.length = 0;
         // const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         if (this.activeItem) {
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
@@ -705,16 +707,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         for (const doc of this._selectedArray) {
                             this.removeDocument(doc);
                         }
-                        this._selectedArray = [];
-                        this._eleArray = [];
-                        this._dragArray = [];
+                        this._selectedArray.length = 0;
+                        this._eleArray.length = 0;
+                        this._dragArray.length = 0;
                     }))();
                     handled = true;
                 }
                 break;
             case "Escape":
                 if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) { this.updateMinimize(); }
-                else if (this.layoutDoc.presStatus === "edit") { this._selectedArray = []; this._eleArray = []; this._dragArray = []; }
+                else if (this.layoutDoc.presStatus === "edit") { this._selectedArray.length = this._eleArray.length = this._dragArray.length = 0; }
                 else this.layoutDoc.presStatus = "edit";
                 if (this._presTimer) clearTimeout(this._presTimer);
                 handled = true;
@@ -748,7 +750,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "a":
                 if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === "edit") {
-                    this._selectedArray = this.childDocs;
+                    this._selectedArray.splice(0, this._selectedArray.length, ...this.childDocs);
                     handled = true;
                 }
             default:
