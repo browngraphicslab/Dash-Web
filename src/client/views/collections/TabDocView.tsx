@@ -39,15 +39,14 @@ interface TabDocViewProps {
 export class TabDocView extends React.Component<TabDocViewProps> {
     _mainCont: HTMLDivElement | null = null;
     _tabReaction: IReactionDisposer | undefined;
+
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _isActive: boolean = false;
     @observable private _document: Doc | undefined;
     @observable private _view: DocumentView | undefined;
 
-    @computed get contentScaling() { return this.ContentScaling(); }
-
-    get stack(): any { return (this.props as any).glContainer.parent.parent; }
+    get stack() { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
     get view() { return this._view; }
 
@@ -196,13 +195,34 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
-    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), Doc.NativeWidth(this.layoutDoc)), this._panelWidth) :
-        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
-    panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
-    nativeWidth = () => !this.layoutDoc?._fitWidth ? Doc.NativeWidth(this.layoutDoc) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc?._fitWidth ? Doc.NativeHeight(this.layoutDoc) || this._panelHeight : 0;
-    ContentScaling = () => {
+    NativeAspect = () => this.nativeAspect;
+    PanelWidth = () => this.panelWidth;
+    PanelHeight = () => this.panelHeight;
+    nativeWidth = () => this._nativeWidth;
+    nativeHeight = () => this._nativeHeight;
+    ContentScaling = () => this.contentScaling;
+
+    ScreenToLocalTransform = () => {
+        if (this._mainCont?.children) {
+            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0]?.firstChild as HTMLElement);
+            const scale = Utils.GetScreenTransform(this._mainCont).scale;
+            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.ContentScaling() / scale);
+        }
+        return Transform.Identity();
+    }
+    @computed get nativeAspect() {
+        return this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
+    }
+    @computed get panelHeight() {
+        return this.NativeAspect() && this.NativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.NativeAspect() : this._panelHeight;
+    }
+    @computed get panelWidth() {
+        return this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), Doc.NativeWidth(this.layoutDoc)), this._panelWidth) :
+            (this.NativeAspect() && this.NativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.NativeAspect() : this._panelWidth)
+    }
+    @computed get _nativeWidth() { return !this.layoutDoc?._fitWidth ? Doc.NativeWidth(this.layoutDoc) || this._panelWidth : 0; }
+    @computed get _nativeHeight() { return !this.layoutDoc?._fitWidth ? Doc.NativeHeight(this.layoutDoc) || this._panelHeight : 0; }
+    @computed get contentScaling() {
         const nativeW = Doc.NativeWidth(this.layoutDoc);
         const nativeH = Doc.NativeHeight(this.layoutDoc);
         let scaling = 1;
@@ -212,15 +232,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             scaling = this._panelHeight / nativeH; // height-limited
         }
         return scaling;
-    }
-
-    ScreenToLocalTransform = () => {
-        if (this._mainCont?.children) {
-            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0]?.firstChild as HTMLElement);
-            const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.ContentScaling() / scale);
-        }
-        return Transform.Identity();
     }
     @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.ContentScaling()) / 2 : 0; }
     @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.ContentScaling()) / this._panelWidth * 100}% ` : undefined; }
@@ -271,8 +282,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         return NumCast(Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null)._currentFrame);
     }
     renderMiniMap() {
-        const miniWidth = this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
-        const miniHeight = this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniWidth = this.PanelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniHeight = this.PanelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
         const miniLeft = 50 + (NumCast(this._document?._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
@@ -346,8 +357,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 addDocument={undefined}
                 removeDocument={undefined}
                 ContentScaling={this.ContentScaling}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+                PanelWidth={this.PanelWidth}
+                PanelHeight={this.PanelHeight}
                 NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}
                 NativeWidth={this.nativeWidth() ? this.nativeWidth : undefined}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
