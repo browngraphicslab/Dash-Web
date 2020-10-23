@@ -1125,7 +1125,7 @@ export class CurrentUserUtils {
                 DocListCastAsync(importDocs.data).then(async list => {
                     const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
                     if (results.length !== input.files?.length) {
-                        alert("Error uploading files - possibly due to unsupported file types")
+                        alert("Error uploading files - possibly due to unsupported file types");
                     }
                     list?.splice(0, 0, ...results);
                     disposer();
@@ -1212,7 +1212,5 @@ Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.
     "creates a new presentation when called");
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
     "returns all the links to the document or its annotations", "(doc: any)");
-Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
-    "returns all the links directly to the document", "(doc: any)");
 Scripting.addGlobal(function importDocument() { return CurrentUserUtils.importDocument(); },
     "imports files from device directly into the import sidebar");
