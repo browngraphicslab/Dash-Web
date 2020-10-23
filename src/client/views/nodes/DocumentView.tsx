@@ -889,7 +889,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+            !this.isSelected(true) && setTimeout(() => SelectionManager.SelectDoc(this, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
         });
     }
 
