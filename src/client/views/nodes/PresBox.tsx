@@ -298,7 +298,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const docToJump = curDoc;
         const willZoom = false;
         const openInTab = () => {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === activeItem);
+            if (tab) {
+                tab.header.parent.setActiveContentItem(tab.contentItem);
+            } else {
+                collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            }
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
