@@ -194,7 +194,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        if (slide && DragManager.docsBeingDragged.length > 0) {
+        let dragIsPresItem: boolean = DragManager.docsBeingDragged.length > 0 ? true : false;
+        for (const doc of DragManager.docsBeingDragged) {
+            if (!doc.presentationTargetDoc) dragIsPresItem = false;
+        }
+        if (slide && dragIsPresItem) {
             const rect = slide.getBoundingClientRect();
             const y = e.clientY - rect.top;  //y position within the element.
             const height = slide.clientHeight;

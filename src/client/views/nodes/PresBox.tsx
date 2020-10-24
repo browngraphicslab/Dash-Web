@@ -52,8 +52,10 @@ enum PresStatus {
 }
 
 enum PresColors {
-    Active = "#AEDDF8",
-
+    LightBlue = "#AEDDF8",
+    DarkBlue = "#5B9FDD",
+    LightBackground = "#ececec",
+    SlideBackground = "#d5dce2",
 }
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -84,7 +86,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private presentTools: boolean = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
     @computed get itemIndex() { return NumCast(this.rootDoc._itemIndex); }
-    @computed get activeItem() { return Cast(this.childDocs[this.itemIndex], Doc, null); }
+    @computed get activeItem() { return Cast(this.childDocs[NumCast(this.rootDoc._itemIndex)], Doc, null); }
     @computed get targetDoc() { return Cast(this.activeItem?.presentationTargetDoc, Doc, null); }
     @computed get scrollable(): boolean {
         if (this.targetDoc.type === DocumentType.PDF || this.targetDoc.type === DocumentType.WEB || this.targetDoc.type === DocumentType.RTF || this.targetDoc._viewType === CollectionViewType.Stacking) return true;
@@ -100,7 +102,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (Doc.UserDoc().activePresentation = this.rootDoc) PresBox.Instance = this;
         if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
+                title: "pres element template", type: DocumentType.PRESELEMENT, backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
             }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
@@ -113,7 +115,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance?._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (this._selectedArray) return DocumentManager.Instance.getDocumentView(this.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -131,6 +133,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     componentWillUnmount() {
         document.removeEventListener("keydown", this.keyEvents, true);
         this._presKeyEventsActive = false;
+        this.resetPresentation();
         // Turn of progressivize editors
         this.turnOffEdit(true);
     }
@@ -151,12 +154,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
     }
 
-    updateCurrentPresentation = () => {
-        Doc.UserDoc().activePresentation = this.rootDoc;
+    updateCurrentPresentation = (pres?: Doc) => {
+        if (pres && pres.type === DocumentType.PRES) {
+            Doc.UserDoc().activePresentation = pres;
+            this.selectPres(pres);
+        } else {
+            Doc.UserDoc().activePresentation = this.rootDoc;
+            this.selectPres();
+        }
         document.removeEventListener("keydown", this.keyEvents, true);
         document.addEventListener("keydown", this.keyEvents, true);
-        this.selectPres();
         PresBox.Instance = this;
+        if (Doc.UserDoc().activePresentation !== this.rootDoc) {
+            PresBox.Instance.forceUpdate();
+        }
+        console.log("PresBox.Instance: " + PresBox.Instance)
+        console.log("Active item title: " + this.activeItem.title)
+        console.log("ChildDocs length: " + this.childDocs.length)
+        console.log("rootDoc.title: " + this.rootDoc.title)
     }
 
     /**
@@ -202,9 +217,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
                 // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
             } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
-            this.gotoDocument(nextSelected, this.itemIndex);
+            this.gotoDocument(nextSelected);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
-            this.gotoDocument(0, this.itemIndex);
+            this.gotoDocument(0);
         }
     }
 
@@ -229,15 +244,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else if (activeItem) {
             let prevSelected = this.itemIndex;
             prevSelected = Math.max(0, prevSelected - 1);
-            this.gotoDocument(prevSelected, this.itemIndex);
+            this.gotoDocument(prevSelected);
             if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
         }
     }
 
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
-    public gotoDocument = action((index: number, fromDoc: number) => {
-        this.updateCurrentPresentation();
+    public gotoDocument = action((index: number) => {
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
@@ -263,9 +277,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
-            this._selectedArray.splice(0, this._selectedArray.length, this.childDocs[index]); //Update selected array
-            //Handles movement to element
-            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
+            this._selectedArray.splice(0, this._selectedArray.length, this.childDocs[index]); //Updates selected array
+            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]); // Handles movement to element
             this.onHideDocument(); //Handles hide after/before
         }
     });
@@ -290,13 +303,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this.layoutDoc.presCollection = srcContext;
             } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         }
-        // if (collectionDocView) {
-        //     if (srcContext && srcContext !== presCollection) {
-        //         // Case 1: new srcContext inside of current collection so add a new tab to the current pres collection
-        //         collectionDocView.props.addDocTab(srcContext, "inPlace");
-        //     }
-        // }
-        this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
         const presStatus = this.rootDoc.presStatus;
@@ -313,7 +319,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             self._eleArray.splice(0, self._eleArray.length, ...eleViewCache);
         });
         const openInTab = () => {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "") : this.props.addDocTab(activeItem, ":left");
+            this.layoutDoc.presCollection = activeItem;
             // this still needs some fixing
             setTimeout(resetSelection, 500);
         };
@@ -422,17 +429,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
             if (tagDoc) tagDoc.opacity = 1;
-            if (curDoc.presHideTillShownButton) {
+            if (curDoc.presHideBefore) {
                 if (index > this.itemIndex) {
                     tagDoc.opacity = 0;
-                } else if (!curDoc.presHideAfterButton) {
+                } else if (!curDoc.presHideAfter) {
                     tagDoc.opacity = 1;
                 }
             }
-            if (curDoc.presHideAfterButton) {
+            if (curDoc.presHideAfter) {
                 if (index < this.itemIndex) {
                     tagDoc.opacity = 0;
-                } else if (!curDoc.presHideTillShownButton) {
+                } else if (!curDoc.presHideBefore) {
                     tagDoc.opacity = 1;
                 }
             }
@@ -473,7 +480,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         };
         this.layoutDoc.presStatus = PresStatus.Autoplay;
         this.startPresentation(startSlide);
-        this.gotoDocument(startSlide, this.itemIndex);
+        this.gotoDocument(startSlide);
         load();
     }
 
@@ -489,8 +496,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //The function that resets the presentation by removing every action done by it. It also
     //stops the presentaton.
     resetPresentation = () => {
-        this.updateCurrentPresentation();
         this.rootDoc._itemIndex = 0;
+        for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
     @action togglePath = (srcContext: Doc, off?: boolean) => {
@@ -519,10 +526,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         this.childDocs.map(doc => {
             const tagDoc = doc.presentationTargetDoc as Doc;
-            if (doc.presHideTillShownButton && this.childDocs.indexOf(doc) > startIndex) {
+            if (doc.presHideBefore && this.childDocs.indexOf(doc) > startIndex) {
                 tagDoc.opacity = 0;
             }
-            if (doc.presHideAfterButton && this.childDocs.indexOf(doc) < startIndex) {
+            if (doc.presHideAfter && this.childDocs.indexOf(doc) < startIndex) {
                 tagDoc.opacity = 0;
             }
         });
@@ -641,17 +648,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    selectPres = () => {
-        const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc)!;
+    selectPres = (pres?: Doc) => {
+        const presDocView = DocumentManager.Instance.getDocumentView(pres ? pres : this.rootDoc)!;
         SelectionManager.SelectDoc(presDocView, false);
     }
 
     //Regular click
     @action
     selectElement = (doc: Doc) => {
-        this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
-        if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(), 0);
-        else this.updateCurrentPresentation();
+        const context = Cast(doc.context, Doc, null)
+        this.gotoDocument(this.childDocs.indexOf(doc));
+        if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
+        else this.updateCurrentPresentation(context);
     }
 
     //Command click
@@ -728,12 +736,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             case "Right": case "ArrowRight":
                 if (this.itemIndex >= this.childDocs.length - 1) return;
                 if (e.shiftKey) { // TODO: update to work properly
-                    console.log("Down: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
+                    // console.log("Down: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
                     this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
                 } else {
                     this.next();
-                    if (this._presTimer) clearTimeout(this._presTimer);
+                    if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
                 }
                 handled = true;
                 break;
@@ -741,22 +749,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             case "Left": case "ArrowLeft":
                 if (this.itemIndex === 0) return;
                 if (e.shiftKey) { // TODO: update to work properly
-                    console.log("Up: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
+                    // console.log("Up: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
                     this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
                 } else {
                     this.back();
-                    if (this._presTimer) clearTimeout(this._presTimer);
+                    if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
                 }
                 handled = true;
                 break;
             case "Spacebar": case " ":
-                if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
-                else if (this.layoutDoc.presStatus === "auto") if (this._presTimer) clearTimeout(this._presTimer);
+                if (this.layoutDoc.presStatus === PresStatus.Manual) this.startAutoPres(this.itemIndex);
+                else if (this.layoutDoc.presStatus === PresStatus.Autoplay) if (this._presTimer) clearTimeout(this._presTimer);
                 handled = true;
                 break;
             case "a":
-                if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === "edit") {
+                if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === PresStatus.Edit) {
                     this._selectedArray.splice(0, this._selectedArray.length, ...this.childDocs);
                     handled = true;
                 }
@@ -780,11 +788,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    getAllIndexes = (arr: Doc[], val: Doc): number => {
+        var indexes = [], i;
+        for (i = 0; i < arr.length; i++)
+            if (arr[i] === val)
+                indexes.push(i);
+        return indexes.length;
+    }
+
     // Adds the index in the pres path graphically
     @computed get order() {
         const order: JSX.Element[] = [];
         const docs: Doc[] = [];
-        const number: number[] = [];
         this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc.context, Doc, null);
@@ -792,18 +807,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const height = Math.max(NumCast(tagDoc._height) / 10, 15);
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
+            const gap = 2;
             // Case A: Document is contained within the collection
             if (this.rootDoc.presCollection === srcContext) {
                 if (docs.includes(tagDoc)) {
+                    const prevOccurances: number = this.getAllIndexes(docs, tagDoc);
                     docs.push(tagDoc);
                     order.push(
-                        <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: NumCast(tagDoc.y) + (edge - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: NumCast(tagDoc.y) + (prevOccurances * (edge + gap) - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}
+                            onClick={() => this.selectElement(doc)}>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 } else {
                     docs.push(tagDoc);
                     order.push(
-                        <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}
+                            onClick={() => this.selectElement(doc)}>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 }
@@ -865,29 +888,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         />);
     }
 
-    /**
-     * The function that is called on click to turn fading document after presented option on/off.
-     * It also makes sure that the option swithches from hide-after to this one, since both
-     * can't coexist.
-     */
-    // @action
-    // onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
-    //     e.stopPropagation();
-    //     const activeItem: Doc = this.activeItem;
-    //     const targetDoc: Doc = this.targetDoc;
-    //     activeItem.presFadeButton = !activeItem.presFadeButton;
-    //     if (!activeItem.presFadeButton) {
-    //         if (targetDoc) {
-    //             targetDoc.opacity = 1;
-    //         }
-    //     } else {
-    //         activeItem.presHideAfterButton = false;
-    //         if (this.rootDoc.presStatus !== "edit" && targetDoc) {
-    //             targetDoc.opacity = 0.5;
-    //         }
-    //     }
-    // }
-
     // Converts seconds to ms and updates presTransition
     setTransitionTime = (number: String, change?: number) => {
         let timeInMS = Number(number) * 1000;
@@ -911,57 +911,38 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @undoBatch
     updateMovement = action((movement: any, all?: boolean) => {
-        if (all) {
-            this.childDocs.forEach((doc) => {
-                switch (movement) {
-                    case PresMovement.Zoom: //Pan and zoom
-                        doc.presMovement = PresMovement.Zoom;
-                        break;
-                    case PresMovement.Pan: //Pan
-                        doc.presMovement = PresMovement.Pan;
-                        break;
-                    case PresMovement.Jump: //Jump Cut
-                        doc.presJump = true;
-                        doc.presMovement = PresMovement.Jump;
-                        break;
-                    case PresMovement.None: default:
-                        doc.presMovement = PresMovement.None;
-                        break;
-                }
-            });
-        } else {
-            this._selectedArray?.forEach((doc) => {
-                switch (movement) {
-                    case PresMovement.Zoom: //Pan and zoom
-                        doc.presMovement = PresMovement.Zoom;
-                        break;
-                    case PresMovement.Pan: //Pan
-                        doc.presMovement = PresMovement.Pan;
-                        break;
-                    case PresMovement.Jump: //Jump Cut
-                        doc.presJump = true;
-                        doc.presMovement = PresMovement.Jump;
-                        break;
-                    case PresMovement.None: default:
-                        doc.presMovement = PresMovement.None;
-                        break;
-                }
-            });
-        }
+        const array: any[] = all ? this.childDocs : this._selectedArray;
+        array.forEach((doc) => {
+            switch (movement) {
+                case PresMovement.Zoom: //Pan and zoom
+                    doc.presMovement = PresMovement.Zoom;
+                    break;
+                case PresMovement.Pan: //Pan
+                    doc.presMovement = PresMovement.Pan;
+                    break;
+                case PresMovement.Jump: //Jump Cut
+                    doc.presJump = true;
+                    doc.presMovement = PresMovement.Jump;
+                    break;
+                case PresMovement.None: default:
+                    doc.presMovement = PresMovement.None;
+                    break;
+            }
+        })
     });
 
     @undoBatch
     @action
     updateHideBefore = (activeItem: Doc) => {
-        activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton;
-        this._selectedArray?.forEach((doc) => doc.presHideTillShownButton = activeItem.presHideTillShownButton);
+        activeItem.presHideBefore = !activeItem.presHideBefore;
+        this._selectedArray?.forEach((doc) => doc.presHideBefore = activeItem.presHideBefore);
     }
 
     @undoBatch
     @action
     updateHideAfter = (activeItem: Doc) => {
-        activeItem.presHideAfterButton = !activeItem.presHideAfterButton;
-        this._selectedArray?.forEach((doc) => doc.presHideAfterButton = activeItem.presHideAfterButton);
+        activeItem.presHideAfter = !activeItem.presHideAfter;
+        this._selectedArray?.forEach((doc) => doc.presHideAfter = activeItem.presHideAfter);
     }
 
     @undoBatch
@@ -976,55 +957,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     @action
     updateEffect = (effect: any, all?: boolean) => {
-        if (all) {
-            this.childDocs.forEach((doc) => {
-                const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-                switch (effect) {
-                    case PresEffect.Bounce:
-                        tagDoc.presEffect = PresEffect.Bounce;
-                        break;
-                    case PresEffect.Fade:
-                        tagDoc.presEffect = PresEffect.Fade;
-                        break;
-                    case PresEffect.Flip:
-                        tagDoc.presEffect = PresEffect.Flip;
-                        break;
-                    case PresEffect.Roll:
-                        tagDoc.presEffect = PresEffect.Roll;
-                        break;
-                    case PresEffect.Rotate:
-                        tagDoc.presEffect = PresEffect.Rotate;
-                        break;
-                    case PresEffect.None: default:
-                        tagDoc.presEffect = PresEffect.None;
-                        break;
-                }
-            });
-        } else {
-            this._selectedArray?.forEach((doc) => {
-                const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-                switch (effect) {
-                    case PresEffect.Bounce:
-                        tagDoc.presEffect = PresEffect.Bounce;
-                        break;
-                    case PresEffect.Fade:
-                        tagDoc.presEffect = PresEffect.Fade;
-                        break;
-                    case PresEffect.Flip:
-                        tagDoc.presEffect = PresEffect.Flip;
-                        break;
-                    case PresEffect.Roll:
-                        tagDoc.presEffect = PresEffect.Roll;
-                        break;
-                    case PresEffect.Rotate:
-                        tagDoc.presEffect = PresEffect.Rotate;
-                        break;
-                    case PresEffect.None: default:
-                        tagDoc.presEffect = PresEffect.None;
-                        break;
-                }
-            });
-        }
+        const array: any[] = all ? this.childDocs : this._selectedArray;
+        array.forEach((doc) => {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            switch (effect) {
+                case PresEffect.Bounce:
+                    tagDoc.presEffect = PresEffect.Bounce;
+                    break;
+                case PresEffect.Fade:
+                    tagDoc.presEffect = PresEffect.Fade;
+                    break;
+                case PresEffect.Flip:
+                    tagDoc.presEffect = PresEffect.Flip;
+                    break;
+                case PresEffect.Roll:
+                    tagDoc.presEffect = PresEffect.Roll;
+                    break;
+                case PresEffect.Rotate:
+                    tagDoc.presEffect = PresEffect.Rotate;
+                    break;
+                case PresEffect.None: default:
+                    tagDoc.presEffect = PresEffect.None;
+                    break;
+            }
+        });
     }
 
     @computed get transitionDropdown() {
@@ -1081,8 +1037,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Visibility {"&"} Duration
                         <div className="ribbon-doubleButton">
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideBefore ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfter ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>
                             <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
                         </div>
                         <div className="ribbon-doubleButton" >
@@ -1175,8 +1131,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 curDoc.presTransition = activeItem.presTransition;
                 curDoc.presDuration = activeItem.presDuration;
                 tagDoc.presEffectDirection = targetDoc.presEffectDirection;
-                curDoc.presHideTillShownButton = activeItem.presHideTillShownButton;
-                curDoc.presHideAfterButton = activeItem.presHideAfterButton;
+                curDoc.presHideBefore = activeItem.presHideBefore;
+                curDoc.presHideAfter = activeItem.presHideAfter;
             }
         });
     }
@@ -1372,7 +1328,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (data && presData) {
                 data.push(doc);
                 TabDocView.PinDoc(doc, false);
-                this.gotoDocument(this.childDocs.length, this.itemIndex);
+                this.gotoDocument(this.childDocs.length);
             } else {
                 this.props.addDocTab(doc, "add:right");
             }
@@ -1866,7 +1822,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </Tooltip>
                         <div className="toolbar-divider" />
-                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
+                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Keys are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: 'default', position: 'absolute', right: 30, fontSize: 16 }}>
                                 <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#5B9FDD' : 'white' }} />
                             </div>
@@ -2005,7 +1961,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : 'white' }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
             <div className="presPanel-divider"></div>
             <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === PresStatus.Autoplay ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
             <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
@@ -2022,13 +1978,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     startOrPause = () => {
-        if (this.layoutDoc.presStatus === "manual" || this.layoutDoc.presStatus === "edit") this.startAutoPres(this.itemIndex);
+        if (this.layoutDoc.presStatus === PresStatus.Manual || this.layoutDoc.presStatus === PresStatus.Edit) this.startAutoPres(this.itemIndex);
         else this.pauseAutoPres();
     }
 
     render() {
         // calling this method for keyEvents
         this.isPres;
+        // console.log("ActivePres Title: " + Cast(Doc.UserDoc().activePresentation, Doc, null).title);
+        // for (const doc of this._selectedArray) {
+        //     console.log(doc.title);
+        // }
         // needed to ensure that the childDocs are loaded for looking up fields
         this.childDocs.slice();
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
@@ -2039,7 +1999,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button-text">
@@ -2047,7 +2007,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         {this.playButtonFrames}
                     </div>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.updateMinimize(); this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }))}>EXIT</div>
+                    <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.updateMinimize(); this.layoutDoc.presStatus = PresStatus.Edit; clearTimeout(this._presTimer); }))}>EXIT</div>
                 </div>
             </div>
             :
