@@ -20,6 +20,7 @@ import "./VideoBox.scss";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Networking } from "../../Network";
 import { SnappingManager } from "../../util/SnappingManager";
+import { SelectionManager } from "../../util/SelectionManager";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -75,6 +76,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         update && this.player?.pause();
         update && this._youtubePlayer?.pauseVideo();
         this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
+        this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
+        this._youtubePlayer && SelectionManager.DeselectAll(); // if we don't deselect the player, then we get an annoying YouTube spinner I guess telling us we're paused.
         this._playTimer = undefined;
         this.updateTimecode();
     }
@@ -346,6 +349,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         const start = untracked(() => Math.round((this.layoutDoc._currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
+            onPointerLeave={this.updateTimecode}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width={Doc.NativeWidth(this.layoutDoc) || 640} height={Doc.NativeHeight(this.layoutDoc) || 390}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=0&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }

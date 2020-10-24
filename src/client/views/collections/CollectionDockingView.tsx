@@ -108,6 +108,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     @undoBatch
+    @action
     public static ReplaceTab(document: Doc, panelName: string, stack: any, addToSplit?: boolean): boolean {
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
@@ -140,8 +141,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
     @undoBatch
+    @action
     public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
         if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
+
+        const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === document);
+        if (tab) {
+            tab.header.parent.setActiveContentItem(tab.contentItem);
+            return true;
+        }
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);

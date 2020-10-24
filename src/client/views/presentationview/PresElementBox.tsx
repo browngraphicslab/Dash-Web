@@ -248,7 +248,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @undoBatch
     @action
     updateView = (targetDoc: Doc, activeItem: Doc) => {
-        console.log(targetDoc.type);
         if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
             const scroll = targetDoc._scrollTop;
             activeItem.presPinViewScroll = scroll;
@@ -349,10 +348,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     render() {
-        let item = null;
-        if (!(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise) item = null;
-        else item = this.mainItem;
-
-        return item;
+        return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : this.mainItem;
     }
 }
