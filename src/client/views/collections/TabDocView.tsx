@@ -130,7 +130,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const batch = UndoManager.StartBatch("pinning doc");
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
-            pinDoc.title = doc.title;
+            pinDoc.title = doc.title + " - slide";
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
             Doc.AddDocToList(curPres, "data", pinDoc);

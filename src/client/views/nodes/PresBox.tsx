@@ -168,14 +168,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeNext = Cast(this.childDocs[this.itemIndex + 1], Doc, null);
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
-        const currentFrame = Cast(targetDoc._currentFrame, "number", null);
-        const lastFrame = Cast(targetDoc.lastFrame, "number", null);
-        const curFrame = NumCast(targetDoc._currentFrame);
+        const currentFrame = Cast(targetDoc?._currentFrame, "number", null);
+        const lastFrame = Cast(targetDoc?.lastFrame, "number", null);
+        const curFrame = NumCast(targetDoc?._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
         // Case 1: There are still other frames and should go through all frames before going to next slide
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
+            const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
             targetDoc._viewTransition = "all 1s";
             setTimeout(() => targetDoc._viewTransition = undefined, 1010);
             // targetDoc._currentFrame = curFrame + 1;
@@ -317,8 +317,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // this still needs some fixing
             setTimeout(resetSelection, 500);
         };
-        const tabMap = CollectionDockingView.Instance.tabMap;
-        console.log(tabMap);
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
             openInTab();
@@ -728,7 +726,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Down": case "ArrowDown":
             case "Right": case "ArrowRight":
+                if (this.itemIndex >= this.childDocs.length - 1) return;
                 if (e.shiftKey) { // TODO: update to work properly
+                    console.log("Down: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
                     this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
                 } else {
@@ -739,7 +739,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Up": case "ArrowUp":
             case "Left": case "ArrowLeft":
+                if (this.itemIndex === 0) return;
                 if (e.shiftKey) { // TODO: update to work properly
+                    console.log("Up: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
                     this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
                 } else {
@@ -795,21 +797,28 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (docs.includes(tagDoc)) {
                     docs.push(tagDoc);
                     order.push(
-                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) + (edge - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                        <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: NumCast(tagDoc.y) + (edge - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 } else {
                     docs.push(tagDoc);
                     order.push(
-                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                        <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 }
-                // Case B: Document is not inside of the collection
+                // Case B: Document is presPinView and is presCollection
+            } else if (doc.pinWithView && this.rootDoc.presCollection === tagDoc) {
+                docs.push(tagDoc);
+                order.push(
+                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: 0, left: 0 }}>
+                        <div className="pathOrder-frame">{index + 1}</div>
+                    </div>);
+                // Case C: Document is not contained within presCollection
             } else {
                 docs.push(tagDoc);
                 order.push(
-                    <div className="pathOrder" style={{ top: 0, left: 0 }}>
+                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ position: 'absolute', top: 0, left: 0 }}>
                         <div className="pathOrder-frame">{index + 1}</div>
                     </div>);
             }

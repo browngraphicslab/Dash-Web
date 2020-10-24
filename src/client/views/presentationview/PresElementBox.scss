@@ -64,7 +64,6 @@ $slide-active: #5B9FDD;
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: pre;
-        transition: 500ms;
     }
 
     .presItem-docName {
@@ -82,7 +81,6 @@ $slide-active: #5B9FDD;
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: pre;
-        transition: 500ms;
         grid-row: 2;
         grid-column: 1/6;
     }
