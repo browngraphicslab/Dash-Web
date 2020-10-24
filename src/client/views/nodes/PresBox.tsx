@@ -137,7 +137,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    componentDidMount = () => {
+    componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
@@ -301,7 +301,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const docToJump = curDoc;
         const willZoom = false;
         const openInTab = () => {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === activeItem);
+            if (tab) {
+                tab.header.parent.setActiveContentItem(tab.contentItem);
+            } else {
+                collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
+            }
         };
         const tabMap = CollectionDockingView.Instance.tabMap;
         console.log(tabMap);
@@ -342,6 +347,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     bestTarget._scrollY = activeItem.presPinViewScroll;
                 } else if (bestTarget.type === DocumentType.COMPARISON) {
                     bestTarget._clipWidth = activeItem.presPinClipWidth;
+                } else if (bestTarget.type === DocumentType.VID) {
+                    bestTarget._currentTimecode = activeItem.presPinTimecode;
                 } else {
                     bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
                     bestTarget._panX = activeItem.presPinViewX;

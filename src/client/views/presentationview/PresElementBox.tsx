@@ -252,6 +252,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
             const scroll = targetDoc._scrollTop;
             activeItem.presPinViewScroll = scroll;
+        } else if (targetDoc.type === DocumentType.VID) {
+            activeItem.presPinTimecode = targetDoc._currentTimecode;
         } else if (targetDoc.type === DocumentType.COMPARISON) {
             const clipWidth = targetDoc._clipWidth;
             activeItem.presPinClipWidth = clipWidth;
