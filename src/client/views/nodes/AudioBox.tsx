@@ -149,6 +149,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     playLink = (doc: Doc) => {
+        console.log("playLink", "Doc: " + doc.title);
         let link = false;
         !Doc.AreProtosEqual(doc, this.props.Document) && DocListCast(this.props.Document.links).forEach(l => {
             if (l.anchor1 === doc || l.anchor2 === doc) {

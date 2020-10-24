@@ -62,6 +62,8 @@ $light-background: #ececec;
 
         .toolbar-button.active {
             color: $light-blue;
+            background-color: white;
+            border-radius: 100%;
         }
 
         .toolbar-transitionButtons {

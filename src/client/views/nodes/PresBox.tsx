@@ -120,6 +120,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get isPres(): boolean {
         document.removeEventListener("keydown", this.keyEvents, true);
         if (this.selectedDoc?.type === DocumentType.PRES) {
+            document.removeEventListener("keydown", this.keyEvents, true);
             document.addEventListener("keydown", this.keyEvents, true);
             return true;
         }
@@ -143,6 +144,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
+        document.removeEventListener("keydown", this.keyEvents, true);
         document.addEventListener("keydown", this.keyEvents, true);
         this._presKeyEventsActive = true;
         this.turnOffEdit(true);
@@ -152,6 +154,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     updateCurrentPresentation = () => {
         Doc.UserDoc().activePresentation = this.rootDoc;
+        document.removeEventListener("keydown", this.keyEvents, true);
         document.addEventListener("keydown", this.keyEvents, true);
         this.selectPres();
         PresBox.Instance = this;
@@ -300,6 +303,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const openInTab = () => {
             collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
         };
+        const tabMap = CollectionDockingView.Instance.tabMap;
+        console.log(tabMap);
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
             const presStatus = this.rootDoc.presStatus;
@@ -639,7 +644,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     selectElement = (doc: Doc) => {
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(), 0);
-        else this.selectPres();
+        else this.updateCurrentPresentation();
     }
 
     //Command click
@@ -768,6 +773,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get order() {
         const order: JSX.Element[] = [];
         const docs: Doc[] = [];
+        const number: number[] = [];
         this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc.context, Doc, null);
@@ -780,7 +786,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (docs.includes(tagDoc)) {
                     docs.push(tagDoc);
                     order.push(
-                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) + ((edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
+                        <div className="pathOrder" style={{ top: NumCast(tagDoc.y) + (edge - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 } else {
@@ -1820,13 +1826,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const isMini: boolean = this.toolbarWidth <= 100;
         const presKeyEvents: boolean = (this.isPres && this._presKeyEventsActive && this.rootDoc === Doc.UserDoc().activePresentation);
         return (mode === CollectionViewType.Carousel3D) ? (null) : (
-            <div id="toolbarContainer" className={'presBox-toolbar'} style={{ display: this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }}>
+            <div id="toolbarContainer" className={'presBox-toolbar'}>
                 {/* <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
                     <FontAwesomeIcon icon={"plus"} />
                     <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                 </div></Tooltip> */}
                 <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}>
-                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? '#AEDDF8' : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
+                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? '#5B9FDD' : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
                         <FontAwesomeIcon icon={"exchange-alt"} />
                     </div>
                 </Tooltip>
@@ -1835,7 +1841,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="toolbar-divider" />
                         <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                             <div className={"toolbar-button"}
-                                style={{ color: this._expandBoolean ? '#AEDDF8' : 'white' }}
+                                style={{ color: this._expandBoolean ? '#5B9FDD' : 'white' }}
                                 onClick={this.toggleExpandMode}>
                                 {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                                 <FontAwesomeIcon icon={"eye"} />
@@ -1844,12 +1850,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="toolbar-divider" />
                         <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Key are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: 'default', position: 'absolute', right: 30, fontSize: 16 }}>
-                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#AEDDF8' : 'white' }} />
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#5B9FDD' : 'white' }} />
                             </div>
                         </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{propTitle}</div></>}>
                             <div className="toolbar-button" style={{ position: 'absolute', right: 4, fontSize: 16 }} onClick={this.toggleProperties}>
-                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? '#AEDDF8' : 'white' }} />
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? '#5B9FDD' : 'white' }} />
                             </div>
                         </Tooltip>
                     </>
