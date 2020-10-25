@@ -150,7 +150,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
         this._disposers.selection = reaction(() => SelectionManager.SelectedDocuments(),
-            views => views.some(view => view.props.Document === this.rootDoc) && this.updateCurrentPresentation())
+            views => views.some(view => view.props.Document === this.rootDoc) && this.updateCurrentPresentation());
     }
 
     @action

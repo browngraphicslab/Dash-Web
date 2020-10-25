@@ -62,10 +62,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const titleEle = tab.titleElement[0];
             titleEle.size = StrCast(doc.title).length + 3;
             titleEle.value = doc.title;
-            titleEle.onchange = (e: any) => {
+            titleEle.onchange = undoBatch(action((e: any) => {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
-            };
+            }));
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
