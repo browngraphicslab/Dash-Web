@@ -76,7 +76,7 @@ export namespace UndoManager {
     export let undoStack: UndoBatch[] = observable([]);
     export let redoStack: UndoBatch[] = observable([]);
     let currentBatch: UndoBatch | undefined;
-    let batchCounter = 0;
+    export let batchCounter = 0;
     let undoing = false;
     let tempEvents: UndoEvent[] | undefined = undefined;
 

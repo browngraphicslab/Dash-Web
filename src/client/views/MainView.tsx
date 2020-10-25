@@ -58,6 +58,7 @@ import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
 import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
+import { UndoManager } from '../util/UndoManager';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -174,6 +175,7 @@ export class MainView extends React.Component {
     initEventListeners = () => {
         window.addEventListener("drop", e => e.preventDefault(), false);  // prevent default behavior of navigating to a new web page
         window.addEventListener("dragover", e => e.preventDefault(), false);
+        document.addEventListener("pointermove", action(e => SearchBox.Instance._undoBackground = UndoManager.batchCounter ? "#000000a8" : undefined));
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("click", (e: MouseEvent) => {
             if (!e.cancelBubble) {
