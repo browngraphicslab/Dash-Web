@@ -624,7 +624,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 } else {
                     doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
                     doc.presMovement = PresMovement.Zoom;
-                    doc.title = doc.title + " - Slide";
+                    if (!doc.presentationTargetDoc) doc.title = doc.title + " - Slide";
                     if (this._expandBoolean) doc.presExpandInlineButton = true;
                 }
             }
