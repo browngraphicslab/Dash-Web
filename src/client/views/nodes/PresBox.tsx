@@ -124,8 +124,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (this._selectedArray) return DocumentManager.Instance.getDocumentView(this.rootDoc);
-        return undefined;
+        if (this._selectedArray.size) return DocumentManager.Instance.getDocumentView(this.rootDoc);
     }
     @computed get isPres(): boolean {
         document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
@@ -173,10 +172,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
         document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
         PresBox.Instance = this;
-        console.log("PresBox.Instance: " + PresBox.Instance)
-        console.log("Active item title: " + this.activeItem.title)
-        console.log("ChildDocs length: " + this.childDocs.length)
-        console.log("rootDoc.title: " + this.rootDoc.title)
     }
 
     /**
@@ -521,6 +516,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action toggleExpandMode = () => {
         runInAction(() => this._expandBoolean = !this._expandBoolean);
+        this.rootDoc.expandBoolean = this._expandBoolean;
         this.childDocs.forEach((doc) => {
             doc.presExpandInlineButton = this._expandBoolean;
         });
@@ -609,23 +605,28 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach((doc, i) => {
-            console.log(doc);
-            console.log(doc.title);
             if (doc.type === DocumentType.LABEL) {
                 const audio = Cast(doc.annotationOn, Doc, null);
                 if (audio) {
-                    audio.aliasOf instanceof Doc;
                     audio.presStartTime = NumCast(doc.audioStart);
                     audio.presEndTime = NumCast(doc.audioEnd);
                     audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
                     TabDocView.PinDoc(audio, false, true);
-                    setTimeout(() => this.removeDocument(doc), 1);
+                    setTimeout(() => this.removeDocument(doc), 0);
                     return false;
                 }
             } else {
-                doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-                !this.childDocs.includes(doc) && (doc.presMovement = PresMovement.Zoom);
-                if (this._expandBoolean) doc.presExpandInlineButton = true;
+                if (!doc.aliasOf) {
+                    const original = Doc.MakeAlias(doc);
+                    TabDocView.PinDoc(original);
+                    setTimeout(() => this.removeDocument(doc), 0);
+                    return false;
+                } else {
+                    doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+                    doc.presMovement = PresMovement.Zoom;
+                    doc.title = doc.title + " - Slide";
+                    if (this._expandBoolean) doc.presExpandInlineButton = true;
+                }
             }
         });
         return true;
@@ -669,7 +670,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     selectElement = (doc: Doc) => {
         const context = Cast(doc.context, Doc, null);
-        console.log(context.type);
         this.gotoDocument(this.childDocs.indexOf(doc));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
@@ -754,7 +754,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             case "Right": case "ArrowRight":
                 if (this.itemIndex >= this.childDocs.length - 1) return;
                 if (e.shiftKey) { // TODO: update to work properly
-                    // console.log("Down: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -767,7 +766,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             case "Left": case "ArrowLeft":
                 if (this.itemIndex === 0) return;
                 if (e.shiftKey) { // TODO: update to work properly
-                    // console.log("Up: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -913,7 +911,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 10000) timeInMS = 10000;
-        this._selectedArray?.forEach((doc) => doc.presTransition = timeInMS);
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presTransition = timeInMS);
     }
 
     // Converts seconds to ms and updates presDuration
@@ -922,7 +920,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 20000) timeInMS = 20000;
-        this._selectedArray?.forEach((doc) => doc.presDuration = timeInMS);
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presDuration = timeInMS);
     }
 
     /**
@@ -930,7 +928,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @undoBatch
     updateMovement = action((movement: any, all?: boolean) => {
-        const array: any[] = all ? this.childDocs : this._selectedArray;
+        const array: any[] = all ? this.childDocs : Array.from(this._selectedArray.keys());
         array.forEach((doc) => {
             switch (movement) {
                 case PresMovement.Zoom: //Pan and zoom
@@ -954,21 +952,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     updateHideBefore = (activeItem: Doc) => {
         activeItem.presHideBefore = !activeItem.presHideBefore;
-        this._selectedArray?.forEach((doc) => doc.presHideBefore = activeItem.presHideBefore);
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presHideBefore = activeItem.presHideBefore);
     }
 
     @undoBatch
     @action
     updateHideAfter = (activeItem: Doc) => {
         activeItem.presHideAfter = !activeItem.presHideAfter;
-        this._selectedArray?.forEach((doc) => doc.presHideAfter = activeItem.presHideAfter);
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presHideAfter = activeItem.presHideAfter);
     }
 
     @undoBatch
     @action
     updateOpenDoc = (activeItem: Doc) => {
         activeItem.openDocument = !activeItem.openDocument;
-        this._selectedArray.forEach((doc) => {
+        Array.from(this._selectedArray.keys()).forEach((doc) => {
             doc.openDocument = activeItem.openDocument;
         });
     }
@@ -976,7 +974,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     @action
     updateEffect = (effect: any, all?: boolean) => {
-        const array: any[] = all ? this.childDocs : this._selectedArray;
+        const array: any[] = all ? this.childDocs : Array.from(this._selectedArray.keys());
         array.forEach((doc) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             switch (effect) {
@@ -1046,8 +1044,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed}
                             className={`toolbar-slider ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}
                             id="toolbar-slider"
-                            onPointerDown={() => { this._batch = UndoManager.StartBatch("presTransition"); }}
-                            onPointerUp={() => { if (this._batch) this._batch.end(); }}
+                            onPointerDown={() => this._batch = UndoManager.StartBatch("presTransition")}
+                            onPointerUp={() => this._batch?.end()}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 e.stopPropagation();
                                 this.setTransitionTime(e.target.value);
@@ -1197,7 +1195,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div> : (null)}
                             {this.panable || this.scrollable || this.targetDoc.type === DocumentType.COMPARISON ? 'Pinned view' : (null)}
                             <div className="ribbon-doubleButton">
-                                <Tooltip title={<><div className="dash-tooltip">{activeItem.presPinView ? "Turn off pin with view" : "Pin with current view"}</div></>}><div className="ribbon-toggle" style={{ width: 20, padding: 0, backgroundColor: activeItem.presPinView ? PresColors.LightBlue : "" }}
+                                <Tooltip title={<><div className="dash-tooltip">{activeItem.presPinView ? "Turn off pin with view" : "Turn on pin with view"}</div></>}><div className="ribbon-toggle" style={{ width: 20, padding: 0, backgroundColor: activeItem.presPinView ? PresColors.LightBlue : "" }}
                                     onClick={() => {
                                         activeItem.presPinView = !activeItem.presPinView;
                                         targetDoc.presPinView = activeItem.presPinView;
@@ -1867,7 +1865,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                 </div></Tooltip> */}
                 <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}>
-                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? '#5B9FDD' : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
+                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? PresColors.DarkBlue : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
                         <FontAwesomeIcon icon={"exchange-alt"} />
                     </div>
                 </Tooltip>
@@ -1876,7 +1874,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className="toolbar-divider" />
                         <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                             <div className={"toolbar-button"}
-                                style={{ color: this._expandBoolean ? '#5B9FDD' : 'white' }}
+                                style={{ color: this._expandBoolean ? PresColors.DarkBlue : 'white' }}
                                 onClick={this.toggleExpandMode}>
                                 {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                                 <FontAwesomeIcon icon={"eye"} />
@@ -1884,13 +1882,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </Tooltip>
                         <div className="toolbar-divider" />
                         <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Keys are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
-                            <div className="toolbar-button" style={{ cursor: 'default', position: 'absolute', right: 30, fontSize: 16 }}>
-                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? '#5B9FDD' : 'white' }} />
+                            <div className="toolbar-button" style={{ cursor: presKeyEvents ? 'default' : 'pointer', position: 'absolute', right: 30, fontSize: 16 }}>
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? PresColors.DarkBlue : 'white' }} />
                             </div>
                         </Tooltip>
                         <Tooltip title={<><div className="dash-tooltip">{propTitle}</div></>}>
                             <div className="toolbar-button" style={{ position: 'absolute', right: 4, fontSize: 16 }} onClick={this.toggleProperties}>
-                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? '#5B9FDD' : 'white' }} />
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? PresColors.DarkBlue : 'white' }} />
                             </div>
                         </Tooltip>
                     </>
@@ -1917,15 +1915,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <option onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Stacking}>List</option>
                     <option onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Carousel3D}>3D Carousel</option>
                 </select>}
-                <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length > 0 ? 1 : 0.3 }}>
+                <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length ? 1 : 0.3 }}>
                     <span className={`presBox-button ${this.layoutDoc.presStatus === "edit" ? "present" : ""}`}>
-                        <div className="presBox-button-left" onClick={() => (this.childDocs.length > 0) && (this.layoutDoc.presStatus = "manual")}>
+                        <div className="presBox-button-left" onClick={undoBatch(() => (this.childDocs.length) && (this.layoutDoc.presStatus = "manual"))}>
                             <FontAwesomeIcon icon={"play-circle"} />
                             <div style={{ display: this.props.PanelWidth() > 200 ? "inline-flex" : "none" }}>&nbsp; Present</div>
                         </div>
                         {(mode === CollectionViewType.Carousel3D || isMini) ? (null) : <div className={`presBox-button-right ${this.presentTools ? "active" : ""}`}
                             onClick={(action(() => {
-                                if (this.childDocs.length > 0) this.presentTools = !this.presentTools;
+                                if (this.childDocs.length) this.presentTools = !this.presentTools;
                             }))}>
                             <FontAwesomeIcon className="dropdown" style={{ margin: 0, transform: this.presentTools ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"angle-down"} />
                             {this.presentDropdown}
@@ -2046,10 +2044,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     render() {
         // calling this method for keyEvents
         this.isPres;
-        // console.log("ActivePres Title: " + Cast(Doc.UserDoc().activePresentation, Doc, null).title);
-        // for (const doc of this._selectedArray) {
-        //     console.log(doc.title);
-        // }
         // needed to ensure that the childDocs are loaded for looking up fields
         this.childDocs.slice();
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
@@ -2057,7 +2051,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return CurrentUserUtils.OverlayDocs.includes(this.rootDoc) ?
             <div className="miniPres">
                 <div className="presPanelOverlay" style={{ display: "inline-flex", height: 30, background: '#323232', top: 0, zIndex: 3000000, boxShadow: presKeyEvents ? '0 0 0px 3px #AEDDF8' : undefined }}>
-                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? PresColors.DarkBlue : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="presPanel-divider"></div>
                     <div className="presPanel-button" onClick={() => { this.back(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-left"} /></div>
                     <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>

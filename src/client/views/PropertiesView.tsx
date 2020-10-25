@@ -47,7 +47,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance?._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (PresBox.Instance?._selectedArray.size) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
