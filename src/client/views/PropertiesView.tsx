@@ -27,6 +27,7 @@ import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
+import { CollectionViewType } from "./collections/CollectionView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -984,6 +985,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
                 const type = PresBox.Instance.activeItem?.type;
+                const viewType = PresBox.Instance.activeItem?._viewType;
+                const pannable: boolean = (type === DocumentType.COL && viewType === CollectionViewType.Freeform) || type === DocumentType.IMG;
+                const scrollable: boolean = type === DocumentType.PDF || type === DocumentType.WEB || type === DocumentType.RTF || viewType === CollectionViewType.Stacking;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -991,7 +995,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance?._selectedArray.length} selected
+                            <div className="propertiesView-selectedCount">{PresBox.Instance?._selectedArray.length} selected</div>
                             <div className="propertiesView-selectedList">
                                 {PresBox.Instance?.listOfSelected}
                             </div>
@@ -1023,12 +1027,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>} */}
-                    {!selectedItem || (type !== DocumentType.COL && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (!scrollable && !pannable) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
-                        <div className="propertiesView-presTrails-title-icon">
+                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {scrollable ? "Scroll options" : "Pan options"}
+                            <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
