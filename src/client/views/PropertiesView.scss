@@ -687,10 +687,12 @@
     display: inline-flex;
 
     .propertiesView-selectedCount {
-        
+        width: max-content;
+        min-width: max-content;
     }
 
     .propertiesView-selectedList {
+        min-width: max-content;
         border-left: solid 1px darkgrey;
         margin-left: 10px;
         padding-left: 5px;
