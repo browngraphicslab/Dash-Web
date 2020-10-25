@@ -622,9 +622,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     setTimeout(() => this.removeDocument(doc), 0);
                     return false;
                 } else {
+                    if (!doc.presentationTargetDoc) doc.title = doc.title + " - Slide";
                     doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
                     doc.presMovement = PresMovement.Zoom;
-                    if (!doc.presentationTargetDoc) doc.title = doc.title + " - Slide";
                     if (this._expandBoolean) doc.presExpandInlineButton = true;
                 }
             }
