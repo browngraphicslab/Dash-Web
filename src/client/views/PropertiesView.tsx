@@ -47,7 +47,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (PresBox.Instance?._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -983,7 +983,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>;
             }
             if (this.isPres) {
-                const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const selectedItem: boolean = PresBox.Instance?._selectedArray.size > 0;
                 const type = PresBox.Instance.activeItem?.type;
                 const viewType = PresBox.Instance.activeItem?._viewType;
                 const pannable: boolean = (type === DocumentType.COL && viewType === CollectionViewType.Freeform) || type === DocumentType.IMG;
@@ -995,7 +995,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            <div className="propertiesView-selectedCount">{PresBox.Instance?._selectedArray.length} selected</div>
+                            <div className="propertiesView-selectedCount">
+                                {PresBox.Instance?._selectedArray.size} selected
+                            </div>
                             <div className="propertiesView-selectedList">
                                 {PresBox.Instance?.listOfSelected}
                             </div>

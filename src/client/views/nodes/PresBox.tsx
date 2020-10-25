@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Doc, DocCastAsync, DocListCast, DocListCastAsync } from "../../../fields/Doc";
@@ -65,14 +65,14 @@ const PresBoxDocument = makeInterface(documentSchema);
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
 
-    public static Instance: PresBox;
+    @observable public static Instance: PresBox;
 
     @observable _isChildActive = false;
     @observable _moveOnFromAudio: boolean = true;
     @observable _presTimer!: NodeJS.Timeout;
     @observable _presKeyEventsActive: boolean = false;
 
-    @observable _selectedArray: Doc[] = [];
+    @observable _selectedArray: ObservableMap = new ObservableMap<Doc, any>();
     @observable _eleArray: HTMLElement[] = [];
     @observable _dragArray: HTMLElement[] = [];
     @observable _pathBoolean: boolean = false;
@@ -107,7 +107,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presElement() { return Cast(Doc.UserDoc().presElement, Doc, null); }
     constructor(props: any) {
         super(props);
-        if (Doc.UserDoc().activePresentation = this.rootDoc) PresBox.Instance = this;
+        if (Doc.UserDoc().activePresentation = this.rootDoc) runInAction(() => PresBox.Instance = this);
         if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
                 title: "pres element template", type: DocumentType.PRESELEMENT, backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
@@ -127,10 +127,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return undefined;
     }
     @computed get isPres(): boolean {
-        document.removeEventListener("keydown", this.keyEvents, true);
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
         if (this.selectedDoc?.type === DocumentType.PRES) {
-            document.removeEventListener("keydown", this.keyEvents, true);
-            document.addEventListener("keydown", this.keyEvents, true);
+            document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+            document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
             return true;
         }
         return false;
@@ -139,7 +139,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     componentWillUnmount() {
-        document.removeEventListener("keydown", this.keyEvents, true);
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
         this._presKeyEventsActive = false;
         this.resetPresentation();
         // Turn of progressivize editors
@@ -154,28 +154,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
-        document.removeEventListener("keydown", this.keyEvents, true);
-        document.addEventListener("keydown", this.keyEvents, true);
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+        document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
         this._presKeyEventsActive = true;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
     }
 
+    @action
     updateCurrentPresentation = (pres?: Doc) => {
-        if (pres && pres.type === DocumentType.PRES) {
-            Doc.UserDoc().activePresentation = pres;
-            this.selectPres(pres);
-        } else {
-            Doc.UserDoc().activePresentation = this.rootDoc;
-            this.selectPres();
-        }
-        document.removeEventListener("keydown", this.keyEvents, true);
-        document.addEventListener("keydown", this.keyEvents, true);
+        if (pres) Doc.UserDoc().activePresentation = pres;
+        else Doc.UserDoc().activePresentation = this.rootDoc;
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+        document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
         PresBox.Instance = this;
-        if (Doc.UserDoc().activePresentation !== this.rootDoc) {
-            PresBox.Instance.forceUpdate();
-        }
         console.log("PresBox.Instance: " + PresBox.Instance)
         console.log("Active item title: " + this.activeItem.title)
         console.log("ChildDocs length: " + this.childDocs.length)
@@ -285,8 +278,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
-            this._selectedArray.splice(0, this._selectedArray.length, this.childDocs[index]); //Updates selected array
-            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]); // Handles movement to element
+            this._selectedArray.clear();
+            this.childDocs[index] && this._selectedArray.set(this.childDocs[index], undefined); //Update selected array
+            //Handles movement to element
+            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
             this.onHideDocument(); //Handles hide after/before
         }
     });
@@ -314,7 +309,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const docToJump = curDoc;
         const willZoom = false;
         const presStatus = this.rootDoc.presStatus;
-        const selViewCache = Array.from(this._selectedArray);
+        const selViewCache = Array.from(this._selectedArray.keys());
         const dragViewCache = Array.from(this._dragArray);
         const eleViewCache = Array.from(this._eleArray);
         const self = this;
@@ -322,7 +317,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const presDocView = DocumentManager.Instance.getDocumentView(self.rootDoc);
             if (presDocView) SelectionManager.SelectDoc(presDocView, false);
             self.rootDoc.presStatus = presStatus;
-            self._selectedArray.splice(0, self._selectedArray.length, ...selViewCache);
+            self._selectedArray.clear();
+            selViewCache.forEach(doc => self._selectedArray.set(doc, undefined));
             self._dragArray.splice(0, self._dragArray.length, ...dragViewCache);
             self._eleArray.splice(0, self._eleArray.length, ...eleViewCache);
         });
@@ -609,6 +605,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach((doc, i) => {
+            console.log(doc);
+            console.log(doc.title);
             if (doc.type === DocumentType.LABEL) {
                 const audio = Cast(doc.annotationOn, Doc, null);
                 if (audio) {
@@ -640,14 +638,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @action
     sortArray = (): Doc[] => {
-        return this.childDocs.filter(doc => this._selectedArray.includes(doc));
+        return this.childDocs.filter(doc => this._selectedArray.has(doc));
     }
 
     /**
      * Method to get the list of selected items in the order in which they have been selected
      */
     @computed get listOfSelected() {
-        const list = this._selectedArray.map((doc: Doc, index: any) => {
+        const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
             if (curDoc && curDoc === this.activeItem) return <div className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>
@@ -666,7 +664,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Regular click
     @action
     selectElement = (doc: Doc) => {
-        const context = Cast(doc.context, Doc, null)
+        const context = Cast(doc.context, Doc, null);
+        console.log(context.type);
         this.gotoDocument(this.childDocs.indexOf(doc));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
@@ -675,8 +674,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Command click
     @action
     multiSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        if (!this._selectedArray.includes(doc)) {
-            this._selectedArray.push(doc);
+        if (!this._selectedArray.has(doc)) {
+            this._selectedArray.set(doc, undefined);
             this._eleArray.push(ref);
             this._dragArray.push(drag);
         }
@@ -686,11 +685,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Shift click
     @action
     shiftSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        this._selectedArray.length = 0;
+        this._selectedArray.clear();
         // const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         if (this.activeItem) {
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
-                this._selectedArray.push(this.childDocs[i]);
+                this._selectedArray.set(this.childDocs[i], undefined);
                 this._eleArray.push(ref);
                 this._dragArray.push(drag);
             }
@@ -701,7 +700,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //regular click
     @action
     regularSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement, focus: boolean) => {
-        this._selectedArray.splice(0, this._selectedArray.length, doc);
+        this._selectedArray.clear();
+        this._selectedArray.set(doc, undefined);
         this._eleArray.splice(0, this._eleArray.length, ref);
         this._dragArray.splice(0, this._dragArray.length, drag);
         focus && this.selectElement(doc);
@@ -712,6 +712,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (cmdClick) this.multiSelect(doc, ref, drag);
         else if (shiftClick) this.shiftSelect(doc, ref, drag);
         else this.regularSelect(doc, ref, drag, focus);
+    }
+
+    static keyEventsWrapper = (e: KeyboardEvent) => {
+        PresBox.Instance.keyEvents(e);
     }
 
     // Key for when the presentaiton is active
@@ -725,10 +729,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             case "Backspace":
                 if (this.layoutDoc.presStatus === "edit") {
                     undoBatch(action(() => {
-                        for (const doc of this._selectedArray) {
+                        for (const doc of Array.from(this._selectedArray.keys())) {
                             this.removeDocument(doc);
                         }
-                        this._selectedArray.length = 0;
+                        this._selectedArray.clear();
                         this._eleArray.length = 0;
                         this._dragArray.length = 0;
                     }))();
@@ -737,7 +741,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Escape":
                 if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) { this.updateMinimize(); }
-                else if (this.layoutDoc.presStatus === "edit") { this._selectedArray.length = this._eleArray.length = this._dragArray.length = 0; }
+                else if (this.layoutDoc.presStatus === "edit") { this._selectedArray.clear(); this._eleArray.length = this._dragArray.length = 0; }
                 else this.layoutDoc.presStatus = "edit";
                 if (this._presTimer) clearTimeout(this._presTimer);
                 handled = true;
@@ -748,7 +752,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (e.shiftKey) { // TODO: update to work properly
                     // console.log("Down: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
-                    this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
+                    this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
                     this.next();
                     if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
@@ -761,7 +765,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (e.shiftKey) { // TODO: update to work properly
                     // console.log("Up: " + this.rootDoc._itemIndex, this.itemIndex, this.childDocs.length)
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
-                    this._selectedArray.push(this.childDocs[this.rootDoc._itemIndex]);
+                    this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
                     this.back();
                     if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
@@ -774,8 +778,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 handled = true;
                 break;
             case "a":
-                if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === PresStatus.Edit) {
-                    this._selectedArray.splice(0, this._selectedArray.length, ...this.childDocs);
+                if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === "edit") {
+                    this._selectedArray.clear();
+                    this.childDocs.forEach(doc => this._selectedArray.set(doc, undefined));
                     handled = true;
                 }
             default:
@@ -1114,9 +1119,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
-                        {/* <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
-                            Apply to selected
-                        </div> */}
                         <div className="ribbon-final-button-hidden" onClick={() => this.applyTo(this.childDocs)}>
                             Apply to all
                         </div>

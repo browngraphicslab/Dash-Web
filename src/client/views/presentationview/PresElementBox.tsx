@@ -141,8 +141,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         e.preventDefault();
         if (element && !(e.ctrlKey || e.metaKey)) {
-            if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
-                PresBox.Instance._selectedArray.length === 1 && PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, false);
+            if (PresBox.Instance._selectedArray.has(this.rootDoc)) {
+                PresBox.Instance._selectedArray.size === 1 && PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, false);
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
                 setupMoveUpEvents(this, e, ((e: PointerEvent) => {
@@ -171,7 +171,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         } else if (dragArray.length >= 1) {
             const doc = document.createElement('div');
             doc.className = "presItem-multiDrag";
-            doc.innerText = "Move " + PresBox.Instance._selectedArray.length + " slides";
+            doc.innerText = "Move " + PresBox.Instance._selectedArray.size + " slides";
             doc.style.position = 'absolute';
             doc.style.top = (e.clientY) + 'px';
             doc.style.left = (e.clientX - 50) + 'px';
@@ -230,8 +230,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @undoBatch
     removeItem = action((e: React.MouseEvent) => {
         this.props.removeDocument?.(this.rootDoc);
-        if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
-            PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
+        if (PresBox.Instance._selectedArray.has(this.rootDoc)) {
+            PresBox.Instance._selectedArray.delete(this.rootDoc);
         }
         e.stopPropagation();
     });
@@ -279,7 +279,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     @computed get mainItem() {
-        const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
+        const isSelected: boolean = PresBox.Instance._selectedArray.has(this.rootDoc);
         const toolbarWidth: number = this.toolbarWidth;
         const showMore: boolean = this.toolbarWidth >= 300;
         const miniView: boolean = this.toolbarWidth <= 100;
