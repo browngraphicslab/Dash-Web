@@ -335,11 +335,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
             openInTab();
-        } else
+        } else {
             //docToJump stayed same meaning, it was not in the group or was the last element in the group
-            if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
-                this.zoomProgressivizeNext(targetDoc);
-            } else if (docToJump === curDoc) {
+            // if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
+            //     this.zoomProgressivizeNext(targetDoc);
+            // } else 
+            if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
                 if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
                     await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext); // documents open in new tab instead of on right
@@ -351,9 +352,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 //awaiting jump so that new scale can be found, since jumping is async
                 targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
             }
+        }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
-        // TODO: Add option to remove presPinView 
         if (activeItem.presPinView) {
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
             const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
@@ -840,7 +841,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>);
                 }
                 // Case B: Document is presPinView and is presCollection
-            } else if (doc.pinWithView && this.rootDoc.presCollection === tagDoc) {
+            } else if (doc.pinWithView && this.layoutDoc.presCollection === tagDoc) {
                 docs.push(tagDoc);
                 order.push(
                     <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: 0, left: 0 }}>
@@ -993,7 +994,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     _batch: UndoManager.Batch | undefined = undefined;
-
 
     @computed get transitionDropdown() {
         const activeItem: Doc = this.activeItem;
