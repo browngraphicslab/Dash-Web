@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable, runInAction, ObservableMap } from "mobx";
+import { action, computed, observable, runInAction, ObservableMap, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Doc, DocCastAsync, DocListCast, DocListCastAsync } from "../../../fields/Doc";
@@ -76,6 +76,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable _pathBoolean: boolean = false;
     @observable _expandBoolean: boolean = false;
 
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
     @observable private progressivizeTools: boolean = false;
@@ -132,6 +133,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this._presKeyEventsActive = false;
         // Turn of progressivize editors
         this.turnOffEdit(true);
+        Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
     @action
@@ -147,6 +149,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
+        this._disposers.selection = reaction(() => SelectionManager.SelectedDocuments(),
+            views => views.some(view => view.props.Document === this.rootDoc) && this.updateCurrentPresentation())
     }
 
     @action
