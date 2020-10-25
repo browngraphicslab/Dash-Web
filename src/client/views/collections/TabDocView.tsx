@@ -127,10 +127,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
+            if (doc === curPres) { alert("Cannot pin presentation document to itself"); return; }
             const batch = UndoManager.StartBatch("pinning doc");
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
-            pinDoc.title = doc.title;
+            pinDoc.title = doc.title + " - Slide";
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
             Doc.AddDocToList(curPres, "data", pinDoc);

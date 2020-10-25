@@ -393,11 +393,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
         if (curPres) {
+            if (doc === curPres) { alert("Cannot pin presentation document to itself"); return; }
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
-            pinDoc.title = doc.title;
+            pinDoc.title = doc.title + " - Slide";
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
