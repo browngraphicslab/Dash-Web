@@ -46,7 +46,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (PresBox.Instance?._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -982,7 +982,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>;
             }
             if (this.isPres) {
-                const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const selectedItem: boolean = PresBox.Instance?._selectedArray.size > 0;
                 const type = PresBox.Instance.activeItem?.type;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
@@ -991,7 +991,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance?._selectedArray.length} selected
+                            {PresBox.Instance?._selectedArray.size} selected
                             <div className="propertiesView-selectedList">
                                 {PresBox.Instance?.listOfSelected}
                             </div>
