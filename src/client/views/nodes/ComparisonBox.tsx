@@ -51,9 +51,9 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     private registerSliding = (e: React.PointerEvent<HTMLDivElement>, targetWidth: number) => {
         setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, action(() => {
             // on click, animate slider movement to the targetWidth
-            this._animating = "all 1s";
+            this._animating = "all 200ms";
             this.layoutDoc._clipWidth = targetWidth * 100 / this.props.PanelWidth();
-            setTimeout(action(() => this._animating = ""), 1000);
+            setTimeout(action(() => this._animating = ""), 200);
         }), false);
     }
 
@@ -102,12 +102,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
         return (
             <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}` /* change className to easily disable/enable pointer events in CSS */}>
-                {displayBox("after", 1, this.props.PanelWidth() - 5)}
+                {displayBox("after", 1, this.props.PanelWidth() - 3)}
                 <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: StrCast(this.layoutDoc._backgroundColor, "gray") }}>
-                    {displayBox("before", 0, 5)}
+                    {displayBox("before", 0, 0)}
                 </div>
 
-                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}
+                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)`, cursor: NumCast(this.layoutDoc._clipWidth) < 5 ? "e-resize" : NumCast(this.layoutDoc._clipWidth) / 100 > (this.props.PanelWidth() - 5) / this.props.PanelWidth() ? "w-resize" : undefined }}
                     onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() / 2)} /* if clicked, return slide-bar to center */ >
                     <div className="slide-handle" />
                 </div>
