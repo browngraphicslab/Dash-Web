@@ -38,7 +38,13 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     private PanelHeight = () => this.panelHeight;
 
     @computed get panelWidth() { return this.nativeWidth() && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
-    @computed get panelHeight() { return this.nativeHeight() && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
+    @computed get panelHeight() {
+        if (this.nativeHeight()) {
+            if (!this.props.Document._fitWidth) return this.nativeHeight() * this.contentScaling()
+            else return this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 1;
+        }
+        return this.props.PanelHeight();
+    }
 
     @computed get childXf() { return this.props.DataDoc ? 1 : 1 / this.contentScaling(); }  // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
     private getTransform = () => this.props.dontCenter ?

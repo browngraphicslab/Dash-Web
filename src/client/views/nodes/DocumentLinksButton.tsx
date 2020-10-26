@@ -243,13 +243,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             src={`/assets/${"link.png"}`} />;
 
         const linkButton = <div className="documentLinksButton-cont" ref={this._linkButton} style={{
-            minWidth: 20, minHeight: 20, position: "absolute",
             left: this.props.Offset?.[0], top: this.props.Offset?.[1], right: this.props.Offset?.[2], bottom: this.props.Offset?.[3]
         }}>
             <div className={"documentLinksButton"} style={{
                 backgroundColor: this.props.InMenu ? "" : "#add8e6",
                 color: this.props.InMenu ? "white" : "black",
-                width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
+                width: this.props.InMenu ? "20px" : "30px",
+                height: this.props.InMenu ? "20px" : "30px",
             }}
                 onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}
             // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
