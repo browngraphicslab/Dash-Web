@@ -167,6 +167,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     updateCurrentPresentation = (pres?: Doc) => {
+        console.log('update current pres');
         if (pres) Doc.UserDoc().activePresentation = pres;
         else Doc.UserDoc().activePresentation = this.rootDoc;
         document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
@@ -174,72 +175,78 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         PresBox.Instance = this;
     }
 
-    /**
-     * Called when the user moves to the next slide in the presentation trail.
-     */
+    // There are still other internal frames and should go through all frames before going to next slide
+    nextInternalFrame = (targetDoc: Doc, activeItem: Doc) => {
+        const currentFrame = Cast(targetDoc?._currentFrame, "number", null);
+        const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
+        targetDoc._viewTransition = "all 1s";
+        setTimeout(() => targetDoc._viewTransition = undefined, 1010);
+        this.nextKeyframe(targetDoc, activeItem);
+        if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
+        else targetDoc.editing = true;
+    }
+
+    // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+    nextAudioVideo = (targetDoc: Doc, activeItem: Doc) => {
+        if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
+        // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        activeItem.playNow = false;
+    }
+
+    // No more frames in current doc and next slide is defined, therefore move to next slide 
+    nextSlide = (targetDoc: Doc, activeNext: Doc) => {
+        const nextSelected = this.itemIndex + 1;
+        if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
+        // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
+        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
+        // If next slide is audio / video 'Play automatically' then the next slide should be played
+        if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+            console.log('play next automatically');
+            if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
+            // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
+        this.gotoDocument(nextSelected);
+    }
+
+    // Called when the user activates 'next' - to move to the next part of the pres. trail
     @action
     next = () => {
-        this.updateCurrentPresentation();
+        console.log("--------------------------------");
         const activeNext = Cast(this.childDocs[this.itemIndex + 1], Doc, null);
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const currentFrame = Cast(targetDoc?._currentFrame, "number", null);
         const lastFrame = Cast(targetDoc?.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc?._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
-        // Case 1: There are still other frames and should go through all frames before going to next slide
+
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
-            const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
-            targetDoc._viewTransition = "all 1s";
-            setTimeout(() => targetDoc._viewTransition = undefined, 1010);
-            // targetDoc._currentFrame = curFrame + 1;
-            this.nextKeyframe(targetDoc, activeItem);
-            if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
-            else targetDoc.editing = true;
-            // if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
-            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+            // Case 1: There are still other frames and should go through all frames before going to next slide
+            this.nextInternalFrame(targetDoc, activeItem);
         } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
-            if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
-            // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
-            activeItem.playNow = false;
-            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
+            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+            this.nextAudioVideo(targetDoc, activeItem);
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
-            if (activeNext.presPinView || activeNext.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(), 0);
-            else this.selectPres();
-            const nextSelected = this.itemIndex + 1;
-            if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
-            // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
-            const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
-            // If next slide is audio / video 'Play automatically' then the next slide should be played
-            if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-                console.log('play next automatically');
-                if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-                // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
-            } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
-            this.gotoDocument(nextSelected);
+            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
+            this.nextSlide(targetDoc, activeNext);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
+            // Case 4: Last slide and presLoop is toggled ON
             this.gotoDocument(0);
         }
     }
 
-    /**
-     * Called when the user moves back
-     * Design choice: If there are frames within the presentation, moving back will not
-     * got back through the frames but instead directly to the next point in the presentation.
-     */
+    // Called when the user activates 'back' - to move to the previous part of the pres. trail
     @action
     back = () => {
-        this.updateCurrentPresentation();
+        console.log("****************************");
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         const prevItem = Cast(this.childDocs[Math.max(0, this.itemIndex - 1)], Doc, null);
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
-        if (prevItem.presPinView || prevTargetDoc === this.layoutDoc.presCollection) { setTimeout(() => this.updateCurrentPresentation(), 0); }
-        else this.selectPres();
         if (lastFrame !== undefined && curFrame >= 1) {
+            // Case 1: There are still other frames and should go through all frames before going to previous slide
             this.prevKeyframe(targetDoc, activeItem);
         } else if (activeItem) {
             let prevSelected = this.itemIndex;
@@ -279,11 +286,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             this._selectedArray.clear();
             this.childDocs[index] && this._selectedArray.set(this.childDocs[index], undefined); //Update selected array
-            //Handles movement to element
-            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
+            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]); //Handles movement to element only when presTrail is list
             this.onHideDocument(); //Handles hide after/before
         }
     });
+
+
+    navigateToView = (targetDoc: Doc, activeItem: Doc) => {
+        const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
+        bestTarget && runInAction(() => {
+            if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
+                bestTarget._scrollY = activeItem.presPinViewScroll;
+            } else if (bestTarget.type === DocumentType.COMPARISON) {
+                bestTarget._clipWidth = activeItem.presPinClipWidth;
+            } else if (bestTarget.type === DocumentType.VID) {
+                bestTarget._currentTimecode = activeItem.presPinTimecode;
+            } else {
+                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
+                bestTarget._panX = activeItem.presPinViewX;
+                bestTarget._panY = activeItem.presPinViewY;
+                bestTarget._viewScale = activeItem.presPinViewScale;
+            }
+        });
+        setTimeout(() => targetDoc._viewTransition = undefined, 1010);
+    }
 
     /**
      * This method makes sure that cursor navigates to the element that
@@ -331,10 +357,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (activeItem.openDocument) {
             openInTab();
         } else {
-            //docToJump stayed same meaning, it was not in the group or was the last element in the group
-            // if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== PresStatus.Edit) {
-            //     this.zoomProgressivizeNext(targetDoc);
-            // } else 
             if (docToJump === curDoc) {
                 //checking if curDoc has navigation open
                 if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
@@ -352,25 +374,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // adjust the pan and scale to that of the pinView when it was added.
         if (activeItem.presPinView) {
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
-            const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
-            bestTarget && runInAction(() => {
-                if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
-                    bestTarget._scrollY = activeItem.presPinViewScroll;
-                } else if (bestTarget.type === DocumentType.COMPARISON) {
-                    bestTarget._clipWidth = activeItem.presPinClipWidth;
-                } else if (bestTarget.type === DocumentType.VID) {
-                    bestTarget._currentTimecode = activeItem.presPinTimecode;
-                } else {
-                    bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
-                    bestTarget._panX = activeItem.presPinViewX;
-                    bestTarget._panY = activeItem.presPinViewY;
-                    bestTarget._viewScale = activeItem.presPinViewScale;
-                }
-            });
-            //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
+            this.navigateToView(targetDoc, activeItem);
         }
-        // If website and has presWebsite data associated then on click it should
-        // go back to that specific website
         // TODO: Add progressivize for navigating web (storing websites for given frames)
     }
 
@@ -669,6 +674,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Regular click
     @action
     selectElement = (doc: Doc) => {
+        console.log("~~~~~~~~~~~~~~~~~~~~~~~~~");
         const context = Cast(doc.context, Doc, null);
         this.gotoDocument(this.childDocs.indexOf(doc));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
