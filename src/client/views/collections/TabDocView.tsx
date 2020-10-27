@@ -134,7 +134,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             pinDoc.title = doc.title + " - Slide";
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
-            Doc.AddDocToList(curPres, "data", pinDoc);
+            const presArray: Doc[] = PresBox.Instance?.sortArray();
+            const size: number = PresBox.Instance?._selectedArray.size;
+            const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
+            Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
             if (pinDoc.type === "audio" && !audioRange) {
                 pinDoc.presStartTime = 0;
                 pinDoc.presEndTime = doc.duration;
@@ -149,6 +152,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
                 CollectionDockingView.AddSplit(curPres, "right");
             }
+            PresBox.Instance?._selectedArray.clear();
+            pinDoc && PresBox.Instance?._selectedArray.set(pinDoc, undefined); //Update selected array
             DocumentManager.Instance.jumpToDocument(doc, false, undefined);
             batch.end();
         }

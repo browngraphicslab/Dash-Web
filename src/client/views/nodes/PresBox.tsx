@@ -155,9 +155,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
-        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
-        document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
-        this._presKeyEventsActive = true;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
@@ -172,6 +169,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         else Doc.UserDoc().activePresentation = this.rootDoc;
         document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
         document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
+        this._presKeyEventsActive = true;
         PresBox.Instance = this;
     }
 
@@ -264,17 +262,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-            if (activeItem.presPinView) {
-                const bestTarget = DocumentManager.Instance.getFirstDocumentView(presTargetDoc)?.props.Document;
-                bestTarget && runInAction(() => {
-                    if (activeItem.presMovement === PresMovement.Jump) {
-                        bestTarget._viewTransition = '0s';
-                    } else {
-                        bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
-                        setTimeout(() => bestTarget._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
-                    }
-                });
-            } else if (presTargetDoc) {
+            if (presTargetDoc) {
                 presTargetDoc && runInAction(() => {
                     if (activeItem.presMovement === PresMovement.Jump) presTargetDoc.focusSpeed = 0;
                     else presTargetDoc.focusSpeed = activeItem.presTransition ? activeItem.presTransition : 500;
@@ -291,11 +279,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     });
 
-
+    _navTimer!: NodeJS.Timeout;
     navigateToView = (targetDoc: Doc, activeItem: Doc) => {
+        clearTimeout(this._navTimer);
         const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
         bestTarget && runInAction(() => {
             if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
+                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
                 bestTarget._scrollY = activeItem.presPinViewScroll;
             } else if (bestTarget.type === DocumentType.COMPARISON) {
                 bestTarget._clipWidth = activeItem.presPinClipWidth;
@@ -307,8 +297,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 bestTarget._panY = activeItem.presPinViewY;
                 bestTarget._viewScale = activeItem.presPinViewScale;
             }
+            this._navTimer = setTimeout(() => bestTarget._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 510);
         });
-        setTimeout(() => targetDoc._viewTransition = undefined, 1010);
     }
 
     /**
@@ -325,14 +315,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const srcContext = await DocCastAsync(targetDoc?.context);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
         const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
+        const includesDoc: boolean = DocListCast(presCollection?.data).includes(targetDoc);
         this.turnOffEdit();
-        if (this.itemIndex >= 0) {
-            if (srcContext && targetDoc) {
-                this.layoutDoc.presCollection = srcContext;
-            } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
-        }
-        const docToJump = curDoc;
-        const willZoom = false;
+        if (includesDoc) {
+            this.layoutDoc.presCollection = srcContext;
+        } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         const presStatus = this.rootDoc.presStatus;
         const selViewCache = Array.from(this._selectedArray.keys());
         const dragViewCache = Array.from(this._dragArray);
@@ -356,19 +343,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
             openInTab();
-        } else {
-            if (docToJump === curDoc) {
-                //checking if curDoc has navigation open
-                if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext); // documents open in new tab instead of on right
-                } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
-                    //awaiting jump so that new scale can be found, since jumping is async
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, resetSelection); // documents open in new tab instead of on right
-                }
-            } else {
-                //awaiting jump so that new scale can be found, since jumping is async
-                targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
-            }
+        } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
+            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
+        } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
+            //awaiting jump so that new scale can be found, since jumping is async
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
         }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
@@ -688,8 +667,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this._selectedArray.set(doc, undefined);
             this._eleArray.push(ref);
             this._dragArray.push(drag);
+        } else {
+            this._selectedArray.delete(doc);
+            this.removeFromArray(this._eleArray, doc);
+            this.removeFromArray(this._dragArray, doc);
         }
         this.selectPres();
+    }
+
+    removeFromArray = (arr: any[], val: any) => {
+        const index: number = arr.indexOf(val);
+        const ret: any[] = arr.splice(index, 1);
+        arr = ret;
     }
 
     //Shift click
@@ -1614,12 +1603,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     turnOffEdit = (paths?: boolean) => {
+        // Turn off paths
         if (paths) {
-            // Turn off paths
             const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
             if (srcContext) this.togglePath(srcContext, true);
         }
-        // Turn off the progressivize editors for each
+        // Turn off the progressivize editors for each document
         this.childDocs.forEach((doc) => {
             doc.editSnapZoomProgressivize = false;
             doc.editZoomProgressivize = false;
