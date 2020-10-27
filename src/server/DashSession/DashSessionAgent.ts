@@ -29,7 +29,6 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Installs event hooks, repl commands and additional IPC listeners.
      */
     protected async initializeMonitor(monitor: Monitor): Promise<string> {
-
         const sessionKey = Utils.GenerateGuid();
         await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
