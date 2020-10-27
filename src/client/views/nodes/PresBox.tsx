@@ -164,7 +164,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     updateCurrentPresentation = (pres?: Doc) => {
-        console.log('update current pres');
         if (pres) Doc.UserDoc().activePresentation = pres;
         else Doc.UserDoc().activePresentation = this.rootDoc;
         document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
@@ -209,7 +208,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Called when the user activates 'next' - to move to the next part of the pres. trail
     @action
     next = () => {
-        console.log("--------------------------------");
         const activeNext = Cast(this.childDocs[this.itemIndex + 1], Doc, null);
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
@@ -236,7 +234,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Called when the user activates 'back' - to move to the previous part of the pres. trail
     @action
     back = () => {
-        console.log("****************************");
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         const prevItem = Cast(this.childDocs[Math.max(0, this.itemIndex - 1)], Doc, null);
@@ -653,7 +650,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Regular click
     @action
     selectElement = (doc: Doc) => {
-        console.log("~~~~~~~~~~~~~~~~~~~~~~~~~");
         const context = Cast(doc.context, Doc, null);
         this.gotoDocument(this.childDocs.indexOf(doc));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
