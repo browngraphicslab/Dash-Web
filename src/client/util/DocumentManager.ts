@@ -128,14 +128,9 @@ export class DocumentManager {
     }
 
 
-    static addView = (doc: Doc, finished?: () => void, presCollection?: Doc) => {
-        if (presCollection) {
-            const collectionDocView = DocumentManager.Instance.getDocumentView(presCollection);
-            if (collectionDocView) collectionDocView.props.addDocTab(doc, "replace");
-        } else {
-            CollectionDockingView.AddSplit(doc, "right");
-            finished?.();
-        }
+    static addView = (doc: Doc, finished?: () => void) => {
+        CollectionDockingView.AddSplit(doc, "right");
+        finished?.();
     }
     public jumpToDocument = async (
         targetDoc: Doc,        // document to display

@@ -69,11 +69,11 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     SetActiveInkWidth(e.target.value);
                     SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeWidth = Number(e.target.value));
                 }} />
-                <div> {ActiveInkBezierApprox() ?? 2}</div>
+                {/* <div> {ActiveInkBezierApprox() ?? 2}</div>
                 <input type="range" defaultValue={ActiveInkBezierApprox() ?? 2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     SetActiveBezierApprox(e.target.value);
                     SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeBezier = e.target.value);
-                }} />
+                }} /> */}
                 <br />
                 <br />
             </div>

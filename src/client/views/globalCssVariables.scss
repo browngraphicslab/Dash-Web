@@ -33,7 +33,7 @@ $searchpanel-height: 32px;
 $mainTextInput-zindex: 999; // then text input overlay so that it's context menu will appear over decorations, etc
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
-$COLLECTION_BORDER_WIDTH: 1;
+$COLLECTION_BORDER_WIDTH: 0;
 $SCHEMA_DIVIDER_WIDTH: 4;
 $MINIMIZED_ICON_SIZE:25;
 $MAX_ROW_HEIGHT: 44px;

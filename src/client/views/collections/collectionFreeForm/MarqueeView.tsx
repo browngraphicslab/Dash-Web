@@ -25,7 +25,7 @@ import "./MarqueeView.scss";
 import React = require("react");
 import { Id } from "../../../../fields/FieldSymbols";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
-import { PresMovement } from "../../nodes/PresBox";
+import { PresBox, PresMovement } from "../../nodes/PresBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -399,7 +399,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
             pinDoc.title = doc.title + " - Slide";
-            Doc.AddDocToList(curPres, "data", pinDoc);
+            const presArray: Doc[] = PresBox.Instance?.sortArray();
+            const size: number = PresBox.Instance?._selectedArray.size;
+            const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
+            Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 CollectionDockingView.AddSplit(curPres, "right");
