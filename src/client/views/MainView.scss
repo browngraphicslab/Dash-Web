@@ -153,7 +153,7 @@
     cursor: auto;
 }
 
-.mainView-innerContent {
+.mainView-innerContent, .mainView-innerContent-dark {
     display: contents;
     flex-direction: row;
     position: relative;
@@ -174,6 +174,43 @@
         right: 0;
         position: absolute;
         z-index: 2;
+        background-color: rgb(159, 159, 159);
+        .editable-title {
+            background-color: lightgrey;
+        }
+    }
+
+}
+.mainView-innerContent-dark 
+{
+    .propertiesView {
+        background-color: #252525;
+        input {
+            background-color: dimgrey;
+        }
+        .propertiesView-sharingTable 
+        {
+            background-color: dimgrey;
+        }
+        .editable-title {
+            background-color: dimgrey;
+        }
+        .propertiesView-field {
+            background-color: dimgrey;
+        }
+    }
+    .mainView-propertiesDragger,
+    .mainView-libraryHandle {
+        background: #353535;
+    }
+}
+.mainView-container-dark {
+    .contextMenu-cont {
+        background: dimgrey;
+        color: white;
+        input::placeholder {
+            color:white;
+        }
     }
 }
 

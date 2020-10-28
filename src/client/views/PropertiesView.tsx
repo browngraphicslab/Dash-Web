@@ -5,7 +5,7 @@ import { intersection } from "lodash";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
@@ -36,6 +36,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
+    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => Opt<string>;
 }
 
 @observer
@@ -144,7 +145,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>);
                 }
             }
-            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+            rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
                     contents={"add key:value or #tags"}
@@ -172,14 +173,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 docs.forEach(doc => docvals.add(doc[key]));
                 const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
-                    rows.push(<div className="uneditable-field" key={key}>
+                    rows.push(<div className="propertiesView-uneditable-field" key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                         &nbsp;
                     </div>);
                 } else if (contents !== undefined) {
                     const value = Field.toString(contents as Field);
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
-                        rows.push(<div className="uneditable-field" key={key}>
+                        rows.push(<div className="propertiesView-uneditable-field" key={key}>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
                             <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
@@ -200,7 +201,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     }
                 }
             }
-            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+            rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
                     contents={"add key:value or #tags"}
@@ -253,7 +254,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddSplit(doc, "right")} />;
     }
 
-    previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
         if (SelectionManager.SelectedDocuments().length > 1) {
             return "-- multiple selected --";
@@ -270,7 +270,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
-                    backgroundColor={this.previewBackground}
+                    backgroundColor={this.props.backgroundColor}
                     fitToBox={true}
                     FreezeDimensions={true}
                     dontCenter={true}
@@ -856,7 +856,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    minWidth: this.props.width
+                    minWidth: this.props.width,
                     //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>

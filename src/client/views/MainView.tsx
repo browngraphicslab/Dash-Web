@@ -232,6 +232,7 @@ export class MainView extends React.Component {
         if (this.darkScheme) {
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: return "dimgrey";
+                case DocumentType.PRES: return "#3e3e3e";
                 case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
@@ -414,18 +415,18 @@ export class MainView extends React.Component {
     @computed get mainInnerContent() {
         return <>
             {this.menuPanel}
-            <div className="mainView-innerContent" >
+            <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, background: this.darkScheme ? "black" : "lightgrey" }} onPointerDown={this.onFlyoutPointerDown} >
+                < div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
                     <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
 
                 {this.dockingContent}
 
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
-                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color="black" size="sm" />
+                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView backgroundColor={this.defaultBackgroundColors} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
