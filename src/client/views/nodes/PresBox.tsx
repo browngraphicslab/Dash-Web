@@ -90,7 +90,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const tagDocs: Doc[] = [];
         for (const doc of this.childDocs) {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            tagDocs.push(tagDoc)
+            tagDocs.push(tagDoc);
         }
         return tagDocs;
     }
@@ -634,7 +634,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            if (curDoc && curDoc === this.activeItem) return <div className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>
+            if (curDoc && curDoc === this.activeItem) return <div className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
             else if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
             else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
@@ -797,10 +797,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     getAllIndexes = (arr: Doc[], val: Doc): number[] => {
-        var indexes = [], i;
-        for (i = 0; i < arr.length; i++)
-            if (arr[i] === val)
-                indexes.push(i);
+        const indexes = [];
+        for (let i = 0; i < arr.length; i++) {
+            arr[i] === val && indexes.push(i);
+        }
         return indexes;
     }
 
@@ -936,7 +936,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     doc.presMovement = PresMovement.None;
                     break;
             }
-        })
+        });
     });
 
     @undoBatch

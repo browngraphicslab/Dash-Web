@@ -40,7 +40,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     @computed get panelWidth() { return this.nativeWidth() && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
     @computed get panelHeight() {
         if (this.nativeHeight()) {
-            if (!this.props.Document._fitWidth) return this.nativeHeight() * this.contentScaling()
+            if (!this.props.Document._fitWidth) return this.nativeHeight() * this.contentScaling();
             else return this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 1;
         }
         return this.props.PanelHeight();
