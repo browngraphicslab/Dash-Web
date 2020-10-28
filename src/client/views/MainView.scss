@@ -334,7 +334,6 @@
     position: relative;
     z-index: 41; // lm_maximised has a z-index of 40 and this needs to be above that
     touch-action: none;
-    background-color: lightgrey;
     cursor: grab;
     display: flex;
     align-items: center;

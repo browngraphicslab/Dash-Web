@@ -229,25 +229,28 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (doc?.type === DocumentType.COL) {
-            return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-        }
         if (this.darkScheme) {
             switch (doc?.type) {
-                case DocumentType.FONTICON: return "white";
+                case DocumentType.PRESELEMENT: return "dimgrey";
+                case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
-                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                case DocumentType.COL:
+                    return Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
                 default: return "black";
             }
         } else {
             switch (doc?.type) {
+                case DocumentType.PRESELEMENT: return "";
                 case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
-                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
+                case DocumentType.COL:
+                    return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
                 default: return "white";
             }
         }
@@ -345,7 +348,7 @@ export class MainView extends React.Component {
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                         relative={true}
-                        forcedBackgroundColor={() => "lightgrey"}
+                        forcedBackgroundColor={() => this.darkScheme ? "rgb(62,62,62)" : "lightgrey"}
                     />
                 </div>
                 {this.docButtons}
@@ -413,8 +416,8 @@ export class MainView extends React.Component {
             {this.menuPanel}
             <div className="mainView-innerContent" >
                 {this.flyout}
-                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined }} onPointerDown={this.onFlyoutPointerDown} >
-                    <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, background: this.darkScheme ? "black" : "lightgrey" }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
 
                 {this.dockingContent}
@@ -443,7 +446,7 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        button._backgroundColor = "lightgrey";
+        button._backgroundColor = this.darkScheme ? "dimgrey" : "lightgrey";
         button.color = "black";
         this._lastButton = button;
     });
