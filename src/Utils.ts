@@ -475,7 +475,7 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export function smoothScroll(duration: number, element: HTMLElement, to: number) {
+export function smoothScroll(duration: number, element: HTMLElement, to: number, finish?: () => void) {
     const start = element.scrollTop;
     const change = to - start;
     const startDate = new Date().getTime();
@@ -489,6 +489,7 @@ export function smoothScroll(duration: number, element: HTMLElement, to: number)
             requestAnimationFrame(animateScroll);
         } else {
             element.scrollTop = to;
+            finish?.();
         }
     };
     animateScroll();
