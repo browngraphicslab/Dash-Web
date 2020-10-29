@@ -1,4 +1,3 @@
-import { faMousePointer, faPen, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -47,6 +46,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _startX: number = 0;
     private _startY: number = 0;
+    private _scrollTarget: any = undefined;
     @observable private _marqueeX: number = 0;
     @observable private _marqueeY: number = 0;
     @observable private _marqueeWidth: number = 0;
@@ -61,8 +61,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     private _selectionReactionDisposer?: IReactionDisposer;
     private _scrollReactionDisposer?: IReactionDisposer;
+    private _scrollTopReactionDisposer?: IReactionDisposer;
     private _moveReactionDisposer?: IReactionDisposer;
-    private _keyInput = React.createRef<HTMLInputElement>();
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _outerRef = React.createRef<HTMLDivElement>();
     private _iframeRef = React.createRef<HTMLIFrameElement>();
@@ -83,14 +83,17 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (iframe && iframe.contentDocument) {
             iframe.setAttribute("enable-annotation", "true");
             iframe.contentDocument.addEventListener("click", undoBatch(action(e => {
-                const href = e.target?.href;
+                let href = "";
+                for (let ele = e.target; ele; ele = ele.parentElement) {
+                    href = (typeof (ele.href) === "string" ? ele.href : ele.href?.baseVal) || ele.parentElement?.href || href;
+                }
                 if (href) {
                     this._url = href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin);
                     this.submitURL();
                 }
             })));
-            iframe.contentDocument.addEventListener('pointerdown', this.iframedown, false);
-            iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
+            iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
+            iframe.contentDocument.addEventListener('scroll', this.iframeScroll, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
             iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc._scrollTop);
             iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc._scrollLeft);
@@ -102,17 +105,30 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
                 const duration = durationStr ? Number(durationStr[1]) : 1000;
                 if (scrollY !== undefined) {
-                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollY || 0)), delay);
-                    setTimeout(() => { this.layoutDoc._scrollTop = scrollY; this.layoutDoc._scrollY = undefined; }, duration + delay);
+                    this._forceSmoothScrollUpdate = true;
+                    this.layoutDoc._scrollY = undefined;
+                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollY || 0), () => this.layoutDoc._scrollTop = scrollY), delay);
                 }
                 if (scrollX !== undefined) {
-                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollX || 0)), delay);
-                    setTimeout(() => { this.layoutDoc._scrollLeft = scrollX; this.layoutDoc._scrollX = undefined; }, duration + delay);
+                    this._forceSmoothScrollUpdate = true;
+                    this.layoutDoc._scrollX = undefined;
+                    setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollX || 0), () => this.layoutDoc._scrollLeft = scrollX), delay);
                 }
             },
             { fireImmediately: true }
         );
+        this._scrollTopReactionDisposer = reaction(() => this.layoutDoc._scrollTop,
+            scrollTop => {
+                const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                const duration = durationStr ? Number(durationStr[1]) : 1000;
+                if (scrollTop !== undefined && this._forceSmoothScrollUpdate) {
+                    this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollTop || 0), () => this._forceSmoothScrollUpdate = true);
+                } else this._forceSmoothScrollUpdate = true;
+            },
+            { fireImmediately: true }
+        );
     });
+    _forceSmoothScrollUpdate = true;
 
     updateScroll = (x: Opt<number>, y: Opt<number>) => {
         if (y !== undefined) {
@@ -126,17 +142,27 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
-    iframedown = (e: PointerEvent) => {
-        this._setPreviewCursor?.(e.screenX, e.screenY, false);
-    }
-    iframeScrolled = (e: any) => {
-        if (e.target?.children) {
-            e.target.children[0].scrollLeft = 0;
-            const scrollTop = e.target.children[0].scrollTop;
-            const scrollLeft = e.target.children[0].scrollLeft;
-            this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-            this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+    iframeWheel = (e: any) => {
+        if (this._forceSmoothScrollUpdate && e.target?.children) {
+            this._scrollTarget && setTimeout(action(() => {
+                this._scrollTarget.scrollLeft = 0;
+                const scrollTop = this._scrollTarget.scrollTop;
+                const scrollLeft = this._scrollTarget.scrollLeft;
+                this._outerRef.current!.scrollTop = scrollTop;
+                this._outerRef.current!.scrollLeft = scrollLeft;
+                if (this.layoutDoc._scrollTop !== scrollTop) {
+                    this._forceSmoothScrollUpdate = false;
+                    this.layoutDoc._scrollTop = scrollTop;
+                }
+                if (this.layoutDoc._scrollLeft !== scrollLeft) {
+                    this._forceSmoothScrollUpdate = false;
+                    this.layoutDoc._scrollLeft = scrollLeft;
+                }
+            }))
         }
+    }
+    iframeScroll = (e: any) => {
+        this._scrollTarget = e.target.children[0];
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -180,11 +206,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     componentWillUnmount() {
         this._moveReactionDisposer?.();
         this._selectionReactionDisposer?.();
+        this._scrollTopReactionDisposer?.();
         this._scrollReactionDisposer?.();
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
-        this._iframeRef.current?.contentDocument?.removeEventListener('pointerdown', this.iframedown);
-        this._iframeRef.current?.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
+        this._iframeRef.current?.contentDocument?.removeEventListener('wheel', this.iframeWheel);
+        this._iframeRef.current?.contentDocument?.removeEventListener('scroll', this.iframeScroll);
     }
 
     onUrlDragover = (e: React.DragEvent) => {
