@@ -839,8 +839,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClicks.push({ description: "Select on Click", event: () => this.selectOnClick(), icon: "link" });
                 onClicks.push({ description: "Follow Link on Click", event: () => this.followLinkOnClick(undefined, false), icon: "link" });
                 onClicks.push({ description: "Toggle Link Target on Click", event: () => this.toggleTargetOnClick(), icon: "map-pin" });
+                !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
             }
-            !existingOnClick && cm.addItem({ description: "OnClick...", addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
         }
 
         const funcs: ContextMenuProps[] = [];
