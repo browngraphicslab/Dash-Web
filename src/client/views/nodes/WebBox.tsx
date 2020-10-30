@@ -495,7 +495,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) }} ref={this._annotationLayer}>
+        return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
                 <Annotation {...this.props} showInfo={emptyFunction} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
@@ -569,10 +569,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }
             else if (this._mainCont.current) {
                 // set marquee x and y positions to the spatially transformed position
+                const nheight = Doc.NativeHeight(this.Document) || 1;
+                const nwidth = Doc.NativeWidth(this.Document) || 1;
                 const boundingRect = this._mainCont.current.getBoundingClientRect();
-                const boundingHeight = (Doc.NativeHeight(this.Document) || 1) / (Doc.NativeWidth(this.Document) || 1) * boundingRect.width;
-                this._startX = (e.clientX - boundingRect.left) / boundingRect.width * (Doc.NativeWidth(this.Document) || 1);
-                this._startY = (e.clientY - boundingRect.top) / boundingHeight * (Doc.NativeHeight(this.Document) || 1);
+                const boundingHeight = nheight / nwidth * boundingRect.width;
+                this._startX = (e.clientX - boundingRect.left) / boundingRect.width * nwidth;
+                this._startY = (e.clientY - boundingRect.top) / boundingHeight * nheight;
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
@@ -646,11 +648,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeiht = () => {
+    visibleHeight = () => {
         if (this._mainCont.current) {
             const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const scalin = (Doc.NativeWidth(this.Document) || 0) / boundingRect.width;
-            return Math.min(boundingRect.height * scalin, this.props.PanelHeight() * scalin);
+            const scaling = (Doc.NativeWidth(this.Document) || 0) / boundingRect.width;
+            return Math.min(boundingRect.height * scaling, this.props.PanelHeight() * scaling);
         }
         return this.props.PanelHeight();
     }
@@ -661,7 +663,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             <div className={`webBox-container`}
                 style={{
                     position: undefined,
-                    transform: `scale(${this.props.ContentScaling()})`,
+                    transform: `sfcale(${scaling})`,
                     width: `${100 / scaling}% `,
                     height: `${100 / scaling}% `,
                     pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
@@ -697,7 +699,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.props.PanelWidth}
                             annotationsKey={this.annotationKey}
-                            VisibleHeight={this.visibleHeiht}
+                            VisibleHeight={this.visibleHeight}
                             focus={this.props.focus}
                             setPreviewCursor={this.setPreviewCursor}
                             isSelected={this.props.isSelected}
