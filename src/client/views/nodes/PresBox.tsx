@@ -482,7 +482,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //stops the presentaton.
     resetPresentation = () => {
         this.rootDoc._itemIndex = 0;
-        for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
+        this.childDocs.map(doc => Cast(doc.presentationTargetDoc, Doc, null)).filter(doc => doc).forEach(doc => doc.opacity = 1);
+        ///for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
     @action togglePath = (srcContext: Doc, off?: boolean) => {
