@@ -92,6 +92,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
+export const ForceServerWrite = Symbol("ForceServerWrite");
 export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
@@ -185,9 +186,10 @@ export class Doc extends RefField {
     @observable public [AclSym]: { [key: string]: symbol };
 
     private [UpdatingFromServer]: boolean = false;
+    private [ForceServerWrite]: boolean = false;
 
     private [Update] = (diff: any) => {
-        !this[UpdatingFromServer] && DocServer.UpdateField(this[Id], diff);
+        (!this[UpdatingFromServer] || this[ForceServerWrite]) && DocServer.UpdateField(this[Id], diff);
     }
 
     private [Self] = this;
