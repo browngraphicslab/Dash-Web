@@ -159,7 +159,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action
     updateTimecode = () => {
         this.player && (this.layoutDoc._currentTimecode = this.player.currentTime);
-        this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime());
+        this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime?.());
     }
 
     componentDidMount() {
