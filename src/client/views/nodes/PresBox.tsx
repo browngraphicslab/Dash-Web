@@ -641,9 +641,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            if (curDoc && curDoc === this.activeItem) return <div className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
-            else if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
-            else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            if (curDoc && curDoc === this.activeItem) return <div key={index} className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
+            else if (tagDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            else if (curDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
         return list;
     }

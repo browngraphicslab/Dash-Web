@@ -656,13 +656,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
+        const scaling = Number.isFinite(this.props.ContentScaling()) ? this.props.ContentScaling() : 1;
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{
                     position: undefined,
                     transform: `scale(${this.props.ContentScaling()})`,
-                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
-                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    width: `${100 / scaling}% `,
+                    height: `${100 / scaling}% `,
                     pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
@@ -670,7 +671,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%",
+                        width: `${Math.max(100, 100 / scaling)}% `,
                         pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc._isBackground ? "all" : "none"
                     }}
                     onWheel={e => e.stopPropagation()}
