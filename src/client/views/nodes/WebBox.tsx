@@ -690,7 +690,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
                     }}>
                     <div className={"webBox-innerContent"} style={{
-                        height: NumCast(this.layoutDoc.scrollHeight),
+                        height: NumCast(this.layoutDoc.scrollHeight, 50),
                         pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
