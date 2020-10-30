@@ -62,7 +62,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openOptions: boolean = true;
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
-    @observable openLayout: boolean = true;
+    @observable openLayout: boolean = false;
     @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
