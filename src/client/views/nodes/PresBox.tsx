@@ -482,7 +482,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //stops the presentaton.
     resetPresentation = () => {
         this.rootDoc._itemIndex = 0;
-        this.childDocs.map(doc => Cast(doc.presentationTargetDoc, Doc, null)).filter(doc => doc instanceof Doc).forEach(doc => doc.opacity = 1);
+        this.childDocs.map(doc => Cast(doc.presentationTargetDoc, Doc, null)).filter(doc => doc instanceof Doc).forEach(doc => {
+            try {
+                doc.opacity = 1;
+            } catch (e) {
+                console.log("REset presentation error: ", e);
+            }
+        });
         ///for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
