@@ -196,7 +196,7 @@ export class ComputedField extends ScriptField {
 }
 
 Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
-    return list.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);
+    return list?.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);
 }, "returns the value at a given index of a list", "(list: any[], index: number)");
 
 Scripting.addGlobal(function makeScript(script: string) {
