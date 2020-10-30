@@ -682,7 +682,7 @@ export namespace Doc {
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
-                    setTimeout(() => {
+                    setTimeout(action(() => {
                         const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                         // the template's arguments are stored in params which is derefenced to find
                         // the actual field key where the parameterized template data is stored.
@@ -696,7 +696,7 @@ export namespace Doc {
                         targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
 
                         _pendingMap.delete(targetDoc[Id] + expandedLayoutFieldKey + args);
-                    });
+                    }));
                 }
             }
         }
