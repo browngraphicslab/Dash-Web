@@ -656,7 +656,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
-        const scaling = Number.isFinite(this.props.ContentScaling()) ? this.props.ContentScaling() : 1;
+        const scaling = Number.isFinite(this.props.ContentScaling()) ? this.props.ContentScaling() || 1 : 1;
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{
