@@ -663,7 +663,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             <div className={`webBox-container`}
                 style={{
                     position: undefined,
-                    transform: `sfcale(${scaling})`,
+                    transform: `scale(${scaling})`,
                     width: `${100 / scaling}% `,
                     height: `${100 / scaling}% `,
                     pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
