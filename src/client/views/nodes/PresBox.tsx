@@ -808,6 +808,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get order() {
         const order: JSX.Element[] = [];
         const docs: Doc[] = [];
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
+        const dv = DocumentManager.Instance.getDocumentView(presCollection);
         this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc.context, Doc, null);
@@ -816,8 +818,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
             const gap = 2;
-            // Case A: Document is contained within the collection
-            if (this.rootDoc.presCollection === srcContext) {
+            if (presCollection === srcContext) {
+                // Case A: Document is contained within the collection
+                console.log(`-------Case A: ${index}-------`);
                 if (docs.includes(tagDoc)) {
                     const prevOccurances: number = this.getAllIndexes(docs, tagDoc).length;
                     docs.push(tagDoc);
@@ -838,15 +841,33 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 }
+            } else if (doc.presPinView && presCollection === tagDoc && dv) {
                 // Case B: Document is presPinView and is presCollection
-            } else if (doc.pinWithView && this.layoutDoc.presCollection === tagDoc) {
+                console.log(`-------Case B: ${index}-------`);
+                const scale: number = 1 / NumCast(doc.presPinViewScale);
+                const height: number = dv.props.PanelHeight() * scale;
+                const width: number = dv.props.PanelWidth() * scale;
+                const indWidth = width / 10;
+                const indHeight = Math.max(height / 10, 15);
+                const indEdge = Math.max(indWidth, indHeight);
+                const indFontSize = indEdge * 0.8;
+                const xLoc: number = NumCast(doc.presPinViewX) - (width / 2);
+                const yLoc: number = NumCast(doc.presPinViewY) - (height / 2);
                 docs.push(tagDoc);
                 order.push(
-                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: 0, left: 0 }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
-                // Case C: Document is not contained within presCollection
+                    <>
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: yLoc - (indEdge / 2), left: xLoc - (indEdge / 2), width: indEdge, height: indEdge, fontSize: indFontSize }}
+                            onClick={() => this.selectElement(doc)}
+                        >
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>
+                        <div className="pathOrder-presPinView" style={{ top: yLoc, left: xLoc, width: width, height: height, borderWidth: indEdge / 10 }}></div>
+                    </>);
             } else {
+                // Case C: Document is not contained within presCollection
+                console.log(`-------Case C: ${index}-------`);
                 docs.push(tagDoc);
                 order.push(
                     <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ position: 'absolute', top: 0, left: 0 }}>
@@ -875,9 +896,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 const n1y = NumCast(tagDoc.y) + (NumCast(tagDoc._height) / 2);
                 if (index = 0) pathPoints = n1x + "," + n1y;
                 else pathPoints = pathPoints + " " + n1x + "," + n1y;
-            } else {
-                if (index = 0) pathPoints = 0 + "," + 0;
-                else pathPoints = pathPoints + " " + 0 + "," + 0;
+            } else if (doc.presPinView) {
+                const n1x = NumCast(doc.presPinViewX);
+                const n1y = NumCast(doc.presPinViewY);
+                if (index = 0) pathPoints = n1x + "," + n1y;
+                else pathPoints = pathPoints + " " + n1x + "," + n1y;
             }
         });
         return (<polyline
