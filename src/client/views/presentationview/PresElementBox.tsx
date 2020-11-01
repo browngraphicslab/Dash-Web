@@ -120,14 +120,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10; }
         else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
-        return this.rootDoc.presMovement === PresMovement.Jump ? (null) : "D: " + durationInS + "s";
+        return "D: " + durationInS + "s";
     }
 
     @computed get transition() {
         let transitionInS: number;
         if (this.rootDoc.presTransition) transitionInS = NumCast(this.rootDoc.presTransition) / 1000;
         else transitionInS = 0.5;
-        return "M: " + transitionInS + "s";
+        return this.rootDoc.presMovement === PresMovement.Jump || this.rootDoc.presMovement === PresMovement.None ? (null) : "M: " + transitionInS + "s";
     }
 
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();

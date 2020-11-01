@@ -28,6 +28,7 @@ import { AudioBox } from "./AudioBox";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
+import Color = require("color");
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -193,16 +194,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // No more frames in current doc and next slide is defined, therefore move to next slide 
     nextSlide = (targetDoc: Doc, activeNext: Doc) => {
         const nextSelected = this.itemIndex + 1;
-        if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
-        // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
-        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
-        // If next slide is audio / video 'Play automatically' then the next slide should be played
-        if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-            console.log('play next automatically');
-            if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-            // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
-        } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
         this.gotoDocument(nextSelected);
+
+        // const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
+        // If next slide is audio / video 'Play automatically' then the next slide should be played
+        // if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+        //     console.log('play next automatically');
+        //     if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
+        //     // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        // } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
     }
 
     // Called when the user activates 'next' - to move to the next part of the pres. trail
@@ -215,13 +215,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const curFrame = NumCast(targetDoc?._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
-
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
             // Case 1: There are still other frames and should go through all frames before going to next slide
             this.nextInternalFrame(targetDoc, activeItem);
-        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
-            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-            this.nextAudioVideo(targetDoc, activeItem);
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
             this.nextSlide(targetDoc, activeNext);
@@ -229,6 +225,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // Case 4: Last slide and presLoop is toggled ON
             this.gotoDocument(0);
         }
+        // else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
+        //     // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+        //     this.nextAudioVideo(targetDoc, activeItem);
+        // } 
     }
 
     // Called when the user activates 'back' - to move to the previous part of the pres. trail
@@ -240,14 +240,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
+        let prevSelected = this.itemIndex;
         if (lastFrame !== undefined && curFrame >= 1) {
             // Case 1: There are still other frames and should go through all frames before going to previous slide
             this.prevKeyframe(targetDoc, activeItem);
-        } else if (activeItem) {
-            let prevSelected = this.itemIndex;
+        } else if (activeItem && this.childDocs[this.itemIndex - 1] !== undefined) {
+            // Case 2: There are no other frames so it should go to the previous slide
             prevSelected = Math.max(0, prevSelected - 1);
             this.gotoDocument(prevSelected);
             if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
+        } else if (this.childDocs[this.itemIndex - 1] === undefined && this.layoutDoc.presLoop) {
+            // Case 3: Pres loop is on so it should go to the last slide
+            this.gotoDocument(this.childDocs.length - 1);
         }
     }
 
@@ -750,8 +754,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Down": case "ArrowDown":
             case "Right": case "ArrowRight":
-                if (this.itemIndex >= this.childDocs.length - 1) return;
-                if (e.shiftKey) { // TODO: update to work properly
+                if (e.shiftKey && this.itemIndex < this.childDocs.length - 1) { // TODO: update to work properly
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -762,8 +765,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Up": case "ArrowUp":
             case "Left": case "ArrowLeft":
-                if (this.itemIndex === 0) return;
-                if (e.shiftKey) { // TODO: update to work properly
+                if (e.shiftKey && this.itemIndex !== 0) { // TODO: update to work properly
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -815,6 +817,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get order() {
         const order: JSX.Element[] = [];
         const docs: Doc[] = [];
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
+        const dv = DocumentManager.Instance.getDocumentView(presCollection);
         this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc.context, Doc, null);
@@ -823,8 +827,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
             const gap = 2;
-            // Case A: Document is contained within the collection
-            if (this.rootDoc.presCollection === srcContext) {
+            if (presCollection === srcContext) {
+                // Case A: Document is contained within the collection
                 if (docs.includes(tagDoc)) {
                     const prevOccurances: number = this.getAllIndexes(docs, tagDoc).length;
                     docs.push(tagDoc);
@@ -845,20 +849,29 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="pathOrder-frame">{index + 1}</div>
                         </div>);
                 }
+            } else if (doc.presPinView && presCollection === tagDoc && dv) {
                 // Case B: Document is presPinView and is presCollection
-            } else if (doc.pinWithView && this.layoutDoc.presCollection === tagDoc) {
+                const scale: number = 1 / NumCast(doc.presPinViewScale);
+                const height: number = dv.props.PanelHeight() * scale;
+                const width: number = dv.props.PanelWidth() * scale;
+                const indWidth = width / 10;
+                const indHeight = Math.max(height / 10, 15);
+                const indEdge = Math.max(indWidth, indHeight);
+                const indFontSize = indEdge * 0.8;
+                const xLoc: number = NumCast(doc.presPinViewX) - (width / 2);
+                const yLoc: number = NumCast(doc.presPinViewY) - (height / 2);
                 docs.push(tagDoc);
                 order.push(
-                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ top: 0, left: 0 }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
-                // Case C: Document is not contained within presCollection
-            } else {
-                docs.push(tagDoc);
-                order.push(
-                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
+                    <>
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: yLoc - (indEdge / 2), left: xLoc - (indEdge / 2), width: indEdge, height: indEdge, fontSize: indFontSize }}
+                            onClick={() => this.selectElement(doc)}
+                        >
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>
+                        <div className="pathOrder-presPinView" style={{ top: yLoc, left: xLoc, width: width, height: height, borderWidth: indEdge / 10 }}></div>
+                    </>);
             }
         });
         return order;
@@ -874,17 +887,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @computed get paths() {
         let pathPoints = "";
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
         this.childDocs.forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc?.context, Doc, null);
-            if (tagDoc && this.rootDoc.presCollection === srcContext) {
+            if (tagDoc && presCollection === srcContext) {
                 const n1x = NumCast(tagDoc.x) + (NumCast(tagDoc._width) / 2);
                 const n1y = NumCast(tagDoc.y) + (NumCast(tagDoc._height) / 2);
                 if (index = 0) pathPoints = n1x + "," + n1y;
                 else pathPoints = pathPoints + " " + n1x + "," + n1y;
-            } else {
-                if (index = 0) pathPoints = 0 + "," + 0;
-                else pathPoints = pathPoints + " " + 0 + "," + 0;
+            } else if (doc.presPinView && presCollection === tagDoc) {
+                const n1x = NumCast(doc.presPinViewX);
+                const n1y = NumCast(doc.presPinViewY);
+                if (index = 0) pathPoints = n1x + "," + n1y;
+                else pathPoints = pathPoints + " " + n1x + "," + n1y;
             }
         });
         return (<polyline
@@ -2021,7 +2037,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === PresStatus.Autoplay ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
-            <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
+            <div
+                className="presPanel-button-text"
+                onClick={() => this.gotoDocument(0)}
+                style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
                 Slide {this.itemIndex + 1} / {this.childDocs.length}
                 {this.playButtonFrames}
             </div>
@@ -2055,7 +2074,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="presPanel-button" onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button-text">
+                    <div className="presPanel-button-text" onClick={() => this.gotoDocument(0)}>
                         Slide {this.itemIndex + 1} / {this.childDocs.length}
                         {this.playButtonFrames}
                     </div>

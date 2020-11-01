@@ -201,13 +201,15 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc, false);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking) {
+            const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
+            const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);
+            if (scrollable) {
                 const scroll = targetDoc._scrollTop;
                 activeDoc.presPinView = true;
                 activeDoc.presPinViewScroll = scroll;
             } else if (targetDoc.type === DocumentType.VID) {
                 activeDoc.presPinTimecode = targetDoc._currentTimecode;
-            } else if ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG) {
+            } else if (pannable) {
                 const x = targetDoc._panX;
                 const y = targetDoc._panY;
                 const scale = targetDoc._viewScale;
