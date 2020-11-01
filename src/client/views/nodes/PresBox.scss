@@ -1000,6 +1000,7 @@ $light-background: #ececec;
     transition: all 0.2s;
 
     .presPanel-button-text {
+        cursor: pointer;
         display: flex;
         height: 20;
         width: max-content;

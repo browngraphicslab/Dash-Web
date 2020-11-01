@@ -28,6 +28,7 @@ import { AudioBox } from "./AudioBox";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
+import Color = require("color");
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -746,8 +747,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Down": case "ArrowDown":
             case "Right": case "ArrowRight":
-                if (this.itemIndex >= this.childDocs.length - 1) return;
-                if (e.shiftKey) { // TODO: update to work properly
+                if (e.shiftKey && this.itemIndex < this.childDocs.length - 1) { // TODO: update to work properly
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -758,8 +758,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             case "Up": case "ArrowUp":
             case "Left": case "ArrowLeft":
-                if (this.itemIndex === 0) return;
-                if (e.shiftKey) { // TODO: update to work properly
+                if (e.shiftKey && this.itemIndex !== 0) { // TODO: update to work properly
                     this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
                     this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
                 } else {
@@ -823,7 +822,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const gap = 2;
             if (presCollection === srcContext) {
                 // Case A: Document is contained within the collection
-                console.log(`-------Case A: ${index}-------`);
                 if (docs.includes(tagDoc)) {
                     const prevOccurances: number = this.getAllIndexes(docs, tagDoc).length;
                     docs.push(tagDoc);
@@ -846,7 +844,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 }
             } else if (doc.presPinView && presCollection === tagDoc && dv) {
                 // Case B: Document is presPinView and is presCollection
-                console.log(`-------Case B: ${index}-------`);
                 const scale: number = 1 / NumCast(doc.presPinViewScale);
                 const height: number = dv.props.PanelHeight() * scale;
                 const width: number = dv.props.PanelWidth() * scale;
@@ -868,14 +865,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>
                         <div className="pathOrder-presPinView" style={{ top: yLoc, left: xLoc, width: width, height: height, borderWidth: indEdge / 10 }}></div>
                     </>);
-            } else {
-                // Case C: Document is not contained within presCollection
-                console.log(`-------Case C: ${index}-------`);
-                docs.push(tagDoc);
-                order.push(
-                    <div className="pathOrder" key={tagDoc.id + 'pres' + index} style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
             }
         });
         return order;
@@ -891,15 +880,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @computed get paths() {
         let pathPoints = "";
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
         this.childDocs.forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc?.context, Doc, null);
-            if (tagDoc && this.rootDoc.presCollection === srcContext) {
+            if (tagDoc && presCollection === srcContext) {
                 const n1x = NumCast(tagDoc.x) + (NumCast(tagDoc._width) / 2);
                 const n1y = NumCast(tagDoc.y) + (NumCast(tagDoc._height) / 2);
                 if (index = 0) pathPoints = n1x + "," + n1y;
                 else pathPoints = pathPoints + " " + n1x + "," + n1y;
-            } else if (doc.presPinView) {
+            } else if (doc.presPinView && presCollection === tagDoc) {
                 const n1x = NumCast(doc.presPinViewX);
                 const n1y = NumCast(doc.presPinViewY);
                 if (index = 0) pathPoints = n1x + "," + n1y;
@@ -2040,7 +2030,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === PresStatus.Autoplay ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
-            <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
+            <div
+                className="presPanel-button-text"
+                onClick={() => this.gotoDocument(0)}
+                style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
                 Slide {this.itemIndex + 1} / {this.childDocs.length}
                 {this.playButtonFrames}
             </div>
@@ -2074,7 +2067,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="presPanel-button" onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button-text">
+                    <div className="presPanel-button-text" onClick={() => this.gotoDocument(0)}>
                         Slide {this.itemIndex + 1} / {this.childDocs.length}
                         {this.playButtonFrames}
                     </div>

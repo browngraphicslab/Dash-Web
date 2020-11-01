@@ -1657,30 +1657,6 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         </>;
     }
 
-    @computed get presPathsOutsideCollection() {
-        const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
-        return !PresBox.Instance || !this.props.presPaths ? (null) : <>
-            <div key="presorder">{PresBox.Instance.order}</div>
-            <svg key="svg" className={presPaths}>
-                <defs>
-                    <marker id="markerSquare" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
-                        orient="auto" overflow="visible">
-                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="white" fillOpacity="0.8" />
-                    </marker>
-                    <marker id="markerSquareFilled" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
-                        orient="auto" overflow="visible">
-                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="#69a6db" />
-                    </marker>
-                    <marker id="markerArrow" markerWidth="3" markerHeight="3" refX="2" refY="4"
-                        orient="auto" overflow="visible">
-                        <path d="M2,2 L2,6 L6,4 L2,2 Z" stroke="#69a6db" strokeLinejoin="round" strokeWidth="1" fill="white" fillOpacity="0.8" />
-                    </marker>
-                </defs>
-                {PresBox.Instance.paths}
-            </svg>
-        </>;
-    }
-
     render() {
         // trace();
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : "-none");
@@ -1708,7 +1684,6 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                     {this.progressivize}
                     {this.zoomProgressivize}
                 </div>
-                {/* <div>{this.presPathsOutsideCollection}</div> */}
             </>);
     }
 }
