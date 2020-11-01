@@ -113,8 +113,8 @@ export class ServerWorker extends IPCMessageReceiver {
         this.shouldServerBeResponsive = false;
         // communicates via IPC to the master thread that it should dispatch a crash notification email
         const { name, message, stack } = error;
-        const deconstructed_error: ErrorLike = { name, message, stack };
-        this.emit(Monitor.IntrinsicEvents.CrashDetected, { error: deconstructed_error });
+        const errorLike: ErrorLike = { name, message, stack };
+        this.emit(Monitor.IntrinsicEvents.CrashDetected, { error: errorLike });
         await this.executeExitHandlers(error);
         // notify master thread (which will log update in the console) of crash event via IPC
         this.lifecycleNotification(red(`crash event detected @ ${new Date().toUTCString()}`));

@@ -1324,5 +1324,5 @@ Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
         CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
     }
     CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
-    doc._currentFrame = Math.max(0, newFrame);
+    doc._currentFrame = newFrame === undefined ? 0 : Math.max(0, newFrame);
 });

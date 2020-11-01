@@ -1,7 +1,6 @@
 import { Doc } from "../../../fields/Doc";
 import { ImageField } from "../../../fields/URLField";
-import { Cast, StrCast } from "../../../fields/Types";
-import { Docs } from "../../documents/Documents";
+import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { Networking } from "../../Network";
 import { Id } from "../../../fields/FieldSymbols";
 import { Utils } from "../../../Utils";
@@ -22,6 +21,7 @@ export namespace ImageUtils {
         } = await Networking.PostToServer("/inspectImage", { source });
         document.exif = error || Doc.Get.FromJson({ data });
         const proto = Doc.GetProto(document);
+        nativeWidth && (document._height = NumCast(document._width) * nativeHeight / nativeWidth);
         proto["data-nativeWidth"] = nativeWidth;
         proto["data-nativeHeight"] = nativeHeight;
         proto["data-path"] = source;

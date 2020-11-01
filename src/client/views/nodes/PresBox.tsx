@@ -91,7 +91,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const tagDocs: Doc[] = [];
         for (const doc of this.childDocs) {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            tagDocs.push(tagDoc)
+            tagDocs.push(tagDoc);
         }
         return tagDocs;
     }
@@ -486,7 +486,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //stops the presentaton.
     resetPresentation = () => {
         this.rootDoc._itemIndex = 0;
-        for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
+        this.childDocs.map(doc => Cast(doc.presentationTargetDoc, Doc, null)).filter(doc => doc instanceof Doc).forEach(doc => {
+            try {
+                doc.opacity = 1;
+            } catch (e) {
+                console.log("REset presentation error: ", e);
+            }
+        });
+        ///for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
     @action togglePath = (srcContext: Doc, off?: boolean) => {
@@ -638,9 +645,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            if (curDoc && curDoc === this.activeItem) return <div className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>
-            else if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
-            else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            if (curDoc && curDoc === this.activeItem) return <div key={index} className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
+            else if (tagDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            else if (curDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
         return list;
     }
@@ -799,10 +806,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     getAllIndexes = (arr: Doc[], val: Doc): number[] => {
-        var indexes = [], i;
-        for (i = 0; i < arr.length; i++)
-            if (arr[i] === val)
-                indexes.push(i);
+        const indexes = [];
+        for (let i = 0; i < arr.length; i++) {
+            arr[i] === val && indexes.push(i);
+        }
         return indexes;
     }
 
@@ -952,7 +959,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     doc.presMovement = PresMovement.None;
                     break;
             }
-        })
+        });
     });
 
     @undoBatch

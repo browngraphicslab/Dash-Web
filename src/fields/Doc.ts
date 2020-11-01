@@ -92,6 +92,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
+export const ForceServerWrite = Symbol("ForceServerWrite");
 export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
@@ -185,9 +186,10 @@ export class Doc extends RefField {
     @observable public [AclSym]: { [key: string]: symbol };
 
     private [UpdatingFromServer]: boolean = false;
+    private [ForceServerWrite]: boolean = false;
 
     private [Update] = (diff: any) => {
-        !this[UpdatingFromServer] && DocServer.UpdateField(this[Id], diff);
+        (!this[UpdatingFromServer] || this[ForceServerWrite]) && DocServer.UpdateField(this[Id], diff);
     }
 
     private [Self] = this;
@@ -680,7 +682,7 @@ export namespace Doc {
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
-                    setTimeout(() => {
+                    setTimeout(action(() => {
                         const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                         // the template's arguments are stored in params which is derefenced to find
                         // the actual field key where the parameterized template data is stored.
@@ -694,7 +696,7 @@ export namespace Doc {
                         targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
 
                         _pendingMap.delete(targetDoc[Id] + expandedLayoutFieldKey + args);
-                    });
+                    }));
                 }
             }
         }

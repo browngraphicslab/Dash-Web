@@ -336,7 +336,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </div>
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
+                    style={{ background: CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0) }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
             </Tooltip>
