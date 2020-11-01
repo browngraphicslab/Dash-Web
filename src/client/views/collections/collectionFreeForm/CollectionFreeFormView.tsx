@@ -1657,6 +1657,30 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         </>;
     }
 
+    @computed get presPathsOutsideCollection() {
+        const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
+        return !PresBox.Instance || !this.props.presPaths ? (null) : <>
+            <div key="presorder">{PresBox.Instance.order}</div>
+            <svg key="svg" className={presPaths}>
+                <defs>
+                    <marker id="markerSquare" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
+                        orient="auto" overflow="visible">
+                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="white" fillOpacity="0.8" />
+                    </marker>
+                    <marker id="markerSquareFilled" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
+                        orient="auto" overflow="visible">
+                        <rect x="0" y="0" width="3" height="3" stroke="#69a6db" strokeWidth="1" fill="#69a6db" />
+                    </marker>
+                    <marker id="markerArrow" markerWidth="3" markerHeight="3" refX="2" refY="4"
+                        orient="auto" overflow="visible">
+                        <path d="M2,2 L2,6 L6,4 L2,2 Z" stroke="#69a6db" strokeLinejoin="round" strokeWidth="1" fill="white" fillOpacity="0.8" />
+                    </marker>
+                </defs>
+                {PresBox.Instance.paths}
+            </svg>
+        </>;
+    }
+
     render() {
         // trace();
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : "-none");
@@ -1665,22 +1689,26 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass}
-            onScroll={e => {
-                const target = e.target as any;
-                if (getComputedStyle(target)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
-                    target.scrollTop = target.scrollLeft = 0;
-                }
-            }}
-            style={{
-                transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
-                transition: this.props.transition,
-                //willChange: "transform"
-            }}>
-            {this.props.children()}
-            {this.presPaths}
-            {this.progressivize}
-            {this.zoomProgressivize}
-        </div>;
+        return (
+            <>
+                <div className={freeformclass}
+                    onScroll={e => {
+                        const target = e.target as any;
+                        if (getComputedStyle(target)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
+                            target.scrollTop = target.scrollLeft = 0;
+                        }
+                    }}
+                    style={{
+                        transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
+                        transition: this.props.transition,
+                        //willChange: "transform"
+                    }}>
+                    {this.props.children()}
+                    {this.presPaths}
+                    {this.progressivize}
+                    {this.zoomProgressivize}
+                </div>
+                {/* <div>{this.presPathsOutsideCollection}</div> */}
+            </>);
     }
 }

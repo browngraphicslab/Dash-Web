@@ -193,16 +193,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // No more frames in current doc and next slide is defined, therefore move to next slide 
     nextSlide = (targetDoc: Doc, activeNext: Doc) => {
         const nextSelected = this.itemIndex + 1;
-        if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
-        // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
-        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
-        // If next slide is audio / video 'Play automatically' then the next slide should be played
-        if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-            console.log('play next automatically');
-            if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-            // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
-        } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
         this.gotoDocument(nextSelected);
+
+        // const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
+        // If next slide is audio / video 'Play automatically' then the next slide should be played
+        // if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+        //     console.log('play next automatically');
+        //     if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
+        //     // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        // } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
     }
 
     // Called when the user activates 'next' - to move to the next part of the pres. trail
@@ -215,13 +214,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const curFrame = NumCast(targetDoc?._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
-
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
             // Case 1: There are still other frames and should go through all frames before going to next slide
             this.nextInternalFrame(targetDoc, activeItem);
-        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
-            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-            this.nextAudioVideo(targetDoc, activeItem);
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
             this.nextSlide(targetDoc, activeNext);
@@ -229,6 +224,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // Case 4: Last slide and presLoop is toggled ON
             this.gotoDocument(0);
         }
+        // else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
+        //     // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+        //     this.nextAudioVideo(targetDoc, activeItem);
+        // } 
     }
 
     // Called when the user activates 'back' - to move to the previous part of the pres. trail
@@ -240,14 +239,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
+        let prevSelected = this.itemIndex;
         if (lastFrame !== undefined && curFrame >= 1) {
             // Case 1: There are still other frames and should go through all frames before going to previous slide
             this.prevKeyframe(targetDoc, activeItem);
-        } else if (activeItem) {
-            let prevSelected = this.itemIndex;
+        } else if (activeItem && this.childDocs[this.itemIndex - 1] !== undefined) {
+            // Case 2: There are no other frames so it should go to the previous slide
             prevSelected = Math.max(0, prevSelected - 1);
             this.gotoDocument(prevSelected);
             if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
+        } else if (this.childDocs[this.itemIndex - 1] === undefined && this.layoutDoc.presLoop) {
+            // Case 3: Pres loop is on so it should go to the last slide
+            this.gotoDocument(this.childDocs.length - 1);
         }
     }
 
