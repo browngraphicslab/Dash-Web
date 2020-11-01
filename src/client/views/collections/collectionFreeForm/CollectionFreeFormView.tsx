@@ -1665,25 +1665,22 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return (
-            <>
-                <div className={freeformclass}
-                    onScroll={e => {
-                        const target = e.target as any;
-                        if (getComputedStyle(target)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
-                            target.scrollTop = target.scrollLeft = 0;
-                        }
-                    }}
-                    style={{
-                        transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
-                        transition: this.props.transition,
-                        //willChange: "transform"
-                    }}>
-                    {this.props.children()}
-                    {this.presPaths}
-                    {this.progressivize}
-                    {this.zoomProgressivize}
-                </div>
-            </>);
+        return <div className={freeformclass}
+            onScroll={e => {
+                const target = e.target as any;
+                if (getComputedStyle(target)?.overflow === "visible") {  // if collection is visible, then scrolling will mess things up since there are no scroll bars
+                    target.scrollTop = target.scrollLeft = 0;
+                }
+            }}
+            style={{
+                transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
+                transition: this.props.transition,
+                //willChange: "transform"
+            }}>
+            {this.props.children()}
+            {this.presPaths}
+            {this.progressivize}
+            {this.zoomProgressivize}
+        </div>;
     }
 }
