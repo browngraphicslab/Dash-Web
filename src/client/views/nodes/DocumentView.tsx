@@ -1148,11 +1148,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 pointerEvents: this.ignorePointerEvents ? "none" : undefined,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
-                    StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") :
-                    this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
-                        undefined,
+                boxShadow: highlighting && borderRounding ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
+                    this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
+                        StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") :
+                        this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
+                            undefined,
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
