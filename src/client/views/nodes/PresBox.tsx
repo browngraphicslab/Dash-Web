@@ -412,7 +412,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     onHideDocument = () => {
         this.childDocs.forEach((doc, index) => {
             const curDoc = Cast(doc, Doc, null);
-            const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc) tagDoc.opacity = 1;
             const itemIndexes: number[] = this.getAllIndexes(this.tagDocs, tagDoc);
             const curInd: number = itemIndexes.indexOf(index);
@@ -644,7 +644,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get listOfSelected() {
         const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
-            const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (curDoc && curDoc === this.activeItem) return <div key={index} className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
             else if (tagDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
             else if (curDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
@@ -653,9 +653,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    selectPres = (pres?: Doc) => {
-        const presDocView = DocumentManager.Instance.getDocumentView(pres ? pres : this.rootDoc)!;
-        SelectionManager.SelectDoc(presDocView, false);
+    selectPres = () => {
+        const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
+        presDocView && SelectionManager.SelectDoc(presDocView, false);
     }
 
     //Regular click
