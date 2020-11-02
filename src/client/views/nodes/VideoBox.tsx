@@ -287,7 +287,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
                     'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
                 }
-            })
+            });
         });
     }
     private get uIButtons() {
