@@ -261,7 +261,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
         else this._youtubeContentCreated = false;
 
-        const iframe = e.target;
+        this.loadYouTube(e.target);
+    }
+    private loadYouTube = (iframe: any) => {
         let started = true;
         const onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
@@ -281,14 +283,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
-        (YT as any)?.ready(() => {
-            this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
-                events: {
-                    'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
-                    'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
-                }
+        if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);
+        else {
+            (YT as any)?.ready(() => {
+                this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
+                    events: {
+                        'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
+                        'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
+                    }
+                });
             });
-        });
+        }
     }
     private get uIButtons() {
         const curTime = (this.layoutDoc._currentTimecode || 0);
