@@ -1144,13 +1144,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
-                transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : this._animateScalingTo < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
+                transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
                 pointerEvents: this.ignorePointerEvents ? "none" : undefined,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                boxShadow: highlighting && borderRounding ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
+                border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
+                boxShadow: highlighting && borderRounding && highlightStyles[fullDegree] !== "dashed" ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
                     this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
-                        StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") :
+                        StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,
                 background: finalColor,
