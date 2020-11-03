@@ -1886,15 +1886,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 {isMini ? (null) :
                     <>
                         <div className="toolbar-divider" />
-                        <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                        {/* <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                             <div className={"toolbar-button"}
                                 style={{ color: this._expandBoolean ? PresColors.DarkBlue : 'white' }}
                                 onClick={this.toggleExpandMode}>
-                                {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                                 <FontAwesomeIcon icon={"eye"} />
                             </div>
                         </Tooltip>
-                        <div className="toolbar-divider" />
+                        <div className="toolbar-divider" /> */}
                         <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Keys are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: presKeyEvents ? 'default' : 'pointer', position: 'absolute', right: 30, fontSize: 16 }}>
                                 <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? PresColors.DarkBlue : 'white' }} />
