@@ -322,10 +322,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // Handles the setting of presCollection
         if (includesDoc) {
             //Case 1: Pres collection should not change as it is already the same
-            console.log(1);
         } else if (tab !== undefined) {
             // Case 2: Pres collection should update
-            console.log(2);
             this.layoutDoc.presCollection = srcContext;
         }
         const presStatus = this.rootDoc.presStatus;
@@ -352,10 +350,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (activeItem.openDocument) {
             openInTab();
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
+            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
             //awaiting jump so that new scale can be found, since jumping is async
-            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.

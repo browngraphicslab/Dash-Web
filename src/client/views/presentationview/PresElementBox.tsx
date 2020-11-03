@@ -273,15 +273,17 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed
     get toolbarWidth(): number {
         const presBoxDocView = DocumentManager.Instance.getDocumentView(this.presBox);
-        const panelWidth = presBoxDocView ? presBoxDocView.props.PanelWidth() : 0;
-        return Math.max(NumCast(this.presBox._width), panelWidth);
+        let width: number = NumCast(this.presBox._width);
+        if (presBoxDocView) width = presBoxDocView.props.PanelWidth();
+        if (width === 0) width = 300;
+        return width;
     }
 
     @computed get mainItem() {
         const isSelected: boolean = PresBox.Instance._selectedArray.has(this.rootDoc);
         const toolbarWidth: number = this.toolbarWidth;
         const showMore: boolean = this.toolbarWidth >= 300;
-        const miniView: boolean = this.toolbarWidth <= 100;
+        const miniView: boolean = this.toolbarWidth <= 110;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
@@ -311,11 +313,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.indexInPres + 1}.`}
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth) }}>
-                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85, cursor: isSelected ? 'text' : 'grab' }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
                         <EditableView
                             ref={this._titleRef}
                             editing={!isSelected ? false : undefined}
                             contents={activeItem.title}
+                            overflow={'ellipsis'}
                             GetValue={() => StrCast(activeItem.title)}
                             SetValue={this.onSetValue}
                         />
@@ -344,7 +347,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
-                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
                 </div>}
             </div >);
