@@ -172,7 +172,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         Doc.BrushDoc(doc);
-        this.props.focus(doc);
+        this.props.focus(this.props.Document, true);  // bcz: HACK ARgh.. need to update all focus() functions to take parameters about how to focus.  in this case, we want to zoom so we pass true and hope an ancestor is a collection view
         Doc.linkFollowHighlight(doc);
 
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);

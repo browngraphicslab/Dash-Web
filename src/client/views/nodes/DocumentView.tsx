@@ -325,7 +325,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             thisContainer: this.props.ContainingCollectionDoc,
                             shiftKey: e.shiftKey
                         }, console.log);
-                        func();
+                        undoBatch(func)();
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type === DocumentType.INK) {
                             InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);

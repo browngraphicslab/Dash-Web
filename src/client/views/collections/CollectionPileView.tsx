@@ -6,7 +6,7 @@ import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
-import { UndoManager } from "../../util/UndoManager";
+import { UndoManager, undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import "./CollectionPileView.scss";
 import { CollectionSubView } from "./CollectionSubView";
@@ -34,14 +34,14 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         const draggingSelf = this.props.isSelected();
         return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" || (SnappingManager.GetIsDragging() && !draggingSelf) ? undefined : "none", zIndex: this.layoutEngine() === "starburst" && !SnappingManager.GetIsDragging() ? -10 : "auto" }} >
             <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
-                addDocument={(doc: Doc | Doc[]) => {
+                addDocument={undoBatch((doc: Doc | Doc[]) => {
                     (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
                     return this.props.addDocument(doc);
-                }}
-                moveDocument={(doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
-                    (doc instanceof Doc ? [doc] : doc).map((d) => Doc.deiconifyView(d));
+                })}
+                moveDocument={undoBatch((doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
+                    (doc instanceof Doc ? [doc] : doc).map(undoBatch((d) => Doc.deiconifyView(d)));
                     return this.props.moveDocument(doc, targetCollection, addDoc);
-                }} />
+                })} />
         </div>;
     }
 
@@ -107,6 +107,8 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     }
 
     // onClick for toggling the pileup view
+    @undoBatch
+    @action
     onClick = (e: React.MouseEvent) => {
         if (e.button === 0) {
             SelectionManager.DeselectAll();
