@@ -169,14 +169,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (newBox.activeFrame !== undefined) {
                     const x = newBox.x;
                     const y = newBox.y;
+                    const w = newBox._width;
+                    const h = newBox._height;
                     delete newBox["x-indexed"];
                     delete newBox["y-indexed"];
+                    delete newBox["w-indexed"];
+                    delete newBox["h-indexed"];
                     delete newBox["opacity-indexed"];
+                    delete newBox._width;
+                    delete newBox._height;
                     delete newBox.x;
                     delete newBox.y;
+                    delete newBox.opacity;
                     delete newBox.activeFrame;
                     newBox.x = x;
                     newBox.y = y;
+                    newBox._width = w;
+                    newBox._height = h;
                 }
             }
             if (this.Document._currentFrame !== undefined && !this.props.isAnnotationOverlay) {

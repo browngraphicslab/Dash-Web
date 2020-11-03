@@ -55,28 +55,40 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         Doc.SetNativeWidth(this.dataDoc, this.player!.videoWidth);
         Doc.SetNativeHeight(this.dataDoc, this.player!.videoHeight);
         this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
-        this.dataDoc[this.fieldKey + "-" + "duration"] = this.player!.duration;
+        this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
     }
 
     @action public Play = (update: boolean = true) => {
         this._playing = true;
-        update && this.player?.play();
-        update && this._youtubePlayer?.playVideo();
-        this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        try {
+            update && this.player?.play();
+            update && this._youtubePlayer?.playVideo();
+            this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        } catch (e) {
+            console.log("Video Play Exception:", e);
+        }
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
-        this._youtubePlayer?.seekTo(Math.round(time), true);
+        try {
+            this._youtubePlayer?.seekTo(Math.round(time), true);
+        } catch (e) {
+            console.log("Video Seek Exception:", e);
+        }
         this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this._playing = false;
-        update && this.player?.pause();
-        update && this._youtubePlayer?.pauseVideo();
-        this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
-        this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
+        try {
+            update && this.player?.pause();
+            update && this._youtubePlayer?.pauseVideo();
+            this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
+            this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
+        } catch (e) {
+            console.log("Video Pause Exception:", e);
+        }
         this._youtubePlayer && SelectionManager.DeselectAll(); // if we don't deselect the player, then we get an annoying YouTube spinner I guess telling us we're paused.
         this._playTimer = undefined;
         this.updateTimecode();
@@ -85,7 +97,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.rootDoc, "add");
+        try {
+            this._youtubePlayer && this.props.addDocTab(this.rootDoc, "add");
+        } catch (e) {
+            console.log("Video FullScreen Exception:", e);
+        }
     }
 
     choosePath(url: string) {
@@ -132,11 +148,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
             const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
-            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) => {
-                if (returnedFilename) {
-                    this.createRealSummaryLink(returnedFilename);
-                }
-            });
+            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) =>
+                returnedFilename && this.createRealSummaryLink(returnedFilename));
         }
     }
 
@@ -159,7 +172,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action
     updateTimecode = () => {
         this.player && (this.layoutDoc._currentTimecode = this.player.currentTime);
-        this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime?.());
+        try {
+            this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime?.());
+        } catch (e) {
+            console.log("Video Timecode Exception:", e);
+        }
     }
 
     componentDidMount() {
@@ -261,7 +278,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
         else this._youtubeContentCreated = false;
 
-        const iframe = e.target;
+        this.loadYouTube(e.target);
+    }
+    private loadYouTube = (iframe: any) => {
         let started = true;
         const onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
@@ -281,14 +300,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
-        (YT as any)?.ready(() => {
-            this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
-                events: {
-                    'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
-                    'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
-                }
-            })
-        });
+        if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);
+        else {
+            (YT as any)?.ready(() => {
+                this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
+                    events: {
+                        'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
+                        'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
+                    }
+                });
+            });
+        }
     }
     private get uIButtons() {
         const curTime = (this.layoutDoc._currentTimecode || 0);

@@ -158,7 +158,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     this._forceSmoothScrollUpdate = false;
                     this.layoutDoc._scrollLeft = scrollLeft;
                 }
-            }))
+            }));
         }
     }
     iframeScroll = (e: any) => {
