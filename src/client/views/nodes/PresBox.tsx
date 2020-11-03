@@ -313,14 +313,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     navigateToElement = async (curDoc: Doc) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const srcContext = await DocCastAsync(targetDoc?.context);
+        const srcContext = Cast(targetDoc.context, Doc, null);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
         const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
         const includesDoc: boolean = DocListCast(presCollection?.data).includes(targetDoc);
+        const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === srcContext);
         this.turnOffEdit();
+        // Handles the setting of presCollection
         if (includesDoc) {
+            //Case 1: Pres collection should not change as it is already the same
+        } else if (tab !== undefined) {
+            // Case 2: Pres collection should update
             this.layoutDoc.presCollection = srcContext;
-        } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
+        }
         const presStatus = this.rootDoc.presStatus;
         const selViewCache = Array.from(this._selectedArray.keys());
         const dragViewCache = Array.from(this._dragArray);
@@ -345,10 +350,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (activeItem.openDocument) {
             openInTab();
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
+            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
             //awaiting jump so that new scale can be found, since jumping is async
-            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc ? undefined : resetSelection); // documents open in new tab instead of on right
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
@@ -1886,15 +1891,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 {isMini ? (null) :
                     <>
                         <div className="toolbar-divider" />
-                        <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                        {/* <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
                             <div className={"toolbar-button"}
                                 style={{ color: this._expandBoolean ? PresColors.DarkBlue : 'white' }}
                                 onClick={this.toggleExpandMode}>
-                                {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
                                 <FontAwesomeIcon icon={"eye"} />
                             </div>
                         </Tooltip>
-                        <div className="toolbar-divider" />
+                        <div className="toolbar-divider" /> */}
                         <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Keys are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
                             <div className="toolbar-button" style={{ cursor: presKeyEvents ? 'default' : 'pointer', position: 'absolute', right: 30, fontSize: 16 }}>
                                 <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? PresColors.DarkBlue : 'white' }} />
