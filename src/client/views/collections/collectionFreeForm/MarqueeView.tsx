@@ -407,6 +407,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 CollectionDockingView.AddSplit(curPres, "right");
             }
+            PresBox.Instance?._selectedArray.clear();
+            pinDoc && PresBox.Instance?._selectedArray.set(pinDoc, undefined); //Updates selected array
+            const index = PresBox.Instance?.childDocs.indexOf(pinDoc);
+            index && (curPres._itemIndex = index);
             if (e instanceof KeyboardEvent ? e.key === "c" : true) {
                 const x = this.Bounds.left + this.Bounds.width / 2;
                 const y = this.Bounds.top + this.Bounds.height / 2;
