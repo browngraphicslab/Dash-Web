@@ -792,8 +792,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 transform: `scale(${this.props.ContentScaling()})`
             }}  >
             {this.pdfViewerDiv}
-            {this.overlayLayer}
             {this.annotationLayer}
+            {this.overlayLayer}
             {this.overlayInfo}
             {this.standinViews}
             <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />

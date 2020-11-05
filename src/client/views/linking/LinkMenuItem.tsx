@@ -109,6 +109,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
+        DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false);
 
         e.stopPropagation();
     }
@@ -228,18 +229,17 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         onPointerDown={this.onLinkButtonDown}>
 
                         <div className="linkMenu-text">
-                            {source ? <p className="linkMenu-source-title">
-                                <b>Source: {source}</b></p> : null}
+                            {source ? <p className="linkMenu-source-title"> <b>Source: {source}</b></p> : null}
                             <div className="linkMenu-title-wrapper">
                                 <div className="destination-icon-wrapper" >
-                                    <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
-                                <p className="linkMenu-destination-title"
-                                    onPointerDown={() => DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false)}>
+                                    <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" />
+                                </div>
+                                <p className="linkMenu-destination-title">
                                     {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>
-                            {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">
-                                {StrCast(this.props.linkDoc.description)}</p> : null} </div>
+                            {!this.props.linkDoc.description ? (null) : <p className="linkMenu-description">{StrCast(this.props.linkDoc.description)}</p>}
+                        </div>
 
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
 

@@ -325,7 +325,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             thisContainer: this.props.ContainingCollectionDoc,
                             shiftKey: e.shiftKey
                         }, console.log);
-                        func();
+                        undoBatch(func)();
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type === DocumentType.INK) {
                             InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
@@ -990,7 +990,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
-    @computed get allLinks() { TraceMobx(); return DocListCast(this.Document.links); }
+    @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
     @computed get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
@@ -1157,7 +1157,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
-                fontSize: Cast(this.Document._fontSize, "string", null),
+                fontSize: !this.props.treeViewDoc ? Cast(this.Document._fontSize, "string", null) : undefined,
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
