@@ -23,6 +23,7 @@ import { TabDocView } from './TabDocView';
 import React = require("react");
 import { stat } from 'fs';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { listSpec } from '../../../fields/Schema';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -144,7 +145,12 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
-        if (document.type === DocumentType.PRES && DocListCast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null).data).includes(document)) return false;
+        if (document.type === DocumentType.PRES) {
+            const docs = Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null).data, listSpec(Doc), []);
+            if (docs.includes(document)) {
+                docs.splice(docs.indexOf(document), 1);
+            }
+        }
         if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
 
         const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === document);
