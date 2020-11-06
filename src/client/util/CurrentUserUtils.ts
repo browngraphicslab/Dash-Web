@@ -405,7 +405,7 @@ export class CurrentUserUtils {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
+            const headerTemplate = Docs.Create.RTFDocument(new RichTextField(JSON.stringify(json), ""), { title: "header", version: headerViewVersion, target: doc, _height: 70, _headerPointerEvents: "all", _headerHeight: 12, _headerFontSize: 9, _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) }, "header"); // text needs to be a space to allow templateText to be created
             headerTemplate[DataSym].layout =
                 "<div style={'height:100%'}>" +
                 "    <FormattedTextBox {...props} fieldKey={'header'} dontSelectOnLoad={'true'} ignoreAutoHeight={'true'} pointerEvents='{this._headerPointerEvents||`none`}' fontSize='{this._headerFontSize}px' height='{this._headerHeight}px' background='{this._headerColor||this.target.mySharedDocs.userColor}' />" +

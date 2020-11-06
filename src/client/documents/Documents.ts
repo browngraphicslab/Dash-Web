@@ -61,6 +61,7 @@ export interface DocumentOptions {
     _autoHeight?: boolean;
     _headerHeight?: number; // height of header of custom notes
     _headerFontSize?: number; // font size of header of custom notes
+    _headerPointerEvents?: string; // types of events the header of a custom text document can consume
     _panX?: number;
     _panY?: number;
     _width?: number;
