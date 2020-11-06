@@ -16,7 +16,7 @@ import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
-import { PresBox } from "./PresBox";
+import { PresBox, PresEffect } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -212,23 +212,23 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             PanelHeight={this.panelHeight} />;
         if (PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
             const effectProps = {
-                left: this.layoutDoc.presEffectDirection === 'left',
-                right: this.layoutDoc.presEffectDirection === 'right',
-                top: this.layoutDoc.presEffectDirection === 'top',
-                bottom: this.layoutDoc.presEffectDirection === 'bottom',
+                left: this.layoutDoc.presEffectDirection === PresEffect.Left,
+                right: this.layoutDoc.presEffectDirection === PresEffect.Right,
+                top: this.layoutDoc.presEffectDirection === PresEffect.Top,
+                bottom: this.layoutDoc.presEffectDirection === PresEffect.Bottom,
                 opposite: true,
                 delay: this.layoutDoc.presTransition,
                 // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
             };
             switch (this.layoutDoc.presEffect) {
                 case "Zoom": return (<Zoom {...effectProps}>{node}</Zoom>); break;
-                case "Fade": return (<Fade {...effectProps}>{node}</Fade>); break;
-                case "Flip": return (<Flip {...effectProps}>{node}</Flip>); break;
-                case "Rotate": return (<Rotate {...effectProps}>{node}</Rotate>); break;
-                case "Bounce": return (<Bounce {...effectProps}>{node}</Bounce>); break;
-                case "Roll": return (<Roll {...effectProps}>{node}</Roll>); break;
+                case PresEffect.Fade: return (<Fade {...effectProps}>{node}</Fade>); break;
+                case PresEffect.Flip: return (<Flip {...effectProps}>{node}</Flip>); break;
+                case PresEffect.Rotate: return (<Rotate {...effectProps}>{node}</Rotate>); break;
+                case PresEffect.Bounce: return (<Bounce {...effectProps}>{node}</Bounce>); break;
+                case PresEffect.Roll: return (<Roll {...effectProps}>{node}</Roll>); break;
                 case "LightSpeed": return (<LightSpeed {...effectProps}>{node}</LightSpeed>); break;
-                case "None": return node; break;
+                case PresEffect.None: return node; break;
                 default: return node; break;
             }
         } else {
