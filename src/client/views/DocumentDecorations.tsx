@@ -177,19 +177,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
                 if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
-                    const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
-                    alias.context = undefined;
-                    //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
-                    CollectionDockingView.AddSplit(alias, "right");
+                    selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
+                    (selectedDocs[0].props.Document._fullScreenView as Doc).context = undefined;
+                    CollectionDockingView.AddSplit(selectedDocs[0].props.Document._fullScreenView as Doc, "right");
                 } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
                     const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
                     alias.context = undefined;
                     alias.x = -alias[WidthSym]() / 2;
                     alias.y = -alias[HeightSym]() / 2;
-                    //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0]);
                     CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
                 } else {    // open same document in new tab
-                    CollectionDockingView.ToggleSplit(selectedDocs[0].props.Document, "right");
+                    CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
                 }
             }
         }

@@ -33,7 +33,7 @@ import { ContextMenu } from "../../ContextMenu";
 import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentViewProps, DocAfterFocusFunc } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import { PresBox } from "../../nodes/PresBox";
@@ -887,7 +887,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean, dontCenter?: boolean) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, didFocus?: boolean) => {
         const state = HistoryUtil.getState();
 
         // TODO This technically isn't correct if type !== "doc", as
@@ -927,7 +927,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 } else {
                     !dontCenter && delay && this.props.focus(this.props.Document);
                     // @ts-ignore
-                    afterFocus(true);  // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
+                    afterFocus(true);
 
                 }
             }
@@ -948,19 +948,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             }
             Doc.BrushDoc(this.props.Document);
-            this.props.focus(this.props.Document);
-            Doc.linkFollowHighlight(doc);
 
-            const notFocused = newPanX === savedState.px && newPanY === savedState.py;
-            afterFocus && setTimeout(() => {
-                // @ts-ignore
-                if (afterFocus?.(notFocused)) { // bcz: TODO Aragh -- need to add a parameter to afterFocus() functions to indicate whether the focus function didn't need to scroll
-                    this.Document._panX = savedState.px;
-                    this.Document._panY = savedState.py;
-                    this.Document[this.scaleFieldKey] = savedState.s;
-                    this.Document._viewTransition = savedState.pt;
-                }
-            }, notFocused ? 0 : 500);
+            const newDidFocus = didFocus || (newPanX !== savedState.px || newPanY !== savedState.py);
+
+            const newAfterFocus = (didFocus: boolean) => {
+                afterFocus && setTimeout(() => {
+                    // @ts-ignore
+                    if (afterFocus?.(didFocus || (newPanX !== savedState.px || newPanY !== savedState.py))) {
+                        this.Document._panX = savedState.px;
+                        this.Document._panY = savedState.py;
+                        this.Document[this.scaleFieldKey] = savedState.s;
+                        this.Document._viewTransition = savedState.pt;
+                    }
+                }, newPanX !== savedState.px || newPanY !== savedState.py ? 500 : 0);
+                return false;
+            };
+            this.props.focus(this.props.Document, undefined, undefined, newAfterFocus, undefined, newDidFocus);
+            Doc.linkFollowHighlight(doc);
         }
 
     }
@@ -1434,8 +1438,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return false;
     });
+
+    chooseGridSpace = (start: number): number => {
+        const w = this.props.PanelWidth() / this.zoomScaling() + 3 * start;
+        if (w / start > 60) return this.chooseGridSpace(start * 10);
+        return start;
+    }
+
     @computed get grid() {
-        const gridSpace = NumCast(this.layoutDoc["_backgroundGrid-space"], 50);
+        const gridSpace = this.chooseGridSpace(NumCast(this.layoutDoc["_backgroundGrid-space"], 50));
         const shiftX = this.props.isAnnotationOverlay ? 0 : -(this.panX()) % gridSpace - gridSpace;
         const shiftY = this.props.isAnnotationOverlay ? 0 : -(this.panY()) % gridSpace - gridSpace;
         const cx = this.centeringShiftX();
@@ -1448,6 +1459,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (ctx) {
                     const Cx = (cx / this.zoomScaling()) % gridSpace - 0;
                     const Cy = (cy / this.zoomScaling()) % gridSpace - 0;
+                    ctx.lineWidth = Math.min(1, Math.max(0.5, 0.5 / this.zoomScaling())) * (gridSpace > 50 ? 3 : 1);
+                    ctx.setLineDash(gridSpace > 50 ? [3, 3] : [1, 5]);
                     ctx.clearRect(0, 0, w, h);
                     if (ctx) {
                         ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";

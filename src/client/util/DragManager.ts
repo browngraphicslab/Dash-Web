@@ -416,7 +416,13 @@ export namespace DragManager {
         });
 
         const hideSource = options?.hideSource ? true : false;
-        eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
+        eles.forEach(ele => {
+            if (ele.parentElement && ele.parentElement?.className === dragData.dragDivName) {
+                ele.parentElement.hidden = hideSource;
+            } else {
+                ele.hidden = hideSource;
+            }
+        });
 
         SnappingManager.SetIsDragging(true);
         let lastX = downX;
@@ -514,27 +520,25 @@ export namespace DragManager {
         const hideDragShowOriginalElements = () => {
             dragLabel.style.display = "none";
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
+            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.hidden = ele.parentElement.hidden = false) : (ele.hidden = false));
         };
         const endDrag = action(() => {
+            hideDragShowOriginalElements();
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
+            SnappingManager.SetIsDragging(false);
             SnappingManager.clearSnapLines();
             batch.end();
         });
 
         AbortDrag = () => {
-            hideDragShowOriginalElements();
-            SnappingManager.SetIsDragging(false);
             options?.dragComplete?.(new DragCompleteEvent(true, dragData));
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
-            hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            SnappingManager.SetIsDragging(false);
-            endDrag();
             options?.dragComplete?.(new DragCompleteEvent(false, dragData));
+            endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);

@@ -28,6 +28,7 @@ import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocUtils } from "../../documents/Documents";
+import { DocAfterFocusFunc } from "../nodes/DocumentView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -170,9 +171,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     }
 
 
-    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, didFocus?: boolean) => {
         Doc.BrushDoc(doc);
-        this.props.focus(this.props.Document, true);  // bcz: HACK ARgh.. need to update all focus() functions to take parameters about how to focus.  in this case, we want to zoom so we pass true and hope an ancestor is a collection view
+        this.props.focus(this.props.Document, true);  // bcz: want our containing collection to zoom
         Doc.linkFollowHighlight(doc);
 
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);

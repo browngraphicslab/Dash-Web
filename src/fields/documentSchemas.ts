@@ -15,6 +15,7 @@ export const documentSchema = createSchema({
     // "Location" properties in a very general sense
     _curPage: "number",         // current page of a page based document
     _currentFrame: "number",    // current frame of a frame based collection (e.g., a progressive slide)
+    _fullScreenView: Doc,       // alias to display when double-clicking to open document in a full-screen view
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)

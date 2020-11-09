@@ -11,6 +11,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { VideoBox } from "./VideoBox";
 import { dropActionType } from "../../util/DragManager";
+import { DocAfterFocusFunc, DocFocusFunc } from "./DocumentView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -47,7 +48,7 @@ export interface FieldViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     LayoutTemplateString?: string;
     dontRegisterView?: boolean;
-    focus: (doc: Doc) => void;
+    focus: DocFocusFunc;
     presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation
     ignoreAutoHeight?: boolean;
     PanelWidth: () => number;

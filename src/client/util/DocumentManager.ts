@@ -163,21 +163,19 @@ export class DocumentManager {
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
             const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
-                const hide = !docView.props.Document.hidden;
-                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target  
-                    if (notfocused || docView.props.Document.hidden) {
+                docView.props.focus(docView.props.Document, willZoom, undefined, (didFocus: boolean) => {
+                    if (!didFocus || docView.props.Document.hidden) {
                         docView.props.Document.hidden = !docView.props.Document.hidden;
                     }
                     return focusAndFinish();
-                    // @ts-ignore   bcz: Argh TODO: Need to add a parameter to focus() everywhere for whether focus should center the target's container in the view or not. // here we don't want to focus the container if the source and target are in the same container
-                }, sameContext);
+                }, sameContext, false);// don't want to focus the container if the source and target are in the same container, so pass 'sameContext' for dontCenter parameter
                 //finished?.();
             }
             else {
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 // @ts-ignore
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext);
+                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext, false);
             }
             highlight();
         } else {

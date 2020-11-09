@@ -42,7 +42,8 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 
-export type DocFocusFunc = () => boolean;
+export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
+export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
@@ -82,7 +83,7 @@ export interface DocumentViewProps {
     PanelHeight: () => number;
     pointerEvents?: string;
     contentsPointerEvents?: string;
-    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
+    focus: DocFocusFunc;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -331,11 +332,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
                         } else {
                             UndoManager.RunInBatch(() => {
-                                let fullScreenDoc = this.props.Document;
-                                if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
-                                    fullScreenDoc = Doc.MakeAlias(this.props.Document);
-                                    fullScreenDoc.layoutKey = "layout_fullScreen";
-                                }
+                                const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
                                 this.props.addDocTab(fullScreenDoc, "add");
                             }, "double tap");
                             SelectionManager.DeselectAll();
@@ -385,7 +382,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
-        focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void,
+        focus: DocFocusFunc,
         addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean,
         ContainingCollectionDoc?: Doc
     }, shiftKey: boolean, altKey: boolean) => {

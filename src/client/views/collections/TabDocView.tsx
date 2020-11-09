@@ -21,7 +21,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc } from "../nodes/DocumentView";
 import { PresBox, PresMovement } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
@@ -343,11 +343,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
+    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, notFocused?: boolean) => {
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
             this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         }
-        afterFocus?.();
+        afterFocus?.(false);
     }
     setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
