@@ -426,7 +426,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (tagDoc) tagDoc.opacity = 1;
             const itemIndexes: number[] = this.getAllIndexes(this.tagDocs, tagDoc);
             const curInd: number = itemIndexes.indexOf(index);
-            if (tagDoc === this.layoutDoc.presCollection) { tagDoc.opacity = 1 }
+            if (tagDoc === this.layoutDoc.presCollection) { tagDoc.opacity = 1; }
             else {
                 if (itemIndexes.length > 1 && curDoc.presHideBefore && curInd !== 0) { }
                 else if (curDoc.presHideBefore) {
@@ -1210,7 +1210,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc: Doc = this.targetDoc;
         this.updateMovement(activeItem.presMovement, true);
         this.updateEffect(targetDoc.presEffect, true);
-        this.updateEffectDirection(targetDoc.presEffectDirection, true)
+        this.updateEffectDirection(targetDoc.presEffectDirection, true);
         array.forEach((doc) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);

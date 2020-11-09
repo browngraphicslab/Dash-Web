@@ -1434,6 +1434,38 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return false;
     });
+    @computed get grid() {
+        const gridSpace = NumCast(this.layoutDoc["_backgroundGrid-space"], 50);
+        const shiftX = this.props.isAnnotationOverlay ? 0 : -(this.panX()) % gridSpace - gridSpace;
+        const shiftY = this.props.isAnnotationOverlay ? 0 : -(this.panY()) % gridSpace - gridSpace;
+        const cx = this.centeringShiftX();
+        const cy = this.centeringShiftY();
+        const w = this.props.PanelWidth() / this.zoomScaling() + 3 * gridSpace;
+        const h = this.props.PanelHeight() / this.zoomScaling() + 3 * gridSpace;
+        return <canvas className="collectionFreeFormView-grid" width={w} height={h} style={{ transform: `scale(${this.zoomScaling()}) translate(${shiftX}px, ${shiftY}px)` }}
+            ref={(el) => {
+                const ctx = el?.getContext('2d');
+                if (ctx) {
+                    const Cx = (cx / this.zoomScaling()) % gridSpace - 0;
+                    const Cy = (cy / this.zoomScaling()) % gridSpace - 0;
+                    ctx.clearRect(0, 0, w, h);
+                    if (ctx) {
+                        ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+                        ctx.lineWidth = Math.min(1, Math.max(0.5, 0.5 / this.zoomScaling()));
+                        ctx.beginPath();
+                        for (let x = Cx; x <= -Cx + w; x += gridSpace) {
+                            ctx.moveTo(x, Cy - h);
+                            ctx.lineTo(x, Cy + h);
+                        }
+                        for (let y = Cy; y <= -Cy + h; y += gridSpace) {
+                            ctx.moveTo(Cx - w, y);
+                            ctx.lineTo(Cx + w, y);
+                        }
+                        ctx.stroke();
+                    }
+                }
+            }} />;
+    }
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
@@ -1447,6 +1479,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
             <div ref={this._marqueeRef}>
+                {this.layoutDoc["_backgroundGrid-show"] ? this.grid : (null)}
                 <CollectionFreeFormViewPannableContents
                     centeringShiftX={this.centeringShiftX}
                     centeringShiftY={this.centeringShiftY}
@@ -1462,6 +1495,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }
+
 
     @computed get contentScaling() {
         if (this.props.annotationsKey && !this.props.forceScaling) return 0;
@@ -1635,7 +1669,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
     }
 
     @computed get zoomProgressivize() {
-        return PresBox.Instance && PresBox.Instance.activeItem && PresBox.Instance.activeItem.presPinView && PresBox.Instance.layoutDoc.presStatus === 'edit' ? this.zoomProgressivizeContainer : (null);
+        return PresBox.Instance?.activeItem?.presPinView && PresBox.Instance.layoutDoc.presStatus === 'edit' ? this.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {
@@ -1665,6 +1699,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             </svg>
         </>;
     }
+
 
     render() {
         // trace();

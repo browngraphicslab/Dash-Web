@@ -489,13 +489,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Images"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc._isLightboxOpen = true)} onClick={this.onAlias}>
+            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc._isLightboxOpen = true)}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
             </button>
         </Tooltip>;
     }
-
-
+    @computed get gridbackgroundButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Toggle background grid"}</div>} placement="top">
+            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc["_backgroundGrid-show"] = !targetDoc["_backgroundGrid-show"])}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon={targetDoc["_backgroundGrid-show"] ? "border-all" : ["far", "square"]} size="lg" />
+            </button>
+        </Tooltip>;
+    }
 
     render() {
         return (
@@ -513,6 +519,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                                 </button>
                             </Tooltip>}
                         {this.notACollection ? (null) : this.lightboxButton}
+                        {this.notACollection ? (null) : this.gridbackgroundButton}
                         {this.aliasButton}
                         {/* {this.pinButton} */}
                         {this.pinWithViewButton}

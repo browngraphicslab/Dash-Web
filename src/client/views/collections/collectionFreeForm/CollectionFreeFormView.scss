@@ -12,6 +12,13 @@
     border-radius: inherit;
 }
 
+.collectionfreeformview-grid {
+    transform-origin: top left;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .collectionfreeformview-viewdef {
     >.collectionFreeFormDocumentView-container {
         pointer-events: none;
