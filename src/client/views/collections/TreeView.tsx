@@ -281,7 +281,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         const layoutDoc = this.layoutDoc;
         const aspect = Doc.NativeAspect(layoutDoc);
         if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.panelWidth() - 20));
-        return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
+        return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : Math.min(this.layoutDoc[WidthSym](), this.props.panelWidth() - 20);
     }
     docHeight = () => {
         const layoutDoc = this.layoutDoc;
