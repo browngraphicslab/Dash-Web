@@ -1438,38 +1438,35 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return false;
     });
 
-    chooseGridSpace = (start: number): number => {
-        const w = this.props.PanelWidth() / this.zoomScaling() + 3 * start;
-        if (w / start > 60) return this.chooseGridSpace(start * 10);
-        return start;
+    chooseGridSpace = (gridSpace: number): number => {
+        const divisions = this.props.PanelWidth() / this.zoomScaling() / gridSpace + 3;
+        return divisions < 60 ? gridSpace : this.chooseGridSpace(gridSpace * 10);
     }
 
     @computed get grid() {
-        const gridSpace = this.chooseGridSpace(NumCast(this.layoutDoc["_backgroundGrid-space"], 50));
-        const shiftX = this.props.isAnnotationOverlay ? 0 : -(this.panX()) % gridSpace - gridSpace;
-        const shiftY = this.props.isAnnotationOverlay ? 0 : -(this.panY()) % gridSpace - gridSpace;
-        const cx = this.centeringShiftX();
-        const cy = this.centeringShiftY();
-        const w = this.props.PanelWidth() / this.zoomScaling() + 3 * gridSpace;
-        const h = this.props.PanelHeight() / this.zoomScaling() + 3 * gridSpace;
-        return <canvas className="collectionFreeFormView-grid" width={w} height={h} style={{ transform: `scale(${this.zoomScaling()}) translate(${shiftX}px, ${shiftY}px)` }}
+        const gridSpace = this.chooseGridSpace(NumCast(this.layoutDoc["_backgroundGrid-spacing"], 50));
+        const shiftX = (this.props.isAnnotationOverlay ? 0 : -this.panX() % gridSpace - gridSpace) * this.zoomScaling();
+        const shiftY = (this.props.isAnnotationOverlay ? 0 : -this.panY() % gridSpace - gridSpace) * this.zoomScaling();
+        const renderGridSpace = gridSpace * this.zoomScaling();
+        const w = this.props.PanelWidth() + 2 * renderGridSpace;
+        const h = this.props.PanelHeight() + 2 * renderGridSpace;
+        return <canvas className="collectionFreeFormView-grid" width={w} height={h} style={{ transform: `translate(${shiftX}px, ${shiftY}px)` }}
             ref={(el) => {
                 const ctx = el?.getContext('2d');
                 if (ctx) {
-                    const Cx = (cx / this.zoomScaling()) % gridSpace - 0;
-                    const Cy = (cy / this.zoomScaling()) % gridSpace - 0;
-                    ctx.lineWidth = Math.min(1, Math.max(0.5, 0.5 / this.zoomScaling())) * (gridSpace > 50 ? 3 : 1);
+                    const Cx = this.centeringShiftX() % renderGridSpace;
+                    const Cy = this.centeringShiftY() % renderGridSpace;
+                    ctx.lineWidth = Math.min(1, Math.max(0.5, this.zoomScaling()));
                     ctx.setLineDash(gridSpace > 50 ? [3, 3] : [1, 5]);
                     ctx.clearRect(0, 0, w, h);
                     if (ctx) {
                         ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-                        ctx.lineWidth = Math.min(1, Math.max(0.5, 0.5 / this.zoomScaling()));
                         ctx.beginPath();
-                        for (let x = Cx; x <= -Cx + w; x += gridSpace) {
+                        for (let x = Cx - renderGridSpace; x <= w - Cx; x += renderGridSpace) {
                             ctx.moveTo(x, Cy - h);
                             ctx.lineTo(x, Cy + h);
                         }
-                        for (let y = Cy; y <= -Cy + h; y += gridSpace) {
+                        for (let y = Cy - renderGridSpace; y <= h - Cy; y += renderGridSpace) {
                             ctx.moveTo(Cx - w, y);
                             ctx.lineTo(Cx + w, y);
                         }

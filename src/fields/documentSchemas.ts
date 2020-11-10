@@ -34,6 +34,7 @@ export const documentSchema = createSchema({
     _scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
+    "_backgroundGrid-spacing": "number", // the size of the grid for collection views
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents
     _nativeWidth: "number",     // native width of document which determines how much document contents are scaled when the document's width is set
     _nativeHeight: "number",    // "
