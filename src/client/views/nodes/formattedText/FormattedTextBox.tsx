@@ -812,6 +812,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     componentDidMount() {
         this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.sidebarheight = reaction(
+            () => ({ annoHeight: NumCast(this.rootDoc[this.annotationKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
+            ({ annoHeight, textHeight }) => {
+                this.layoutDoc._autoHeight && (this.rootDoc._height = Math.max(annoHeight, textHeight));
+            });
         this._disposers.links = reaction(() => DocListCast(this.Document.links), // if a link is deleted, then remove all hyperlinks that reference it from the text's marks
             newLinks => {
                 this._cachedLinks.forEach(l => !newLinks.includes(l) && this.RemoveLinkFromDoc(l));
@@ -1540,18 +1545,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }, 10);
             } else {
                 try {
-                    const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", ""));
+                    const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", "")) * NumCast(this.Document._viewScale, 1);
                     const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
-                    const finalHeight = newHeight + Math.max(0, outer);
-                    const maxsidebar = !this.sidebarWidth() ? 0 : Array.from(this._boxRef.current!.getElementsByClassName("collectionStackingViewFieldColumn")).reduce((prev, ele) => Math.max(prev, Number(getComputedStyle(ele).height.replace("px", ""))), 0);
-                    if (this.rootDoc._height !== finalHeight && finalHeight > maxsidebar) {
-                        this.rootDoc._height = finalHeight;
-                        this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
-                    }
-                    this.rootDoc[this.fieldKey + "-height"] = finalHeight;
+                    this.rootDoc[this.fieldKey + "-height"] = newHeight + Math.max(0, outer);
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
-        } else this.rootDoc[this.fieldKey + "-height"] = 0;
+        } //else this.rootDoc[this.fieldKey + "-height"] = 0;
     }
 
     @computed get audioHandle() {
@@ -1609,7 +1608,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
-    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
+    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0).scale(1 / NumCast(this.layoutDoc._viewScale, 1));
     @computed get sidebarColor() { return StrCast(this.layoutDoc.sidebarColor, StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "#e4e4e4")); }
     render() {
         TraceMobx();
@@ -1631,6 +1630,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     transformOrigin: "top left",
                     width: `${100 / scale}%`,
                     height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
+                    overflowY: this.layoutDoc._autoHeight ? "hidden" : undefined,
                     ...this.styleFromLayoutString(scale)   // this converts any expressions in the format string to style props.  e.g., <FormattedTextBox height='{this._headerHeight}px' >
                 }}>
                 <div className={`formattedTextBox-cont`} ref={this._ref}

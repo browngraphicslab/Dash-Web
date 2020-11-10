@@ -352,8 +352,12 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
-                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
+                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
+                            if (this.props.annotationsKey) {
+                                doc[this.props.annotationsKey + "-height"] = height;
+                            } else {
+                                Doc.Layout(doc)._height = height * NumCast(Doc.Layout(doc)._viewScale, 1);
+                            }
                         }
                     }));
                     this.observer.observe(ref);
@@ -406,7 +410,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
+                            Doc.Layout(doc)._height = Math.max(height * NumCast(doc[this.props.fieldKey + "-height"]), NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);

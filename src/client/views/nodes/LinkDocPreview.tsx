@@ -77,19 +77,16 @@ export class LinkDocPreview extends React.Component<Props> {
             this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { _fitWidth: true, title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
-    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225)) - 16;
-    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225)) - 16;
+    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
     @computed get targetDocView() {
         return !this._targetDoc ?
-            <div style={{
-                pointerEvents: "all", maxWidth: 225, maxHeight: 225, width: "100%", height: "100%",
-                overflow: "hidden"
-            }}>
+            <div style={{ pointerEvents: "all", maxWidth: 225, maxHeight: 225, width: "100%", height: "100%", overflow: "hidden" }}>
                 <div style={{ width: "100%", height: "100%", textOverflow: "ellipsis", }} onPointerDown={this.pointerDown}>
                     {this._toolTipText}
                 </div>
-            </div> :
-
+            </div>
+            :
             <ContentFittingDocumentView
                 Document={this._targetDoc}
                 LibraryPath={emptyPath}
@@ -109,8 +106,8 @@ export class LinkDocPreview extends React.Component<Props> {
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 renderDepth={-1}
-                PanelWidth={this.width} //Math.min(350, NumCast(target._width, 350))}
-                PanelHeight={this.height} //Math.min(250, NumCast(target._height, 250))}
+                PanelWidth={this.width}
+                PanelHeight={this.height}
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}

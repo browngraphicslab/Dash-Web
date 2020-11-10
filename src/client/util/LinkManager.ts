@@ -35,7 +35,7 @@ export class LinkManager {
 
     allLinks = computedFn(function allLinks(this: any): Doc[] {
         const lset = new Set<Doc>(DocListCast(Doc.LinkDBDoc().data));
-        SharingManager.Instance.users.forEach(user => DocListCast(user.linkDatabase?.data).map(doc => lset.add(doc)));
+        SharingManager.Instance.users.forEach(user => DocListCast(user.linkDatabase?.data).forEach(doc => lset.add(doc)));
         return Array.from(lset);
     }, true);
 
@@ -67,13 +67,6 @@ export class LinkManager {
             }
         });
         return anchorGroups;
-    }
-
-    // returns a list of all metadata docs associated with the given group type
-    public getAllMetadataDocsInGroup(groupType: string): Array<Doc> {
-        const md: Doc[] = [];
-        LinkManager.Instance.allLinks().forEach(linkDoc => StrCast(linkDoc.linkRelationship).toUpperCase() === groupType.toUpperCase() && md.push(linkDoc));
-        return md;
     }
 
     // checks if a link with the given anchors exists

@@ -926,8 +926,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     afterFocus && setTimeout(afterFocus, delay);
                 } else {
                     !dontCenter && delay && this.props.focus(this.props.Document);
-                    // @ts-ignore
-                    afterFocus(true);
+                    afterFocus?.(!dontCenter && delay ? true : false);
 
                 }
             }
