@@ -9,7 +9,7 @@ import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 
 interface ContentFittingDocumentViewProps {
-    dontCenter?: boolean;
+    dontCenter?: string; // "x" ,"y", "xy"
 }
 
 @observer
@@ -21,8 +21,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
             Doc.Layout(this.props.Document);
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get trueNativeWidth() { return !this.layoutDoc._fitWidth && returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, false)); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 0); }
+    @computed get nativeWidth() { return !this.layoutDoc._fitWidth && returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 0); }
     @computed get nativeScaling() {
         if (!this.nativeWidth || !this.nativeHeight) return 1;
@@ -34,7 +33,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
         return wscale || 1;
     }
 
-    @computed get panelWidth() { return this.trueNativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
+    @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
         if (this.nativeHeight) {
             if (this.props.Document._fitWidth) return Math.min(this.props.PanelHeight(), this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 1);
@@ -44,10 +43,10 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     }
 
     @computed get childXf() { return this.props.DataDoc ? 1 : 1 / this.contentScaling(); }  // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
-    private getTransform = () => this.props.dontCenter ?
-        this.props.ScreenToLocalTransform().scale(this.childXf) :
-        this.props.ScreenToLocalTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(this.childXf)
-    private get centeringOffset() { return this.trueNativeWidth && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
+    private getTransform = () => this.props.ScreenToLocalTransform().
+        translate(this.props.dontCenter?.includes("x") ? 0 : -this.centeringOffset, this.props.dontCenter?.includes("y") ? 0 : -this.centeringYOffset).
+        scale(this.childXf)
+    private get centeringOffset() { return this.nativeWidth && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
     private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 && this.nativeHeight ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
 
     @computed get borderRounding() { return StrCast(this.props.Document?.borderRounding); }
@@ -57,20 +56,21 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     contentScaling = () => {
         const layoutStr = (this.props.LayoutTemplateString || StrCast(this.layoutDoc.layout));
         if (layoutStr.includes("FormattedTextBox")) return this.nativeScaling;
-        const wscale = this.trueNativeWidth ? 1 : this.layoutDoc[WidthSym]() / this.props.PanelWidth();
-        const hscale = this.trueNativeWidth ? 1 : this.layoutDoc[HeightSym]() / this.props.PanelHeight();
+        const wscale = this.nativeWidth ? 1 : this.layoutDoc[WidthSym]() / this.props.PanelWidth();
+        const hscale = this.nativeWidth ? 1 : this.layoutDoc[HeightSym]() / this.props.PanelHeight();
         return this.nativeScaling * Math.max(wscale, hscale);
     }
 
+    public ContentRef = React.createRef<HTMLDivElement>();
     render() {
         TraceMobx();
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth ? (null) : (
-                <div className="contentFittingDocumentView-previewDoc"
+                <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
-                        transform: !this.props.dontCenter ? `translate(${this.centeringOffset}px, ${this.centeringYOffset}px)` : undefined,
+                        transform: `translate(${this.props.dontCenter?.includes("x") ? 0 : this.centeringOffset}px, ${this.props.dontCenter?.includes("y") ? 0 : this.centeringYOffset}px)`,
                         borderRadius: this.borderRounding,
-                        height: Math.abs(this.centeringYOffset) > 0.001 ? `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        height: Math.abs(this.centeringYOffset) > 0.001 && this.nativeWidth ? `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                         width: Math.abs(this.centeringOffset) > 0.001 ? `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
                     }}>
                     <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
@@ -79,8 +79,6 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         LayoutTemplate={this.props.LayoutTemplate}
                         LayoutTemplateString={this.props.LayoutTemplateString}
                         LibraryPath={this.props.LibraryPath}
-                        // NativeWidth={this.nativeWidth}
-                        // NativeHeight={this.nativeHeight}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         ContentScaling={this.contentScaling}

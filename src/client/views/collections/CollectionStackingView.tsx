@@ -202,7 +202,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             PanelHeight={height}
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
-            dontCenter={this.props.childIgnoreNativeSize ? true : false}
+            dontCenter={this.props.childIgnoreNativeSize ? "xy" : ""}
             fitToBox={false}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}

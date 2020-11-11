@@ -170,13 +170,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             PanelWidth={width}
             PanelHeight={height}
             ContentScaling={returnOne}
-            fitToBox={false}
             FreezeDimensions={true}
             ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            dontCenter={false}
+            dontCenter={"y"}
         />;
     }
 

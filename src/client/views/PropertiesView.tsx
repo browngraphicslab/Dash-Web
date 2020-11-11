@@ -273,7 +273,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={true}
                     FreezeDimensions={true}
-                    dontCenter={true}
+                    dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
                     PanelWidth={panelWidth}

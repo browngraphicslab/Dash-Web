@@ -78,7 +78,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _openScript: (() => ScriptField) | undefined;
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
-    private _dref = React.createRef<HTMLDivElement>();
+    private _dref = React.createRef<ContentFittingDocumentView>();
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef = React.createRef<DocumentView>();
     private _uniqueId = Utils.GenerateGuid();
@@ -112,7 +112,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
     @computed get isCollectionDoc() {
-        return !StrCast(this.props.document.type).includes(DocumentType.COL) || !DocListCast(this.props.document[this.fieldKey]).length ? false : true
+        return !StrCast(this.props.document.type).includes(DocumentType.COL) || !DocListCast(this.props.document[this.fieldKey]).length ? false : true;
     }
 
     @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
@@ -272,14 +272,15 @@ export class TreeView extends React.Component<TreeViewProps> {
         return false;
     }
 
-    refTransform = (ref: HTMLDivElement) => {
+    refTransform = (ref: HTMLDivElement | undefined | null) => {
+        if (!ref) return this.props.ScreenToLocalTransform();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ref);
         const outerXf = this.props.outerXf();
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
     }
-    docTransform = () => this.refTransform(this._dref.current!);
-    getTransform = () => this.refTransform(this._tref.current!);
+    docTransform = () => this.refTransform(this._dref.current?.ContentRef?.current);
+    getTransform = () => this.refTransform(this._tref.current);
     docWidth = () => {
         const layoutDoc = this.layoutDoc;
         const aspect = Doc.NativeAspect(layoutDoc);
@@ -394,47 +395,45 @@ export class TreeView extends React.Component<TreeViewProps> {
                         [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul key={this.doc[Id] + this.doc.title}><div ref={this._dref} style={{ display: "inline-block" }} >
+            return <ul key={this.doc[Id] + this.doc.title}><div style={{ display: "inline-block" }} >
                 {this.expandedField}
             </div></ul>;
         } else {
             const layoutDoc = this.layoutDoc;
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
-            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
-                <ContentFittingDocumentView
-                    Document={this.doc}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    dontRegisterView={this.props.dontRegisterView}
-                    renderDepth={this.props.renderDepth + 1}
-                    rootSelected={returnTrue}
-                    treeViewDoc={undefined}
-                    backgroundColor={this.props.backgroundColor}
-                    fitToBox={this.isCollectionDoc !== undefined}
-                    FreezeDimensions={true}
-                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
-                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
-                    PanelWidth={panelWidth}
-                    PanelHeight={panelHeight}
-                    focus={returnFalse}
-                    ScreenToLocalTransform={this.docTransform}
-                    docFilters={returnEmptyFilter}
-                    docRangeFilters={returnEmptyFilter}
-                    searchFilterDocs={returnEmptyDoclist}
-                    ContainingCollectionDoc={this.props.containingCollection}
-                    ContainingCollectionView={undefined}
-                    addDocument={returnFalse}
-                    moveDocument={this.move}
-                    removeDocument={this.props.removeDoc}
-                    parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
-                    addDocTab={this.props.addDocTab}
-                    pinToPres={this.props.pinToPres}
-                    bringToFront={returnFalse}
-                    ContentScaling={returnOne}
-                />
-            </div>;
+            return <ContentFittingDocumentView key={this.doc[Id]} ref={this._dref}
+                Document={this.doc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                dontRegisterView={this.props.dontRegisterView}
+                renderDepth={this.props.renderDepth + 1}
+                rootSelected={returnTrue}
+                treeViewDoc={undefined}
+                backgroundColor={this.props.backgroundColor}
+                fitToBox={this.isCollectionDoc !== undefined}
+                FreezeDimensions={true}
+                NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+                PanelWidth={panelWidth}
+                PanelHeight={panelHeight}
+                focus={returnFalse}
+                ScreenToLocalTransform={this.docTransform}
+                docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
+                ContainingCollectionDoc={this.props.containingCollection}
+                ContainingCollectionView={undefined}
+                addDocument={returnFalse}
+                moveDocument={this.move}
+                removeDocument={this.props.removeDoc}
+                parentActive={this.props.active}
+                whenActiveChanged={this.props.whenActiveChanged}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
+                bringToFront={returnFalse}
+                ContentScaling={returnOne}
+            />;
         }
     }
 
@@ -557,7 +556,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         TraceMobx();
-        if (this.props.renderedIds.indexOf(this.doc[Id]) !== -1) return null;
+        if (this.props.renderedIds.indexOf(this.doc[Id]) !== -1) return "<" + this.doc.title + ">";
         const sorting = this.doc[`${this.fieldKey}-sortAscending`];
         if (this.showTitleEditorControl) { // find containing CollectionTreeView and set our maximum width so the containing tree view won't have to scroll
             let par: any = this._header?.current;
@@ -589,37 +588,35 @@ export class TreeView extends React.Component<TreeViewProps> {
                         onPointerDown={e => { if (this.props.active(true)) { e.stopPropagation(); e.preventDefault(); } }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                         {this.renderBullet}
-                        <div ref={this._dref} style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}>
-                            <ContentFittingDocumentView
-                                Document={this.doc}
-                                DataDoc={undefined}
-                                LayoutTemplateString={FormattedTextBox.LayoutString("text")}
-                                LibraryPath={emptyPath}
-                                renderDepth={this.props.renderDepth + 1}
-                                rootSelected={returnTrue}
-                                treeViewDoc={undefined}
-                                backgroundColor={this.props.backgroundColor}
-                                fitToBox={this.isCollectionDoc !== undefined}
-                                PanelWidth={this.rtfWidth}
-                                PanelHeight={this.rtfOutlineHeight}
-                                focus={this.refocus}
-                                ScreenToLocalTransform={this.docTransform}
-                                docFilters={returnEmptyFilter}
-                                docRangeFilters={returnEmptyFilter}
-                                searchFilterDocs={returnEmptyDoclist}
-                                ContainingCollectionDoc={this.props.containingCollection}
-                                ContainingCollectionView={undefined}
-                                addDocument={this.props.addDocument}
-                                moveDocument={this.move}
-                                removeDocument={this.props.removeDoc}
-                                parentActive={this.props.active}
-                                whenActiveChanged={this.props.whenActiveChanged}
-                                addDocTab={this.props.addDocTab}
-                                pinToPres={this.props.pinToPres}
-                                bringToFront={returnFalse}
-                                ContentScaling={returnOne}
-                            />
-                        </div>
+                        <ContentFittingDocumentView key={this.doc[Id]} ref={this._dref}
+                            Document={this.doc}
+                            DataDoc={undefined}
+                            LayoutTemplateString={FormattedTextBox.LayoutString("text")}
+                            LibraryPath={emptyPath}
+                            renderDepth={this.props.renderDepth + 1}
+                            rootSelected={returnTrue}
+                            treeViewDoc={undefined}
+                            backgroundColor={this.props.backgroundColor}
+                            fitToBox={this.isCollectionDoc !== undefined}
+                            PanelWidth={this.rtfWidth}
+                            PanelHeight={this.rtfOutlineHeight}
+                            focus={this.refocus}
+                            ScreenToLocalTransform={this.docTransform}
+                            docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
+                            ContainingCollectionDoc={this.props.containingCollection}
+                            ContainingCollectionView={undefined}
+                            addDocument={this.props.addDocument}
+                            moveDocument={this.move}
+                            removeDocument={this.props.removeDoc}
+                            parentActive={this.props.active}
+                            whenActiveChanged={this.props.whenActiveChanged}
+                            addDocTab={this.props.addDocTab}
+                            pinToPres={this.props.pinToPres}
+                            bringToFront={returnFalse}
+                            ContentScaling={returnOne}
+                        />
                     </div>
 
                     <div className={`treeView-border${this.outlineMode ? "outline" : ""}`} style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
