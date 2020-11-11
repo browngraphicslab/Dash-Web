@@ -111,9 +111,8 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
-    @computed get boundsOfCollectionDocument() {
-        return StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1 || !DocListCast(this.props.document[this.fieldKey]).length ? undefined :
-            Doc.ComputeContentBounds(DocListCast(this.props.document[this.fieldKey]));
+    @computed get isCollectionDoc() {
+        return !StrCast(this.props.document.type).includes(DocumentType.COL) || !DocListCast(this.props.document[this.fieldKey]).length ? false : true
     }
 
     @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
@@ -284,6 +283,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     docWidth = () => {
         const layoutDoc = this.layoutDoc;
         const aspect = Doc.NativeAspect(layoutDoc);
+        if (layoutDoc._fitWidth) return Math.min(this.props.panelWidth() - 20, layoutDoc[WidthSym]());
         if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.panelWidth() - 20));
         return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : Math.min(this.layoutDoc[WidthSym](), this.props.panelWidth() - 20);
     }
@@ -356,12 +356,14 @@ export class TreeView extends React.Component<TreeViewProps> {
     rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
     rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
     rtfOutlineHeight = () => Math.max(this.layoutDoc?.[HeightSym](), 20);
-    docFinalHeight = () => {
+    expandPanelHeight = () => {
+        if (this.layoutDoc._fitWidth) return this.docHeight();
         const aspect = this.layoutDoc[WidthSym]() / this.layoutDoc[HeightSym]();
         const docAspect = this.docWidth() / this.docHeight();
         return (docAspect < aspect) ? this.docWidth() / aspect : this.docHeight();
     }
-    docFinalWidth = () => {
+    expandPanelWidth = () => {
+        if (this.layoutDoc._fitWidth) return this.docWidth();
         const aspect = this.layoutDoc[WidthSym]() / this.layoutDoc[HeightSym]();
         const docAspect = this.docWidth() / this.docHeight();
         return (docAspect > aspect) ? this.docHeight() * aspect : this.docWidth();
@@ -397,8 +399,8 @@ export class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = this.layoutDoc;
-            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docFinalHeight;
-            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docFinalWidth;
+            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
+            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
                     Document={this.doc}
@@ -409,7 +411,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     rootSelected={returnTrue}
                     treeViewDoc={undefined}
                     backgroundColor={this.props.backgroundColor}
-                    fitToBox={this.boundsOfCollectionDocument !== undefined}
+                    fitToBox={this.isCollectionDoc !== undefined}
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
@@ -567,7 +569,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         }
         else this._editMaxWidth = "";
-        const selected = SelectionManager.IsSelected(DocumentManager.Instance.getFirstDocumentView(this.doc));
+        const selected = false;// SelectionManager.IsSelected(DocumentManager.Instance.getFirstDocumentView(this.doc)); // bcz: need to fix so that this doesn't get called for every selection/view creation.  this is used to highlight bullet items in Slide views
         return this.doc.treeViewHideHeader || this.outlineMode ?
             !StrCast(Doc.LayoutField(this.doc)).includes("CollectionView") ?
                 this.renderContent
@@ -597,7 +599,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                                 rootSelected={returnTrue}
                                 treeViewDoc={undefined}
                                 backgroundColor={this.props.backgroundColor}
-                                fitToBox={this.boundsOfCollectionDocument !== undefined}
+                                fitToBox={this.isCollectionDoc !== undefined}
                                 PanelWidth={this.rtfWidth}
                                 PanelHeight={this.rtfOutlineHeight}
                                 focus={this.refocus}

@@ -26,6 +26,7 @@ import { TreeView } from "./TreeView";
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
 import { FormattedTextBoxComment } from '../nodes/formattedText/FormattedTextBoxComment';
+import { DocumentView } from '../nodes/DocumentView';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
@@ -158,7 +159,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 e.stopPropagation();
                 e.key === "Enter" && this.makeTextCollection(childDocs);
             }}>
-            <ContentFittingDocumentView
+            <DocumentView
                 Document={this.doc}
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}

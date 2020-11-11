@@ -9,7 +9,6 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
-import { SelectionManager } from './SelectionManager';
 import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
 import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
 
