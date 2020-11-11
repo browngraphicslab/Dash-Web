@@ -8,6 +8,7 @@ import { emptyFunction, OmitKeys, returnVal } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 import { CollectionViewType } from "../collections/CollectionView";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 interface ContentFittingDocumentViewProps {
     dontCenter?: boolean;
@@ -23,7 +24,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
 
-    trueNativeWidth = () => this.nativeWidth(); // returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, false));
+    trueNativeWidth = () => returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, false));
     nativeWidth = () => returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || this.props.PanelWidth());
     nativeHeight = () => returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || this.props.PanelHeight());
     @computed get nativeScaling() {
@@ -56,7 +57,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     @computed get borderRounding() { return StrCast(this.props.Document?.borderRounding); }
 
     contentScaling = () => {
-        return this.nativeScaling * Math.min(this.props.PanelWidth(), this.layoutDoc[WidthSym]()) / this.layoutWidth();
+        if ((this.props.LayoutTemplateString || StrCast(this.layoutDoc.layout)).includes("FormattedTextBox")) return this.nativeScaling;
+        return this.nativeScaling * this.layoutDoc[WidthSym]() / this.layoutWidth();
     }
 
     layoutWidth = () => {

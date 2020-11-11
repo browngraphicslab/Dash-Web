@@ -185,8 +185,12 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     public static makeTextBullet() {
-        const bullet = Docs.Create.TextDocument("-text-", { title: "-title-", "sidebarColor": "transparent", "sidebarViewType": CollectionViewType.Freeform, forceActive: true, _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true, x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10 });
-        Doc.GetProto(bullet).layout = CollectionView.LayoutString("data");
+        const bullet = Docs.Create.TextDocument("-text-", {
+            layout: CollectionView.LayoutString("data"),
+            title: "-title-", "sidebarColor": "transparent", "sidebarViewType": CollectionViewType.Freeform,
+            forceActive: true, _viewType: CollectionViewType.Tree, hideLinkButton: true, _showSidebar: true, treeViewOutlineMode: true,
+            x: 0, y: 0, _xMargin: 0, _yMargin: 0, _autoHeight: true, _singleLine: true, _backgroundColor: "transparent", _width: 1000, _height: 10
+        });
         Doc.GetProto(bullet).title = ComputedField.MakeFunction('self.text?.Text');
         Doc.GetProto(bullet).data = new List<Doc>([]);
         Doc.SetInPlace(bullet, "editTitle", "*", false);
@@ -285,15 +289,17 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
     docHeight = () => {
         const layoutDoc = this.layoutDoc;
-        const bounds = this.boundsOfCollectionDocument;
         return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
             const aspect = Doc.NativeAspect(layoutDoc);
             if (aspect) return this.docWidth() / (aspect || 1);
-            if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return layoutDoc._fitWidth ? (!Doc.NativeHeight(this.doc) ? NumCast(this.props.containingCollection._height) :
-                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, Doc.NativeHeight(layoutDoc)) /
-                    (Doc.NativeWidth(layoutDoc) || NumCast(this.props.containingCollection._height))
-                )) : (layoutDoc[HeightSym]() || 50);
+            return layoutDoc._fitWidth ?
+                (!Doc.NativeHeight(this.doc) ?
+                    NumCast(this.props.containingCollection._height)
+                    :
+                    Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, Doc.NativeHeight(layoutDoc)) / (Doc.NativeWidth(layoutDoc) || NumCast(this.props.containingCollection._height))
+                    ))
+                :
+                (layoutDoc[HeightSym]() || 50);
         })()));
     }
 
@@ -350,6 +356,16 @@ export class TreeView extends React.Component<TreeViewProps> {
     rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
     rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
     rtfOutlineHeight = () => Math.max(this.layoutDoc?.[HeightSym](), 20);
+    docFinalHeight = () => {
+        const aspect = this.layoutDoc[WidthSym]() / this.layoutDoc[HeightSym]();
+        const docAspect = this.docWidth() / this.docHeight();
+        return (docAspect < aspect) ? this.docWidth() / aspect : this.docHeight();
+    }
+    docFinalWidth = () => {
+        const aspect = this.layoutDoc[WidthSym]() / this.layoutDoc[HeightSym]();
+        const docAspect = this.docWidth() / this.docHeight();
+        return (docAspect > aspect) ? this.docHeight() * aspect : this.docWidth();
+    }
 
     @computed get renderContent() {
         TraceMobx();
@@ -381,8 +397,8 @@ export class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = this.layoutDoc;
-            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
-            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
+            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docFinalHeight;
+            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docFinalWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
                     Document={this.doc}
