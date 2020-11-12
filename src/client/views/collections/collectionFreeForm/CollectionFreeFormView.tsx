@@ -1479,7 +1479,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
-            nudge={this.isAnnotationOverlay ? undefined : this.nudge}
+            nudge={this.isAnnotationOverlay || this.props.renderDepth > 0 ? undefined : this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
             selectDocuments={this.selectDocuments}

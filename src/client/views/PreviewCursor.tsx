@@ -2,20 +2,15 @@ import { action, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import "./PreviewCursor.scss";
-import { Docs, DocUtils } from '../documents/Documents';
 import { Doc } from '../../fields/Doc';
-import { Transform } from "../util/Transform";
+import { Cast, NumCast } from '../../fields/Types';
 import { DocServer } from '../DocServer';
-import { undoBatch, UndoManager } from '../util/UndoManager';
-import { NumCast, Cast } from '../../fields/Types';
-import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
-import * as rp from 'request-promise';
-import { Utils } from '../../Utils';
-import { Networking } from '../Network';
-import { Upload } from '../../server/SharedMediaTypes';
-import { basename } from 'path';
+import { Docs, DocUtils } from '../documents/Documents';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { Transform } from "../util/Transform";
+import { undoBatch, UndoManager } from '../util/UndoManager';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
+import "./PreviewCursor.scss";
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
