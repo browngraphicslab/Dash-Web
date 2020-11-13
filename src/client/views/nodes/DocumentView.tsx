@@ -12,7 +12,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -49,6 +49,7 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     docFilters: () => string[];
+    contentsActive?: (setActive: () => boolean) => void;
     docRangeFilters: () => string[];
     searchFilterDocs: () => Doc[];
     FreezeDimensions?: boolean;
@@ -118,7 +119,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
+    private get active() { return this.isSelected(true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
@@ -918,11 +919,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
+    @observable contentsActive: () => boolean = returnFalse;
+    @action setContentsActive = (setActive: () => boolean) => { this.contentsActive = setActive; }
     @computed get contents() {
         TraceMobx();
-        return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any, borderRadius: "inherit", width: "100%", height: "100%" }}>
+        return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
+                contentsActive={this.setContentsActive}
                 docRangeFilters={this.props.docRangeFilters}
                 searchFilterDocs={this.props.searchFilterDocs}
                 ContainingCollectionView={this.props.ContainingCollectionView}

@@ -810,7 +810,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this.dataDoc[UpdatingFromServer] = this.dataDoc[ForceServerWrite] = false;
         }
     }
+
+    IsActive = () => {
+        return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+    }
+
     componentDidMount() {
+        this.props.contentsActive?.(this.IsActive);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.sidebarheight = reaction(
             () => ({ annoHeight: NumCast(this.rootDoc[this.annotationKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
@@ -1622,7 +1628,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
         const selPad = Math.min(margins, 10);
         const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
-        const selclass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
+        const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
             <div className="formattedTextBox-cont" ref={this._boxRef}
                 style={{
@@ -1665,10 +1671,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     })}
                     onDoubleClick={this.onDoubleClick}
                 >
-                    <div className={`formattedTextBox-outer${selclass}`} ref={this._scrollRef}
+                    <div className={`formattedTextBox-outer${selected ? "-selected" : ""}`} ref={this._scrollRef}
                         style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
-                        <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
+                        <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selPaddingClass}`} ref={this.createDropTarget}
                             style={{
                                 overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,

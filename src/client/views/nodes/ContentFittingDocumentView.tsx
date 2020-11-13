@@ -1,10 +1,10 @@
 import React = require("react");
-import { computed } from "mobx";
+import { computed, observable, action } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { Cast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnVal, returnOne } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 
@@ -15,6 +15,8 @@ interface ContentFittingDocumentViewProps {
 @observer
 export class ContentFittingDocumentView extends React.Component<DocumentViewProps & ContentFittingDocumentViewProps> {
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
+    public ContentRef = React.createRef<HTMLDivElement>();
+    @observable public docView: DocumentView | undefined | null;
     @computed get layoutDoc() {
         return this.props.LayoutTemplate?.() ||
             (this.props.layoutKey && Doc.Layout(this.props.Document, Cast(this.props.Document[this.props.layoutKey], Doc, null))) ||
@@ -42,10 +44,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
         return this.props.PanelHeight();
     }
 
-    @computed get childXf() { return this.props.DataDoc ? 1 : 1 / this.contentScaling(); }  // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
     private getTransform = () => this.props.ScreenToLocalTransform().
-        translate(this.props.dontCenter?.includes("x") ? 0 : -this.centeringOffset, this.props.dontCenter?.includes("y") ? 0 : -this.centeringYOffset).
-        scale(this.childXf)
+        translate(this.props.dontCenter?.includes("x") ? 0 : -this.centeringOffset, this.props.dontCenter?.includes("y") ? 0 : -this.centeringYOffset);
     private get centeringOffset() { return this.nativeWidth && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
     private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 && this.nativeHeight ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
 
@@ -53,15 +53,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
 
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
-    contentScaling = () => {
-        const layoutStr = (this.props.LayoutTemplateString || StrCast(this.layoutDoc.layout));
-        if (layoutStr.includes("FormattedTextBox")) return this.nativeScaling;
-        const wscale = this.nativeWidth ? 1 : this.layoutDoc[WidthSym]() / this.props.PanelWidth();
-        const hscale = this.nativeWidth ? 1 : this.layoutDoc[HeightSym]() / this.props.PanelHeight();
-        return this.nativeScaling * Math.max(wscale, hscale);
-    }
 
-    public ContentRef = React.createRef<HTMLDivElement>();
     render() {
         TraceMobx();
         return (<div className="contentFittingDocumentView">
@@ -74,6 +66,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         width: Math.abs(this.centeringOffset) > 0.001 ? `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
                     }}>
                     <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                        ref={action((r: DocumentView | null) => this.docView = r)}
                         Document={this.props.Document}
                         DataDoc={this.props.DataDoc}
                         LayoutTemplate={this.props.LayoutTemplate}
@@ -81,7 +74,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         LibraryPath={this.props.LibraryPath}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
-                        ContentScaling={this.contentScaling}
+                        ContentScaling={returnOne}
                         fitToBox={this.props.fitToBox}
                         layoutKey={this.props.layoutKey}
                         dropAction={this.props.dropAction}

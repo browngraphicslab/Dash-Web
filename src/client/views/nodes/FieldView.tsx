@@ -26,6 +26,7 @@ export interface FieldViewProps {
     Document: Doc;
     DataDoc?: Doc;
     LibraryPath: Doc[];
+    contentsActive?: (setActive: () => boolean) => void;
     onClick?: () => ScriptField;
     dropAction: dropActionType;
     backgroundHalo?: () => boolean;
