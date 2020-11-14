@@ -399,41 +399,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 {this.expandedField}
             </div></ul>;
         } else {
-            const layoutDoc = this.layoutDoc;
-            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
-            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
-            return <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
-                Document={this.doc}
-                DataDoc={undefined}
-                LibraryPath={emptyPath}
-                dontRegisterView={this.props.dontRegisterView}
-                renderDepth={this.props.renderDepth + 1}
-                rootSelected={returnTrue}
-                treeViewDoc={undefined}
-                backgroundColor={this.props.backgroundColor}
-                fitToBox={this.isCollectionDoc !== undefined}
-                FreezeDimensions={true}
-                NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
-                NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
-                PanelWidth={panelWidth}
-                PanelHeight={panelHeight}
-                focus={returnFalse}
-                ScreenToLocalTransform={this.docTransform}
-                docFilters={returnEmptyFilter}
-                docRangeFilters={returnEmptyFilter}
-                searchFilterDocs={returnEmptyDoclist}
-                ContainingCollectionDoc={this.props.containingCollection}
-                ContainingCollectionView={undefined}
-                addDocument={returnFalse}
-                moveDocument={this.move}
-                removeDocument={this.props.removeDoc}
-                parentActive={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-                bringToFront={returnFalse}
-                ContentScaling={returnOne}
-            />;
+            return this.renderDocument(false);
         }
     }
 
@@ -593,38 +559,47 @@ export class TreeView extends React.Component<TreeViewProps> {
         </>;
     }
 
+    renderDocument = (asText: boolean) => {
+        const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
+        const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
+        return <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
+            Document={this.doc}
+            DataDoc={undefined}
+            PanelWidth={panelWidth}
+            PanelHeight={panelHeight}
+            NativeWidth={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+            NativeHeight={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+            fitToBox={!asText && this.isCollectionDoc !== undefined}
+            LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
+            focus={asText ? this.refocus : returnFalse}
+            dontRegisterView={asText ? undefined : this.props.dontRegisterView}
+            ScreenToLocalTransform={this.docTransform}
+            LibraryPath={emptyPath}
+            renderDepth={this.props.renderDepth + 1}
+            rootSelected={returnTrue}
+            treeViewDoc={undefined}
+            backgroundColor={this.props.backgroundColor}
+            docFilters={returnEmptyFilter}
+            docRangeFilters={returnEmptyFilter}
+            searchFilterDocs={returnEmptyDoclist}
+            ContainingCollectionDoc={this.props.containingCollection}
+            ContainingCollectionView={undefined}
+            addDocument={this.props.addDocument}
+            moveDocument={this.move}
+            removeDocument={this.props.removeDoc}
+            parentActive={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            bringToFront={returnFalse}
+            ContentScaling={returnOne}
+        />;
+    }
+
     @computed get renderDocumentInHeader() {
         return <>
             {this.renderBullet}
-            <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
-                Document={this.doc}
-                DataDoc={undefined}
-                LayoutTemplateString={FormattedTextBox.LayoutString("text")}
-                LibraryPath={emptyPath}
-                renderDepth={this.props.renderDepth + 1}
-                rootSelected={returnTrue}
-                treeViewDoc={undefined}
-                backgroundColor={this.props.backgroundColor}
-                fitToBox={this.isCollectionDoc !== undefined}
-                PanelWidth={this.rtfWidth}
-                PanelHeight={this.rtfOutlineHeight}
-                focus={this.refocus}
-                ScreenToLocalTransform={this.docTransform}
-                docFilters={returnEmptyFilter}
-                docRangeFilters={returnEmptyFilter}
-                searchFilterDocs={returnEmptyDoclist}
-                ContainingCollectionDoc={this.props.containingCollection}
-                ContainingCollectionView={undefined}
-                addDocument={this.props.addDocument}
-                moveDocument={this.move}
-                removeDocument={this.props.removeDoc}
-                parentActive={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-                bringToFront={returnFalse}
-                ContentScaling={returnOne}
-            />
+            {this.renderDocument(true)}
         </>;
     }
 
