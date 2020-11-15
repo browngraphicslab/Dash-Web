@@ -3,7 +3,7 @@ import { Tooltip } from '@material-ui/core';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { clamp } from 'lodash';
-import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import { DataSym, Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
@@ -148,14 +148,16 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const sublists = DocListCast(dview[fieldKey]);
             const tabs = Cast(sublists[0], Doc, null);
             const tabdocs = await DocListCastAsync(tabs.data);
-            if (!tabdocs?.includes(curPres)) {
-                tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
-                CollectionDockingView.AddSplit(curPres, "right");
-            }
-            PresBox.Instance?._selectedArray.clear();
-            pinDoc && PresBox.Instance?._selectedArray.set(pinDoc, undefined); //Update selected array
-            DocumentManager.Instance.jumpToDocument(doc, false, undefined);
-            batch.end();
+            runInAction(() => {
+                if (!tabdocs?.includes(curPres)) {
+                    tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
+                    CollectionDockingView.AddSplit(curPres, "right");
+                }
+                PresBox.Instance?._selectedArray.clear();
+                pinDoc && PresBox.Instance?._selectedArray.set(pinDoc, undefined); //Update selected array
+                DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+                batch.end();
+            });
         }
     }
 

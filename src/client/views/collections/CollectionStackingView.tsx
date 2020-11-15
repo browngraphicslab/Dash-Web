@@ -292,7 +292,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             });
             const oldDocs = this.childDocs.length;
             if (super.onInternalDrop(e, de)) {
-                const droppedDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs); // dropping a document that wasn't in the list or one that creates something new (eg., a button that creates a note) adds a document to the end of the list
+                const droppedDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs); // if the drop operation adds something to the end of the list, then use that as the new document (may be different than what was dropped e.g., in the case of a button which is dropped but which creates say, a note).
                 const newDocs = droppedDocs.length ? droppedDocs : de.complete.docDragData.droppedDocuments; // if nothing was added to the end of the list, then presumably the dropped documents were already in the list, but possibly got reordered so we use them.
 
                 const docs = this.childDocList;
