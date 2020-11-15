@@ -292,9 +292,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             });
             const oldDocs = this.childDocs.length;
             if (super.onInternalDrop(e, de)) {
-                const newDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs);
+                const droppedDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs); // dropping a document that wasn't in the list or one that creates something new (eg., a button that creates a note) adds a document to the end of the list
+                const newDocs = droppedDocs.length ? droppedDocs : de.complete.docDragData.droppedDocuments; // if nothing was added to the end of the list, then presumably the dropped documents were already in the list, but possibly got reordered so we use them.
 
-                //de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 DragManager.docsBeingDragged = [];
                 if (docs && newDocs.length) {
@@ -410,7 +410,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = Math.max(height * NumCast(doc[this.props.fieldKey + "-height"]), NumCast(doc[this.props.fieldKey + "-height"]));
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);

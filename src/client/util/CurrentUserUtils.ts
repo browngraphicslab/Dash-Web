@@ -494,7 +494,7 @@ export class CurrentUserUtils {
             activeInkPen,
             backgroundColor,
             _hideContextMenu: true,
-            removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+            removeDropProperties: new List<string>(["_stayInCollection"]),
             _stayInCollection: true,
             dragFactory,
             clickFactory,

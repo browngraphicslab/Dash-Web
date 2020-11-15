@@ -552,7 +552,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
 
-    @computed get renderTitleAsText() {
+    // renders the text version of a document as the header (e.g., useful for Slide views where the "")
+    @computed get renderTitleAsHeader() {
         return <>
             {this.renderBullet}
             {this.renderTitle}
@@ -596,7 +597,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         />;
     }
 
-    @computed get renderDocumentInHeader() {
+    @computed get renderDocumentAsHeader() {
         return <>
             {this.renderBullet}
             {this.renderDocument(true)}
@@ -635,11 +636,11 @@ export class TreeView extends React.Component<TreeViewProps> {
                 onKeyDown={this.onKeyDown}>
                 {hideTitle ?
                     <li className="collection-child">
-                        {this.renderBulletHeader(this.renderDocumentInHeader)}
+                        {this.renderBulletHeader(this.renderDocumentAsHeader)}
                         {this.renderBorder}
                     </li> :
                     <li className="collection-child">
-                        {this.renderBulletHeader(this.renderTitleAsText)}
+                        {this.renderBulletHeader(this.renderTitleAsHeader)}
                         {this.renderBorder}
                     </li>
                 }
