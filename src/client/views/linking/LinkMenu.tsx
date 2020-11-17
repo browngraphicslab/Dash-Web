@@ -59,24 +59,17 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
-        const linkItems: Array<JSX.Element> = [];
-        groups.forEach((group, groupType) => {
-            linkItems.push(
-                <LinkMenuGroup
-                    key={groupType}
-                    docView={this.props.docView}
-                    sourceDoc={this.props.docView.props.Document}
-                    group={group}
-                    groupType={groupType}
-                    showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)}
-                    addDocTab={this.props.addDocTab} />
-            );
-        });
+        const linkItems = Array.from(groups.entries()).map(group =>
+            <LinkMenuGroup
+                key={group[0]}
+                docView={this.props.docView}
+                sourceDoc={this.props.docView.props.Document}
+                group={group[1]}
+                groupType={group[0]}
+                showEditor={action(linkDoc => this._editingLink = linkDoc)}
+                addDocTab={this.props.addDocTab} />);
 
-        // if source doc has no links push message
-        if (linkItems.length === 0) linkItems.push(<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>);
-
-        return linkItems;
+        return linkItems.length ? linkItems : [<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>];
     }
 
     @computed

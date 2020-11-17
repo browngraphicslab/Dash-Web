@@ -1,6 +1,11 @@
 @import "../globalCssVariables.scss";
 
 
+.documentLinksButton-cont {
+    min-width: 20;
+    min-height: 20;
+    position: absolute;
+}
 .documentLinksButton,
 .documentLinksButton-endLink,
 .documentLinksButton-startLink {
@@ -29,6 +34,7 @@
 
 .documentLinksButton {
     background-color: black;
+    font-weight: bold;
 
     &:hover {
         background: $main-accent;

@@ -208,6 +208,7 @@
     pointer-events: none;
     .pdfViewerDash-text {
         .textLayer {
+            display: none;
             span {
                 user-select: none;
             }
@@ -228,6 +229,7 @@
     z-index: -1;
     .pdfViewerDash-text {
         .textLayer {
+            display: contents;
             span {
                 user-select: text;
             }

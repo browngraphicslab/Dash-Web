@@ -344,7 +344,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get viewModes() {
         const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
             [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
-        return <div className="collectionViewBaseChrome-viewModes" >
+        const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
+        return isPres ? (null) : (<div className="collectionViewBaseChrome-viewModes" >
             <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
                 <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
                     <button className={"antimodeMenu-button"}>
@@ -367,7 +368,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     </select>
                 </div>
             </Tooltip>
-        </div>;
+        </div>);
     }
 
     @computed get selectedDocumentView() {
@@ -399,12 +400,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     pinWithView = (targetDoc: Opt<Doc>) => {
         if (targetDoc) {
             TabDocView.PinDoc(targetDoc, false);
-            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB) {
+            const presArray: Doc[] = PresBox.Instance?.sortArray();
+            const size: number = PresBox.Instance?._selectedArray.size;
+            const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
+            const activeDoc = presSelected ? PresBox.Instance?.childDocs[PresBox.Instance?.childDocs.indexOf(presSelected) + 1] : PresBox.Instance?.childDocs[PresBox.Instance?.childDocs.length - 1];
+            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking) {
                 const scroll = targetDoc._scrollTop;
                 activeDoc.presPinView = true;
                 activeDoc.presPinViewScroll = scroll;
-            } else {
+            } else if ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG) {
                 const x = targetDoc._panX;
                 const y = targetDoc._panY;
                 const scale = targetDoc._viewScale;
@@ -412,6 +416,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 activeDoc.presPinViewX = x;
                 activeDoc.presPinViewY = y;
                 activeDoc.presPinViewScale = scale;
+            } else if (targetDoc.type === DocumentType.VID) {
+                activeDoc.presPinTimecode = targetDoc._currentTimecode;
+                activeDoc.presPinView = true;
+            } else if (targetDoc.type === DocumentType.COMPARISON) {
+                const width = targetDoc._clipWidth;
+                activeDoc.presPinClipWidth = width;
+                activeDoc.presPinView = true;
             }
         }
     }
@@ -421,7 +432,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const presPinWithViewIcon = <img src={`/assets/pinWithView.png`} style={{ margin: "auto", width: 19 }} />;
         const targetDoc = this.selectedDoc;
         {/* return (!targetDoc || (targetDoc._viewType !== CollectionViewType.Freeform && targetDoc.type !== DocumentType.IMG)) ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top"> */ }
-        return (targetDoc && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation trail with current view"}</div></>} placement="top">
+        return (targetDoc && targetDoc.type !== DocumentType.PRES && (targetDoc._viewType === CollectionViewType.Freeform || targetDoc._viewType === CollectionViewType.Stacking || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.COMPARISON)) ? <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>} placement="top">
             <button className="antimodeMenu-button" style={{ borderRight: "1px solid gray", borderLeft: "1px solid gray", justifyContent: 'center' }}
                 onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
@@ -468,7 +479,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed
     get aliasButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
+        return !targetDoc || targetDoc.type === DocumentType.PRES ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
             <button className="antimodeMenu-button" onPointerDown={this.onAliasButtonDown} onClick={this.onAlias} style={{ cursor: "drag" }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
@@ -478,13 +489,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Images"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc._isLightboxOpen = true)} onClick={this.onAlias}>
+            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc._isLightboxOpen = true)}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
             </button>
         </Tooltip>;
     }
-
-
+    @computed get gridbackgroundButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Toggle background grid"}</div>} placement="top">
+            <button className="antimodeMenu-button" onPointerDown={action(() => targetDoc["_backgroundGrid-show"] = !targetDoc["_backgroundGrid-show"])}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon={targetDoc["_backgroundGrid-show"] ? "border-all" : ["far", "square"]} size="lg" />
+            </button>
+        </Tooltip>;
+    }
 
     render() {
         return (
@@ -502,6 +519,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                                 </button>
                             </Tooltip>}
                         {this.notACollection ? (null) : this.lightboxButton}
+                        {this.notACollection ? (null) : this.gridbackgroundButton}
                         {this.aliasButton}
                         {/* {this.pinButton} */}
                         {this.pinWithViewButton}
@@ -529,7 +547,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     get document() { return this.props.docView.props.Document; }
     @computed get dataField() {
-        return this.document[this.props.docView.LayoutFieldKey];
+        return this.document[this.props.docView.LayoutFieldKey + (this.props.isOverlay ? "-annotations" : "")];
     }
     @computed get childDocs() {
         return DocListCast(this.dataField);
@@ -540,7 +558,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
-        return this.selectedDoc?.type === DocumentType.RTF || (RichTextMenu.Instance?.view as any)?.focused ? true : false;
+        return this.selectedDoc?.type === DocumentType.RTF || (RichTextMenu.Instance?.view as any) ? true : false;
     }
 
     @undoBatch
@@ -757,6 +775,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         } else {
                             history.push(this._url);
                         }
+                        this.props.docView.props.Document._scrollTop = 0;
                         future && (future.length = 0);
                     }
                     this._url = url;
@@ -1312,5 +1331,5 @@ Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
         CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
     }
     CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
-    doc._currentFrame = Math.max(0, newFrame);
+    doc._currentFrame = newFrame === undefined ? 0 : Math.max(0, newFrame);
 });

@@ -13,6 +13,7 @@
         left: 0;
         height: 100%;
         overflow: hidden;
+        transition: 200ms;
 
         .beforeBox-cont {
             height: 100%;
@@ -26,6 +27,7 @@
         width: 3px;
         display: inline-block;
         background: white;
+        transition: 200ms;
 
         .slide-handle {
             position: absolute;

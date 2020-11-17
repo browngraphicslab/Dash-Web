@@ -26,6 +26,7 @@ import { TemplateMenu } from "./TemplateMenu";
 import React = require("react");
 import { PresBox } from './nodes/PresBox';
 import { undoBatch } from '../util/UndoManager';
+import { CollectionViewType } from './collections/CollectionView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -186,7 +187,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{SelectionManager.SelectedDocuments().length > 1 ? "Pin multiple documents to presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
                 onClick={undoBatch(e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false)))}>
@@ -194,25 +195,44 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div></Tooltip>;
     }
 
+    @undoBatch
+    @action
+    pinWithView = (targetDoc: Doc) => {
+        if (targetDoc) {
+            TabDocView.PinDoc(targetDoc, false);
+            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+            const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
+            const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);
+            if (scrollable) {
+                const scroll = targetDoc._scrollTop;
+                activeDoc.presPinView = true;
+                activeDoc.presPinViewScroll = scroll;
+            } else if (targetDoc.type === DocumentType.VID) {
+                activeDoc.presPinTimecode = targetDoc._currentTimecode;
+            } else if (pannable) {
+                const x = targetDoc._panX;
+                const y = targetDoc._panY;
+                const scale = targetDoc._viewScale;
+                activeDoc.presPinView = true;
+                activeDoc.presPinViewX = x;
+                activeDoc.presPinViewY = y;
+                activeDoc.presPinViewScale = scale;
+            } else if (targetDoc.type === DocumentType.COMPARISON) {
+                const width = targetDoc._clipWidth;
+                activeDoc.presPinClipWidth = width;
+                activeDoc.presPinView = true;
+            }
+        }
+    }
+
     @computed
     get pinWithViewButton() {
         const presPinWithViewIcon = <img src="/assets/pinWithView.png" style={{ margin: "auto", width: 17, transform: 'translate(0, 1px)' }} />;
         const targetDoc = this.view0?.props.Document;
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with current view"}</div></>}>
-            <div className="documentButtonBar-linker"
-                onClick={undoBatch(e => {
-                    if (targetDoc) {
-                        TabDocView.PinDoc(targetDoc, false);
-                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                        const x = targetDoc._panX;
-                        const y = targetDoc._panY;
-                        const scale = targetDoc._viewScale;
-                        activeDoc.presPinView = true;
-                        activeDoc.presPinViewX = x;
-                        activeDoc.presPinViewY = y;
-                        activeDoc.presPinViewScale = scale;
-                    }
-                })}>
+            <div
+                className="documentButtonBar-linker"
+                onClick={() => this.pinWithView(targetDoc)}>
                 {presPinWithViewIcon}
             </div>
         </Tooltip>;

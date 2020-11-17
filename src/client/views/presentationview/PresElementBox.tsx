@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, runInAction, observable } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
@@ -20,6 +20,7 @@ import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -119,14 +120,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10; }
         else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
-        return this.rootDoc.presMovement === PresMovement.Jump ? (null) : "D: " + durationInS + "s";
+        return "D: " + durationInS + "s";
     }
 
     @computed get transition() {
         let transitionInS: number;
         if (this.rootDoc.presTransition) transitionInS = NumCast(this.rootDoc.presTransition) / 1000;
         else transitionInS = 0.5;
-        return "M: " + transitionInS + "s";
+        return this.rootDoc.presMovement === PresMovement.Jump || this.rootDoc.presMovement === PresMovement.None ? (null) : "M: " + transitionInS + "s";
     }
 
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -140,16 +141,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         e.preventDefault();
         if (element && !(e.ctrlKey || e.metaKey)) {
-            if (PresBox.Instance._eleArray.includes(this._itemRef.current!)) {
+            if (PresBox.Instance._selectedArray.has(this.rootDoc)) {
+                PresBox.Instance._selectedArray.size === 1 && PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, false);
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
-                PresBox.Instance._selectedArray = [];
-                PresBox.Instance._selectedArray.push(this.rootDoc);
-                PresBox.Instance._eleArray = [];
-                PresBox.Instance._eleArray.push(this._itemRef.current!);
-                PresBox.Instance._dragArray = [];
-                PresBox.Instance._dragArray.push(this._dragRef.current!);
-                setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+                setupMoveUpEvents(this, e, ((e: PointerEvent) => {
+                    PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, false);
+                    return this.startDrag(e);
+                }), emptyFunction, emptyFunction);
             }
         }
     }
@@ -159,25 +158,30 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.preventDefault();
     }
 
-    @action
-    stopDrag = (e: PointerEvent) => {
-        this._dragging = false;
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
+    startDrag = (e: PointerEvent) => {
+        const miniView: boolean = this.toolbarWidth <= 100;
         const activeItem = this.rootDoc;
-        const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
+        const dragArray = PresBox.Instance._dragArray;
+        const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray());
         const dragItem: HTMLElement[] = [];
-        PresBox.Instance._dragArray.map(ele => {
-            const doc = ele;
-            doc.className = "presItem-slide";
+        if (dragArray.length === 1) {
+            const doc = dragArray[0];
+            doc.className = miniView ? "presItem-miniSlide" : "presItem-slide";
             dragItem.push(doc);
-        });
+        } else if (dragArray.length >= 1) {
+            const doc = document.createElement('div');
+            doc.className = "presItem-multiDrag";
+            doc.innerText = "Move " + PresBox.Instance._selectedArray.size + " slides";
+            doc.style.position = 'absolute';
+            doc.style.top = (e.clientY) + 'px';
+            doc.style.left = (e.clientX - 50) + 'px';
+            dragItem.push(doc);
+        }
+
+        // const dropEvent = () => runInAction(() => this._dragging = false);
         if (activeItem) {
-            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY);
-            runInAction(() => this._dragging = true);
+            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY, undefined);
+            // runInAction(() => this._dragging = true);
             return true;
         }
         return false;
@@ -190,7 +194,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     onPointerMove = (e: PointerEvent) => {
         const slide = this._itemRef.current!;
-        if (slide && DragManager.docsBeingDragged.length > 0) {
+        let dragIsPresItem: boolean = DragManager.docsBeingDragged.length > 0 ? true : false;
+        for (const doc of DragManager.docsBeingDragged) {
+            if (!doc.presentationTargetDoc) dragIsPresItem = false;
+        }
+        if (slide && dragIsPresItem) {
             const rect = slide.getBoundingClientRect();
             const y = e.clientY - rect.top;  //y position within the element.
             const height = slide.clientHeight;
@@ -222,33 +230,36 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @undoBatch
     removeItem = action((e: React.MouseEvent) => {
         this.props.removeDocument?.(this.rootDoc);
-        if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
-            PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
+        if (PresBox.Instance._selectedArray.has(this.rootDoc)) {
+            PresBox.Instance._selectedArray.delete(this.rootDoc);
         }
         e.stopPropagation();
     });
 
+    @undoBatch
     @action
     onSetValue = (value: string) => {
-        this.rootDoc.title = value;
+        this.rootDoc.title = !value.trim().length ? "-untitled-" : value;
         return true;
     }
 
-    @action
-    clearArrays = () => {
-        PresBox.Instance._eleArray = [];
-        PresBox.Instance._eleArray.push(this._itemRef.current!);
-        PresBox.Instance._dragArray = [];
-        PresBox.Instance._dragArray.push(this._dragRef.current!);
-    }
-
+    /**
+     * Method called for updating the view of the currently selected document
+     * 
+     * @param targetDoc 
+     * @param activeItem 
+     */
     @undoBatch
     @action
-    pinWithView = (targetDoc: Doc, activeItem: Doc) => {
-        console.log(targetDoc.type);
+    updateView = (targetDoc: Doc, activeItem: Doc) => {
         if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
             const scroll = targetDoc._scrollTop;
             activeItem.presPinViewScroll = scroll;
+        } else if (targetDoc.type === DocumentType.VID) {
+            activeItem.presPinTimecode = targetDoc._currentTimecode;
+        } else if (targetDoc.type === DocumentType.COMPARISON) {
+            const clipWidth = targetDoc._clipWidth;
+            activeItem.presPinClipWidth = clipWidth;
         } else {
             const x = targetDoc._panX;
             const y = targetDoc._panY;
@@ -259,11 +270,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    @computed
+    get toolbarWidth(): number {
+        const presBoxDocView = DocumentManager.Instance.getDocumentView(this.presBox);
+        let width: number = NumCast(this.presBox._width);
+        if (presBoxDocView) width = presBoxDocView.props.PanelWidth();
+        if (width === 0) width = 300;
+        return width;
+    }
+
     @computed get mainItem() {
-        const isSelected: boolean = PresBox.Instance._selectedArray.includes(this.rootDoc);
-        const toolbarWidth: number = PresBox.Instance.toolbarWidth;
-        const showMore: boolean = PresBox.Instance.toolbarWidth >= 300;
-        const targetDoc: Doc = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
+        const isSelected: boolean = PresBox.Instance._selectedArray.has(this.rootDoc);
+        const toolbarWidth: number = this.toolbarWidth;
+        const showMore: boolean = this.toolbarWidth >= 300;
+        const miniView: boolean = this.toolbarWidth <= 110;
+        const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
             <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
@@ -272,53 +293,51 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
-                    // Command/ control click
-                    if (e.ctrlKey || e.metaKey) {
-                        PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
-                        // Shift click
-                    } else if (e.shiftKey) {
-                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
-                        // Regular click
-                    } else {
-                        this.props.focus(this.rootDoc);
-                        this.clearArrays();
-                    }
+                    PresBox.Instance.modifierSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, !e.shiftKey && !e.ctrlKey && !e.metaKey, e.ctrlKey || e.metaKey, e.shiftKey);
                 }}
-                onDoubleClick={e => {
+                onDoubleClick={action(e => {
                     this.toggleProperties();
-                    this.props.focus(this.rootDoc);
-                    this.clearArrays();
-                }}
+                    PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, true);
+                })}
                 onPointerOver={this.onPointerOver}
                 onPointerLeave={this.onPointerLeave}
                 onPointerDown={this.headerDown}
                 onPointerUp={this.headerUp}
             >
-                <div className="presItem-number">
-                    {`${this.indexInPres + 1}.`}
-                </div>
-                <div ref={this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}>
-                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 175) : toolbarWidth - 85 }}>
-                        {isSelected ? <EditableView
+                {miniView ?
+                    <div className={`presItem-miniSlide ${isSelected ? "active" : ""}`} ref={miniView ? this._dragRef : null}>
+                        {`${this.indexInPres + 1}.`}
+                    </div>
+                    :
+                    <div className="presItem-number">
+                        {`${this.indexInPres + 1}.`}
+                    </div>}
+                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth) }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
+                        <EditableView
                             ref={this._titleRef}
-                            contents={this.rootDoc.title}
-                            GetValue={() => StrCast(this.rootDoc.title)}
-                            SetValue={action((value: string) => {
-                                this.onSetValue(value);
-                                return true;
-                            })}
-                        /> :
-                            this.rootDoc.title
-                        }
+                            editing={!isSelected ? false : undefined}
+                            contents={activeItem.title}
+                            overflow={'ellipsis'}
+                            GetValue={() => StrCast(activeItem.title)}
+                            SetValue={this.onSetValue}
+                        />
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presItem-time" style={{ display: showMore ? "block" : "none" }}>{this.duration}</div></Tooltip>
                     <div className={"presItem-slideButtons"}>
                         <Tooltip title={<><div className="dash-tooltip">{"Update view"}</div></>}>
                             <div className="slideButton"
-                                onClick={() => this.pinWithView(targetDoc, activeItem)}
+                                onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
+                        {/* <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
+                            <div className="slideButton"
+                                onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
+                                style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>
+                                <FontAwesomeIcon icon={""} onPointerDown={e => e.stopPropagation()} />
+                            </div>
+                        </Tooltip> */}
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
@@ -328,16 +347,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
-                </div>
+                </div>}
             </div >);
     }
 
     render() {
-        let item = null;
-        if (!(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise) item = null;
-        else item = this.mainItem;
-
-        return item;
+        return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : this.mainItem;
     }
 }

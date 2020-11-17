@@ -12,9 +12,9 @@ export default class SessionManager extends ApiManager {
 
     private authorizedAction = (handler: SecureHandler) => {
         return (core: AuthorizedCore) => {
-            const { req: { params }, res, isRelease } = core;
-            if (!isRelease) {
-                return res.send("This can be run only on the release server.");
+            const { req: { params }, res } = core;
+            if (!process.env.MONITORED) {
+                return res.send("This command only makes sense in the context of a monitored session.");
             }
             if (params.session_key !== process.env.session_key) {
                 return _permission_denied(res, permissionError);

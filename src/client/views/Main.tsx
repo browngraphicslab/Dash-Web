@@ -13,10 +13,11 @@ AssignAllExtensions();
 (async () => {
     window.location.search.includes("safe") && CollectionView.SetSafeMode(true);
     const info = await CurrentUserUtils.loadCurrentUser();
-    await Docs.Prototypes.initialize();
     if (info.id !== "__guest__") {
         // a guest will not have an id registered
         await CurrentUserUtils.loadUserDocument(info.id);
+    } else {
+        await Docs.Prototypes.initialize();
     }
     document.getElementById('root')!.addEventListener('wheel', event => {
         if (event.ctrlKey) {

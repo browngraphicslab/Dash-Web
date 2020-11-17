@@ -5,7 +5,7 @@ import { intersection } from "lodash";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
@@ -27,6 +27,7 @@ import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
+import { CollectionViewType } from "./collections/CollectionView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -35,6 +36,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
+    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => Opt<string>;
 }
 
 @observer
@@ -46,7 +48,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        if (PresBox.Instance?._selectedArray.size) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
     @computed get isPres(): boolean {
@@ -60,7 +62,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openOptions: boolean = true;
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
-    @observable openLayout: boolean = true;
+    @observable openLayout: boolean = false;
     @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
@@ -91,9 +93,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     docWidth = () => {
         if (this.selectedDoc) {
             const layoutDoc = this.selectedDoc;
-            const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-            if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.width - 20));
-            return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.width - 20) : this.props.width - 20;
+            const aspect = Doc.NativeAspect(layoutDoc, undefined, !layoutDoc._fitWidth);
+            if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.width - 20));
+            return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.width - 20) : this.props.width - 20;
         } else {
             return 0;
         }
@@ -103,17 +105,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     docHeight = () => {
         if (this.selectedDoc && this.dataDoc) {
             const layoutDoc = this.selectedDoc;
-            return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
-                const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-                if (aspect) return this.docWidth() * aspect;
-                return layoutDoc._fitWidth ? (!this.dataDoc._nativeHeight ? NumCast(this.props.height) :
-                    Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
-                        NumCast(this.props.height)))) :
-                    NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
-            })()));
-        } else {
-            return 0;
+            return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT,
+                Doc.NativeAspect(layoutDoc, undefined, true) ? this.docWidth() / Doc.NativeAspect(layoutDoc, undefined, true) :
+                    layoutDoc._fitWidth ? (!Doc.NativeHeight(this.dataDoc) ? NumCast(this.props.height) :
+                        Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, Doc.NativeHeight(layoutDoc)) / Doc.NativeWidth(layoutDoc) || NumCast(this.props.height))) :
+                        NumCast(layoutDoc._height) || 50));
         }
+        return 0;
     }
 
     @computed get expandedField() {
@@ -147,7 +145,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>);
                 }
             }
-            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+            rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
                     contents={"add key:value or #tags"}
@@ -175,14 +173,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 docs.forEach(doc => docvals.add(doc[key]));
                 const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
-                    rows.push(<div className="uneditable-field" key={key}>
+                    rows.push(<div className="propertiesView-uneditable-field" key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                         &nbsp;
                     </div>);
                 } else if (contents !== undefined) {
                     const value = Field.toString(contents as Field);
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
-                        rows.push(<div className="uneditable-field" key={key}>
+                        rows.push(<div className="propertiesView-uneditable-field" key={key}>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
                             <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
@@ -203,7 +201,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     }
                 }
             }
-            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+            rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
                     contents={"add key:value or #tags"}
@@ -256,7 +254,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return !this.selectedDoc ? (null) : <PropertiesDocContextSelector Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddSplit(doc, "right")} />;
     }
 
-    previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
         if (SelectionManager.SelectedDocuments().length > 1) {
             return "-- multiple selected --";
@@ -273,7 +270,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
-                    backgroundColor={this.previewBackground}
+                    backgroundColor={this.props.backgroundColor}
                     fitToBox={true}
                     FreezeDimensions={true}
                     dontCenter={true}
@@ -859,7 +856,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    minWidth: this.props.width
+                    minWidth: this.props.width,
                     //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
@@ -972,7 +969,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
                     </div>
-                    {/* <div className="propertiesView-layout">
+                    <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
                             onPointerDown={action(() => this.openLayout = !this.openLayout)}
                             style={{ backgroundColor: this.openLayout ? "black" : "" }}>
@@ -982,12 +979,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
-                    </div> */}
+                    </div>
                 </div>;
             }
             if (this.isPres) {
-                const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                const selectedItem: boolean = PresBox.Instance?._selectedArray.size > 0;
                 const type = PresBox.Instance.activeItem?.type;
+                const viewType = PresBox.Instance.activeItem?._viewType;
+                const pannable: boolean = (type === DocumentType.COL && viewType === CollectionViewType.Freeform) || type === DocumentType.IMG;
+                const scrollable: boolean = type === DocumentType.PDF || type === DocumentType.WEB || type === DocumentType.RTF || viewType === CollectionViewType.Stacking;
                 return <div className="propertiesView" style={{ width: this.props.width }}>
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -995,7 +995,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance?._selectedArray.length} selected
+                            <div className="propertiesView-selectedCount">
+                                {PresBox.Instance?._selectedArray.size} selected
+                            </div>
                             <div className="propertiesView-selectedList">
                                 {PresBox.Instance?.listOfSelected}
                             </div>
@@ -1014,7 +1016,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
                     </div>}
-                    {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
+                    {/* {!selectedItem || type === DocumentType.VID || type === DocumentType.AUDIO ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => this.openPresProgressivize = !this.openPresProgressivize)}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
@@ -1026,20 +1028,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {this.openPresProgressivize ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
-                    </div>}
-                    {!selectedItem || (type !== DocumentType.COL && type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
+                    </div>} */}
+                    {/* {!selectedItem || (!scrollable && !pannable) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
-                        <div className="propertiesView-presTrails-title-icon">
+                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {scrollable ? "Scroll options" : "Pan options"}
+                            <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {this.openSlideOptions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.optionsDropdown}
                         </div> : null}
-                    </div>}
+                    </div>} */}
                     {/* <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openAddSlide = !this.openAddSlide; })}

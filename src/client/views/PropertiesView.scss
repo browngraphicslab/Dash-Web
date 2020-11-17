@@ -1,6 +1,4 @@
 .propertiesView {
-
-    background-color: rgb(205, 205, 205);
     height: 100%;
     font-family: "Noto Sans";
     cursor: auto;
@@ -9,7 +7,6 @@
     overflow-y: auto;
 
     .propertiesView-title {
-        background-color: rgb(159, 159, 159);
         text-align: center;
         padding-top: 12px;
         padding-bottom: 12px;
@@ -335,7 +332,6 @@
             }
         }
     }
-
     .propertiesView-fields {
         //border-bottom: 1px solid black;
         //padding: 8.5px;
@@ -390,7 +386,7 @@
         }
     }
 
-    .field {
+    .propertiesView-field {
         display: flex;
         font-size: 7px;
         background-color: #e8e8e8;
@@ -400,7 +396,7 @@
         padding-left: 3px;
     }
 
-    .uneditable-field {
+    .propertiesView-uneditable-field {
         display: flex;
         overflow-y: visible;
         margin-bottom: 2px;
@@ -686,7 +682,17 @@
     font-weight: 500;
     display: inline-flex;
 
+    .propertiesView-selectedCount {
+        width: max-content;
+        min-width: max-content;
+    }
+
     .propertiesView-selectedList {
+        min-width: max-content;
+        width: 100%;
+        max-height: 180;
+        overflow: hidden;
+        overflow-y: scroll;
         border-left: solid 1px darkgrey;
         margin-left: 10px;
         padding-left: 5px;

@@ -43,8 +43,8 @@ type InternalMessageHandler = (message: InternalMessage) => (any | Promise<any>)
  * Allows for the transmission of the error's key features over IPC.
  */
 export interface ErrorLike {
-    name?: string;
-    message?: string;
+    name: string;
+    message: string;
     stack?: string;
 }
 
@@ -162,8 +162,8 @@ export class PromisifiedIPCManager {
             }
             if (!this.isDestroyed && this.target.send) {
                 const metadata = { id, isResponse: true };
-                const response: Response = { results , error };
-                const message = { name, args: response , metadata };
+                const response: Response = { results, error };
+                const message = { name, args: response, metadata };
                 delete this.pendingMessages[id];
                 this.target.send(message);
             }

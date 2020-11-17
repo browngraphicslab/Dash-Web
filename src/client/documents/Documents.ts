@@ -61,6 +61,7 @@ export interface DocumentOptions {
     _autoHeight?: boolean;
     _headerHeight?: number; // height of header of custom notes
     _headerFontSize?: number; // font size of header of custom notes
+    _headerPointerEvents?: string; // types of events the header of a custom text document can consume
     _panX?: number;
     _panY?: number;
     _width?: number;
@@ -236,6 +237,8 @@ class EmptyBox {
 
 export namespace Docs {
 
+    export let newAccount: boolean = false;
+
     export namespace Prototypes {
 
         type LayoutSource = { LayoutString: (key: string) => string };
@@ -392,7 +395,7 @@ export namespace Docs {
             // non-guid string ids for each document prototype
             const prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
-            const actualProtos = await DocServer.GetRefFields(prototypeIds);
+            const actualProtos = Docs.newAccount ? {} : await DocServer.GetRefFields(prototypeIds);
 
             // update this object to include any default values: DocumentOptions for all prototypes
             prototypeIds.map(id => {
@@ -1099,7 +1102,7 @@ export namespace DocUtils {
                 });
             }
             ctor = Docs.Create.WebDocument;
-            options = { ...options, _fitWidth: true, _nativeWidth: 850, _width: 400, _height: 512, title: path, };
+            options = { ...options, _fitWidth: true, _width: 400, _height: 512, title: path, };
         }
         return ctor ? ctor(path, options) : undefined;
     }

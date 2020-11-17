@@ -22,8 +22,7 @@
     border-style: solid;
     overflow-y: auto;
     overflow-x: hidden;
-    color: initial;
-    max-height: 100%;
+    color: inherit;
     display: flex;
     flex-direction: row;
     transition: opacity 1s;

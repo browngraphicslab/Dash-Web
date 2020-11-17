@@ -28,13 +28,13 @@ import * as rp from 'request-promise';
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
 
-    export function PRINT_CACHE() {
+    export function UPDATE_SERVER_CACHE(print: boolean = false) {
         const strings: string[] = [];
         Array.from(Object.keys(_cache)).forEach(key => {
             const doc = _cache[key];
             if (doc instanceof Doc) strings.push(StrCast(doc.author) + " " + StrCast(doc.title) + " " + StrCast(Doc.GetT(doc, "title", "string", true)));
         });
-        strings.sort().forEach((str, i) => console.log(i.toString() + " " + str));
+        print && strings.sort().forEach((str, i) => console.log(i.toString() + " " + str));
         rp.post(Utils.prepend("/setCacheDocumentIds"), {
             body: {
                 cacheDocumentIds: Array.from(Object.keys(_cache)).join(";"),
@@ -348,7 +348,6 @@ export namespace DocServer {
         }
 
         if (requestedIds.length) {
-
             // 2) synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
             // fields for the given ids. This returns a promise, which, when resolved, indicates that all the JSON serialized versions of
             // the fields have been returned from the server

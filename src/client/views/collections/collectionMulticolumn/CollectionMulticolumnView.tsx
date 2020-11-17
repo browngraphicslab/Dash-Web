@@ -213,10 +213,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return this.props.addDocTab(doc, where);
     }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        const layoutTemp = this.props.DataDoc ? true : undefined;
         return <ContentFittingDocumentView
             Document={layout}
-            DataDoc={layout.resolvedDataDoc as Doc || (layoutTemp ? layout : undefined)}
+            DataDoc={layout.resolvedDataDoc as Doc}
             backgroundColor={this.props.backgroundColor}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
@@ -290,6 +289,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return (
             <div className={"collectionMulticolumnView_contents"}
                 style={{
+                    width: `calc(100% - ${2 * NumCast(this.props.Document._xMargin)}px)`,
+                    height: `calc(100% - ${2 * NumCast(this.props.Document._yMargin)}px)`,
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }} ref={this.createDashEventsTarget}>

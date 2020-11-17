@@ -344,12 +344,16 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0]?.contentDocument?.getSelection()?.focusNode as any);
+                                const iframe = SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0];
+                                const focusNode = (iframe?.contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
-                                    const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
-                                    const x = (rect?.x || 0);
-                                    const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
+                                    const rects = iframe?.contentWindow?.getSelection()?.getRangeAt(0).getClientRects();
+                                    "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
+                                    const x = (rects && Array.from(rects).reduce((x: any, r: DOMRect) => x === undefined || r.x < x ? r.x : x, undefined as any)) || 0;
+                                    const y = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y < y ? r.y : y, undefined as any)) || 0);
+                                    const r = (rects && Array.from(rects).reduce((x: any, r: DOMRect) => x === undefined || r.x + r.width > x ? r.x + r.width : x, undefined as any)) || 0;
+                                    const b = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y + r.height > y ? r.y + r.height : y, undefined as any)) || 0);
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: r - x, _height: b - y, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -406,7 +410,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     this.addDocument(alias);
                 } else {
                     console.log("Adding ...");
-                    const newDoc = Docs.Create.WebDocument(uriList, {
+                    const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                         ...options,
                         _fitWidth: true,
                         title: uriList.split("#annotations:")[0],
@@ -416,7 +420,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         useCors: true
                     });
                     console.log(" ... " + newDoc.title);
-                    newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                     console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;
@@ -479,6 +482,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             } else {
                 if (text && !text.includes("https://")) {
                     UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
+                } else {
+                    alert("Document upload failed - possibly an unsupported file type.");
                 }
             }
             disposer();

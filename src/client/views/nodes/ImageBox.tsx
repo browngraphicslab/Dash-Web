@@ -76,14 +76,11 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     componentDidMount() {
         this._pathDisposer = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
-            ({ nativeSize, width }) => {
-                if (this.props.NativeWidth?.() !== 0 || !this.layoutDoc._height) {
-                    this.layoutDoc._nativeWidth = nativeSize.nativeWidth;
-                    this.layoutDoc._nativeHeight = nativeSize.nativeHeight;
-                    this.layoutDoc._nativeOrientation = nativeSize.nativeOrientation;
+            action(({ nativeSize, width }) => {
+                if (!this.layoutDoc._height) {
                     this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
                 }
-            },
+            }),
             { fireImmediately: true });
     }
 
@@ -106,8 +103,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 const targetDoc = layoutDoc[DataSym];
                 if (targetDoc[targetField] instanceof ImageField) {
                     this.dataDoc[this.fieldKey] = ObjectField.MakeCopy(targetDoc[targetField] as ImageField);
-                    this.dataDoc[this.fieldKey + "-nativeWidth"] = NumCast(targetDoc[targetField + "-nativeWidth"]);
-                    this.dataDoc[this.fieldKey + "-nativeHeight"] = NumCast(targetDoc[targetField + "-nativeHeight"]);
+                    Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(targetDoc));
+                    Doc.SetNativeWidth(this.dataDoc, Doc.NativeHeight(targetDoc));
                     e.stopPropagation();
                 }
             }

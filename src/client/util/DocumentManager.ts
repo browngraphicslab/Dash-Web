@@ -110,7 +110,7 @@ export class DocumentManager {
 
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const views = this.getDocumentViews(toFind).filter(view => view.props.Document !== originatingDoc);
-        return views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
+        return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
@@ -128,19 +128,19 @@ export class DocumentManager {
     }
 
 
-    static addRightSplit = (doc: Doc, finished?: () => void) => {
+    static addView = (doc: Doc, finished?: () => void) => {
         CollectionDockingView.AddSplit(doc, "right");
         finished?.();
     }
     public jumpToDocument = async (
         targetDoc: Doc,        // document to display
         willZoom: boolean,     // whether to zoom doc to take up most of screen
-        createViewFunc = DocumentManager.addRightSplit, // how to create a view of the doc if it doesn't exist
+        createViewFunc = DocumentManager.addView, // how to create a view of the doc if it doesn't exist
         docContext?: Doc,  // context to load that should contain the target
         linkDoc?: Doc,   // link that's being followed
         closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
-        finished?: () => void
+        finished?: () => void,
     ): Promise<void> => {
         const getFirstDocView = DocumentManager.Instance.getFirstDocumentView;
         const focusAndFinish = () => { finished?.(); return false; };
@@ -163,21 +163,19 @@ export class DocumentManager {
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
             const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
-                const hide = !docView.props.Document.hidden;
-                docView.props.focus(docView.props.Document, willZoom, undefined, (notfocused: boolean) => { // bcz: Argh! TODO: Need to add a notFocused argument to the after finish callback function that indicates whether the window had to scroll to show the target  
-                    if (notfocused || docView.props.Document.hidden) {
+                docView.props.focus(docView.props.Document, willZoom, undefined, (didFocus: boolean) => {
+                    if (!didFocus || docView.props.Document.hidden) {
                         docView.props.Document.hidden = !docView.props.Document.hidden;
                     }
                     return focusAndFinish();
-                    // @ts-ignore   bcz: Argh TODO: Need to add a parameter to focus() everywhere for whether focus should center the target's container in the view or not. // here we don't want to focus the container if the source and target are in the same container
-                }, sameContext);
+                }, sameContext, false);// don't want to focus the container if the source and target are in the same container, so pass 'sameContext' for dontCenter parameter
                 //finished?.();
             }
             else {
                 docView.select(false);
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 // @ts-ignore
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext);
+                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext, false);
             }
             highlight();
         } else {

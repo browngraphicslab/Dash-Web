@@ -22,12 +22,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
 
-    nativeWidth = () => returnVal(this.props.NativeWidth?.(),
-        NumCast(this.layoutDoc?._nativeWidth || this.props.DataDoc?.[Doc.LayoutFieldKey(this.layoutDoc) + "-nativeWidth"],
-            (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth())))
-    nativeHeight = () => returnVal(this.props.NativeHeight?.(),
-        NumCast(this.layoutDoc?._nativeHeight || this.props.DataDoc?.[Doc.LayoutFieldKey(this.layoutDoc) + "-nativeHeight"],
-            (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight())))
+    nativeWidth = () => returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || this.props.PanelWidth());
+    nativeHeight = () => returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || this.props.PanelHeight());
     @computed get scaling() {
         const wscale = this.props.PanelWidth() / this.nativeWidth();
         const hscale = this.props.PanelHeight() / this.nativeHeight();
@@ -42,7 +38,13 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     private PanelHeight = () => this.panelHeight;
 
     @computed get panelWidth() { return this.nativeWidth() && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
-    @computed get panelHeight() { return this.nativeHeight() && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
+    @computed get panelHeight() {
+        if (this.nativeHeight()) {
+            if (!this.props.Document._fitWidth) return this.nativeHeight() * this.contentScaling();
+            else return this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 1;
+        }
+        return this.props.PanelHeight();
+    }
 
     @computed get childXf() { return this.props.DataDoc ? 1 : 1 / this.contentScaling(); }  // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
     private getTransform = () => this.props.dontCenter ?

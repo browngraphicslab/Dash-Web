@@ -12,6 +12,13 @@
     border-radius: inherit;
 }
 
+.collectionfreeformview-grid {
+    transform-origin: top left;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .collectionfreeformview-viewdef {
     >.collectionFreeFormDocumentView-container {
         pointer-events: none;
@@ -57,12 +64,19 @@
         min-height: 15px;
         text-align: center;
         background-color: #69a6db;
-        border-radius: 5px;
+        border-radius: 10%;
         box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
         font-family: Roboto;
         font-weight: 500;
         color: white;
     }
+}
+
+.pathOrder-presPinView {
+    position: absolute;
+    z-index: 190000;
+    border-style: dashed;
+    border-color: #69a5db;
 }
 
 .progressivizeButton {

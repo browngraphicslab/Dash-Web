@@ -6,7 +6,7 @@ import * as rp from 'request-promise';
 import { Doc } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { createSchema, makeInterface } from "../../../fields/Schema";
-import { Cast, StrCast } from "../../../fields/Types";
+import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero, OmitKeys } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -20,6 +20,7 @@ import "./VideoBox.scss";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Networking } from "../../Network";
 import { SnappingManager } from "../../util/SnappingManager";
+import { SelectionManager } from "../../util/SelectionManager";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -51,30 +52,44 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     videoLoad = () => {
         const aspect = this.player!.videoWidth / this.player!.videoHeight;
-        this.layoutDoc._nativeWidth = this.player!.videoWidth;
-        this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / aspect;
+        Doc.SetNativeWidth(this.dataDoc, this.player!.videoWidth);
+        Doc.SetNativeHeight(this.dataDoc, this.player!.videoHeight);
         this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
-        this.dataDoc[this.fieldKey + "-" + "duration"] = this.player!.duration;
+        this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
     }
 
     @action public Play = (update: boolean = true) => {
         this._playing = true;
-        update && this.player?.play();
-        update && this._youtubePlayer?.playVideo();
-        this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        try {
+            update && this.player?.play();
+            update && this._youtubePlayer?.playVideo();
+            this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        } catch (e) {
+            console.log("Video Play Exception:", e);
+        }
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
-        this._youtubePlayer?.seekTo(Math.round(time), true);
+        try {
+            this._youtubePlayer?.seekTo(Math.round(time), true);
+        } catch (e) {
+            console.log("Video Seek Exception:", e);
+        }
         this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this._playing = false;
-        update && this.player?.pause();
-        update && this._youtubePlayer?.pauseVideo();
-        this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
+        try {
+            update && this.player?.pause();
+            update && this._youtubePlayer?.pauseVideo();
+            this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
+            this._youtubePlayer?.seekTo(this._youtubePlayer?.getCurrentTime(), true);
+        } catch (e) {
+            console.log("Video Pause Exception:", e);
+        }
+        this._youtubePlayer && SelectionManager.DeselectAll(); // if we don't deselect the player, then we get an annoying YouTube spinner I guess telling us we're paused.
         this._playTimer = undefined;
         this.updateTimecode();
     }
@@ -82,7 +97,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.rootDoc, "add");
+        try {
+            this._youtubePlayer && this.props.addDocTab(this.rootDoc, "add");
+        } catch (e) {
+            console.log("Video FullScreen Exception:", e);
+        }
     }
 
     choosePath(url: string) {
@@ -97,7 +116,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = (this.layoutDoc._height || 0);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * (this.layoutDoc._nativeHeight || 0) / (this.layoutDoc._nativeWidth || 1);
+        canvas.height = 640 * Doc.NativeHeight(this.layoutDoc) / (Doc.NativeWidth(this.layoutDoc) || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             // ctx.rect(0, 0, canvas.width, canvas.height);
@@ -129,25 +148,22 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
             const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
-            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) => {
-                if (returnedFilename) {
-                    this.createRealSummaryLink(returnedFilename);
-                }
-            });
+            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) =>
+                returnedFilename && this.createRealSummaryLink(returnedFilename));
         }
     }
 
     private createRealSummaryLink = (relative: string) => {
         const url = this.choosePath(Utils.prepend(relative));
-        const width = (this.layoutDoc._width || 0);
-        const height = (this.layoutDoc._height || 0);
+        const width = this.layoutDoc._width || 0;
+        const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
-            _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
+            _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
             x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
-        Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
-        Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
+        Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
+        Doc.SetNativeHeight(Doc.GetProto(imageSummary), Doc.NativeHeight(this.layoutDoc));
         imageSummary.isLinkButton = true;
         this.props.addDocument?.(imageSummary);
         DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
@@ -156,7 +172,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @action
     updateTimecode = () => {
         this.player && (this.layoutDoc._currentTimecode = this.player.currentTime);
-        this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime());
+        try {
+            this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime?.());
+        } catch (e) {
+            console.log("Video Timecode Exception:", e);
+        }
     }
 
     componentDidMount() {
@@ -164,11 +184,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
         if (this.youtubeVideoId) {
             const youtubeaspect = 400 / 315;
-            const nativeWidth = (this.layoutDoc._nativeWidth || 0);
-            const nativeHeight = (this.layoutDoc._nativeHeight || 0);
+            const nativeWidth = Doc.NativeWidth(this.layoutDoc);
+            const nativeHeight = Doc.NativeHeight(this.layoutDoc);
             if (!nativeWidth || !nativeHeight) {
-                if (!this.layoutDoc._nativeWidth) this.layoutDoc._nativeWidth = 600;
-                this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / youtubeaspect;
+                if (!nativeWidth) Doc.SetNativeWidth(this.dataDoc, 600);
+                Doc.SetNativeHeight(this.dataDoc, (nativeWidth || 600) / youtubeaspect);
                 this.layoutDoc._height = (this.layoutDoc._width || 0) / youtubeaspect;
             }
         }
@@ -258,7 +278,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
         else this._youtubeContentCreated = false;
 
-        const iframe = e.target;
+        this.loadYouTube(e.target);
+    }
+    private loadYouTube = (iframe: any) => {
         let started = true;
         const onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
@@ -278,13 +300,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
-        this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
-            events: {
-                'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
-                'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
-            }
-        });
-
+        if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);
+        else {
+            (YT as any)?.ready(() => {
+                this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
+                    events: {
+                        'onReady': this.props.dontRegisterView ? undefined : onYoutubePlayerReady,
+                        'onStateChange': this.props.dontRegisterView ? undefined : onYoutubePlayerStateChange,
+                    }
+                });
+            });
+        }
     }
     private get uIButtons() {
         const curTime = (this.layoutDoc._currentTimecode || 0);
@@ -346,26 +372,33 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         const start = untracked(() => Math.round((this.layoutDoc._currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.layoutDoc._nativeWidth || 640)} height={(this.layoutDoc._nativeHeight || 390)}
+            onPointerLeave={this.updateTimecode}
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={Doc.NativeWidth(this.layoutDoc) || 640} height={Doc.NativeHeight(this.layoutDoc) || 390}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=0&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc | Doc[]): boolean {
         const docs = doc instanceof Doc ? [doc] : doc;
-        docs.forEach(doc => {
-            const curTime = (this.layoutDoc._currentTimecode || -1);
-            curTime !== -1 && (doc.displayTimecode = curTime);
-        });
+        const curTime = NumCast(this.layoutDoc._currentTimecode);
+        docs.forEach(doc => doc.displayTimecode = curTime);
         return this.addDocument(doc);
     }
 
+    @computed get contentScaling() { return this.props.ContentScaling(); }
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{
+                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
+                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+            }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    forceScaling={true}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
                     annotationsKey={this.annotationKey}

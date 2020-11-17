@@ -279,21 +279,21 @@ export class TreeView extends React.Component<TreeViewProps> {
     getTransform = () => this.refTransform(this._tref.current!);
     docWidth = () => {
         const layoutDoc = this.layoutDoc;
-        const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-        if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
-        return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
+        const aspect = Doc.NativeAspect(layoutDoc);
+        if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.panelWidth() - 20));
+        return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
     }
     docHeight = () => {
         const layoutDoc = this.layoutDoc;
         const bounds = this.boundsOfCollectionDocument;
         return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
-            const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
-            if (aspect) return this.docWidth() * aspect;
+            const aspect = Doc.NativeAspect(layoutDoc);
+            if (aspect) return this.docWidth() / (aspect || 1);
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return layoutDoc._fitWidth ? (!this.doc._nativeHeight ? NumCast(this.props.containingCollection._height) :
-                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
-                    NumCast(this.props.containingCollection._height)))) :
-                NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
+            return layoutDoc._fitWidth ? (!Doc.NativeHeight(this.doc) ? NumCast(this.props.containingCollection._height) :
+                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, Doc.NativeHeight(layoutDoc)) /
+                    (Doc.NativeWidth(layoutDoc) || NumCast(this.props.containingCollection._height))
+                )) : (layoutDoc[HeightSym]() || 50);
         })()));
     }
 
@@ -728,7 +728,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => add(doc, relativeTo ?? docs[i], before !== undefined ? before : false);
             const childLayout = Doc.Layout(pair.layout);
             const rowHeight = () => {
-                const aspect = NumCast(childLayout._nativeWidth, 0) / NumCast(childLayout._nativeHeight, 0);
+                const aspect = Doc.NativeAspect(childLayout);
                 return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
             return <TreeView key={child[Id]}

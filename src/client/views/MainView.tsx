@@ -58,6 +58,7 @@ import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
 import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
+import { UndoManager } from '../util/UndoManager';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -132,7 +133,7 @@ export class MainView extends React.Component {
         }
 
         library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
-            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faMapMarker, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
+            fa.faSquare, far.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faMapMarker, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointLeft, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleLeft, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
             fa.faCaretSquareDown, fa.faCaretSquareRight, fa.faArrowsAltH, fa.faPlus, fa.faMinus, fa.faTerminal, fa.faToggleOn, fa.faFile, fa.faLocationArrow,
@@ -150,7 +151,7 @@ export class MainView extends React.Component {
             fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl,
             fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faTextHeight, fa.faClosedCaptioning, fa.faInfoCircle, fa.faTag, fa.faSyncAlt, fa.faPhotoVideo,
             fa.faArrowAltCircleDown, fa.faArrowAltCircleUp, fa.faArrowAltCircleLeft, fa.faArrowAltCircleRight, fa.faStopCircle, fa.faCheckCircle, fa.faGripVertical,
-            fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload,
+            fa.faSortUp, fa.faSortDown, fa.faTable, fa.faTh, fa.faThList, fa.faProjectDiagram, fa.faSignature, fa.faColumns, fa.faChevronCircleUp, fa.faUpload, fa.faBorderAll,
             fa.faBraille, fa.faChalkboard, fa.faPencilAlt, fa.faEyeSlash, fa.faSmile, fa.faIndent, fa.faOutdent, fa.faChartBar, fa.faBan, fa.faPhoneSlash, fa.faGripLines);
         this.initAuthenticationRouters();
     }
@@ -174,6 +175,7 @@ export class MainView extends React.Component {
     initEventListeners = () => {
         window.addEventListener("drop", e => e.preventDefault(), false);  // prevent default behavior of navigating to a new web page
         window.addEventListener("dragover", e => e.preventDefault(), false);
+        document.addEventListener("pointermove", action(e => SearchBox.Instance._undoBackground = UndoManager.batchCounter ? "#000000a8" : undefined));
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("click", (e: MouseEvent) => {
             if (!e.cancelBubble) {
@@ -227,25 +229,29 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (doc?.type === DocumentType.COL) {
-            return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-        }
         if (this.darkScheme) {
             switch (doc?.type) {
-                case DocumentType.FONTICON: return "white";
+                case DocumentType.PRESELEMENT: return "dimgrey";
+                case DocumentType.PRES: return "#3e3e3e";
+                case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
-                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                case DocumentType.COL:
+                    return Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
                 default: return "black";
             }
         } else {
             switch (doc?.type) {
+                case DocumentType.PRESELEMENT: return "";
                 case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
-                case DocumentType.COL: if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
+                case DocumentType.COL:
+                    return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
                 default: return "white";
             }
         }
@@ -343,7 +349,7 @@ export class MainView extends React.Component {
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                         relative={true}
-                        forcedBackgroundColor={() => "lightgrey"}
+                        forcedBackgroundColor={() => this.darkScheme ? "rgb(62,62,62)" : "lightgrey"}
                     />
                 </div>
                 {this.docButtons}
@@ -409,18 +415,18 @@ export class MainView extends React.Component {
     @computed get mainInnerContent() {
         return <>
             {this.menuPanel}
-            <div className="mainView-innerContent" >
+            <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined }} onPointerDown={this.onFlyoutPointerDown} >
-                    <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
+                < div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
 
                 {this.dockingContent}
 
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
-                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color="black" size="sm" />
+                    <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView backgroundColor={this.defaultBackgroundColors} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -441,7 +447,7 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        button._backgroundColor = "lightgrey";
+        button._backgroundColor = this.darkScheme ? "dimgrey" : "lightgrey";
         button.color = "black";
         this._lastButton = button;
     });

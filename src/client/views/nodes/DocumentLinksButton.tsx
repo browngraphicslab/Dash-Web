@@ -3,7 +3,6 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { emptyFunction, setupMoveUpEvents, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { TraceMobx } from "../../../fields/util";
 import { DocUtils, Docs } from "../../documents/Documents";
@@ -39,6 +38,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static StartLinkView: DocumentView | undefined;
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
+    @observable public static EditLink: DocumentView | undefined;
 
     @observable public static invisibleWebDoc: Opt<Doc>;
     public static invisibleWebRef = React.createRef<HTMLDivElement>();
@@ -209,94 +209,75 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }
     }));
 
-    @observable
-    public static EditLink: DocumentView | undefined;
 
     @action clearLinks() {
         DocumentLinksButton.StartLink = undefined;
         DocumentLinksButton.StartLinkView = undefined;
     }
 
-    @computed
-    get linkButton() {
-        TraceMobx();
-        const links = DocUtils.FilterDocs(Array.from(new Set<Doc>(this.props.links)), this.props.View.props.docFilters(), []);
+    @computed get filteredLinks() {
+        return DocUtils.FilterDocs(Array.from(new Set<Doc>(this.props.links)), this.props.View.props.docFilters(), []);
+    }
 
-        const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
-        const buttonTitle = "Tap to view links";
-        const title = this.props.InMenu ? menuTitle : buttonTitle;
+    @computed get linkButtonInner() {
+        const btnDim = this.props.InMenu ? "20px" : "30px";
+        const link = <img style={{ width: "22px", height: "16px" }} src={`/assets/${"link.png"}`} />;
 
-
-        const startLink = <img
-            style={{ width: "11px", height: "11px" }}
-            id={"startLink-icon"}
-            src={`/assets/${"startLink.png"}`} />;
-
-        const endLink = <img
-            style={{ width: "14px", height: "9px" }}
-            id={"endLink-icon"}
-            src={`/assets/${"endLink.png"}`} />;
-
-        const link = <img
-            style={{ width: "22px", height: "16px" }}
-            id={"link-icon"}
-            src={`/assets/${"link.png"}`} />;
-
-        const linkButton = <div className="documentLinksButton-cont" ref={this._linkButton} style={{
-            minWidth: 20, minHeight: 20, position: "absolute",
-            left: this.props.Offset?.[0], top: this.props.Offset?.[1], right: this.props.Offset?.[2], bottom: this.props.Offset?.[3]
-        }}>
-            <div className={"documentLinksButton"} style={{
-                backgroundColor: this.props.InMenu ? "" : "#add8e6",
-                color: this.props.InMenu ? "white" : "black",
-                width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
-            }}
+        return <div className="documentLinksButton-cont" ref={this._linkButton}
+            style={{ left: this.props.Offset?.[0], top: this.props.Offset?.[1], right: this.props.Offset?.[2], bottom: this.props.Offset?.[3] }}
+        >
+            <div className={"documentLinksButton"}
                 onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}
-            // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
-            // onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
-            //     addDocTab: this.props.View.props.addDocTab,
-            //     linkSrc: this.props.View.props.Document,
-            //     linkDoc: links[0],
-            //     Location: [e.clientX, e.clientY + 20]
-            // }))} 
-            >
-
-                {/* {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="hand-paper" size="sm" /> : links.length} */}
-
-                {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    link : Array.from(links).length}
-
+                style={{
+                    backgroundColor: this.props.InMenu ? "" : "#add8e6",
+                    color: this.props.InMenu ? "white" : "black",
+                    width: btnDim,
+                    height: btnDim,
+                }} >
+                {this.props.InMenu ?
+                    this.props.StartLink ?
+                        <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
+                        : link
+                    : Array.from(this.filteredLinks).length}
             </div>
             {this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document ?
                 <div className={"documentLinksButton-endLink"}
                     style={{
-                        width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
+                        width: btnDim, height: btnDim,
                         backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
                         opacity: DocumentLinksButton.StartLink ? "" : "50%",
                         border: DocumentLinksButton.StartLink ? "" : "none",
                         cursor: DocumentLinksButton.StartLink ? "pointer" : "default"
                     }}
-                    onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
-                    onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.clientX, e.clientY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)
+                    onPointerDown={DocumentLinksButton.StartLink && this.completeLink}
+                    onClick={e => DocumentLinksButton.StartLink && DocumentLinksButton.finishLinkClick(e.clientX, e.clientY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View)} />
+                : (null)
             }
-            {
-                DocumentLinksButton.StartLink === this.props.View.props.Document && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
-                    style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
-                    onPointerDown={this.clearLinks} onClick={this.clearLinks}
-                /> : (null)
+            {DocumentLinksButton.StartLink === this.props.View.props.Document && this.props.InMenu && this.props.StartLink ?
+                <div className={"documentLinksButton-startLink"} onPointerDown={this.clearLinks} onClick={this.clearLinks} style={{ width: btnDim, height: btnDim }} />
+                : (null)
             }
         </div >;
+    }
 
-        return (!Array.from(links).length) && !this.props.AlwaysOn ? (null) :
+    @computed get linkButton() {
+        TraceMobx();
+
+        const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
+        const buttonTitle = "Tap to view links";
+        const title = this.props.InMenu ? menuTitle : buttonTitle;
+
+        return !Array.from(this.filteredLinks).length && !this.props.AlwaysOn ? (null) :
             this.props.InMenu && (DocumentLinksButton.StartLink || this.props.StartLink) ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
-                    {linkButton}
-                </Tooltip> : !!!DocumentLinksButton.EditLink && !this.props.InMenu ?
+                    {this.linkButtonInner}
+                </Tooltip>
+                :
+                !DocumentLinksButton.EditLink && !this.props.InMenu ?
                     <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
-                        {linkButton}
-                    </Tooltip> :
-                    linkButton;
+                        {this.linkButtonInner}
+                    </Tooltip>
+                    : this.linkButtonInner;
     }
 
     render() {

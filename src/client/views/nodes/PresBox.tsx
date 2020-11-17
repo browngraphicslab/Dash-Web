@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, ObservableMap, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Doc, DocCastAsync, DocListCast, DocListCastAsync } from "../../../fields/Doc";
@@ -11,7 +11,7 @@ import { List } from "../../../fields/List";
 import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { returnFalse, returnOne, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -19,7 +19,7 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { TabDocView } from "../collections/TabDocView";
@@ -28,7 +28,7 @@ import { AudioBox } from "./AudioBox";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { VideoBox } from "./VideoBox";
+import Color = require("color");
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -38,12 +38,30 @@ export enum PresMovement {
 }
 
 export enum PresEffect {
-    Fade = "fade",
-    Flip = "flip",
-    Rotate = "rotate",
-    Bounce = "bounce",
-    Roll = "roll",
-    None = "none",
+    Fade = "Fade in",
+    Flip = "Flip",
+    Rotate = "Rotate",
+    Bounce = "Bounce",
+    Roll = "Roll",
+    None = "None",
+    Left = "left",
+    Right = "right",
+    Center = "center",
+    Top = "top",
+    Bottom = "bottom"
+}
+
+enum PresStatus {
+    Autoplay = "auto",
+    Manual = "manual",
+    Edit = "edit"
+}
+
+enum PresColor {
+    LightBlue = "#AEDDF8",
+    DarkBlue = "#5B9FDD",
+    LightBackground = "#ececec",
+    SlideBackground = "#d5dce2",
 }
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -53,35 +71,53 @@ const PresBoxDocument = makeInterface(documentSchema);
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
 
-    public static Instance: PresBox;
+    @observable public static Instance: PresBox;
 
     @observable _isChildActive = false;
     @observable _moveOnFromAudio: boolean = true;
     @observable _presTimer!: NodeJS.Timeout;
+    @observable _presKeyEventsActive: boolean = false;
 
-    @observable _selectedArray: Doc[] = [];
-    @observable _sortedSelectedArray: Doc[] = [];
+    @observable _selectedArray: ObservableMap = new ObservableMap<Doc, any>();
     @observable _eleArray: HTMLElement[] = [];
     @observable _dragArray: HTMLElement[] = [];
+    @observable _pathBoolean: boolean = false;
+    @observable _expandBoolean: boolean = false;
 
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
     @observable private progressivizeTools: boolean = false;
-    @observable private presentTools: boolean = false;
-    @observable private pathBoolean: boolean = false;
     @observable private openMovementDropdown: boolean = false;
     @observable private openEffectDropdown: boolean = false;
+    @observable private presentTools: boolean = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
+    @computed get tagDocs() {
+        const tagDocs: Doc[] = [];
+        for (const doc of this.childDocs) {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            tagDocs.push(tagDoc);
+        }
+        return tagDocs;
+    }
     @computed get itemIndex() { return NumCast(this.rootDoc._itemIndex); }
-    @computed get activeItem() { return Cast(this.childDocs[this.itemIndex], Doc, null); }
+    @computed get activeItem() { return Cast(this.childDocs[NumCast(this.rootDoc._itemIndex)], Doc, null); }
     @computed get targetDoc() { return Cast(this.activeItem?.presentationTargetDoc, Doc, null); }
+    @computed get scrollable(): boolean {
+        if (this.targetDoc.type === DocumentType.PDF || this.targetDoc.type === DocumentType.WEB || this.targetDoc.type === DocumentType.RTF || this.targetDoc._viewType === CollectionViewType.Stacking) return true;
+        else return false;
+    }
+    @computed get panable(): boolean {
+        if ((this.targetDoc.type === DocumentType.COL && this.targetDoc._viewType === CollectionViewType.Freeform) || this.targetDoc.type === DocumentType.IMG) return true;
+        else return false;
+    }
     @computed get presElement() { return Cast(Doc.UserDoc().presElement, Doc, null); }
     constructor(props: any) {
         super(props);
-        if (Doc.UserDoc().activePresentation = this.rootDoc) PresBox.Instance = this;
+        if (Doc.UserDoc().activePresentation = this.rootDoc) runInAction(() => PresBox.Instance = this);
         if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
+                title: "pres element template", type: DocumentType.PRESELEMENT, backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
             }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
@@ -94,139 +130,145 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
-        if (PresBox.Instance && PresBox.Instance._selectedArray) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
-        return undefined;
+        if (this._selectedArray.size) return DocumentManager.Instance.getDocumentView(this.rootDoc);
     }
     @computed get isPres(): boolean {
-        document.removeEventListener("keydown", this.keyEvents, true);
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
         if (this.selectedDoc?.type === DocumentType.PRES) {
-            document.addEventListener("keydown", this.keyEvents, true);
+            document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+            document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
             return true;
         }
         return false;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
 
+    @action
     componentWillUnmount() {
-        document.removeEventListener("keydown", this.keyEvents, true);
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+        this._presKeyEventsActive = false;
+        this.resetPresentation();
         // Turn of progressivize editors
         this.turnOffEdit(true);
+        Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
-    componentDidMount = async () => {
+    @action
+    componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
-        this.layoutDoc.presStatus = "edit";
+        this.layoutDoc.presStatus = PresStatus.Edit;
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
+        this._disposers.selection = reaction(() => SelectionManager.SelectedDocuments(),
+            views => views.some(view => view.props.Document === this.rootDoc) && this.updateCurrentPresentation());
     }
 
-    updateCurrentPresentation = () => {
-        Doc.UserDoc().activePresentation = this.rootDoc;
+    @action
+    updateCurrentPresentation = (pres?: Doc) => {
+        if (pres) Doc.UserDoc().activePresentation = pres;
+        else Doc.UserDoc().activePresentation = this.rootDoc;
+        document.removeEventListener("keydown", PresBox.keyEventsWrapper, true);
+        document.addEventListener("keydown", PresBox.keyEventsWrapper, true);
+        this._presKeyEventsActive = true;
         PresBox.Instance = this;
     }
 
-    /**
-     * Called when the user moves to the next slide in the presentation trail.
-     */
-    @undoBatch
+    // There are still other internal frames and should go through all frames before going to next slide
+    nextInternalFrame = (targetDoc: Doc, activeItem: Doc) => {
+        const currentFrame = Cast(targetDoc?._currentFrame, "number", null);
+        const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
+        targetDoc._viewTransition = "all 1s";
+        setTimeout(() => targetDoc._viewTransition = undefined, 1010);
+        this.nextKeyframe(targetDoc, activeItem);
+        if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
+        else targetDoc.editing = true;
+    }
+
+    // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+    nextAudioVideo = (targetDoc: Doc, activeItem: Doc) => {
+        if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
+        // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        activeItem.playNow = false;
+    }
+
+    // No more frames in current doc and next slide is defined, therefore move to next slide 
+    nextSlide = (targetDoc: Doc, activeNext: Doc) => {
+        const nextSelected = this.itemIndex + 1;
+        this.gotoDocument(nextSelected);
+
+        // const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
+        // If next slide is audio / video 'Play automatically' then the next slide should be played
+        // if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+        //     console.log('play next automatically');
+        //     if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
+        //     // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        // } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
+    }
+
+    // Called when the user activates 'next' - to move to the next part of the pres. trail
     @action
     next = () => {
-        this.updateCurrentPresentation();
         const activeNext = Cast(this.childDocs[this.itemIndex + 1], Doc, null);
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
-        const currentFrame = Cast(targetDoc._currentFrame, "number", null);
-        const lastFrame = Cast(targetDoc.lastFrame, "number", null);
-        const curFrame = NumCast(targetDoc._currentFrame);
+        const lastFrame = Cast(targetDoc?.lastFrame, "number", null);
+        const curFrame = NumCast(targetDoc?._currentFrame);
         let internalFrames: boolean = false;
         if (activeItem.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
-        // Case 1: There are still other frames and should go through all frames before going to next slide
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
-            targetDoc._viewTransition = "all 1s";
-            setTimeout(() => targetDoc._viewTransition = undefined, 1010);
-            // targetDoc._currentFrame = curFrame + 1;
-            this.nextKeyframe(targetDoc, activeItem);
-            if (activeItem.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
-            else targetDoc.editing = true;
-            // if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(targetDoc);
-            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== 'auto') {
-            if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
-            // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
-            activeItem.playNow = false;
-            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
+            // Case 1: There are still other frames and should go through all frames before going to next slide
+            this.nextInternalFrame(targetDoc, activeItem);
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
-            if (activeNext.presPinView) setTimeout(() => this.selectPres(), 0);
-            else this.selectPres();
-            const nextSelected = this.itemIndex + 1;
-            if (targetDoc.type === DocumentType.AUDIO) { if (AudioBox.Instance._ele) AudioBox.Instance.pause(); }
-            // if (targetDoc.type === DocumentType.VID) { if (AudioBox.Instance._ele) VideoBox.Instance.Pause(); }
-            const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
-            // If next slide is audio / video 'Play automatically' then the next slide should be played
-            if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-                console.log('play next automatically');
-                if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-                // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
-            } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
-            this.gotoDocument(nextSelected, this.itemIndex);
+            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
+            this.nextSlide(targetDoc, activeNext);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
-            this.gotoDocument(0, this.itemIndex);
+            // Case 4: Last slide and presLoop is toggled ON
+            this.gotoDocument(0);
         }
+        // else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
+        //     // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+        //     this.nextAudioVideo(targetDoc, activeItem);
+        // } 
     }
 
-    /**
-     * Called when the user moves back
-     * Design choice: If there are frames within the presentation, moving back will not
-     * got back through the frames but instead directly to the next point in the presentation.
-     */
-    @undoBatch
+    // Called when the user activates 'back' - to move to the previous part of the pres. trail
     @action
     back = () => {
-        this.updateCurrentPresentation();
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         const prevItem = Cast(this.childDocs[Math.max(0, this.itemIndex - 1)], Doc, null);
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
-        if (prevItem.presPinView) setTimeout(() => this.selectPres(), 0);
-        else this.selectPres();
+        let prevSelected = this.itemIndex;
         if (lastFrame !== undefined && curFrame >= 1) {
+            // Case 1: There are still other frames and should go through all frames before going to previous slide
             this.prevKeyframe(targetDoc, activeItem);
-        } else if (activeItem) {
-            let prevSelected = this.itemIndex;
+        } else if (activeItem && this.childDocs[this.itemIndex - 1] !== undefined) {
+            // Case 2: There are no other frames so it should go to the previous slide
             prevSelected = Math.max(0, prevSelected - 1);
-            this.gotoDocument(prevSelected, this.itemIndex);
+            this.gotoDocument(prevSelected);
             if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
+        } else if (this.childDocs[this.itemIndex - 1] === undefined && this.layoutDoc.presLoop) {
+            // Case 3: Pres loop is on so it should go to the last slide
+            this.gotoDocument(this.childDocs.length - 1);
         }
     }
 
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
-    public gotoDocument = action((index: number, fromDoc: number) => {
-        this.updateCurrentPresentation();
+    public gotoDocument = action((index: number) => {
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-            if (activeItem.presPinView) {
-                const bestTarget = DocumentManager.Instance.getFirstDocumentView(presTargetDoc)?.props.Document;
-                bestTarget && runInAction(() => {
-                    if (activeItem.presMovement === PresMovement.Jump) {
-                        bestTarget._viewTransition = '0s';
-                    } else {
-                        bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 1s';
-                        setTimeout(() => bestTarget._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 1010);
-                    }
-                });
-            } else {
+            if (presTargetDoc) {
                 presTargetDoc && runInAction(() => {
                     if (activeItem.presMovement === PresMovement.Jump) presTargetDoc.focusSpeed = 0;
                     else presTargetDoc.focusSpeed = activeItem.presTransition ? activeItem.presTransition : 500;
@@ -236,12 +278,34 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
-            this._selectedArray = [this.childDocs[index]]; //Update selected array
-            //Handles movement to element
-            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
+            this._selectedArray.clear();
+            this.childDocs[index] && this._selectedArray.set(this.childDocs[index], undefined); //Update selected array
+            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]); //Handles movement to element only when presTrail is list
             this.onHideDocument(); //Handles hide after/before
         }
     });
+
+    _navTimer!: NodeJS.Timeout;
+    navigateToView = (targetDoc: Doc, activeItem: Doc) => {
+        clearTimeout(this._navTimer);
+        const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
+        bestTarget && runInAction(() => {
+            if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
+                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
+                bestTarget._scrollY = activeItem.presPinViewScroll;
+            } else if (bestTarget.type === DocumentType.COMPARISON) {
+                bestTarget._clipWidth = activeItem.presPinClipWidth;
+            } else if (bestTarget.type === DocumentType.VID) {
+                bestTarget._currentTimecode = activeItem.presPinTimecode;
+            } else {
+                bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
+                bestTarget._panX = activeItem.presPinViewX;
+                bestTarget._panY = activeItem.presPinViewY;
+                bestTarget._viewScale = activeItem.presPinViewScale;
+            }
+            this._navTimer = setTimeout(() => bestTarget._viewTransition = undefined, activeItem.presTransition ? NumCast(activeItem.presTransition) + 10 : 510);
+        });
+    }
 
     /**
      * This method makes sure that cursor navigates to the element that
@@ -254,68 +318,55 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     navigateToElement = async (curDoc: Doc) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const srcContext = await DocCastAsync(targetDoc.context);
+        const srcContext = Cast(targetDoc.context, Doc, null);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
-        const collectionDocView = presCollection ? await DocumentManager.Instance.getDocumentView(presCollection) : undefined;
+        const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
+        const includesDoc: boolean = DocListCast(presCollection?.data).includes(targetDoc);
+        const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === srcContext);
         this.turnOffEdit();
-        if (this.itemIndex >= 0) {
-            if (srcContext && targetDoc) {
-                this.layoutDoc.presCollection = srcContext;
-            } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
+        // Handles the setting of presCollection
+        if (includesDoc) {
+            //Case 1: Pres collection should not change as it is already the same
+        } else if (tab !== undefined) {
+            // Case 2: Pres collection should update
+            this.layoutDoc.presCollection = srcContext;
         }
-        // if (collectionDocView) {
-        //     if (srcContext && srcContext !== presCollection) {
-        //         // Case 1: new srcContext inside of current collection so add a new tab to the current pres collection
-        //         collectionDocView.props.addDocTab(srcContext, "inPlace");
-        //     }
-        // }
-        this.updateCurrentPresentation();
-        const docToJump = curDoc;
-        const willZoom = false;
-
+        const presStatus = this.rootDoc.presStatus;
+        const selViewCache = Array.from(this._selectedArray.keys());
+        const dragViewCache = Array.from(this._dragArray);
+        const eleViewCache = Array.from(this._eleArray);
+        const self = this;
+        const resetSelection = action(() => {
+            const presDocView = DocumentManager.Instance.getDocumentView(self.rootDoc);
+            if (presDocView) SelectionManager.SelectDoc(presDocView, false);
+            self.rootDoc.presStatus = presStatus;
+            self._selectedArray.clear();
+            selViewCache.forEach(doc => self._selectedArray.set(doc, undefined));
+            self._dragArray.splice(0, self._dragArray.length, ...dragViewCache);
+            self._eleArray.splice(0, self._eleArray.length, ...eleViewCache);
+        });
+        const openInTab = () => {
+            collectionDocView ? collectionDocView.props.addDocTab(targetDoc, "") : this.props.addDocTab(targetDoc, ":left");
+            this.layoutDoc.presCollection = targetDoc;
+            // this still needs some fixing
+            setTimeout(resetSelection, 500);
+        };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            collectionDocView ? collectionDocView.props.addDocTab(activeItem, "replace") : this.props.addDocTab(activeItem, "replace:left");
-        } else
-            //docToJump stayed same meaning, it was not in the group or was the last element in the group
-            if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
-                this.zoomProgressivizeNext(targetDoc);
-            } else if (docToJump === curDoc) {
-                //checking if curDoc has navigation open
-                if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
-                } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
-                    //awaiting jump so that new scale can be found, since jumping is async
-                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
-                }
-            } else {
-                //awaiting jump so that new scale can be found, since jumping is async
-                targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
-            }
+            openInTab();
+        } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
+            await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
+        } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
+            //awaiting jump so that new scale can be found, since jumping is async
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
+        }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
-        // TODO: Add option to remove presPinView 
         if (activeItem.presPinView) {
             // if targetDoc is not displayed but one of its aliases is, then we need to modify that alias, not the original target
-            const bestTarget = DocumentManager.Instance.getFirstDocumentView(targetDoc)?.props.Document;
-            bestTarget && runInAction(() => {
-                if (bestTarget.type === DocumentType.PDF || bestTarget.type === DocumentType.WEB || bestTarget.type === DocumentType.RTF || bestTarget._viewType === CollectionViewType.Stacking) {
-                    bestTarget._scrollY = activeItem.presPinViewScroll;
-                } else {
-                    bestTarget._viewTransition = activeItem.presTransition ? `transform ${activeItem.presTransition}ms` : 'all 0.5s';
-                    bestTarget._panX = activeItem.presPinViewX;
-                    bestTarget._panY = activeItem.presPinViewY;
-                    bestTarget._viewScale = activeItem.presPinViewScale;
-                }
-            });
-            //setTimeout(() => targetDoc._viewTransition = undefined, 1010);
+            this.navigateToView(targetDoc, activeItem);
         }
-        // If website and has presWebsite data associated then on click it should
-        // go back to that specific website
         // TODO: Add progressivize for navigating web (storing websites for given frames)
-        if (targetDoc.presWebsiteData) {
-            targetDoc.data = targetDoc.presWebsiteData;
-        }
     }
 
     /**
@@ -363,7 +414,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
-
     /**
      * For 'Hide Before' and 'Hide After' buttons making sure that
      * they are hidden each time the presentation is updated.
@@ -372,20 +422,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     onHideDocument = () => {
         this.childDocs.forEach((doc, index) => {
             const curDoc = Cast(doc, Doc, null);
-            const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc) tagDoc.opacity = 1;
-            if (curDoc.presHideTillShownButton) {
-                if (index > this.itemIndex) {
-                    tagDoc.opacity = 0;
-                } else if (!curDoc.presHideAfterButton) {
-                    tagDoc.opacity = 1;
+            const itemIndexes: number[] = this.getAllIndexes(this.tagDocs, tagDoc);
+            const curInd: number = itemIndexes.indexOf(index);
+            if (tagDoc === this.layoutDoc.presCollection) { tagDoc.opacity = 1; }
+            else {
+                if (itemIndexes.length > 1 && curDoc.presHideBefore && curInd !== 0) { }
+                else if (curDoc.presHideBefore) {
+                    if (index > this.itemIndex) {
+                        tagDoc.opacity = 0;
+                    } else if (!curDoc.presHideAfter) {
+                        tagDoc.opacity = 1;
+                    }
                 }
-            }
-            if (curDoc.presHideAfterButton) {
-                if (index < this.itemIndex) {
-                    tagDoc.opacity = 0;
-                } else if (!curDoc.presHideTillShownButton) {
-                    tagDoc.opacity = 1;
+                if (itemIndexes.length > 1 && curDoc.presHideAfter && curInd !== (itemIndexes.length - 1)) { }
+                else if (curDoc.presHideAfter) {
+                    if (index < this.itemIndex) {
+                        tagDoc.opacity = 0;
+                    } else if (!curDoc.presHideBefore) {
+                        tagDoc.opacity = 1;
+                    }
                 }
             }
         });
@@ -394,7 +451,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
 
     //The function that starts or resets presentaton functionally, depending on presStatus of the layoutDoc
-    @undoBatch
     @action
     startAutoPres = (startSlide: number) => {
         this.updateCurrentPresentation();
@@ -418,23 +474,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (i === this.childDocs.length - 1) {
                     setTimeout(() => {
                         clearTimeout(this._presTimer);
-                        if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = "manual";
+                        if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = PresStatus.Manual;
                         else if (this.layoutDoc.presLoop) this.startAutoPres(0);
                     }, duration);
                 }
             }
         };
-        this.layoutDoc.presStatus = "auto";
+        this.layoutDoc.presStatus = PresStatus.Autoplay;
         this.startPresentation(startSlide);
-        this.gotoDocument(startSlide, this.itemIndex);
+        this.gotoDocument(startSlide);
         load();
     }
 
     @action
     pauseAutoPres = () => {
-        if (this.layoutDoc.presStatus === "auto") {
+        if (this.layoutDoc.presStatus === PresStatus.Autoplay) {
             if (this._presTimer) clearTimeout(this._presTimer);
-            this.layoutDoc.presStatus = "manual";
+            this.layoutDoc.presStatus = PresStatus.Manual;
             this.layoutDoc.presLoop = false;
         }
     }
@@ -442,26 +498,32 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //The function that resets the presentation by removing every action done by it. It also
     //stops the presentaton.
     resetPresentation = () => {
-        this.updateCurrentPresentation();
         this.rootDoc._itemIndex = 0;
+        this.childDocs.map(doc => Cast(doc.presentationTargetDoc, Doc, null)).filter(doc => doc instanceof Doc).forEach(doc => {
+            try {
+                doc.opacity = 1;
+            } catch (e) {
+                console.log("REset presentation error: ", e);
+            }
+        });
+        ///for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
     @action togglePath = (srcContext: Doc, off?: boolean) => {
         if (off) {
-            this.pathBoolean = false;
+            this._pathBoolean = false;
             srcContext.presPathView = false;
         } else {
-            this.pathBoolean = !this.pathBoolean;
-            srcContext.presPathView = this.pathBoolean;
+            runInAction(() => this._pathBoolean = !this._pathBoolean);
+            srcContext.presPathView = this._pathBoolean;
         }
     }
 
-    @undoBatch
     @action toggleExpandMode = () => {
-        this.rootDoc.expandBoolean = !this.rootDoc.expandBoolean;
+        runInAction(() => this._expandBoolean = !this._expandBoolean);
+        this.rootDoc.expandBoolean = this._expandBoolean;
         this.childDocs.forEach((doc) => {
-            if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
-            else if (!this.rootDoc.expandBoolean) doc.presExpandInlineButton = false;
+            doc.presExpandInlineButton = this._expandBoolean;
         });
     }
 
@@ -474,10 +536,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         this.childDocs.map(doc => {
             const tagDoc = doc.presentationTargetDoc as Doc;
-            if (doc.presHideTillShownButton && this.childDocs.indexOf(doc) > startIndex) {
+            if (doc.presHideBefore && this.childDocs.indexOf(doc) > startIndex) {
                 tagDoc.opacity = 0;
             }
-            if (doc.presHideAfterButton && this.childDocs.indexOf(doc) < startIndex) {
+            if (doc.presHideAfter && this.childDocs.indexOf(doc) < startIndex) {
                 tagDoc.opacity = 0;
             }
         });
@@ -486,17 +548,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     /**
      * The method called to open the presentation as a minimized view
      */
-    @undoBatch
     @action
     updateMinimize = () => {
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
-        if (this.layoutDoc.inOverlay) {
-            this.layoutDoc.presStatus = 'edit';
+        if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+            this.layoutDoc.presStatus = PresStatus.Edit;
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
-            this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
-            this.layoutDoc.presStatus = 'edit';
+            this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
@@ -506,7 +566,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             docView.props.removeDocument?.(this.layoutDoc);
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         } else {
-            this.layoutDoc.presStatus = 'edit';
+            this.layoutDoc.presStatus = PresStatus.Edit;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
@@ -522,7 +582,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * Called when the user changes the view type
      * Either 'List' (stacking) or 'Slides' (carousel)
      */
-    @undoBatch
+    // @undoBatch
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
         const viewType = e.target.selectedOptions[0].value as CollectionViewType;
@@ -532,32 +592,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
 
-    /**
-     * When the movement dropdown is changes
-     */
-    @undoBatch
-    updateMovement = action((movement: any, activeItem: Doc, targetDoc: Doc) => {
-        switch (movement) {
-            case PresMovement.Zoom: //Pan and zoom
-                activeItem.presMovement = PresMovement.Zoom;
-                break;
-            case PresMovement.Pan: //Pan
-                activeItem.presMovement = PresMovement.Pan;
-                break;
-            case PresMovement.Jump: //Jump Cut
-                activeItem.presJump = true;
-                activeItem.presMovement = PresMovement.Jump;
-                break;
-            case PresMovement.None: default:
-                activeItem.presMovement = PresMovement.None;
-                break;
-        }
-    });
 
     setMovementName = action((movement: any, activeItem: Doc): string => {
         let output: string = 'none';
         switch (movement) {
-            case PresMovement.Zoom: output = 'Zoom'; break; //Pan and zoom
+            case PresMovement.Zoom: output = 'Pan & Zoom'; break; //Pan and zoom
             case PresMovement.Pan: output = 'Pan'; break; //Pan
             case PresMovement.Jump: output = 'Jump cut'; break; //Jump Cut
             case PresMovement.None: output = 'None'; break; //None
@@ -571,29 +610,34 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach((doc, i) => {
-            if (this.childDocs.includes(doc)) {
-                if (docs.length === i + 1) return false;
-            } else if (doc.type === DocumentType.LABEL) {
+            if (doc.type === DocumentType.LABEL) {
                 const audio = Cast(doc.annotationOn, Doc, null);
                 if (audio) {
-                    audio.aliasOf instanceof Doc;
                     audio.presStartTime = NumCast(doc.audioStart);
                     audio.presEndTime = NumCast(doc.audioEnd);
                     audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
                     TabDocView.PinDoc(audio, false, true);
-                    setTimeout(() => this.removeDocument(doc), 1);
+                    setTimeout(() => this.removeDocument(doc), 0);
                     return false;
                 }
             } else {
-                doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-                !this.childDocs.includes(doc) && (doc.presMovement = PresMovement.Zoom);
-                if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
+                if (!doc.aliasOf) {
+                    const original = Doc.MakeAlias(doc);
+                    TabDocView.PinDoc(original);
+                    setTimeout(() => this.removeDocument(doc), 0);
+                    return false;
+                } else {
+                    if (!doc.presentationTargetDoc) doc.title = doc.title + " - Slide";
+                    doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+                    doc.presMovement = PresMovement.Zoom;
+                    if (this._expandBoolean) doc.presExpandInlineButton = true;
+                }
             }
         });
         return true;
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
-    removeDocument = (doc: Doc) => { Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc); };
+    removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 40;
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc._isBackground) &&
@@ -604,55 +648,67 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @action
     sortArray = (): Doc[] => {
-        return this.childDocs.filter(doc => this._selectedArray.includes(doc));
+        return this.childDocs.filter(doc => this._selectedArray.has(doc));
     }
 
     /**
      * Method to get the list of selected items in the order in which they have been selected
      */
     @computed get listOfSelected() {
-        const list = this._selectedArray.map((doc: Doc, index: any) => {
+        const list = Array.from(this._selectedArray.keys()).map((doc: Doc, index: any) => {
             const curDoc = Cast(doc, Doc, null);
-            const tagDoc = Cast(curDoc.presentationTargetDoc!, Doc, null);
-            if (tagDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
-            else if (curDoc) return <div className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
+            if (curDoc && curDoc === this.activeItem) return <div key={index} className="selectedList-items"><b>{index + 1}.  {curDoc.title}</b></div>;
+            else if (tagDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
+            else if (curDoc) return <div key={index} className="selectedList-items">{index + 1}.  {curDoc.title}</div>;
         });
         return list;
     }
 
     @action
     selectPres = () => {
-        const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc)!;
-        SelectionManager.SelectDoc(presDocView, false);
+        const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
+        presDocView && SelectionManager.SelectDoc(presDocView, false);
     }
 
     //Regular click
     @action
     selectElement = (doc: Doc) => {
-        this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
-        if (doc.presPinView) setTimeout(() => this.selectPres(), 0);
-        else this.selectPres();
+        const context = Cast(doc.context, Doc, null);
+        this.gotoDocument(this.childDocs.indexOf(doc));
+        if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
+        else this.updateCurrentPresentation(context);
     }
 
     //Command click
     @action
     multiSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        if (!this._selectedArray.includes(doc)) {
-            this._selectedArray.push(doc);
+        if (!this._selectedArray.has(doc)) {
+            this._selectedArray.set(doc, undefined);
             this._eleArray.push(ref);
             this._dragArray.push(drag);
+        } else {
+            this._selectedArray.delete(doc);
+            this.removeFromArray(this._eleArray, doc);
+            this.removeFromArray(this._dragArray, doc);
         }
         this.selectPres();
+    }
+
+    removeFromArray = (arr: any[], val: any) => {
+        const index: number = arr.indexOf(val);
+        const ret: any[] = arr.splice(index, 1);
+        arr = ret;
     }
 
     //Shift click
     @action
     shiftSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        this._selectedArray = [];
+        this._selectedArray.clear();
         // const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         if (this.activeItem) {
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
-                this._selectedArray.push(this.childDocs[i]);
+                this._selectedArray.set(this.childDocs[i], undefined);
                 this._eleArray.push(ref);
                 this._dragArray.push(drag);
             }
@@ -660,68 +716,100 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.selectPres();
     }
 
+    //regular click
+    @action
+    regularSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement, focus: boolean) => {
+        this._selectedArray.clear();
+        this._selectedArray.set(doc, undefined);
+        this._eleArray.splice(0, this._eleArray.length, ref);
+        this._dragArray.splice(0, this._dragArray.length, drag);
+        focus && this.selectElement(doc);
+        this.selectPres();
+    }
+
+    modifierSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement, focus: boolean, cmdClick: boolean, shiftClick: boolean) => {
+        if (cmdClick) this.multiSelect(doc, ref, drag);
+        else if (shiftClick) this.shiftSelect(doc, ref, drag);
+        else this.regularSelect(doc, ref, drag, focus);
+    }
+
+    static keyEventsWrapper = (e: KeyboardEvent) => {
+        PresBox.Instance.keyEvents(e);
+    }
+
     // Key for when the presentaiton is active
-    @undoBatch
-    keyEvents = action((e: KeyboardEvent) => {
+    @action
+    keyEvents = (e: KeyboardEvent) => {
         if (e.target instanceof HTMLInputElement) return;
         let handled = false;
         const anchorNode = document.activeElement as HTMLDivElement;
         if (anchorNode && anchorNode.className?.includes("lm_title")) return;
-        if (e.keyCode === 27) { // Escape key
-            if (this.layoutDoc.inOverlay) { this.updateMinimize(); }
-            else if (this.layoutDoc.presStatus === "edit") { this._selectedArray = []; this._eleArray = []; this._dragArray = []; }
-            else this.layoutDoc.presStatus = "edit";
-            if (this._presTimer) clearTimeout(this._presTimer);
-            handled = true;
-        } if ((e.metaKey || e.altKey) && e.keyCode === 65) { // Ctrl-A to select all
-            if (this.layoutDoc.presStatus === "edit") {
-                this._selectedArray = this.childDocs;
+        switch (e.key) {
+            case "Backspace":
+                if (this.layoutDoc.presStatus === "edit") {
+                    undoBatch(action(() => {
+                        for (const doc of Array.from(this._selectedArray.keys())) {
+                            this.removeDocument(doc);
+                        }
+                        this._selectedArray.clear();
+                        this._eleArray.length = 0;
+                        this._dragArray.length = 0;
+                    }))();
+                    handled = true;
+                }
+                break;
+            case "Escape":
+                if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) { this.updateMinimize(); }
+                else if (this.layoutDoc.presStatus === "edit") { this._selectedArray.clear(); this._eleArray.length = this._dragArray.length = 0; }
+                else this.layoutDoc.presStatus = "edit";
+                if (this._presTimer) clearTimeout(this._presTimer);
                 handled = true;
-            }
-        } if (e.keyCode === 37 || e.keyCode === 38) { // left(37) / a(65) / up(38) to go back
-            this.back();
-            if (this._presTimer) clearTimeout(this._presTimer);
-            handled = true;
-        } if (e.keyCode === 39 || e.keyCode === 40) { // right (39) / d(68) / down(40) to go to next
-            this.next();
-            if (this._presTimer) clearTimeout(this._presTimer);
-            handled = true;
-        } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
-            if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
-            else this.next();
-            handled = true;
-        } if (e.keyCode === 8) { // delete selected items
-            if (this.layoutDoc.presStatus === "edit") {
-                this._selectedArray.forEach((doc, i) => this.removeDocument(doc));
-                this._selectedArray = [];
-                this._eleArray = [];
-                this._dragArray = [];
+                break;
+            case "Down": case "ArrowDown":
+            case "Right": case "ArrowRight":
+                if (e.shiftKey && this.itemIndex < this.childDocs.length - 1) { // TODO: update to work properly
+                    this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) + 1;
+                    this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
+                } else {
+                    this.next();
+                    if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
+                }
                 handled = true;
-            }
-        } if (handled) {
+                break;
+            case "Up": case "ArrowUp":
+            case "Left": case "ArrowLeft":
+                if (e.shiftKey && this.itemIndex !== 0) { // TODO: update to work properly
+                    this.rootDoc._itemIndex = NumCast(this.rootDoc._itemIndex) - 1;
+                    this._selectedArray.set(this.childDocs[this.rootDoc._itemIndex], undefined);
+                } else {
+                    this.back();
+                    if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; }
+                }
+                handled = true;
+                break;
+            case "Spacebar": case " ":
+                if (this.layoutDoc.presStatus === PresStatus.Manual) this.startAutoPres(this.itemIndex);
+                else if (this.layoutDoc.presStatus === PresStatus.Autoplay) if (this._presTimer) clearTimeout(this._presTimer);
+                handled = true;
+                break;
+            case "a":
+                if ((e.metaKey || e.altKey) && this.layoutDoc.presStatus === "edit") {
+                    this._selectedArray.clear();
+                    this.childDocs.forEach(doc => this._selectedArray.set(doc, undefined));
+                    handled = true;
+                }
+            default:
+                break;
+        }
+        if (handled) {
             e.stopPropagation();
             e.preventDefault();
-        } if ((e.keyCode === 37 || e.keyCode === 38) && e.shiftKey) { // left(37) / a(65) / up(38) to go back
-            if (this.layoutDoc.presStatus === "edit" && this._selectedArray.length > 0) {
-                const index = this.childDocs.indexOf(this._selectedArray[this._selectedArray.length]);
-                if ((index - 1) > 0) this._selectedArray.push(this.childDocs[index - 1]);
-            }
-            handled = true;
-        } if ((e.keyCode === 39 || e.keyCode === 40) && e.shiftKey) { // left(37) / a(65) / up(38) to go back
-            if (this.layoutDoc.presStatus === "edit" && this._selectedArray.length > 0) {
-                const index = this.childDocs.indexOf(this._selectedArray[this._selectedArray.length]);
-                if ((index - 1) > 0) {
-                    this._selectedArray.push(this.childDocs[index - 1]);
-                }
-            }
-            handled = true;
         }
-    });
+    }
 
     /**
      * 
      */
-    @undoBatch
     @action
     viewPaths = () => {
         const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
@@ -730,28 +818,73 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    getAllIndexes = (arr: Doc[], val: Doc): number[] => {
+        const indexes = [];
+        for (let i = 0; i < arr.length; i++) {
+            arr[i] === val && indexes.push(i);
+        }
+        return indexes;
+    }
+
     // Adds the index in the pres path graphically
     @computed get order() {
         const order: JSX.Element[] = [];
-        this.childDocs.forEach((doc, index) => {
+        const docs: Doc[] = [];
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
+        const dv = DocumentManager.Instance.getDocumentView(presCollection);
+        this.childDocs.filter(doc => Cast(doc.presentationTargetDoc, Doc, null)).forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            const srcContext = Cast(tagDoc?.context, Doc, null);
+            const srcContext = Cast(tagDoc.context, Doc, null);
             const width = NumCast(tagDoc._width) / 10;
             const height = Math.max(NumCast(tagDoc._height) / 10, 15);
             const edge = Math.max(width, height);
             const fontSize = edge * 0.8;
-            // Case A: Document is contained within the colleciton
-            if (this.rootDoc.presCollection === srcContext) {
+            const gap = 2;
+            if (presCollection === srcContext) {
+                // Case A: Document is contained within the collection
+                if (docs.includes(tagDoc)) {
+                    const prevOccurances: number = this.getAllIndexes(docs, tagDoc).length;
+                    docs.push(tagDoc);
+                    order.push(
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: NumCast(tagDoc.y) + (prevOccurances * (edge + gap) - (edge / 2)), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}
+                            onClick={() => this.selectElement(doc)}>
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>);
+                } else {
+                    docs.push(tagDoc);
+                    order.push(
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}
+                            onClick={() => this.selectElement(doc)}>
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>);
+                }
+            } else if (doc.presPinView && presCollection === tagDoc && dv) {
+                // Case B: Document is presPinView and is presCollection
+                const scale: number = 1 / NumCast(doc.presPinViewScale);
+                const height: number = dv.props.PanelHeight() * scale;
+                const width: number = dv.props.PanelWidth() * scale;
+                const indWidth = width / 10;
+                const indHeight = Math.max(height / 10, 15);
+                const indEdge = Math.max(indWidth, indHeight);
+                const indFontSize = indEdge * 0.8;
+                const xLoc: number = NumCast(doc.presPinViewX) - (width / 2);
+                const yLoc: number = NumCast(doc.presPinViewY) - (height / 2);
+                docs.push(tagDoc);
                 order.push(
-                    <div className="pathOrder" style={{ top: NumCast(tagDoc.y) - (edge / 2), left: NumCast(tagDoc.x) - (edge / 2), width: edge, height: edge, fontSize: fontSize }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
-                // Case B: Document is not inside of the collection
-            } else {
-                order.push(
-                    <div className="pathOrder" style={{ top: 0, left: 0 }}>
-                        <div className="pathOrder-frame">{index + 1}</div>
-                    </div>);
+                    <>
+                        <div className="pathOrder"
+                            key={tagDoc.id + 'pres' + index}
+                            style={{ top: yLoc - (indEdge / 2), left: xLoc - (indEdge / 2), width: indEdge, height: indEdge, fontSize: indFontSize }}
+                            onClick={() => this.selectElement(doc)}
+                        >
+                            <div className="pathOrder-frame">{index + 1}</div>
+                        </div>
+                        <div className="pathOrder-presPinView" style={{ top: yLoc, left: xLoc, width: width, height: height, borderWidth: indEdge / 10 }}></div>
+                    </>);
             }
         });
         return order;
@@ -767,17 +900,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @computed get paths() {
         let pathPoints = "";
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
         this.childDocs.forEach((doc, index) => {
             const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
             const srcContext = Cast(tagDoc?.context, Doc, null);
-            if (tagDoc && this.rootDoc.presCollection === srcContext) {
+            if (tagDoc && presCollection === srcContext) {
                 const n1x = NumCast(tagDoc.x) + (NumCast(tagDoc._width) / 2);
                 const n1y = NumCast(tagDoc.y) + (NumCast(tagDoc._height) / 2);
                 if (index = 0) pathPoints = n1x + "," + n1y;
                 else pathPoints = pathPoints + " " + n1x + "," + n1y;
-            } else {
-                if (index = 0) pathPoints = 0 + "," + 0;
-                else pathPoints = pathPoints + " " + 0 + "," + 0;
+            } else if (doc.presPinView && presCollection === tagDoc) {
+                const n1x = NumCast(doc.presPinViewX);
+                const n1y = NumCast(doc.presPinViewY);
+                if (index = 0) pathPoints = n1x + "," + n1y;
+                else pathPoints = pathPoints + " " + n1x + "," + n1y;
             }
         });
         return (<polyline
@@ -796,53 +932,134 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         />);
     }
 
-    /**
-     * The function that is called on click to turn fading document after presented option on/off.
-     * It also makes sure that the option swithches from hide-after to this one, since both
-     * can't coexist.
-     */
-    @action
-    onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const activeItem: Doc = this.activeItem;
-        const targetDoc: Doc = this.targetDoc;
-        activeItem.presFadeButton = !activeItem.presFadeButton;
-        if (!activeItem.presFadeButton) {
-            if (targetDoc) {
-                targetDoc.opacity = 1;
-            }
-        } else {
-            activeItem.presHideAfterButton = false;
-            if (this.rootDoc.presStatus !== "edit" && targetDoc) {
-                targetDoc.opacity = 0.5;
-            }
-        }
-    }
-
     // Converts seconds to ms and updates presTransition
-    @undoBatch
     setTransitionTime = (number: String, change?: number) => {
         let timeInMS = Number(number) * 1000;
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 10000) timeInMS = 10000;
-        if (this.activeItem) this.activeItem.presTransition = timeInMS;
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presTransition = timeInMS);
     }
 
     // Converts seconds to ms and updates presDuration
-    @undoBatch
     setDurationTime = (number: String, change?: number) => {
         let timeInMS = Number(number) * 1000;
         if (change) timeInMS += change;
         if (timeInMS < 100) timeInMS = 100;
         if (timeInMS > 20000) timeInMS = 20000;
-        if (this.activeItem) this.activeItem.presDuration = timeInMS;
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presDuration = timeInMS);
     }
 
+    /**
+     * When the movement dropdown is changes
+     */
+    @undoBatch
+    updateMovement = action((movement: any, all?: boolean) => {
+        const array: any[] = all ? this.childDocs : Array.from(this._selectedArray.keys());
+        array.forEach((doc) => {
+            switch (movement) {
+                case PresMovement.Zoom: //Pan and zoom
+                    doc.presMovement = PresMovement.Zoom;
+                    break;
+                case PresMovement.Pan: //Pan
+                    doc.presMovement = PresMovement.Pan;
+                    break;
+                case PresMovement.Jump: //Jump Cut
+                    doc.presJump = true;
+                    doc.presMovement = PresMovement.Jump;
+                    break;
+                case PresMovement.None: default:
+                    doc.presMovement = PresMovement.None;
+                    break;
+            }
+        });
+    });
+
+    @undoBatch
+    @action
+    updateHideBefore = (activeItem: Doc) => {
+        activeItem.presHideBefore = !activeItem.presHideBefore;
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presHideBefore = activeItem.presHideBefore);
+    }
+
+    @undoBatch
+    @action
+    updateHideAfter = (activeItem: Doc) => {
+        activeItem.presHideAfter = !activeItem.presHideAfter;
+        Array.from(this._selectedArray.keys()).forEach((doc) => doc.presHideAfter = activeItem.presHideAfter);
+    }
+
+    @undoBatch
+    @action
+    updateOpenDoc = (activeItem: Doc) => {
+        activeItem.openDocument = !activeItem.openDocument;
+        Array.from(this._selectedArray.keys()).forEach((doc) => {
+            doc.openDocument = activeItem.openDocument;
+        });
+    }
+
+    @undoBatch
+    @action
+    updateEffectDirection = (effect: any, all?: boolean) => {
+        const array: any[] = all ? this.childDocs : Array.from(this._selectedArray.keys());
+        array.forEach((doc) => {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            switch (effect) {
+                case PresEffect.Left:
+                    tagDoc.presEffectDirection = PresEffect.Left;
+                    break;
+                case PresEffect.Right:
+                    tagDoc.presEffectDirection = PresEffect.Right;
+                    break;
+                case PresEffect.Top:
+                    tagDoc.presEffectDirection = PresEffect.Top;
+                    break;
+                case PresEffect.Bottom:
+                    tagDoc.presEffectDirection = PresEffect.Bottom;
+                    break;
+                case PresEffect.Center: default:
+                    tagDoc.presEffectDirection = PresEffect.Center;
+                    break;
+            }
+        });
+    }
+
+    @undoBatch
+    @action
+    updateEffect = (effect: any, all?: boolean) => {
+        const array: any[] = all ? this.childDocs : Array.from(this._selectedArray.keys());
+        array.forEach((doc) => {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            switch (effect) {
+                case PresEffect.Bounce:
+                    tagDoc.presEffect = PresEffect.Bounce;
+                    break;
+                case PresEffect.Fade:
+                    tagDoc.presEffect = PresEffect.Fade;
+                    break;
+                case PresEffect.Flip:
+                    tagDoc.presEffect = PresEffect.Flip;
+                    break;
+                case PresEffect.Roll:
+                    tagDoc.presEffect = PresEffect.Roll;
+                    break;
+                case PresEffect.Rotate:
+                    tagDoc.presEffect = PresEffect.Rotate;
+                    break;
+                case PresEffect.None: default:
+                    tagDoc.presEffect = PresEffect.None;
+                    break;
+            }
+        });
+    }
+
+    _batch: UndoManager.Batch | undefined = undefined;
 
     @computed get transitionDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
+        const isPresCollection: boolean = (targetDoc === this.layoutDoc.presCollection);
+        const isPinWithView: boolean = BoolCast(activeItem.presPinView);
         if (activeItem && targetDoc) {
             const transitionSpeed = activeItem.presTransition ? NumCast(activeItem.presTransition) / 1000 : 0.5;
             let duration = activeItem.presDuration ? NumCast(activeItem.presDuration) / 1000 : 2;
@@ -853,16 +1070,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
                     <div className="ribbon-box">
                         Movement
-                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown; })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
-                            {this.setMovementName(activeItem.presMovement, activeItem)}
-                            <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
-                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None, activeItem, targetDoc)}>None</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom, activeItem, targetDoc)}>Pan and Zoom</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan, activeItem, targetDoc)}>Pan</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump, activeItem, targetDoc)}>Jump cut</div>
+                        {isPresCollection || (isPresCollection && isPinWithView) ?
+                            <div className="ribbon-property" style={{ marginLeft: 0, height: 25, textAlign: 'left', paddingLeft: 5, paddingRight: 5, fontSize: 10 }}>
+                                {this.scrollable ? "Scroll to pinned view" : !isPinWithView ? "No movement" : "Pan & Zoom to pinned view"}
                             </div>
-                        </div>
+                            :
+                            <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown; })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? `solid 2px ${PresColor.DarkBlue}` : 'solid 1px black' }}>
+                                {this.setMovementName(activeItem.presMovement, activeItem)}
+                                <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? PresColor.DarkBlue : 'black' }} icon={"angle-down"} />
+                                <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
+                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None)}>None</div>
+                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom)}>Pan {"&"} Zoom</div>
+                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan)}>Pan</div>
+                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump)}>Jump cut</div>
+                                </div>
+                            </div>
+                        }
                         <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "inline-flex" : "none" }}>
                             <div className="presBox-subheading">Transition Speed</div>
                             <div className="ribbon-property">
@@ -871,15 +1094,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     onChange={action((e) => this.setTransitionTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(transitionSpeed), 1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setTransitionTime(String(transitionSpeed), 1000))}>
                                     <FontAwesomeIcon icon={"caret-up"} />
                                 </div>
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(transitionSpeed), -1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setTransitionTime(String(transitionSpeed), -1000))}>
                                     <FontAwesomeIcon icon={"caret-down"} />
                                 </div>
                             </div>
                         </div>
-                        <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
+                        <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed}
+                            className={`toolbar-slider ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}
+                            id="toolbar-slider"
+                            onPointerDown={() => this._batch = UndoManager.StartBatch("presTransition")}
+                            onPointerUp={() => this._batch?.end()}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.stopPropagation();
+                                this.setTransitionTime(e.target.value);
+                            }} />
                         <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
                             <div className="slider-text">Fast</div>
                             <div className="slider-text">Medium</div>
@@ -889,46 +1120,51 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Visibility {"&"} Duration
                         <div className="ribbon-doubleButton">
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton)}>Hide before</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={undoBatch(() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton)}>Hide after</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={undoBatch(() => activeItem.openDocument = !activeItem.openDocument)}>Open</div></Tooltip>
+                            {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideBefore ? "active" : ""}`} onClick={() => this.updateHideBefore(activeItem)}>Hide before</div></Tooltip>}
+                            {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfter ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>}
+                            <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
                         </div>
                         <div className="ribbon-doubleButton" >
                             <div className="presBox-subheading">Slide Duration</div>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
                                     type="number" value={duration}
-                                    // onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                     onChange={action((e) => this.setDurationTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), 1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), 1000))}>
                                     <FontAwesomeIcon icon={"caret-up"} />
                                 </div>
-                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), -1000)}>
+                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), -1000))}>
                                     <FontAwesomeIcon icon={"caret-down"} />
                                 </div>
                             </div>
                         </div>
-                        <input type="range" step="0.1" min="0.1" max="20" value={duration} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
+                        <input type="range" step="0.1" min="0.1" max="20" value={duration}
+                            style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }}
+                            className={"toolbar-slider"} id="duration-slider"
+                            onPointerDown={() => { this._batch = UndoManager.StartBatch("presDuration"); }}
+                            onPointerUp={() => { if (this._batch) this._batch.end(); }}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }}
+                        />
                         <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "grid" }}>
                             <div className="slider-text">Short</div>
                             <div className="slider-text">Medium</div>
                             <div className="slider-text">Long</div>
                         </div>
                     </div>
-                    <div className="ribbon-box">
+                    {isPresCollection ? (null) : <div className="ribbon-box">
                         Effects
-                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openEffectDropdown = !this.openEffectDropdown; })} style={{ borderBottomLeftRadius: this.openEffectDropdown ? 0 : 5, border: this.openEffectDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
+                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openEffectDropdown = !this.openEffectDropdown; })} style={{ borderBottomLeftRadius: this.openEffectDropdown ? 0 : 5, border: this.openEffectDropdown ? `solid 2px ${PresColor.DarkBlue}` : 'solid 1px black' }}>
                             {effect}
-                            <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openEffectDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
+                            <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openEffectDropdown ? PresColor.DarkBlue : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} style={{ display: this.openEffectDropdown ? "grid" : "none" }} onPointerDown={e => e.stopPropagation()}>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'None')}>None</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Fade')}>Fade In</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Flip')}>Flip</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Rotate')}>Rotate</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Bounce')}>Bounce</div>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={undoBatch(() => targetDoc.presEffect = 'Roll')}>Roll</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.None || !targetDoc.presEffect ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.None)}>None</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.Fade ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Fade)}>Fade In</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.Flip ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Flip)}>Flip</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.Rotate ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Rotate)}>Rotate</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.Bounce ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Bounce)}>Bounce</div>
+                                <div className={`presBox-dropdownOption ${targetDoc.presEffect === PresEffect.Roll ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateEffect(PresEffect.Roll)}>Roll</div>
                             </div>
                         </div>
                         <div className="ribbon-doubleButton" style={{ display: effect === 'None' ? "none" : "inline-flex" }}>
@@ -938,17 +1174,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="effectDirection" style={{ display: effect === 'None' ? "none" : "grid", width: 40 }}>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'left')}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'right')}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'top')}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = 'bottom')}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%", cursor: "pointer" }} onClick={undoBatch(() => targetDoc.presEffectDirection = false)}></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === PresEffect.Left ? PresColor.LightBlue : "black", cursor: "pointer" }} onClick={() => this.updateEffectDirection(PresEffect.Left)}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === PresEffect.Right ? PresColor.LightBlue : "black", cursor: "pointer" }} onClick={() => this.updateEffectDirection(PresEffect.Right)}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === PresEffect.Top ? PresColor.LightBlue : "black", cursor: "pointer" }} onClick={() => this.updateEffectDirection(PresEffect.Top)}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === PresEffect.Bottom ? PresColor.LightBlue : "black", cursor: "pointer" }} onClick={() => this.updateEffectDirection(PresEffect.Bottom)}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection === PresEffect.Center || !targetDoc.presEffectDirection ? `solid 2px ${PresColor.LightBlue}` : "solid 2px black", borderRadius: "100%", cursor: "pointer" }} onClick={() => this.updateEffectDirection(PresEffect.Center)}></div></Tooltip>
                         </div>
-                    </div>
+                    </div>}
                     <div className="ribbon-final-box">
-                        <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
-                            Apply to selected
-                        </div>
                         <div className="ribbon-final-button-hidden" onClick={() => this.applyTo(this.childDocs)}>
                             Apply to all
                         </div>
@@ -975,19 +1208,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     applyTo = (array: Doc[]) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
+        this.updateMovement(activeItem.presMovement, true);
+        this.updateEffect(targetDoc.presEffect, true);
+        this.updateEffectDirection(targetDoc.presEffectDirection, true);
         array.forEach((doc) => {
             const curDoc = Cast(doc, Doc, null);
             const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
             if (tagDoc && targetDoc) {
                 curDoc.presTransition = activeItem.presTransition;
                 curDoc.presDuration = activeItem.presDuration;
-                tagDoc.presEffect = targetDoc.presEffect;
-                tagDoc.presEffectDirection = targetDoc.presEffectDirection;
-                tagDoc.presMovement = targetDoc.presMovement;
-                curDoc.presMovement = activeItem.presMovement;
-                this.updateMovement(activeItem.presMovement, curDoc, tagDoc);
-                curDoc.presHideTillShownButton = activeItem.presHideTillShownButton;
-                curDoc.presHideAfterButton = activeItem.presHideAfterButton;
+                curDoc.presHideBefore = activeItem.presHideBefore;
+                curDoc.presHideAfter = activeItem.presHideAfter;
             }
         });
     }
@@ -1000,12 +1231,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.playAuto ? "#aedef8" : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
-                                <div className="ribbon-toggle" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : "#aedef8" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
+                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.playAuto ? PresColor.LightBlue : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
+                                <div className="ribbon-toggle" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : PresColor.LightBlue }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
                             </div>
-                            {targetDoc.type === DocumentType.VID ? <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presVidFullScreen ? "#aedef8" : "" }} onClick={() => activeItem.presVidFullScreen = !activeItem.presVidFullScreen}>Full screen</div> : (null)}
-                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                            {/* {targetDoc.type === DocumentType.VID ? <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presVidFullScreen ? PresColor.LightBlue : "" }} onClick={() => activeItem.presVidFullScreen = !activeItem.presVidFullScreen}>Full screen</div> : (null)} */}
+                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                 <div className="presBox-subheading">Start time</div>
                                 <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
                                     <input className="presBox-input"
@@ -1014,7 +1245,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })} />
                                 </div>
                             </div> : (null)}
-                            {targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                 <div className="presBox-subheading">End time</div>
                                 <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
                                     <input className="presBox-input"
@@ -1023,13 +1254,45 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presEndTime = Number(val); })} />
                                 </div>
                             </div> : (null)}
-                            {targetDoc.type === DocumentType.COL ? 'Presentation Pin View' : (null)}
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ width: 20, padding: 0, backgroundColor: activeItem.presPinView ? "#aedef8" : "" }}
+                            {this.panable || this.scrollable || this.targetDoc.type === DocumentType.COMPARISON ? 'Pinned view' : (null)}
+                            <div className="ribbon-doubleButton">
+                                <Tooltip title={<><div className="dash-tooltip">{activeItem.presPinView ? "Turn off pin with view" : "Turn on pin with view"}</div></>}><div className="ribbon-toggle" style={{ width: 20, padding: 0, backgroundColor: activeItem.presPinView ? PresColor.LightBlue : "" }}
                                     onClick={() => {
                                         activeItem.presPinView = !activeItem.presPinView;
                                         targetDoc.presPinView = activeItem.presPinView;
                                         if (activeItem.presPinView) {
+                                            if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking) {
+                                                const scroll = targetDoc._scrollTop;
+                                                activeItem.presPinView = true;
+                                                activeItem.presPinViewScroll = scroll;
+                                            } else if (targetDoc.type === DocumentType.VID) {
+                                                activeItem.presPinTimecode = targetDoc._currentTimecode;
+                                            } else if ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG) {
+                                                const x = targetDoc._panX;
+                                                const y = targetDoc._panY;
+                                                const scale = targetDoc._viewScale;
+                                                activeItem.presPinView = true;
+                                                activeItem.presPinViewX = x;
+                                                activeItem.presPinViewY = y;
+                                                activeItem.presPinViewScale = scale;
+                                            } else if (targetDoc.type === DocumentType.COMPARISON) {
+                                                const width = targetDoc._clipWidth;
+                                                activeItem.presPinClipWidth = width;
+                                                activeItem.presPinView = true;
+                                            }
+                                        }
+                                    }}>{presPinWithViewIcon}</div></Tooltip>
+                                {activeItem.presPinView ? <Tooltip title={<><div className="dash-tooltip">{"Update the pinned view with the view of the selected document"}</div></>}><div className="ribbon-button"
+                                    onClick={() => {
+                                        if (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF) {
+                                            const scroll = targetDoc._scrollTop;
+                                            activeItem.presPinViewScroll = scroll;
+                                        } else if (targetDoc.type === DocumentType.VID) {
+                                            activeItem.presPinTimecode = targetDoc._currentTimecode;
+                                        } else if (targetDoc.type === DocumentType.COMPARISON) {
+                                            const clipWidth = targetDoc._clipWidth;
+                                            activeItem.presPinClipWidth = clipWidth;
+                                        } else {
                                             const x = targetDoc._panX;
                                             const y = targetDoc._panY;
                                             const scale = targetDoc._viewScale;
@@ -1037,18 +1300,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             activeItem.presPinViewY = y;
                                             activeItem.presPinViewScale = scale;
                                         }
-                                    }}>{presPinWithViewIcon}</div>
-                                {activeItem.presPinView ? <div className="ribbon-button"
-                                    onClick={() => {
-                                        const x = targetDoc._panX;
-                                        const y = targetDoc._panY;
-                                        const scale = targetDoc._viewScale;
-                                        activeItem.presPinViewX = x;
-                                        activeItem.presPinViewY = y;
-                                        activeItem.presPinViewScale = scale;
-                                    }}>Update</div> : (null)}
+                                    }}>Update</div></Tooltip> : (null)}
                             </div>
-                            <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
+                            {this.panable ? <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
                                     <div className="presBox-subheading">Pan X</div>
                                     <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
@@ -1076,7 +1330,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewScale = Number(val); })} />
                                     </div>
                                 </div>
-                            </div>
+                            </div> : (null)}
+                            {this.scrollable ? <div style={{ display: activeItem.presPinView ? "block" : "none" }}>
+                                <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
+                                    <div className="presBox-subheading">Scroll</div>
+                                    <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
+                                        <input className="presBox-input"
+                                            style={{ textAlign: 'left', width: 50 }}
+                                            type="number" value={NumCast(activeItem.presPinViewScroll)}
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewScroll = Number(val); })} />
+                                    </div>
+                                </div>
+                            </div> : (null)}
                             {/* <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.WEB ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" onClick={this.progressivizeText}>Store original website</div>
                             </div> */}
@@ -1092,15 +1357,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <div>
                 <div className={'presBox-toolbar-dropdown'} style={{ display: this.newDocumentTools && this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                     <div className="layout-container" style={{ height: 'max-content' }}>
-                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'blank'; this.createNewSlide(this.layout); })} />
-                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'title'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'blank' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => { this.layout = 'blank'; this.createNewSlide(this.layout); })} />
+                        <div className="layout" style={{ border: this.layout === 'title' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => { this.layout = 'title'; this.createNewSlide(this.layout); })}>
                             <div className="title">Title</div>
                             <div className="subtitle">Subtitle</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'header'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'header' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => { this.layout = 'header'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'content'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'content' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => { this.layout = 'content'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center' }}>Title</div>
                             <div className="content">Text goes here</div>
                         </div>
@@ -1132,26 +1397,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Choose type:
                         <div className="ribbon-doubleButton">
-                            <div title="Text" className={'ribbon-toggle'} style={{ background: this.addFreeform ? "" : "#aedef8" }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Text</div>
-                            <div title="Freeform" className={'ribbon-toggle'} style={{ background: this.addFreeform ? "#aedef8" : "" }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Freeform</div>
+                            <div title="Text" className={'ribbon-toggle'} style={{ background: this.addFreeform ? "" : PresColor.LightBlue }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Text</div>
+                            <div title="Freeform" className={'ribbon-toggle'} style={{ background: this.addFreeform ? PresColor.LightBlue : "" }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Freeform</div>
                         </div>
                     </div>
                     <div className="ribbon-box" style={{ display: this.addFreeform ? "grid" : "none" }}>
                         Preset layouts:
                         <div className="layout-container" style={{ height: this.openLayouts ? 'max-content' : '75px' }}>
-                            <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'blank')} />
-                            <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'title')}>
+                            <div className="layout" style={{ border: this.layout === 'blank' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => this.layout = 'blank')} />
+                            <div className="layout" style={{ border: this.layout === 'title' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => this.layout = 'title')}>
                                 <div className="title">Title</div>
                                 <div className="subtitle">Subtitle</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'header')}>
+                            <div className="layout" style={{ border: this.layout === 'header' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => this.layout = 'header')}>
                                 <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'content')}>
+                            <div className="layout" style={{ border: this.layout === 'content' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => this.layout = 'content')}>
                                 <div className="title" style={{ alignSelf: 'center' }}>Title</div>
                                 <div className="content">Text goes here</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'twoColumns')}>
+                            <div className="layout" style={{ border: this.layout === 'twoColumns' ? `solid 2px ${PresColor.DarkBlue}` : '' }} onClick={action(() => this.layout = 'twoColumns')}>
                                 <div className="title" style={{ alignSelf: 'center', gridColumn: '1/3' }}>Title</div>
                                 <div className="content" style={{ gridColumn: 1, gridRow: 2 }}>Column one text</div>
                                 <div className="content" style={{ gridColumn: 2, gridRow: 2 }}>Column two text</div>
@@ -1183,7 +1448,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (data && presData) {
                 data.push(doc);
                 TabDocView.PinDoc(doc, false);
-                this.gotoDocument(this.childDocs.length, this.itemIndex);
+                this.gotoDocument(this.childDocs.length);
             } else {
                 this.props.addDocTab(doc, "add:right");
             }
@@ -1233,10 +1498,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presentDropdown() {
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                <div className="dropdown-play-button" onClick={(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
                     Minimize
                 </div>
-                <div className="dropdown-play-button" onClick={(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
                     Sidebar view
                 </div>
             </div>
@@ -1244,7 +1509,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     // Case in which the document has keyframes to navigate to next key frame
-    @undoBatch
     @action
     nextKeyframe = (tagDoc: Doc, curDoc: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
@@ -1260,7 +1524,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         tagDoc.lastFrame = Math.max(NumCast(tagDoc._currentFrame), NumCast(tagDoc.lastFrame));
     }
 
-    @undoBatch
     @action
     prevKeyframe = (tagDoc: Doc, actItem: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
@@ -1312,8 +1575,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         {/* <div className="ribbon-box">
                             {this.stringType} selected
                             <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Contents</div>
-                                <div className="ribbon-toggle" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
+                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeChild}>Contents</div>
+                                <div className="ribbon-toggle" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? PresColor.LightBlue : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: activeItem.presProgressivize ? "inline-flex" : "none" }}>
                                 <div className="presBox-subheading">Active text color</div>
@@ -1328,12 +1591,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             {this.viewedColorPicker}
                             <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Zoom</div>
-                                <div className="ribbon-toggle" style={{ opacity: activeItem.zoomProgressivize ? 1 : 0.4, backgroundColor: activeItem.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Edit</div>
+                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.zoomProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeZoom}>Zoom</div>
+                                <div className="ribbon-toggle" style={{ opacity: activeItem.zoomProgressivize ? 1 : 0.4, backgroundColor: activeItem.editZoomProgressivize ? PresColor.LightBlue : "" }} onClick={this.editZoomProgressivize}>Edit</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: targetDoc._viewType === "stacking" || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll</div>
-                                <div className="ribbon-toggle" style={{ opacity: activeItem.scrollProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
+                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.scrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeScroll}>Scroll</div>
+                                <div className="ribbon-toggle" style={{ opacity: activeItem.scrollProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editScrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>
                         </div> */}
                         <div className="ribbon-final-box">
@@ -1343,7 +1606,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc, activeItem); }}>
                                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                                     </div>
-                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.editing ? "white" : "black", backgroundColor: targetDoc.editing ? "#5B9FDD" : "#AEDDF8" }}
+                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.editing ? "white" : "black", backgroundColor: targetDoc.editing ? PresColor.DarkBlue : PresColor.LightBlue }}
                                         onClick={action(() => targetDoc.editing = !targetDoc.editing)} >
                                         {NumCast(targetDoc._currentFrame)}
                                     </div>
@@ -1357,7 +1620,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 {this.frameListHeader}
                                 {this.frameList}
                             </div>
-                            <div className="ribbon-toggle" style={{ height: 20, backgroundColor: "#AEDDF8" }} onClick={() => console.log(" TODO: play frames")}>Play</div>
+                            <div className="ribbon-toggle" style={{ height: 20, backgroundColor: PresColor.LightBlue }} onClick={() => console.log(" TODO: play frames")}>Play</div>
                         </div>
                     </div>
                 </div>
@@ -1406,12 +1669,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     turnOffEdit = (paths?: boolean) => {
+        // Turn off paths
         if (paths) {
-            // Turn off paths
             const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
             if (srcContext) this.togglePath(srcContext, true);
         }
-        // Turn off the progressivize editors for each
+        // Turn off the progressivize editors for each document
         this.childDocs.forEach((doc) => {
             doc.editSnapZoomProgressivize = false;
             doc.editZoomProgressivize = false;
@@ -1573,7 +1836,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 tags.push(<div style={{ position: 'absolute', display: doc.displayMovement ? "block" : "none" }}>{this.checkMovementLists(doc, doc["x-indexed"], doc["y-indexed"])}</div>);
             }
             tags.push(
-                <div className="progressivizeButton" key={index} onPointerLeave={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? "#aedff8" : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}>
+                <div className="progressivizeButton" key={index} onPointerLeave={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? PresColor.LightBlue : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}>
                     <div className="progressivizeButton-prev"><FontAwesomeIcon icon={"caret-left"} size={"lg"} onClick={e => { e.stopPropagation(); this.prevAppearFrame(doc, index); }} /></div>
                     <div className="progressivizeButton-frame">{doc.appearFrame}</div>
                     <div className="progressivizeButton-next"><FontAwesomeIcon icon={"caret-right"} size={"lg"} onClick={e => { e.stopPropagation(); this.nextAppearFrame(doc, index); }} /></div>
@@ -1582,7 +1845,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return tags;
     }
 
-    @undoBatch
     @action
     nextAppearFrame = (doc: Doc, i: number): void => {
         // const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
@@ -1595,7 +1857,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateOpacityList(doc["opacity-indexed"], NumCast(doc.appearFrame));
     }
 
-    @undoBatch
     @action
     prevAppearFrame = (doc: Doc, i: number): void => {
         // const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
@@ -1656,30 +1917,42 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const propIcon = CurrentUserUtils.propertiesWidth > 0 ? "angle-double-right" : "angle-double-left";
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Presentation Panel" : "Open Presentation Panel";
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
+        const isMini: boolean = this.toolbarWidth <= 100;
+        const presKeyEvents: boolean = (this.isPres && this._presKeyEventsActive && this.rootDoc === Doc.UserDoc().activePresentation);
         return (mode === CollectionViewType.Carousel3D) ? (null) : (
-            <div id="toolbarContainer" className={'presBox-toolbar'} style={{ display: this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }}>
+            <div id="toolbarContainer" className={'presBox-toolbar'}>
                 {/* <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
                     <FontAwesomeIcon icon={"plus"} />
                     <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                 </div></Tooltip> */}
                 <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}>
-                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3 }} className={`toolbar-button ${this.pathBoolean ? "active" : ""}`} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
+                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? PresColor.DarkBlue : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
                         <FontAwesomeIcon icon={"exchange-alt"} />
                     </div>
                 </Tooltip>
-                <div className="toolbar-divider" />
-                <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
-                    <div className={`toolbar-button ${this.rootDoc.expandBoolean ? "active" : ""}`} onClick={this.toggleExpandMode}>
-                        {/* <FontAwesomeIcon icon={this.rootDoc.expandBoolean ? "eye-slash" : "eye"} /> */}
-                        <FontAwesomeIcon icon={"eye"} />
-                    </div>
-                </Tooltip>
-                <div className="toolbar-divider" />
-                <Tooltip title={<><div className="dash-tooltip">{propTitle}</div></>}>
-                    <div className="toolbar-button" style={{ position: 'absolute', right: 4, fontSize: 16 }} onClick={this.toggleProperties}>
-                        <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? '#AEDDF8' : 'white' }} />
-                    </div>
-                </Tooltip>
+                {isMini ? (null) :
+                    <>
+                        <div className="toolbar-divider" />
+                        {/* <Tooltip title={<><div className="dash-tooltip">{this._expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                            <div className={"toolbar-button"}
+                                style={{ color: this._expandBoolean ? PresColors.DarkBlue : 'white' }}
+                                onClick={this.toggleExpandMode}>
+                                <FontAwesomeIcon icon={"eye"} />
+                            </div>
+                        </Tooltip>
+                        <div className="toolbar-divider" /> */}
+                        <Tooltip title={<><div className="dash-tooltip">{presKeyEvents ? "Keys are active" : "Keys are not active - click anywhere on the presentation trail to activate keys"}</div></>}>
+                            <div className="toolbar-button" style={{ cursor: presKeyEvents ? 'default' : 'pointer', position: 'absolute', right: 30, fontSize: 16 }}>
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"keyboard"} style={{ color: presKeyEvents ? PresColor.DarkBlue : 'white' }} />
+                            </div>
+                        </Tooltip>
+                        <Tooltip title={<><div className="dash-tooltip">{propTitle}</div></>}>
+                            <div className="toolbar-button" style={{ position: 'absolute', right: 4, fontSize: 16 }} onClick={this.toggleProperties}>
+                                <FontAwesomeIcon className={"toolbar-thumbtack"} icon={propIcon} style={{ color: CurrentUserUtils.propertiesWidth > 0 ? PresColor.DarkBlue : 'white' }} />
+                            </div>
+                        </Tooltip>
+                    </>
+                }
             </div>
         );
     }
@@ -1691,25 +1964,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @computed get topPanel() {
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
+        const isMini: boolean = this.toolbarWidth <= 100;
         return (
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
-                <select className="presBox-viewPicker"
+                {isMini ? (null) : <select className="presBox-viewPicker"
                     style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
                     onPointerDown={e => e.stopPropagation()}
                     onChange={this.viewChanged}
                     value={mode}>
                     <option onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Stacking}>List</option>
                     <option onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Carousel3D}>3D Carousel</option>
-                </select>
-                <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length > 0 ? 1 : 0.3 }}>
+                </select>}
+                <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length ? 1 : 0.3 }}>
                     <span className={`presBox-button ${this.layoutDoc.presStatus === "edit" ? "present" : ""}`}>
-                        <div className="presBox-button-left" onClick={() => (this.childDocs.length > 0) && (this.layoutDoc.presStatus = "manual")}>
+                        <div className="presBox-button-left" onClick={undoBatch(() => (this.childDocs.length) && (this.layoutDoc.presStatus = "manual"))}>
                             <FontAwesomeIcon icon={"play-circle"} />
                             <div style={{ display: this.props.PanelWidth() > 200 ? "inline-flex" : "none" }}>&nbsp; Present</div>
                         </div>
-                        {(mode === CollectionViewType.Carousel3D) ? (null) : <div className={`presBox-button-right ${this.presentTools ? "active" : ""}`}
+                        {(mode === CollectionViewType.Carousel3D || isMini) ? (null) : <div className={`presBox-button-right ${this.presentTools ? "active" : ""}`}
                             onClick={(action(() => {
-                                if (this.childDocs.length > 0) this.presentTools = !this.presentTools;
+                                if (this.childDocs.length) this.presentTools = !this.presentTools;
                             }))}>
                             <FontAwesomeIcon className="dropdown" style={{ margin: 0, transform: this.presentTools ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"angle-down"} />
                             {this.presentDropdown}
@@ -1755,7 +2029,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @computed get frameListHeader() {
         return (<div className="frameList-header">
-            Frames
+            &nbsp; Frames {this.panable ? <i>Panable</i> : this.scrollable ? <i>Scrollable</i> : (null)}
             <div className={"frameList-headerButtons"}>
                 <Tooltip title={<><div className="dash-tooltip">{"Add frame by example"}</div></>}><div className={"headerButton"} onClick={e => { e.stopPropagation(); this.newFrame(); }}>
                     <FontAwesomeIcon icon={"plus"} onPointerDown={e => e.stopPropagation()} />
@@ -1801,21 +2075,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @computed get playButtons() {
+        const presEnd: boolean = !this.layoutDoc.presLoop && (this.itemIndex === this.childDocs.length - 1);
+        const presStart: boolean = !this.layoutDoc.presLoop && (this.itemIndex === 0);
         // Case 1: There are still other frames and should go through all frames before going to next slide
         return (<div className="presPanelOverlay" style={{ display: this.layoutDoc.presStatus !== "edit" ? "inline-flex" : "none" }}>
-            <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : 'white' }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? PresColor.DarkBlue : 'white' }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
             <div className="presPanel-divider"></div>
-            <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
-            <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+            <div className="presPanel-button" style={{ opacity: presStart ? 0.4 : 1 }} onClick={() => { this.back(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-left"} /></div>
+            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === PresStatus.Autoplay ? "pause" : "play"} /></div></Tooltip>
+            <div className="presPanel-button" style={{ opacity: presEnd ? 0.4 : 1 }} onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
-            <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
+            <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0)}><b>1</b></div></Tooltip>
+            <div
+                className="presPanel-button-text"
+                onClick={() => this.gotoDocument(0)}
+                style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
                 Slide {this.itemIndex + 1} / {this.childDocs.length}
                 {this.playButtonFrames}
             </div>
             <div className="presPanel-divider"></div>
-            {this.props.PanelWidth() > 250 ? <div className="presPanel-button-text" onClick={() => { this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }}>EXIT</div>
-                : <div className="presPanel-button" onClick={() => this.layoutDoc.presStatus = "edit"}>
+            {this.props.PanelWidth() > 250 ? <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }))}>EXIT</div>
+                : <div className="presPanel-button" onClick={undoBatch(action(() => this.layoutDoc.presStatus = "edit"))}>
                     <FontAwesomeIcon icon={"times"} />
                 </div>}
         </div>);
@@ -1823,7 +2103,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @action
     startOrPause = () => {
-        if (this.layoutDoc.presStatus === "manual" || this.layoutDoc.presStatus === "edit") this.startAutoPres(this.itemIndex);
+        if (this.layoutDoc.presStatus === PresStatus.Manual || this.layoutDoc.presStatus === PresStatus.Edit) this.startAutoPres(this.itemIndex);
         else this.pauseAutoPres();
     }
 
@@ -1833,25 +2113,29 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // needed to ensure that the childDocs are loaded for looking up fields
         this.childDocs.slice();
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
-        return this.layoutDoc.inOverlay ?
+        const presKeyEvents: boolean = (this.isPres && this._presKeyEventsActive && this.rootDoc === Doc.UserDoc().activePresentation);
+        const presEnd: boolean = !this.layoutDoc.presLoop && (this.itemIndex === this.childDocs.length - 1);
+        const presStart: boolean = !this.layoutDoc.presLoop && (this.itemIndex === 0);
+        return CurrentUserUtils.OverlayDocs.includes(this.rootDoc) ?
             <div className="miniPres">
-                <div className="presPanelOverlay" style={{ display: "inline-flex", height: 35, background: '#323232', top: 0, zIndex: 3000000 }}>
-                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+                <div className="presPanelOverlay" style={{ display: "inline-flex", height: 30, background: '#323232', top: 0, zIndex: 3000000, boxShadow: presKeyEvents ? '0 0 0px 3px ' + PresColor.DarkBlue : undefined }}>
+                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? PresColor.DarkBlue : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
-                    <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+                    <div className="presPanel-button" style={{ opacity: presStart ? 0.4 : 1 }} onClick={() => { this.back(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-left"} /></div>
+                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+                    <div className="presPanel-button" style={{ opacity: presEnd ? 0.4 : 1 }} onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
+                    <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0)}><b>1</b></div></Tooltip>
                     <div className="presPanel-button-text">
                         Slide {this.itemIndex + 1} / {this.childDocs.length}
                         {this.playButtonFrames}
                     </div>
                     <div className="presPanel-divider"></div>
-                    <div className="presPanel-button-text" onClick={() => { this.updateMinimize(); this.layoutDoc.presStatus = "edit"; clearTimeout(this._presTimer); }}>EXIT</div>
+                    <div className="presPanel-button-text" onClick={undoBatch(action(() => { this.updateMinimize(); this.layoutDoc.presStatus = PresStatus.Edit; clearTimeout(this._presTimer); }))}>EXIT</div>
                 </div>
             </div>
             :
-            <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
+            <div className="presBox-cont" style={{ minWidth: CurrentUserUtils.OverlayDocs.includes(this.layoutDoc) ? 240 : undefined }} >
                 {this.topPanel}
                 {this.toolbar}
                 {this.newDocumentToolbarDropdown}
@@ -1878,7 +2162,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 }
 Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, data: Doc) {
     if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
-    if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 30 : 26;
+    if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 35 : 31;
     if (field === 'presStatus') return container.presStatus;
     if (field === '_itemIndex') return container._itemIndex;
     if (field === 'presBox') return container;

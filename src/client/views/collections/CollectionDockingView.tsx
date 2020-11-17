@@ -22,6 +22,8 @@ import { CollectionViewType } from './CollectionView';
 import { TabDocView } from './TabDocView';
 import React = require("react");
 import { stat } from 'fs';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { listSpec } from '../../../fields/Schema';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -108,6 +110,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     @undoBatch
+    @action
     public static ReplaceTab(document: Doc, panelName: string, stack: any, addToSplit?: boolean): boolean {
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
@@ -140,8 +143,21 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
     @undoBatch
+    @action
     public static AddSplit(document: Doc, pullSide: string, stack?: any, panelName?: string) {
+        if (document.type === DocumentType.PRES) {
+            const docs = Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null).data, listSpec(Doc), []);
+            if (docs.includes(document)) {
+                docs.splice(docs.indexOf(document), 1);
+            }
+        }
         if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
+
+        const tab = Array.from(CollectionDockingView.Instance.tabMap).find(tab => tab.DashDoc === document);
+        if (tab) {
+            tab.header.parent.setActiveContentItem(tab.contentItem);
+            return true;
+        }
         const instance = CollectionDockingView.Instance;
         if (!instance) return false;
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, panelName);
@@ -308,9 +324,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        window.addEventListener("mouseup", this.onPointerUp);
-        if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
-            this._flush = UndoManager.StartBatch("golden layout edit");
+        let hitFlyout = false;
+        for (let par = e.target as any; !hitFlyout && par; par = par.parentElement) {
+            hitFlyout = (par.className === "dockingViewButtonSelector");
+        }
+        if (!hitFlyout) {
+            window.addEventListener("mouseup", this.onPointerUp);
+            if (!(e.target as HTMLElement).closest("*.lm_content") && ((e.target as HTMLElement).closest("*.lm_tab") || (e.target as HTMLElement).closest("*.lm_stack"))) {
+                this._flush = UndoManager.StartBatch("golden layout edit");
+            }
         }
         if (!e.nativeEvent.cancelBubble && !InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE) &&
             Doc.GetSelectedTool() !== InkTool.Highlighter && Doc.GetSelectedTool() !== InkTool.Pen) {

@@ -25,6 +25,7 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
 import { undoBatch } from "../../util/UndoManager";
 import { DocServer } from "../../DocServer";
+import { MainView } from "../MainView";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -53,6 +54,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private newsearchstring = "";
     private collectionRef = React.createRef<HTMLDivElement>();
 
+
+    @observable _undoBackground: string | undefined = "";
     @observable _icons: string[] = this._allIcons;
     @observable _results: [Doc, string[], string[]][] = [];
     @observable _visibleElements: JSX.Element[] = [];
@@ -354,7 +357,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             doc.x = x;
             doc.y = y;
             const size = 200;
-            const aspect = NumCast(doc._nativeHeight) / NumCast(doc._nativeWidth, 1);
+            const aspect = Doc.NativeHeight(doc) / (Doc.NativeWidth(doc) || 1);
             if (aspect > 1) {
                 doc._height = size;
                 doc._width = size / aspect;
@@ -498,7 +501,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const myDashboards = DocListCast(CurrentUserUtils.MyDashboards.data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div className="searchBox-bar">
+                <div className="searchBox-bar" style={{ background: SearchBox.Instance._undoBackground }}>
                     <div className="searchBox-lozenges" >
                         <div className="searchBox-lozenge-user">
                             {`${Doc.CurrentUserEmail}`}
@@ -506,7 +509,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                         </div>
                         </div>
-                        <div className="searchBox-lozenge" onClick={() => DocServer.PRINT_CACHE()}>
+                        <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
                             {`UI project`}
                         </div>
                         <div className="searchBox-lozenge-dashboard"  >

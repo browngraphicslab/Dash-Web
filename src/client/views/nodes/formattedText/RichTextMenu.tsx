@@ -31,6 +31,7 @@ const { toggleMark } = require("prosemirror-commands");
 export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     static Instance: RichTextMenu;
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
+    private _linkToRef = React.createRef<HTMLInputElement>();
 
     @observable public view?: EditorView;
     public editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
@@ -154,6 +155,9 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     @action
     public updateMenu(view: EditorView | undefined, lastState: EditorState | undefined, props: any) {
+        if (this._linkToRef.current?.getBoundingClientRect().width) {
+            return;
+        }
         this.view = view;
         if (!view || !view.hasFocus()) {
             return;
@@ -792,7 +796,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         const self = this;
 
         function onLinkChange(e: React.ChangeEvent<HTMLInputElement>) {
-            self.TextView.endUndoTypingBatch();
+            self.TextView?.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.setCurrentLink(e.target.value), "link change");
         }
 
@@ -807,7 +811,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         const dropdownContent =
             <div className="dropdown link-menu">
                 <p>Linked to:</p>
-                <input value={link} placeholder="Enter URL" onChange={onLinkChange} />
+                <input value={link} ref={this._linkToRef} placeholder="Enter URL" onChange={onLinkChange} />
                 <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "add:right")}>Apply hyperlink</button>
                 <div className="divider"></div>
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>

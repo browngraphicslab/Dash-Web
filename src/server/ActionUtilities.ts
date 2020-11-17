@@ -114,8 +114,8 @@ export namespace Email {
     const smtpTransport = nodemailer.createTransport({
         service: 'Gmail',
         auth: {
-            user: 'brownptcdash@gmail.com',
-            pass: 'browngfx1'
+            user: 'browndashptc@gmail.com',
+            pass: 'TsarNicholas#2'
         }
     });
 
@@ -149,7 +149,7 @@ export namespace Email {
     export async function dispatch({ to, subject, content, attachments }: DispatchOptions<string>): Promise<Error | null> {
         const mailOptions = {
             to,
-            from: 'brownptcdash@gmail.com',
+            from: 'browndashptc@gmail.com',
             subject,
             text: `Hello ${to.split("@")[0]},\n\n${content}`,
             attachments

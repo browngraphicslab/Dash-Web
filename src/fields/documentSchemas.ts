@@ -15,11 +15,11 @@ export const documentSchema = createSchema({
     // "Location" properties in a very general sense
     _curPage: "number",         // current page of a page based document
     _currentFrame: "number",    // current frame of a frame based collection (e.g., a progressive slide)
+    _fullScreenView: Doc,       // alias to display when double-clicking to open document in a full-screen view
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
     audioStart: "number",       // the time frame where the audio should begin playing
     audioEnd: "number",         // the time frame where the audio should stop playing
@@ -34,6 +34,7 @@ export const documentSchema = createSchema({
     _scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
+    "_backgroundGrid-spacing": "number", // the size of the grid for collection views
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents
     _nativeWidth: "number",     // native width of document which determines how much document contents are scaled when the document's width is set
     _nativeHeight: "number",    // "

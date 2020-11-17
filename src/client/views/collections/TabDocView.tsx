@@ -6,7 +6,7 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
@@ -21,7 +21,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc } from "../nodes/DocumentView";
 import { PresBox, PresMovement } from '../nodes/PresBox';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
@@ -39,15 +39,14 @@ interface TabDocViewProps {
 export class TabDocView extends React.Component<TabDocViewProps> {
     _mainCont: HTMLDivElement | null = null;
     _tabReaction: IReactionDisposer | undefined;
+
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _isActive: boolean = false;
     @observable private _document: Doc | undefined;
     @observable private _view: DocumentView | undefined;
 
-    @computed get contentScaling() { return this.ContentScaling(); }
-
-    get stack(): any { return (this.props as any).glContainer.parent.parent; }
+    get stack() { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
     get view() { return this._view; }
 
@@ -63,10 +62,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const titleEle = tab.titleElement[0];
             titleEle.size = StrCast(doc.title).length + 3;
             titleEle.value = doc.title;
-            titleEle.onchange = (e: any) => {
+            titleEle.onchange = undoBatch(action((e: any) => {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
-            };
+            }));
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
@@ -122,29 +121,41 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     /**
      * Adds a document to the presentation view
      **/
-    @undoBatch
     @action
-    public static PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
+    public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
         if (unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
+            if (doc === curPres) { alert("Cannot pin presentation document to itself"); return; }
+            const batch = UndoManager.StartBatch("pinning doc");
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
-            pinDoc.title = doc.title;
+            pinDoc.title = doc.title + " - Slide";
             pinDoc.presMovement = PresMovement.Zoom;
             pinDoc.context = curPres;
-            Doc.AddDocToList(curPres, "data", pinDoc);
+            const presArray: Doc[] = PresBox.Instance?.sortArray();
+            const size: number = PresBox.Instance?._selectedArray.size;
+            const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
+            Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
             if (pinDoc.type === "audio" && !audioRange) {
                 pinDoc.presStartTime = 0;
                 pinDoc.presEndTime = doc.duration;
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-            const curPresDocView = DocumentManager.Instance.getDocumentView(curPres);
-            if (!curPresDocView) {
+            const dview = CollectionDockingView.Instance.props.Document;
+            const fieldKey = CollectionDockingView.Instance.props.fieldKey;
+            const sublists = DocListCast(dview[fieldKey]);
+            const tabs = Cast(sublists[0], Doc, null);
+            const tabdocs = await DocListCastAsync(tabs.data);
+            if (!tabdocs?.includes(curPres)) {
+                tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
                 CollectionDockingView.AddSplit(curPres, "right");
             }
-            DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+            PresBox.Instance?._selectedArray.clear();
+            pinDoc && PresBox.Instance?._selectedArray.set(pinDoc, undefined); //Update selected array
+            DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+            batch.end();
         }
     }
 
@@ -190,23 +201,12 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
-    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
-        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
-    panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
-    nativeWidth = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc?._fitWidth ? NumCast(this.layoutDoc?._nativeHeight) || this._panelHeight : 0;
-    ContentScaling = () => {
-        const nativeH = NumCast(this.layoutDoc?._nativeHeight);
-        const nativeW = NumCast(this.layoutDoc?._nativeWidth);
-        let scaling = 1;
-        if (nativeW && (this.layoutDoc?._fitWidth || this._panelHeight / nativeH > this._panelWidth / nativeW)) {
-            scaling = this._panelWidth / nativeW;  // width-limited or fitWidth
-        } else if (nativeW && nativeH) {
-            scaling = this._panelHeight / nativeH; // height-limited
-        }
-        return scaling;
-    }
+    NativeAspect = () => this.nativeAspect;
+    PanelWidth = () => this.panelWidth;
+    PanelHeight = () => this.panelHeight;
+    nativeWidth = () => this._nativeWidth;
+    nativeHeight = () => this._nativeHeight;
+    ContentScaling = () => this.contentScaling;
 
     ScreenToLocalTransform = () => {
         if (this._mainCont?.children) {
@@ -215,6 +215,29 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.ContentScaling() / scale);
         }
         return Transform.Identity();
+    }
+    @computed get nativeAspect() {
+        return this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
+    }
+    @computed get panelHeight() {
+        return this.NativeAspect() && this.NativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.NativeAspect() : this._panelHeight;
+    }
+    @computed get panelWidth() {
+        return this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), Doc.NativeWidth(this.layoutDoc)), this._panelWidth) :
+            (this.NativeAspect() && this.NativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.NativeAspect() : this._panelWidth);
+    }
+    @computed get _nativeWidth() { return !this.layoutDoc?._fitWidth ? Doc.NativeWidth(this.layoutDoc) || this._panelWidth : 0; }
+    @computed get _nativeHeight() { return !this.layoutDoc?._fitWidth ? Doc.NativeHeight(this.layoutDoc) || this._panelHeight : 0; }
+    @computed get contentScaling() {
+        const nativeW = Doc.NativeWidth(this.layoutDoc);
+        const nativeH = Doc.NativeHeight(this.layoutDoc);
+        let scaling = 1;
+        if (nativeW && (this.layoutDoc?._fitWidth || this._panelHeight / nativeH > this._panelWidth / nativeW)) {
+            scaling = this._panelWidth / nativeW;  // width-limited or fitWidth
+        } else if (nativeW && nativeH) {
+            scaling = this._panelHeight / nativeH; // height-limited
+        }
+        return scaling;
     }
     @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.ContentScaling()) / 2 : 0; }
     @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.ContentScaling()) / this._panelWidth * 100}% ` : undefined; }
@@ -265,8 +288,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         return NumCast(Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null)._currentFrame);
     }
     renderMiniMap() {
-        const miniWidth = this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
-        const miniHeight = this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniWidth = this.PanelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniHeight = this.PanelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
         const miniLeft = 50 + (NumCast(this._document?._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
@@ -313,17 +336,18 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </div>
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
+                    style={{ background: CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0) }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => void) => {
+    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, notFocused?: boolean) => {
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
             this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         }
-        afterFocus?.();
+        afterFocus?.(false);
     }
     setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
@@ -340,8 +364,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 addDocument={undefined}
                 removeDocument={undefined}
                 ContentScaling={this.ContentScaling}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+                PanelWidth={this.PanelWidth}
+                PanelHeight={this.PanelHeight}
                 NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}
                 NativeWidth={this.nativeWidth() ? this.nativeWidth : undefined}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}

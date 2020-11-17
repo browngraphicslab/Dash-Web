@@ -12,7 +12,7 @@ import rimraf = require("rimraf");
 import { AppliedSessionAgent, ExitHandler } from "./Session/agents/applied_session_agent";
 import { ServerWorker } from "./Session/agents/server_worker";
 import { Monitor } from "./Session/agents/monitor";
-import { MessageHandler } from "./Session/agents/promisified_ipc_manager";
+import { MessageHandler, ErrorLike } from "./Session/agents/promisified_ipc_manager";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -70,7 +70,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * Prepares the body of the email with information regarding a crash event.
      */
     private _crashInstructions: string | undefined;
-    private generateCrashInstructions({ name, message, stack }: Error): string {
+    private generateCrashInstructions({ name, message, stack }: ErrorLike): string {
         if (!this._crashInstructions) {
             this._crashInstructions = readFileSync(resolve(__dirname, "./templates/crash_instructions.txt"), { encoding: "utf8" });
         }
@@ -109,7 +109,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
     /**
      * This sends an email with the generated crash report.
      */
-    private dispatchCrashReport: MessageHandler<{ error: Error }> = async ({ error: crashCause }) => {
+    private dispatchCrashReport: MessageHandler<{ error: ErrorLike }> = async ({ error: crashCause }) => {
         const { mainLog } = this.sessionMonitor;
         const { notificationRecipient } = DashSessionAgent;
         const error = await Email.dispatch({
@@ -127,7 +127,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
     /**
      * Logic for interfacing with Solr. Either starts it, 
-     * stops it, or rebuilds its indicies.
+     * stops it, or rebuilds its indices.
      */
     private executeSolrCommand = async (args: string[]): Promise<void> => {
         const { exec, mainLog } = this.sessionMonitor;
@@ -224,6 +224,6 @@ export class DashSessionAgent extends AppliedSessionAgent {
 
 export namespace DashSessionAgent {
 
-    export const notificationRecipient = "brownptcdash@gmail.com";
+    export const notificationRecipient = "browndashptc@gmail.com";
 
 }

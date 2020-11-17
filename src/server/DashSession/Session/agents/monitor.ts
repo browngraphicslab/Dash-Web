@@ -2,7 +2,7 @@ import { ExitHandler } from "./applied_session_agent";
 import { Configuration, configurationSchema, defaultConfig, Identifiers, colorMapping } from "../utilities/session_config";
 import Repl, { ReplAction } from "../utilities/repl";
 import { isWorker, setupMaster, on, Worker, fork } from "cluster";
-import { manage, MessageHandler } from "./promisified_ipc_manager";
+import { manage, MessageHandler, ErrorLike } from "./promisified_ipc_manager";
 import { red, cyan, white, yellow, blue } from "colors";
 import { exec, ExecOptions } from "child_process";
 import { validate, ValidationError } from "jsonschema";
@@ -22,7 +22,7 @@ export class Monitor extends IPCMessageReceiver {
     private readonly config: Configuration;
     private activeWorker: Worker | undefined;
     private key: string | undefined;
-    // private repl: Repl;
+    private repl: Repl;
 
     public static Create() {
         if (isWorker) {
@@ -46,7 +46,7 @@ export class Monitor extends IPCMessageReceiver {
         this.configureInternalHandlers();
         this.config = this.loadAndValidateConfiguration();
         this.initializeClusterFunctions();
-        // this.repl = this.initializeRepl();
+        this.repl = this.initializeRepl();
     }
 
     protected configureInternalHandlers = () => {
@@ -90,7 +90,7 @@ export class Monitor extends IPCMessageReceiver {
     }
 
     public readonly coreHooks = Object.freeze({
-        onCrashDetected: (listener: MessageHandler<{ error: Error }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
+        onCrashDetected: (listener: MessageHandler<{ error: ErrorLike }>) => this.on(Monitor.IntrinsicEvents.CrashDetected, listener),
         onServerRunning: (listener: MessageHandler<{ isFirstTime: boolean }>) => this.on(Monitor.IntrinsicEvents.ServerRunning, listener)
     });
 
@@ -119,7 +119,7 @@ export class Monitor extends IPCMessageReceiver {
      * that can invoke application logic external to this module
      */
     public addReplCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
-        // this.repl.registerCommand(basename, argPatterns, action);
+        this.repl.registerCommand(basename, argPatterns, action);
     }
 
     public exec = (command: string, options?: ExecOptions) => {
