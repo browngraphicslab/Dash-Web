@@ -120,7 +120,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
-            "none", "none", undefined, scaleX, scaleY, "", "visiblepainted", false, true);
+            "none", "none", undefined, scaleX, scaleY, "", this.props.Document._isBackground ? "none" : "visiblepainted", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,
@@ -178,7 +178,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
             </svg>);
         const handleLines = handleLine.map((pts, i) =>
-            <svg height="100" width="100" key={`line${i}`}>
+            <svg height="100" width="100" key={`line${i}`}  >
                 <line x1={(pts.X1 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y1 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
                     x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
                     display={(pts.dot1 === formatInstance._currPoint || pts.dot2 === formatInstance._currPoint) ? "inherit" : "none"} />
@@ -191,7 +191,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         return (
             <svg className="inkingStroke"
                 style={{
-                    pointerEvents: this.props.Document.isInkMask ? "all" : "none",
+                    pointerEvents: this.props.Document.isInkMask && !this.props.Document._isBackground ? "all" : "none",
                     transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
                     overflow: "visible",
