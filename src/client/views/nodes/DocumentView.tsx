@@ -1097,7 +1097,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     renderLock() {
         return (this.Document._isBackground !== undefined || this.isSelected(false)) &&
-            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
+            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG || this.Document.type === DocumentType.INK) &&
             this.props.renderDepth > 0 && !this.props.treeViewDoc ?
             <div className="documentView-lock" onClick={this.toggleBackground}>
                 <FontAwesomeIcon icon={this.Document._isBackground ? "unlock" : "lock"} style={{ color: this.Document._isBackground ? "red" : undefined }} size="lg" />

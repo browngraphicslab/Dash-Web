@@ -1672,11 +1672,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer${selected ? "-selected" : ""}`} ref={this._scrollRef}
-                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined }}
+                        style={{
+                            width: `calc(100% - ${this.sidebarWidthPercent})`,
+                            pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                            overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
+                        }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selPaddingClass}`} ref={this.createDropTarget}
                             style={{
-                                overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
                                 pointerEvents: !active && !SnappingManager.GetIsDragging() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}
