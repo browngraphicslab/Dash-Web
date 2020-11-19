@@ -532,7 +532,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
             return <DocumentView {...this.props}
                 Document={mark}
-                focus={() => this.playLink(mark)}
+                focus={() => script}
                 pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
