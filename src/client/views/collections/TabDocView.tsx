@@ -40,6 +40,7 @@ interface TabDocViewProps {
 export class TabDocView extends React.Component<TabDocViewProps> {
     _mainCont: HTMLDivElement | null = null;
     _tabReaction: IReactionDisposer | undefined;
+    @observable _activated: boolean = false;
 
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
@@ -53,6 +54,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
     @action
     init = (tab: any, doc: Opt<Doc>) => {
+        if (tab.contentItem === tab.header.parent.getActiveContentItem()) this._activated = true;
         if (tab.DashDoc !== doc && doc && tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
             tab._disposers = {} as { [name: string]: IReactionDisposer };
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
@@ -109,13 +111,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 }
             };
             tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => (v.topMost || v.props.treeViewDoc) && v.props.Document === doc),
-                (selected) => {
+                action((selected) => {
+                    if (selected) this._activated = true;
                     const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;
                     selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
                         UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
                     toggle.style.fontWeight = selected ? "bold" : "";
                     toggle.style.textTransform = selected ? "uppercase" : "";
-                });
+                }));
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
@@ -403,7 +406,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     @computed get docView() {
         TraceMobx();
-        return !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
+        return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><DocumentView key={this._document[Id]}
                 LibraryPath={emptyPath}
                 Document={this._document}
