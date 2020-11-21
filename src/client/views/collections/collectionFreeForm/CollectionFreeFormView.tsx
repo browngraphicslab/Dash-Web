@@ -73,6 +73,7 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
+    parentActive: (outsideReaction: boolean) => boolean;
     scaleField?: string;
     noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)
 };
@@ -235,7 +236,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [Doc.NativeWidth(layoutDoc), Doc.NativeHeight(layoutDoc)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            !d._isBackground && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !Cast(d, listSpec("string"), []).includes("background") && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
@@ -274,7 +275,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
-        // if (this.props.Document._isBackground) return false;
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (this.isAnnotationOverlay !== true && de.complete.linkDragData) {
             return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
@@ -390,8 +390,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>) => {
-        let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
+    getClusterColor = (doc: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
+        let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1, layerProvider);
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
@@ -402,8 +402,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 clusterColor = colors[cluster % colors.length];
                 const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
-                set && set.filter(s => !s._isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
-                set && set.filter(s => s._isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
+                set && set.filter(s => !Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
+                set && set.filter(s => Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
             }
         }
         return clusterColor;
@@ -861,7 +861,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     bringToFront = action((doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack || doc._isBackground) {
+        if (sendToBack || Cast(doc.layers, listSpec("string"), []).includes("background")) {
             doc.zIndex = 0;
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;
@@ -976,11 +976,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get backgroundActive() { return this.layoutDoc._isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     backgroundHalo = () => BoolCast(this.Document._useClusters);
-    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
+    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             addDocument: this.props.addDocument,
@@ -988,6 +988,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             moveDocument: this.props.moveDocument,
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
+            parentActive: this.parentActive,
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
@@ -1014,7 +1015,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
-            parentActive: this.parentActive,
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
         };
@@ -1122,7 +1122,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get doInternalLayoutComputation() {
         TraceMobx();
 
-
         const newPool = new Map<string, PoolData>();
         const engine = this.props.layoutEngine?.() || StrCast(this.layoutDoc._layoutEngine);
         switch (engine) {
@@ -1161,6 +1160,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
+                    layerProvider={this.props.layerProvider}
                     pointerEvents={this.backgroundActive || this.props.childPointerEvents ?
                         "all" :
                         (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
@@ -1380,7 +1380,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         };
         const snappableDocs: Doc[] = [];  // the set of documents in the visible viewport that we will try to snap to;
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-        this.getActiveDocuments().filter(doc => !doc._isBackground && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
+        this.getActiveDocuments().filter(doc => !Cast(doc.layers, listSpec("string"), []).includes("background") && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
         !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => isDocInView(doc, selRect)); // if not, see if there are background docs to snap to
         !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => isDocInView(doc, otherBounds)); // if not, then why not snap to floating docs
 
@@ -1491,6 +1491,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <div ref={this._marqueeRef}>
                 {this.layoutDoc["_backgroundGrid-show"] ? this.grid : (null)}
                 <CollectionFreeFormViewPannableContents
+                    isAnnotationOverlay={this.isAnnotationOverlay}
                     centeringShiftX={this.centeringShiftX}
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
@@ -1515,7 +1516,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
-    @computed get backgroundEvents() { return this.layoutDoc._isBackground && SnappingManager.GetIsDragging(); }
+    @computed get backgroundEvents() { return this.props.layerProvider?.(this.layoutDoc) === false && SnappingManager.GetIsDragging(); }
 
     render() {
         TraceMobx();
@@ -1584,6 +1585,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     presPaths?: boolean;
     progressivize?: boolean;
     presPinView?: boolean;
+    isAnnotationOverlay: boolean | undefined;
 }
 
 @observer
@@ -1729,6 +1731,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             style={{
                 transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
                 transition: this.props.transition,
+                width: this.props.isAnnotationOverlay ? undefined : 0, // if not an overlay, then this will be the size of the collection, but panning and zooming will move it outside the visible border of the collection and make it selectable.  This problem shows up after zooming/panning on a background collection -- you can drag the collection by clicking on apparently empty space outside the collection
                 //willChange: "transform"
             }}>
             {this.props.children()}

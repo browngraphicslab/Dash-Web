@@ -1,12 +1,12 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
+import { Doc, DataSym } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
-import { createSchema, makeInterface, listSpec } from '../../../fields/Schema';
-import { Cast, NumCast, BoolCast, ScriptCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero, numberRange, setupMoveUpEvents } from "../../../Utils";
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
@@ -312,7 +312,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
-                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth) }}>
+                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth, this.props.layerProvider) }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
                         <EditableView
                             ref={this._titleRef}

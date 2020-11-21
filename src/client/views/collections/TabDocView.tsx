@@ -29,6 +29,7 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
+import { List } from '../../../fields/List';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -66,6 +67,27 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             }));
+            if (tab.element[0].children[1].children.length === 1) {
+                const toggle = document.createElement("div");
+                toggle.style.width = "10px";
+                toggle.style.height = "calc(100% - 2px)";
+                toggle.style.left = "-2px";
+                toggle.style.bottom = "1px";
+                toggle.style.borderTopRightRadius = "7px";
+                toggle.style.position = "relative";
+                toggle.style.display = "inline-block";
+                toggle.style.background = "gray";
+                toggle.style.borderLeft = "solid 1px black";
+                toggle.onclick = (e: MouseEvent) => {
+                    if (tab.contentItem === tab.header.parent.getActiveContentItem()) {
+                        tab.DashDoc.activeLayer = tab.DashDoc.activeLayer ? undefined : "background";
+                    }
+                };
+                tab.element[0].style.borderTopRightRadius = "8px";
+                tab.element[0].children[1].appendChild(toggle);
+                tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
+                    ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
+            }
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
                 if (SnappingManager.GetIsDragging() && tab.contentItem !== tab.header.parent.getActiveContentItem()) {
@@ -87,8 +109,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 }
             };
             tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => (v.topMost || v.props.treeViewDoc) && v.props.Document === doc),
-                (selected) => selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
-                    UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch"));
+                (selected) => {
+                    const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;
+                    selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
+                        UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
+                    toggle.style.fontWeight = selected ? "bold" : "";
+                    toggle.style.textTransform = selected ? "uppercase" : "";
+                });
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
@@ -184,8 +211,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         })).observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ selected: selected(), color: this.tabColor, title: this.tab?.titleElement[0] }),
-            ({ selected, color, title }) => title && (title.style.backgroundColor = selected ? color : ""),
+        this._tabReaction = reaction(() => ({ selected: this.active(), title: this.tab?.titleElement[0] }),
+            ({ selected, title }) => title && (title.style.backgroundColor = selected ? "white" : ""),
             { fireImmediately: true });
     }
 
@@ -303,6 +330,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
+                    parentActive={returnFalse}
                     ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
@@ -353,6 +381,26 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
+
+    layerProvider = (doc: Doc, assign?: boolean) => {
+        if (doc.z) return true;
+        if (assign) {
+            const activeLayer = StrCast(this._document?.activeLayer);
+            if (activeLayer) {
+                const layers = Cast(doc.layers, listSpec("string"), []);
+                if (layers.length && !layers.includes(activeLayer)) layers.push(activeLayer);
+                else if (!layers.length) doc.layers = new List<string>([activeLayer]);
+                if (activeLayer === "red" || activeLayer === "green" || activeLayer === "blue") doc._backgroundColor = activeLayer;
+            }
+            return true;
+        } else {
+            if (Doc.AreProtosEqual(doc, this._document)) return true;
+            const layers = Cast(doc.layers, listSpec("string"), []);
+            if (!layers.length && !this._document?.activeLayer) return true;
+            if (layers.includes(StrCast(this._document?.activeLayer))) return true;
+            return false;
+        }
+    }
     @computed get docView() {
         TraceMobx();
         return !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
@@ -363,6 +411,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 bringToFront={emptyFunction}
                 rootSelected={returnTrue}
+                layerProvider={this.layerProvider}
                 addDocument={undefined}
                 removeDocument={undefined}
                 ContentScaling={this.ContentScaling}

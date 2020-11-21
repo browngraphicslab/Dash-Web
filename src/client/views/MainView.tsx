@@ -60,6 +60,7 @@ import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
 import { UndoManager } from '../util/UndoManager';
 const _global = (window /* browser */ || global /* node */) as any;
+import Color = require('color');
 
 @observer
 export class MainView extends React.Component {
@@ -75,6 +76,7 @@ export class MainView extends React.Component {
     @observable private _flyoutWidth: number = 0;
 
     @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
+    @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
     @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
@@ -228,33 +230,44 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
-    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (this.darkScheme) {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "dimgrey";
-                case DocumentType.PRES: return "#3e3e3e";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: return "black";
-            }
-        } else {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF: return "#f1efeb";
-                case DocumentType.BUTTON:
-                case DocumentType.LABEL: return "lightgray";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
-                default: return "white";
+    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
+        let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+        if (!docColor) {
+            if (this.darkScheme) {
+                switch (doc?.type) {
+                    case DocumentType.PRESELEMENT: docColor = "dimgrey"; break;
+                    case DocumentType.PRES: docColor = "#3e3e3e"; break;
+                    case DocumentType.FONTICON: docColor = "black"; break;
+                    case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: docColor = "#2d2d2d"; break;
+                    case DocumentType.LINK:
+                    case DocumentType.COL:
+                        docColor = Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                        break;
+                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                    default: docColor = "black"; break;
+                }
+            } else {
+                switch (doc?.type) {
+                    case DocumentType.PRESELEMENT: docColor = ""; break;
+                    case DocumentType.FONTICON: docColor = "black"; break;
+                    case DocumentType.RTF: docColor = "#f1efeb"; break;
+                    case DocumentType.BUTTON:
+                    case DocumentType.LABEL: docColor = "lightgray"; break;
+                    case DocumentType.LINK:
+                    case DocumentType.COL:
+                        docColor = Doc.IsSystem(doc) ? "lightgrey" :
+                            StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground :
+                                Doc.UserDoc().activeCollectionBackground);
+                        break;
+                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
+                    default: docColor = "white"; break;
+                }
             }
         }
+        if (!doc || layerProvider?.(doc) === false) {
+            return Color(docColor).fade(0.5).toString();
+        }
+        return docColor;
     }
 
     @computed get mainDocView() {
@@ -310,8 +323,8 @@ export class MainView extends React.Component {
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
+    sidebarScreenToLocal = () => new Transform(0, -this.topOffset, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-this.leftOffset, 0);
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
@@ -480,6 +493,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
+                    parentActive={returnFalse}
                     backgroundColor={this.defaultBackgroundColors}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
@@ -564,6 +578,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
@@ -588,6 +603,7 @@ export class MainView extends React.Component {
                     select={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
+                    parentActive={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -613,7 +629,7 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
-            <DocumentDecorations />
+            <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
@@ -659,6 +675,7 @@ export class MainView extends React.Component {
                             ScreenToLocalTransform={Transform.Identity}
                             bringToFront={returnFalse}
                             active={returnFalse}
+                            parentActive={returnFalse}
                             whenActiveChanged={returnFalse}
                             focus={returnFalse}
                             PanelWidth={() => 500}

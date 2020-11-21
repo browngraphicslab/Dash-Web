@@ -216,7 +216,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
+        const background = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth, this.props.layerProvider);
         const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;

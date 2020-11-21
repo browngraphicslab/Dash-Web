@@ -26,6 +26,7 @@ export interface FieldViewProps {
     Document: Doc;
     DataDoc?: Doc;
     LibraryPath: Doc[];
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     contentsActive?: (setActive: () => boolean) => void;
     onClick?: () => ScriptField;
     dropAction: dropActionType;
@@ -42,9 +43,10 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc | Doc[]) => boolean;
     moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    backgroundColor?: (document: Opt<Doc>, renderDepth: number) => string | undefined;
+    backgroundColor?: (document: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
+    parentActive: (outsideReaction: boolean) => boolean;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     LayoutTemplateString?: string;

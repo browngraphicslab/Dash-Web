@@ -1622,7 +1622,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const active = this.active();
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && !this.layoutDoc._isBackground;
+        const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);
         if (!selected && FormattedTextBoxComment.textBox === this) setTimeout(() => FormattedTextBoxComment.Hide());
         const minimal = this.props.ignoreAutoHeight;
         const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);

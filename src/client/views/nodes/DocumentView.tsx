@@ -41,6 +41,7 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
+import { List } from '../../../fields/List';
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -57,6 +58,7 @@ export interface DocumentViewProps {
     NativeHeight?: () => number;
     Document: Doc;
     DataDoc?: Doc;
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     getView?: (view: DocumentView) => any;
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
@@ -91,7 +93,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
-    backgroundColor?: (doc: Opt<Doc>, renderDepth: number) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
     forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
@@ -313,7 +315,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !this.props.Document._isBackground && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
+            !Cast(this.props.Document.layers, listSpec("string"), []).includes("background") && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -746,9 +748,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     toggleBackground = () => {
-        this.Document._isBackground = (this.Document._isBackground ? undefined : true);
-        this.Document._overflow = this.Document._isBackground ? "visible" : undefined;
-        if (this.Document._isBackground) {
+        const layers = Cast(this.Document.layers, listSpec("string"), []);
+        if (!layers.includes("background")) {
+            if (!layers.length) this.Document.layers = new List<string>(["background"]);
+            else layers.push("background");
+        }
+        else layers.splice(layers.indexOf("background"), 1);
+        this.Document._overflow = !layers.includes("background") ? "visible" : undefined;
+        if (!layers.includes("background")) {
             this.props.bringToFront(this.props.Document, true);
             const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
             const hgt = this.Document[HeightSym]();
@@ -920,7 +927,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
     @observable contentsActive: () => boolean = returnFalse;
-    @action setContentsActive = (setActive: () => boolean) => { this.contentsActive = setActive; }
+    @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
+    parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     @computed get contents() {
         TraceMobx();
         return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any }}>
@@ -935,6 +943,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 NativeHeight={this.NativeHeight}
                 Document={this.props.Document}
                 DataDoc={this.props.DataDoc}
+                layerProvider={this.props.layerProvider}
                 LayoutTemplateString={this.props.LayoutTemplateString}
                 LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
@@ -952,7 +961,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 PanelHeight={this.props.PanelHeight}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 focus={this.props.focus}
-                parentActive={this.props.parentActive}
+                parentActive={this.parentActive}
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={this.props.bringToFront}
                 addDocTab={this.props.addDocTab}
@@ -1072,10 +1081,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {captionView}
             </div>;
     }
-    @computed get ignorePointerEvents() {
-        return this.props.pointerEvents === "none" ||
-            (this.Document._isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
-            (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
+    @computed get pointerEvents() {
+        if (this.props.pointerEvents === "none") return "none";
+        const layer = this.props.layerProvider?.(this.Document);
+        if (layer === false && !this.isSelected() && !SnappingManager.GetIsDragging()) return "none";
+        if (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
+        if (layer === true) return "all";
+        return undefined;
     }
     @undoBatch
     @action
@@ -1096,11 +1108,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     });
 
     renderLock() {
-        return (this.Document._isBackground !== undefined || this.isSelected(false)) &&
-            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG || this.Document.type === DocumentType.INK) &&
+        const isBackground = Cast(this.Document.layers, listSpec("string"), []).includes("background");
+        return (isBackground || this.isSelected(false)) &&
+            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.RTF || this.Document.type === DocumentType.IMG || this.Document.type === DocumentType.INK) &&
             this.props.renderDepth > 0 && !this.props.treeViewDoc ?
             <div className="documentView-lock" onClick={this.toggleBackground}>
-                <FontAwesomeIcon icon={this.Document._isBackground ? "unlock" : "lock"} style={{ color: this.Document._isBackground ? "red" : undefined }} size="lg" />
+                <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
             </div>
             : (null);
     }
@@ -1110,7 +1123,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
         if (this.props.Document.hidden) return (null);
-        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document, this.props.renderDepth);
+        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth, this.props.layerProvider);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
@@ -1146,7 +1159,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
                 transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
-                pointerEvents: this.ignorePointerEvents ? "none" : undefined,
+                pointerEvents: this.pointerEvents,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,

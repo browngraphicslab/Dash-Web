@@ -120,7 +120,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
-            "none", "none", undefined, scaleX, scaleY, "", this.props.Document._isBackground ? "none" : "visiblepainted", false, true);
+            "none", "none", undefined, scaleX, scaleY, "", this.props.layerProvider?.(this.props.Document) === false ? "none" : "visiblepainted", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,
@@ -191,7 +191,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         return (
             <svg className="inkingStroke"
                 style={{
-                    pointerEvents: this.props.Document.isInkMask && !this.props.Document._isBackground ? "all" : "none",
+                    pointerEvents: this.props.Document.isInkMask && this.props.layerProvider?.(this.props.Document) !== false ? "all" : "none",
                     transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
                     overflow: "visible",

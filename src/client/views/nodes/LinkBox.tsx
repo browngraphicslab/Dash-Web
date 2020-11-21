@@ -17,7 +17,7 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkBox, fieldKey); }
     render() {
         return <div className={`linkBox-container${this.active() ? "-interactive" : ""}`}
-            style={{ background: this.props.backgroundColor?.(this.props.Document, this.props.renderDepth) }} >
+            style={{ background: this.props.backgroundColor?.(this.props.Document, this.props.renderDepth, this.props.layerProvider) }} >
 
             <CollectionTreeView {...this.props}
                 ChromeHeight={returnZero}

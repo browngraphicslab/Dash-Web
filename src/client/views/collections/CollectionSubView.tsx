@@ -46,6 +46,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
     overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
+    parentActive: (outsideReaction: boolean) => boolean;
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
     layoutEngine?: () => string;
