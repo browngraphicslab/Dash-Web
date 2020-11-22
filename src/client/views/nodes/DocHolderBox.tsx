@@ -125,7 +125,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
-                    backgroundColor={this.props.backgroundColor}
+                    styleProvider={this.props.styleProvider}
                     LayoutTemplateString={layoutTemplate}
                     LayoutTemplate={this.layoutTemplateDoc}
                     rootSelected={this.props.isSelected}
@@ -154,7 +154,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
-                    backgroundColor={this.props.backgroundColor}
+                    styleProvider={this.props.styleProvider}
                     ignoreAutoHeight={true}
                     LayoutTemplateString={layoutTemplate}
                     LayoutTemplate={this.layoutTemplateDoc}
@@ -184,7 +184,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: this.props.backgroundColor?.(containedDoc, this.props.renderDepth, this.props.layerProvider),
+                background: this.props.styleProvider?.(containedDoc, this.props.renderDepth, "color", this.props.layerProvider),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,

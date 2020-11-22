@@ -97,7 +97,7 @@ export class AudioUpload extends React.Component {
                         PanelHeight={() => 400}
                         renderDepth={0}
                         focus={emptyFunction}
-                        backgroundColor={() => "rgba(0,0,0,0)"}
+                        styleProvider={() => "rgba(0,0,0,0)"}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}

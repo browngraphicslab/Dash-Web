@@ -16,7 +16,6 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
-import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -59,8 +58,8 @@ import { SearchBox } from './search/SearchBox';
 import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
 import { UndoManager } from '../util/UndoManager';
+import { TabDocView } from './collections/TabDocView';
 const _global = (window /* browser */ || global /* node */) as any;
-import Color = require('color');
 
 @observer
 export class MainView extends React.Component {
@@ -230,46 +229,6 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
-    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
-        let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
-        if (!docColor) {
-            if (this.darkScheme) {
-                switch (doc?.type) {
-                    case DocumentType.PRESELEMENT: docColor = "dimgrey"; break;
-                    case DocumentType.PRES: docColor = "#3e3e3e"; break;
-                    case DocumentType.FONTICON: docColor = "black"; break;
-                    case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: docColor = "#2d2d2d"; break;
-                    case DocumentType.LINK:
-                    case DocumentType.COL:
-                        docColor = Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                        break;
-                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                    default: docColor = "black"; break;
-                }
-            } else {
-                switch (doc?.type) {
-                    case DocumentType.PRESELEMENT: docColor = ""; break;
-                    case DocumentType.FONTICON: docColor = "black"; break;
-                    case DocumentType.RTF: docColor = "#f1efeb"; break;
-                    case DocumentType.BUTTON:
-                    case DocumentType.LABEL: docColor = "lightgray"; break;
-                    case DocumentType.LINK:
-                    case DocumentType.COL:
-                        docColor = Doc.IsSystem(doc) ? "lightgrey" :
-                            StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground :
-                                Doc.UserDoc().activeCollectionBackground);
-                        break;
-                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
-                    default: docColor = "white"; break;
-                }
-            }
-        }
-        if (!doc || layerProvider?.(doc) === false) {
-            return Color(docColor).fade(0.5).toString();
-        }
-        return docColor;
-    }
-
     @computed get mainDocView() {
         return <DocumentView
             Document={this.mainContainer!}
@@ -280,7 +239,6 @@ export class MainView extends React.Component {
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
             onClick={undefined}
-            backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -352,7 +310,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        backgroundColor={this.defaultBackgroundColors}
+                        styleProvider={TabDocView.styleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -387,7 +345,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={TabDocView.styleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -439,7 +397,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView backgroundColor={this.defaultBackgroundColors} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={TabDocView.styleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -494,7 +452,7 @@ export class MainView extends React.Component {
                     dropAction={"alias"}
                     annotationsKey={""}
                     parentActive={returnFalse}
-                    backgroundColor={this.defaultBackgroundColors}
+                    styleProvider={TabDocView.styleProvider}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
@@ -570,7 +528,7 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 onClick={undefined}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={TabDocView.styleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
@@ -634,7 +592,7 @@ export class MainView extends React.Component {
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={TabDocView.styleProvider}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <GestureOverlay >

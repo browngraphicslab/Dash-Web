@@ -36,7 +36,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => Opt<string>;
+    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
 }
 
 @observer
@@ -270,7 +270,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
-                    backgroundColor={this.props.backgroundColor}
+                    styleProvider={this.props.styleProvider}
                     fitToBox={true}
                     FreezeDimensions={true}
                     dontCenter={"y"}

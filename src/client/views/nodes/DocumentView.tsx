@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -93,7 +93,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
-    backgroundColor?: (doc: Opt<Doc>, renderDepth: number, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
+    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
@@ -745,24 +745,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.isLinkButton = true;
     }
 
-    @undoBatch
-    @action
-    toggleBackground = () => {
-        const layers = Cast(this.Document.layers, listSpec("string"), []);
-        if (!layers.includes("background")) {
-            if (!layers.length) this.Document.layers = new List<string>(["background"]);
-            else layers.push("background");
-        }
-        else layers.splice(layers.indexOf("background"), 1);
-        this.Document._overflow = !layers.includes("background") ? "visible" : undefined;
-        if (!layers.includes("background")) {
-            this.props.bringToFront(this.props.Document, true);
-            // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
-            // const hgt = this.Document[HeightSym]();
-            // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
-            // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
-        }
-    }
 
     @action
     onCopy = () => {
@@ -966,7 +948,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 bringToFront={this.props.bringToFront}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
-                backgroundColor={this.props.backgroundColor}
+                styleProvider={this.props.styleProvider}
                 ContentScaling={this.childScaling}
                 ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
@@ -1083,11 +1065,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        const layer = this.props.layerProvider?.(this.Document);
-        if (layer === false && !this.isSelected() && !SnappingManager.GetIsDragging()) return "none";
-        if (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
-        if (layer === true) return "all";
-        return undefined;
+        return this.props.styleProvider?.(this.Document, this.props.renderDepth, this.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
     }
     @undoBatch
     @action
@@ -1107,23 +1085,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
-    renderLock() {
-        const isBackground = Cast(this.Document.layers, listSpec("string"), []).includes("background");
-        return (isBackground || this.isSelected(false)) &&
-            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.RTF || this.Document.type === DocumentType.IMG || this.Document.type === DocumentType.INK) &&
-            this.props.renderDepth > 0 && !this.props.treeViewDoc ?
-            <div className="documentView-lock" onClick={this.toggleBackground}>
-                <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
-            </div>
-            : (null);
-    }
 
     render() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.Document.hidden) return (null);
-        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || this.props.backgroundColor?.(this.layoutDoc, this.props.renderDepth, this.props.layerProvider);
+        if (this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "hidden", this.props.layerProvider)) return null;
+        const backgroundColor = this.props.forcedBackgroundColor?.(this.Document) || this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
@@ -1159,7 +1127,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
                 transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
-                pointerEvents: this.pointerEvents,
+                pointerEvents: this.pointerEvents as any,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
@@ -1178,7 +1146,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
-            {this.renderLock()}
+            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props.renderDepth, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
         </div>;
     }
 }

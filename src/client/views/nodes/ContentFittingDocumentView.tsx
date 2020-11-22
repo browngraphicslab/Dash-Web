@@ -79,7 +79,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         layoutKey={this.props.layoutKey}
                         dropAction={this.props.dropAction}
                         onClick={this.props.onClick}
-                        backgroundColor={this.props.backgroundColor}
+                        styleProvider={this.props.styleProvider}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}

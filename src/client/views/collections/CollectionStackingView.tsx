@@ -192,7 +192,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
             LibraryPath={this.props.LibraryPath}

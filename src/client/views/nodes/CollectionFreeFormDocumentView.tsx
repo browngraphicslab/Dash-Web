@@ -208,7 +208,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             dragDivName={"collectionFreeFormDocumentView-container"}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             opacity={this.opacity}
             layerProvider={this.props.layerProvider}
             NativeHeight={this.NativeHeight}
@@ -251,22 +251,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     NativeHeight = () => this.nativeHeight;
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        const layer = this.props.layerProvider?.(this.Document);
-        if (layer === false && !this._contentView?.docView?.isSelected() && !SnappingManager.GetIsDragging()) return "none";
-        if (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
-        if (layer === true) return "all";
-        return this.props.pointerEvents;
+        return this.props.styleProvider?.(this.Document, this.props.renderDepth, !this._contentView?.docView?.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
     }
     render() {
         TraceMobx();
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document, this.props.renderDepth, this.props.layerProvider);
+        const backgroundColor = this.props.styleProvider?.(this.Document, this.props.renderDepth, "color", this.props.layerProvider);
         const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
                     this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document, this.props.renderDepth, this.props.layerProvider)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(Cast(this.layoutDoc.layers, listSpec("string"), []).includes("background") ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.styleProvider?.(this.props.Document, this.props.renderDepth, "color", this.props.layerProvider)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(Cast(this.layoutDoc.layers, listSpec("string"), []).includes("background") ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 Cast(this.layoutDoc.layers, listSpec("string"), []).includes('background') ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: borderRounding,

@@ -6,11 +6,11 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt, DocListCastAsync, StrListCast } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -30,6 +30,9 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import { List } from '../../../fields/List';
+import { DocumentType } from '../../documents/DocumentTypes';
+import Color = require('color');
+import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -274,6 +277,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.ContentScaling()) / 2 : 0; }
     @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.ContentScaling()) / this._panelWidth * 100}% ` : undefined; }
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
+    @computed static get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
     //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
@@ -297,7 +301,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0))); }
+    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, TabDocView.styleProvider(this._document, 0, "color"))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -355,7 +359,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     renderDepth={0}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+                    styleProvider={TabDocView.styleProvider}
                     addDocTab={this.addDocTab}
                     pinToPres={TabDocView.PinDoc}
                     docFilters={CollectionDockingView.Instance.docFilters}
@@ -370,7 +374,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                 <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
-                    style={{ background: CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0) }} >
+                    style={{ background: TabDocView.styleProvider(this._document, 0, "color") }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
             </Tooltip>
@@ -385,6 +389,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
 
+    //
+    // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents
+    //  currently, the provider tests whether the docuemnt's layer field matches the activeLayer field of the tab.
+    //     if it matches, then the document gets pointer events, otherwise it does not.
+    //
     layerProvider = (doc: Doc, assign?: boolean) => {
         if (doc.z) return true;
         if (assign) {
@@ -402,6 +411,80 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             if (!layers.length && !this._document?.activeLayer) return true;
             if (layers.includes(StrCast(this._document?.activeLayer))) return true;
             return false;
+        }
+    }
+
+    @undoBatch
+    @action
+    static toggleBackground = (doc: Doc) => {
+        const layers = StrListCast(doc.layers);
+        if (!layers.includes("background")) {
+            if (!layers.length) doc.layers = new List<string>(["background"]);
+            else layers.push("background");
+        }
+        else layers.splice(layers.indexOf("background"), 1);
+        doc._overflow = !layers.includes("background") ? "visible" : undefined;
+        if (!layers.includes("background")) {
+            //this.props.bringToFront(doc, true);
+            // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
+            // const hgt = this.Document[HeightSym]();
+            // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
+            // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
+        }
+    }
+    //
+    // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
+    // 
+    public static styleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
+        if (property === "color") {
+            if (Doc.UserDoc().renderStyle === "comic") return undefined;
+            let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            if (!docColor) {
+                switch (doc?.type) {
+                    case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "dimgrey" : ""; break;
+                    case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "black"; break;
+                    case DocumentType.FONTICON: docColor = "black"; break;
+                    case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
+                    case DocumentType.LABEL:
+                    case DocumentType.BUTTON: docColor = TabDocView.darkScheme ? "#2d2d2d" : "lightgray"; break;
+                    case DocumentType.LINK:
+                    case DocumentType.COL:
+                        docColor = Doc.IsSystem(doc) ? (TabDocView.darkScheme ? "rgb(62,62,62)" : "lightgrey") :
+                            StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                        break;
+                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                    default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
+                }
+            }
+            if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
+            return docColor;
+        }
+        if (property.startsWith("pointerEvents")) {
+            const layer = doc && layerProvider?.(doc);
+            if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
+            if (doc?.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
+            if (layer === true) return "all";
+            return undefined;
+        }
+        if (property.startsWith("decorations")) {
+            const isBackground = StrListCast(doc?.layers).includes("background");
+            return doc && (isBackground || property.includes(":selected")) && renderDepth > 0 &&
+                ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
+                <div className="documentView-lock" onClick={() => TabDocView.toggleBackground(doc)}>
+                    <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
+                </div>
+                : (null);
+        }
+        if (property === "hidden") {
+            if (doc && (doc.hidden /* || layerProvider?.(doc) === false*/)) return true;
+            return false;
+        }
+        if (property === "boxShadow") {
+            switch (doc?.type) {
+                case DocumentType.COL: return StrListCast(doc.layers).includes("background") ? undefined :
+                    `${TabDocView.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+            }
+            return undefined;
         }
     }
     @computed get docView() {
@@ -427,7 +510,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 parentActive={this.active}
                 whenActiveChanged={emptyFunction}
                 focus={this.focusFunc}
-                backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+                styleProvider={TabDocView.styleProvider}
                 addDocTab={this.addDocTab}
                 pinToPres={TabDocView.PinDoc}
                 docFilters={CollectionDockingView.Instance.docFilters}

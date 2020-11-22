@@ -216,7 +216,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         return <ContentFittingDocumentView
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
             LibraryPath={this.props.LibraryPath}
