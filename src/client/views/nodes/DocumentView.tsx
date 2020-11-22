@@ -757,10 +757,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document._overflow = !layers.includes("background") ? "visible" : undefined;
         if (!layers.includes("background")) {
             this.props.bringToFront(this.props.Document, true);
-            const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
-            const hgt = this.Document[HeightSym]();
-            Doc.SetNativeWidth(this.props.Document[DataSym], wid);
-            Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
+            // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
+            // const hgt = this.Document[HeightSym]();
+            // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
+            // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
         }
     }
 

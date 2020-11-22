@@ -172,7 +172,9 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 instance._goldenLayout.root.addChild(newContentItem);
             } else if (instance._goldenLayout.root.contentItems[0].isStack) {
                 instance._goldenLayout.root.contentItems[0].addChild(docContentConfig);
-            } else if (instance._goldenLayout.root.contentItems.length === 1 && instance._goldenLayout.root.contentItems[0].contentItems.length === 1 &&
+            } else if (
+                instance._goldenLayout.root.contentItems.length === 1 &&
+                instance._goldenLayout.root.contentItems[0].contentItems.length === 1 &&
                 instance._goldenLayout.root.contentItems[0].contentItems[0].contentItems.length === 0) {
                 instance._goldenLayout.root.contentItems[0].contentItems[0].addChild(docContentConfig);
             }
