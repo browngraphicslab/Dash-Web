@@ -26,6 +26,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { PDFMenu } from "./pdf/PDFMenu";
 import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
+import { random } from "lodash";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -85,7 +86,15 @@ export class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
-            case "a": DragManager.CanEmbed = true;
+            case "g":
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
+                }
+
+                const groupings = SelectionManager.SelectedDocuments().slice();
+                const randomGroup = random(0, 1000);
+                UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "delete");
+                SelectionManager.DeselectAll();
                 break;
             case " ":
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI

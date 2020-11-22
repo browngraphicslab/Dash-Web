@@ -819,8 +819,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             const zorders = cm.findByDescription("ZOrder...");
             const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
-            zorderItems.push({ description: "Bring to Front", event: () => this.props.bringToFront(this.rootDoc, false), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: "Send to Back", event: () => this.props.bringToFront(this.rootDoc, true), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
             zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: this.toggleRaiseWhenDragged, icon: "expand-arrows-alt" });
             !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 

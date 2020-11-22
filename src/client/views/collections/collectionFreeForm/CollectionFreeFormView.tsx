@@ -47,6 +47,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { isUndefined } from "lodash";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -88,7 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
     private _clusterDistance: number = 75;
-    private _hitCluster = false;
+    private _hitCluster: number = -1;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _boundsReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
@@ -288,21 +289,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     pickCluster(probe: number[]) {
         return this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
-            const layoutDoc = Doc.Layout(cd);
-            const cx = NumCast(cd.x) - this._clusterDistance;
-            const cy = NumCast(cd.y) - this._clusterDistance;
-            const cw = NumCast(layoutDoc._width) + 2 * this._clusterDistance;
-            const ch = NumCast(layoutDoc._height) + 2 * this._clusterDistance;
-            return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
-                NumCast(cd.cluster) : cluster;
+            const grouping = this.props.Document._useClusters ? NumCast(cd.cluster, -1) : NumCast(cd.group, -1);
+            if (grouping !== -1) {
+                const layoutDoc = Doc.Layout(cd);
+                const cx = NumCast(cd.x) - this._clusterDistance;
+                const cy = NumCast(cd.y) - this._clusterDistance;
+                const cw = NumCast(layoutDoc._width) + 2 * this._clusterDistance;
+                const ch = NumCast(layoutDoc._height) + 2 * this._clusterDistance;
+                return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ? grouping : cluster;
+            }
+            return cluster;
         }, -1);
     }
-    tryDragCluster(e: PointerEvent | TouchEvent) {
-        const ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
-        if (ptsParent) {
-            const cluster = this.pickCluster(this.getTransform().transformPoint(ptsParent.clientX, ptsParent.clientY));
-            if (cluster !== -1) {
-                const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
+    tryDragCluster(e: PointerEvent | TouchEvent, cluster: number) {
+        if (cluster !== -1) {
+            const ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
+            if (ptsParent) {
+                const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => (this.props.Document._useClusters ? NumCast(cd.cluster) : NumCast(cd.group, -1)) === cluster);
                 const clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
                 const de = new DragManager.DocumentDragData(eles);
                 de.moveDocument = this.props.moveDocument;
@@ -405,7 +408,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 set && set.filter(s => !Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
                 set && set.filter(s => Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
             }
-        }
+        } else if (doc && NumCast(doc.group, -1) !== -1) clusterColor = "gray";
         return clusterColor;
     }
 
@@ -415,8 +418,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             return;
         }
-        this._hitCluster = this.props.Document._useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
+        if (e.button === 0 && (!e.shiftKey || this._hitCluster !== -1) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
 
             // if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
             //     this.props.addDocTab(this.props.Document, "replace");
@@ -447,7 +450,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt = me.changedTouches[0];
             if (pt) {
-                this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+                this._hitCluster = this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY));
                 if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
                     this.removeMoveListeners();
                     this.addMoveListeners();
@@ -641,7 +644,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         if (!e.cancelBubble) {
             if (Doc.GetSelectedTool() === InkTool.None) {
-                if (this._hitCluster && this.tryDragCluster(e)) {
+                if (this.tryDragCluster(e, this._hitCluster)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                     e.preventDefault();
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -661,7 +664,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const pt = myTouches[0];
             if (pt) {
                 if (Doc.GetSelectedTool() === InkTool.None) {
-                    if (this._hitCluster && this.tryDragCluster(e)) {
+                    if (this.tryDragCluster(e, this._hitCluster)) {
                         e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                         e.preventDefault();
                         document.removeEventListener("pointermove", this.onPointerMove);
@@ -979,7 +982,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = () => BoolCast(this.Document._useClusters);
+    backgroundHalo = (doc: Doc) => computedFn(() => BoolCast(this.Document._useClusters) || (NumCast(doc.group, -1) !== -1));
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -1014,7 +1017,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
-            backgroundHalo: this.backgroundHalo,
+            backgroundHalo: this.backgroundHalo(childLayout),
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
         };
@@ -1476,11 +1479,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             }} />;
     }
+    trySelectCluster = (addToSel: boolean) => {
+        if (this._hitCluster !== -1) {
+            if (!addToSel) {
+                SelectionManager.DeselectAll();
+            }
+            const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => (this.props.Document._useClusters ? NumCast(cd.cluster) : NumCast(cd.group, -1)) === this._hitCluster);
+            this.selectDocuments(eles);
+            return true;
+        }
+        return false;
+    }
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
             nudge={this.isAnnotationOverlay || this.props.renderDepth > 0 ? undefined : this.nudge}
             addDocTab={this.addDocTab}
+            trySelectCluster={this.trySelectCluster}
             activeDocuments={this.getActiveDocuments}
             selectDocuments={this.selectDocuments}
             addDocument={this.addDocument}

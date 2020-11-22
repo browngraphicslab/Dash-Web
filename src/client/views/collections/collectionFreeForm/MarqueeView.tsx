@@ -34,6 +34,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Doc[]) => void;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
+    trySelectCluster: (addToSel: boolean) => boolean;
     nudge?: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -299,7 +300,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (Doc.GetSelectedTool() === InkTool.None) {
                 if (!(e.nativeEvent as any).marqueeHit) {
                     (e.nativeEvent as any).marqueeHit = true;
-                    !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                    if (!(e.nativeEvent as any).formattedHandled) {
+                        if (!this.props.trySelectCluster(e.shiftKey)) {
+                            this.setPreviewCursor(e.clientX, e.clientY, false);
+                        } else e.stopPropagation();
+                    }
                 }
             }
             // let the DocumentView stopPropagation of this event when it selects this document
