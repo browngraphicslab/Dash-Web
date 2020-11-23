@@ -86,6 +86,15 @@ export class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
+            case "u":
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
+                }
+
+                const ungroupings = SelectionManager.SelectedDocuments().slice();
+                UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
+                SelectionManager.DeselectAll();
+                break;
             case "g":
                 if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
                     return { stopPropagation: false, preventDefault: false };
@@ -93,7 +102,7 @@ export class KeyManager {
 
                 const groupings = SelectionManager.SelectedDocuments().slice();
                 const randomGroup = random(0, 1000);
-                UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "delete");
+                UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
                 SelectionManager.DeselectAll();
                 break;
             case " ":
