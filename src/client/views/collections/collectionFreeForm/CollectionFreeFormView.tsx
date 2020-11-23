@@ -983,7 +983,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = (doc: Doc) => computedFn(() => BoolCast(this.Document._useClusters) || (NumCast(doc.group, -1) !== -1));
+    backgroundHalo = computedFn(function (doc: Doc) { return BoolCast(this.Document._useClusters) || (NumCast(doc.group, -1) !== -1); }).bind(this);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -1018,7 +1018,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
-            backgroundHalo: this.backgroundHalo(childLayout),
+            backgroundHalo: this.backgroundHalo,
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
         };

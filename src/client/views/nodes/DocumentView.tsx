@@ -92,7 +92,7 @@ export interface DocumentViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
-    backgroundHalo?: () => boolean;
+    backgroundHalo?: (doc: Doc) => boolean;
     styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
