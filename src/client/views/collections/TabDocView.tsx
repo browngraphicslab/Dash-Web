@@ -472,9 +472,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             default:
                 if (property.startsWith("pointerEvents")) {
                     const layer = doc && layerProvider?.(doc);
+                    if (doc?.Opacity === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
                     if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
-                    if (doc?.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
-                    if (layer === true) return "all";
+                    if (doc?.type !== DocumentType.INK && layer === true) return "all";
                     return undefined;
                 }
                 if (property.startsWith("decorations")) {
