@@ -127,7 +127,6 @@ export namespace DragManager {
         droppedDocuments: Doc[];
         dragDivName?: string;
         treeViewDoc?: Doc;
-        dontHideOnDrop?: boolean;
         offset: number[];
         canEmbed?: boolean;
         userDropAction: dropActionType;     // the user requested drop action -- this will be honored as specified by modifier keys
@@ -347,6 +346,7 @@ export namespace DragManager {
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
+        dragDiv.hidden = false;
         dragLabel.style.display = "";
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
@@ -546,13 +546,14 @@ export namespace DragManager {
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any },
         xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
-        const removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
+        const removed = dragEles.map(dragEle => {
             const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height, o: dragEle.style.overflow };
             dragEle.style.width = "0";
             dragEle.style.height = "0";
             dragEle.style.overflow = "hidden";
             return ret;
         });
+        dragDiv.hidden = true;
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
             r.ele.style.width = r.w;

@@ -402,6 +402,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     DataDoc={undefined}
                     fitToBox={true}
                     FreezeDimensions={true}
+                    dontCenter={"y"}
                     focus={emptyFunction}
                     LibraryPath={this.props.LibraryPath}
                     renderDepth={this.props.renderDepth}

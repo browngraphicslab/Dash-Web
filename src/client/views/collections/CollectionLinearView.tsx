@@ -154,7 +154,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}
                                 renderDepth={this.props.renderDepth + 1}
                                 focus={emptyFunction}
-                                backgroundColor={this.props.backgroundColor}
+                                styleProvider={this.props.styleProvider}
                                 parentActive={returnTrue}
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}

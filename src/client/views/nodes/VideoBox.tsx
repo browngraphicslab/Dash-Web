@@ -393,7 +393,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
+                pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
             }} >
             <div className="videoBox-viewer" >

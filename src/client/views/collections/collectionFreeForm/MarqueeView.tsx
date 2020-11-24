@@ -34,6 +34,7 @@ interface MarqueeViewProps {
     selectDocuments: (docs: Doc[]) => void;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
+    trySelectCluster: (addToSel: boolean) => boolean;
     nudge?: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -285,7 +286,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
-            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl)) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl)) {
+                PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            }
             this.clearSelection();
         }
     });
@@ -297,7 +300,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (Doc.GetSelectedTool() === InkTool.None) {
                 if (!(e.nativeEvent as any).marqueeHit) {
                     (e.nativeEvent as any).marqueeHit = true;
-                    !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                    if (!(e.nativeEvent as any).formattedHandled) {
+                        if (!this.props.trySelectCluster(e.shiftKey)) {
+                            this.setPreviewCursor(e.clientX, e.clientY, false);
+                        } else e.stopPropagation();
+                    }
                 }
             }
             // let the DocumentView stopPropagation of this event when it selects this document
@@ -355,7 +362,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, _isBackground?: boolean) => {
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[]) => {
         const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
             Doc.GetProto(doc).title = "nested freeform";
@@ -363,8 +370,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
         newCollection.system = undefined;
-        newCollection._isBackground = _isBackground;
-        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : _isBackground ? "cyan" : undefined;
+        newCollection.layers = new List<string>(layers);
+        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : layers.includes("background") ? "cyan" : undefined;
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection.x = this.Bounds.left;
@@ -445,7 +452,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }));
             this.props.removeDocument(selected);
         }
-        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
+        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined, []);
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection]);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -553,7 +560,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], undefined, true);
+        const newCollection = this.getCollection([], undefined, ["background"]);
         this.props.addDocument(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
@@ -691,7 +698,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc._isBackground && !doc.z).map(doc => {
+        this.props.activeDocuments().filter(doc => this.props.layerProvider?.(doc) !== false && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);

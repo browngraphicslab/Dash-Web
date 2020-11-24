@@ -53,7 +53,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
                             focus={emptyFunction}
-                            backgroundColor={returnEmptyString}
+                            styleProvider={returnEmptyString}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}

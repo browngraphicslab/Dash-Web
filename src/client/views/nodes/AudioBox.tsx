@@ -623,7 +623,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             ContainingCollectionDoc={this.props.Document}
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
-                                            backgroundColor={returnTransparent}
+                                            styleProvider={returnTransparent}
                                             ContentScaling={returnOne}
                                             forcedBackgroundColor={returnTransparent}
                                             pointerEvents={"none"}

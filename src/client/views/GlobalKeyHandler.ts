@@ -26,6 +26,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { PDFMenu } from "./pdf/PDFMenu";
 import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
+import { random } from "lodash";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -56,7 +57,7 @@ export class KeyManager {
 
     public handle = action(async (e: KeyboardEvent) => {
         if (e.key?.toLowerCase() === "shift" && e.ctrlKey && e.altKey) KeyManager.Instance.ShiftPressed = true;
-        if (!Doc.UserDoc().noviceMode && e.key.toLocaleLowerCase() === "shift") DocServer.UPDATE_SERVER_CACHE(true);
+        //if (!Doc.UserDoc().noviceMode && e.key.toLocaleLowerCase() === "shift") DocServer.UPDATE_SERVER_CACHE(true);
         const keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
@@ -85,7 +86,24 @@ export class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
-            case "a": DragManager.CanEmbed = true;
+            case "u":
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
+                }
+
+                const ungroupings = SelectionManager.SelectedDocuments().slice();
+                UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
+                SelectionManager.DeselectAll();
+                break;
+            case "g":
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
+                }
+
+                const groupings = SelectionManager.SelectedDocuments().slice();
+                const randomGroup = random(0, 1000);
+                UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
+                SelectionManager.DeselectAll();
                 break;
             case " ":
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI

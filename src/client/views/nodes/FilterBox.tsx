@@ -204,6 +204,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     select={returnFalse}
                     bringToFront={emptyFunction}
                     active={this.props.active}
+                    parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     treeViewHideTitle={true}
                     ContentScaling={returnOne}
@@ -213,7 +214,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ignoreFields={this.ignoreFields}
                     annotationsKey={""}
                     dontRegisterView={true}
-                    backgroundColor={this.filterBackground}
+                    styleProvider={this.filterBackground}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />

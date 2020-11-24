@@ -3204,7 +3204,16 @@
 				 * If this was the last content item, remove this node as well
 				 */
             } else if (!(this instanceof lm.items.Root) && this.config.isClosable === true) {
-                if (!this.parent.parent.isRoot || this.parent.contentItems.length > 1) this.parent.removeChild(this); // bcz: added test for last stack
+                const stack = this;
+                const rowOrCol = stack.parent;
+                const parRowOrCol = rowOrCol.parent;
+                const canDelete = rowOrCol && !rowOrCol.isRoot && (rowOrCol.contentItems.length > 1 || (parRowOrCol && parRowOrCol.contentItems.length > 1)); // bcz: added test for last stack
+                if (canDelete) {
+                    rowOrCol.removeChild(stack);
+                    if (rowOrCol.contentItems.length === 1 && parRowOrCol.contentItems.length === 1 && !parRowOrCol.isRoot) {
+                        parRowOrCol.replaceChild(rowOrCol, rowOrCol.contentItems[0]);
+                    }
+                }
             }
         },
 
