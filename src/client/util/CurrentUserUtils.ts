@@ -1050,7 +1050,12 @@ export class CurrentUserUtils {
                     Docs.newAccount = !(field instanceof Doc);
                     await Docs.Prototypes.initialize();
                     const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
-                    return this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    const updated = this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null).data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
+                        const a1 = await Cast(link?.anchor1, Doc, null);
+                        const a2 = await Cast(link?.anchor2, Doc, null);
+                    });
+                    return updated;
                 });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");

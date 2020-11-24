@@ -134,6 +134,10 @@ export class SharingManager extends React.Component<{}> {
                     const linkDatabase = await DocServer.GetRefField(user.linkDatabaseId);
                     if (sharingDoc instanceof Doc && linkDatabase instanceof Doc) {
                         await DocListCastAsync(linkDatabase.data);
+                        (await DocListCastAsync(Cast(linkDatabase, Doc, null).data))?.forEach(async link => { // makes sure link anchors are loaded to avoid incremental updates to computedFns in LinkManager
+                            const a1 = await Cast(link?.anchor1, Doc, null);
+                            const a2 = await Cast(link?.anchor2, Doc, null);
+                        });
                         sharingDocs.push({ user, sharingDoc, linkDatabase, userColor: StrCast(sharingDoc.color) });
                     }
                 }
