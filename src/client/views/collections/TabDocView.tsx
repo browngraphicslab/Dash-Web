@@ -6,7 +6,7 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt, DocListCastAsync, StrListCast } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt, DocListCastAsync, StrListCast, WidthSym, HeightSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
@@ -359,7 +359,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     renderDepth={0}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    styleProvider={TabDocView.styleProvider}
+                    styleProvider={TabDocView.miniStyleProvider}
                     addDocTab={this.addDocTab}
                     pinToPres={TabDocView.PinDoc}
                     docFilters={CollectionDockingView.Instance.docFilters}
@@ -436,55 +436,70 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 
     public static styleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
-        if (property === "color") {
-            if (Doc.UserDoc().renderStyle === "comic") return undefined;
-            let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
-            if (!docColor) {
+        switch (property) {
+            case "color": {
+                if (Doc.UserDoc().renderStyle === "comic") return undefined;
+                let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+                if (!docColor) {
+                    switch (doc?.type) {
+                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "dimgrey" : ""; break;
+                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "black"; break;
+                        case DocumentType.FONTICON: docColor = "black"; break;
+                        case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
+                        case DocumentType.LABEL:
+                        case DocumentType.BUTTON: docColor = TabDocView.darkScheme ? "#2d2d2d" : "lightgray"; break;
+                        case DocumentType.LINK:
+                        case DocumentType.COL:
+                            docColor = Doc.IsSystem(doc) ? (TabDocView.darkScheme ? "rgb(62,62,62)" : "lightgrey") :
+                                StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+                            break;
+                        //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                        default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
+                    }
+                }
+                if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
+                return docColor;
+            }
+            case "hidden": return (BoolCast(doc?.hidden) /* || layerProvider?.(doc) === false*/);
+            case "boxShadow": {
                 switch (doc?.type) {
-                    case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "dimgrey" : ""; break;
-                    case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "black"; break;
-                    case DocumentType.FONTICON: docColor = "black"; break;
-                    case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
-                    case DocumentType.LABEL:
-                    case DocumentType.BUTTON: docColor = TabDocView.darkScheme ? "#2d2d2d" : "lightgray"; break;
-                    case DocumentType.LINK:
-                    case DocumentType.COL:
-                        docColor = Doc.IsSystem(doc) ? (TabDocView.darkScheme ? "rgb(62,62,62)" : "lightgrey") :
-                            StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                        break;
-                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                    default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
+                    case DocumentType.COL: return StrListCast(doc.layers).includes("background") ? undefined :
+                        `${TabDocView.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+                    default: return undefined;
                 }
             }
-            if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
-            return docColor;
+            case "docContents": return undefined;
+            default:
+                if (property.startsWith("pointerEvents")) {
+                    const layer = doc && layerProvider?.(doc);
+                    if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
+                    if (doc?.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
+                    if (layer === true) return "all";
+                    return undefined;
+                }
+                if (property.startsWith("decorations")) {
+                    const isBackground = StrListCast(doc?.layers).includes("background");
+                    return doc && (isBackground || property.includes(":selected")) && renderDepth > 0 &&
+                        ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
+                        <div className="documentView-lock" onClick={() => TabDocView.toggleBackground(doc)}>
+                            <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
+                        </div>
+                        : (null);
+                }
         }
-        if (property.startsWith("pointerEvents")) {
-            const layer = doc && layerProvider?.(doc);
-            if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
-            if (doc?.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None) return "none";
-            if (layer === true) return "all";
-            return undefined;
-        }
-        if (property.startsWith("decorations")) {
-            const isBackground = StrListCast(doc?.layers).includes("background");
-            return doc && (isBackground || property.includes(":selected")) && renderDepth > 0 &&
-                ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
-                <div className="documentView-lock" onClick={() => TabDocView.toggleBackground(doc)}>
-                    <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
-                </div>
-                : (null);
-        }
-        if (property === "hidden") {
-            if (doc && (doc.hidden /* || layerProvider?.(doc) === false*/)) return true;
-            return false;
-        }
-        if (property === "boxShadow") {
-            switch (doc?.type) {
-                case DocumentType.COL: return StrListCast(doc.layers).includes("background") ? undefined :
-                    `${TabDocView.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+    }
+    public static miniStyleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
+        if (doc) {
+            switch (property) {
+                case "docContents":
+                    if (doc.type === DocumentType.COL) return null;
+                    const background = doc.type === DocumentType.PDF ? "red" : doc.type === DocumentType.IMG ? "blue" : doc.type === DocumentType.RTF ? "orange" :
+                        doc.type === DocumentType.VID ? "purple" : doc.type === DocumentType.WEB ? "yellow" : "gray";
+                    return <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
+                default:
+                    if (property.startsWith("pointerEvents")) return "none";
+                    return TabDocView.styleProvider(doc, renderDepth, property, layerProvider);
             }
-            return undefined;
         }
     }
     @computed get docView() {

@@ -1105,7 +1105,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         const topmost = this.topMost ? "-topmost" : "";
-        return <div className={`documentView-node${topmost}`}
+        return this.props.styleProvider?.(this.rootDoc, this.props.renderDepth, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
