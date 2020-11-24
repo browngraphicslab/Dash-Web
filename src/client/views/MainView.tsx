@@ -85,6 +85,13 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
+        const ele = document.getElementById("loader");
+        if (ele) {
+            setTimeout(() => {
+                // remove from DOM
+                ele.outerHTML = '';
+            }, 0);
+        }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's

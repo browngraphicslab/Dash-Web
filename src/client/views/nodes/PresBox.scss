@@ -420,20 +420,20 @@ $light-background: #ececec;
             background-color: #ececec;
             border: 1px solid #9f9f9f;
             grid-template-rows: max-content;
-    
+
             .frameList-header {
                 display: grid;
                 width: 100%;
                 height: 20px;
                 background-color: #9f9f9f;
-    
+
                 .frameList-headerButtons {
                     display: flex;
                     grid-column: 7;
                     width: 60px;
                     justify-self: right;
                     justify-content: flex-end;
-            
+
                     .headerButton {
                         cursor: pointer;
                         position: relative;
@@ -452,7 +452,7 @@ $light-background: #ececec;
                         transition: 0.2s;
                         margin-right: 3px;
                     }
-            
+
                     .headerButton:hover {
                         background-color: rgba(0, 0, 0, 1);
                         transform: scale(1.15);
@@ -1061,7 +1061,7 @@ $light-background: #ececec;
         background-color: #5a5a5a;
     }
 
-    
+
 }
 
 // .miniPres {

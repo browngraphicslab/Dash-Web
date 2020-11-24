@@ -1,0 +1,141 @@
+.dash-loader {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    background-color: lightcyan;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+}
+
+.dash-loader-container {
+    width: 100;
+    align-self: center;
+}
+
+.dash-d-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: dash-d-path 10s linear infinite;
+}
+
+@keyframes dash-d-path {
+    0% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    10% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    90% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    100% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+}
+
+.dash-a-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: dash-a-path 10s linear infinite;
+}
+
+@keyframes dash-a-path {
+    0% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    7% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    17% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    90% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    100% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+}
+
+.dash-s-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: dash-s-path 10s linear infinite;
+}
+
+@keyframes dash-s-path {
+    0% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    14% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    20% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    90% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    100% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+}
+
+.dash-h-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: dash-h-path 10s linear infinite;
+}
+
+@keyframes dash-h-path {
+    0% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    18% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+
+    28% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    90% {
+        stroke-dashoffset: 0;
+        /* stroke-width: 20px; */
+    }
+
+    100% {
+        stroke-dashoffset: 1000;
+        /* stroke-width: 0px; */
+    }
+}

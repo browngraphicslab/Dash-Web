@@ -290,11 +290,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     dropAfter = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
-            const oldDocs = this.childDocs.length;
+            // const oldDocs = this.childDocs.length;
             if (super.onInternalDrop(e, de)) {
-                const newDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs);
+                // const newDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs);
 
-                //de.complete.docDragData.droppedDocuments;
+                const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 DragManager.docsBeingDragged = [];
                 if (docs && newDocs.length) {
