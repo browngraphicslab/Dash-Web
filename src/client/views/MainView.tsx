@@ -16,7 +16,6 @@ import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, return
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
-import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -59,6 +58,7 @@ import { SearchBox } from './search/SearchBox';
 import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
 import { UndoManager } from '../util/UndoManager';
+import { TabDocView } from './collections/TabDocView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -75,6 +75,7 @@ export class MainView extends React.Component {
     @observable private _flyoutWidth: number = 0;
 
     @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
+    @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
     @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
@@ -235,35 +236,6 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
 
-    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (this.darkScheme) {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "dimgrey";
-                case DocumentType.PRES: return "#3e3e3e";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: return "black";
-            }
-        } else {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF: return "#f1efeb";
-                case DocumentType.BUTTON:
-                case DocumentType.LABEL: return "lightgray";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
-                default: return "white";
-            }
-        }
-    }
-
     @computed get mainDocView() {
         return <DocumentView
             Document={this.mainContainer!}
@@ -274,7 +246,6 @@ export class MainView extends React.Component {
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
             onClick={undefined}
-            backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -317,8 +288,8 @@ export class MainView extends React.Component {
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
+    sidebarScreenToLocal = () => new Transform(0, -this.topOffset, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-this.leftOffset, 0);
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
@@ -346,7 +317,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        backgroundColor={this.defaultBackgroundColors}
+                        styleProvider={TabDocView.styleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -381,7 +352,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={TabDocView.styleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -433,7 +404,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView backgroundColor={this.defaultBackgroundColors} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={TabDocView.styleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -487,7 +458,8 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
-                    backgroundColor={this.defaultBackgroundColors}
+                    parentActive={returnFalse}
+                    styleProvider={TabDocView.styleProvider}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
@@ -563,7 +535,7 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 onClick={undefined}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={TabDocView.styleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
@@ -571,6 +543,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
@@ -595,6 +568,7 @@ export class MainView extends React.Component {
                     select={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
+                    parentActive={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -620,12 +594,12 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
-            <DocumentDecorations />
+            <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={TabDocView.styleProvider}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <GestureOverlay >
@@ -666,6 +640,7 @@ export class MainView extends React.Component {
                             ScreenToLocalTransform={Transform.Identity}
                             bringToFront={returnFalse}
                             active={returnFalse}
+                            parentActive={returnFalse}
                             whenActiveChanged={returnFalse}
                             focus={returnFalse}
                             PanelWidth={() => 500}

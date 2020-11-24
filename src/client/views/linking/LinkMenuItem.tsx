@@ -174,14 +174,26 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @undoBatch
     @action
-    showLink = () => {
+    autoMove = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        this.props.linkDoc.linkAutoMove = !this.props.linkDoc.linkAutoMove;
+    }
+
+    @undoBatch
+    @action
+    showLink = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        this.props.linkDoc.linkDisplay = !this.props.linkDoc.linkDisplay;
+    }
+
+    @undoBatch
+    @action
+    showAnchor = (e: React.PointerEvent) => {
+        e.stopPropagation();
         this.props.linkDoc.hidden = !this.props.linkDoc.hidden;
     }
 
     render() {
-
-        const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
-
         let destinationIcon: FontAwesomeIconProps["icon"] = "question";
         switch (this.props.destinationDoc.type) {
             case DocumentType.IMG: destinationIcon = "image"; break;
@@ -243,9 +255,19 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
 
-                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show link" : "Hide link"}</div></>}>
+                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show Anchor" : "Hide Anchor"}</div></>}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.showAnchor}>
+                                    <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.hidden ? "eye-slash" : "eye"} size="sm" /></div>
+                            </Tooltip>
+
+                            <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkDisplay ? "Show link" : "Hide link"}</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
-                                    <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
+                                    <FontAwesomeIcon className="fa-icon" icon={!this.props.linkDoc.linkDisplay ? "eye-slash" : "eye"} size="sm" /></div>
+                            </Tooltip>
+
+                            <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkAutoMove ? "Auto move dot" : "Freeze dot position"}</div></>}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.autoMove}>
+                                    <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.linkAutoMove ? "play" : "pause"} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title={<><div className="dash-tooltip">Edit Link</div></>}>

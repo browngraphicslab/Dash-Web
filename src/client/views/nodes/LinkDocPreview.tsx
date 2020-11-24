@@ -16,7 +16,7 @@ interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    backgroundColor: (doc: Opt<Doc>, renderDepth: number) => string;
+    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }
@@ -112,7 +112,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
-                backgroundColor={this.props.backgroundColor} />;
+                styleProvider={this.props.styleProvider} />;
     }
 
     render() {

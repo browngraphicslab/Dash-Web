@@ -195,7 +195,7 @@ export class OverlayView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
+                    styleProvider={returnEmptyString}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

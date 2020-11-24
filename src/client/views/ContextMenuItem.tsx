@@ -46,7 +46,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                 batch = UndoManager.StartBatch(`Context menu event: ${this.props.description}`);
             }
             await this.props.event({ x: e.clientX, y: e.clientY });
-            batch && batch.end();
+            batch?.end();
         }
     }
 

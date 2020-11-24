@@ -138,7 +138,7 @@ export interface DocumentOptions {
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
-    _isBackground?: boolean;
+    _layers?: List<string>;
     _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     isLinkButton?: boolean;
     _columnWidth?: number;
@@ -712,7 +712,7 @@ export namespace Docs {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
                 isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
-                treeViewExpandedView: "fields", removeDropProperties: new List(["_isBackground", "isLinkButton"]), ...options
+                treeViewExpandedView: "fields", removeDropProperties: new List(["_layers", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 

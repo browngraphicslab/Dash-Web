@@ -442,7 +442,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
             view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={action((r: HTMLIFrameElement | null) => this._iframe = r)} src={url} onLoad={this.iframeLoaded}
                 // the 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' attributes are left out to prevent iframes from redirecting the top-level Dash page
-                sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"} />;
+                // sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"} />;
+                sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin"} />;
         } else {
             view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={action((r: HTMLIFrameElement | null) => this._iframe = r)} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
@@ -461,7 +462,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {view}
             </div>
             {!frozen ? (null) :
-                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc._isBackground ? undefined : "all" }}
+                <div className="webBox-overlay" style={{ pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? undefined : "all" }}
                     onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
                     <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
                         <div className="indicator" ref={this._iframeIndicatorRef}></div>
@@ -663,7 +664,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     transform: `scale(${scaling})`,
                     width: `${100 / scaling}% `,
                     height: `${100 / scaling}% `,
-                    pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
+                    pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
@@ -671,7 +672,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
                         width: `${Math.max(100, 100 / scaling)}% `,
-                        pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc._isBackground ? "all" : "none"
+                        pointerEvents: this.layoutDoc.isAnnotating && this.props.layerProvider?.(this.layoutDoc) !== false ? "all" : "none"
                     }}
                     onWheel={e => {
                         const target = this._outerRef.current;
@@ -693,7 +694,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 >
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.scrollHeight, 50),
-                        pointerEvents: this.layoutDoc._isBackground ? "none" : undefined
+                        pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                             PanelHeight={this.props.PanelHeight}
