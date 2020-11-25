@@ -1051,7 +1051,7 @@ export class CurrentUserUtils {
                     await Docs.Prototypes.initialize();
                     const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
                     const updated = this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
-                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null).data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
+                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null)?.data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
                         const a1 = await Cast(link?.anchor1, Doc, null);
                         const a2 = await Cast(link?.anchor2, Doc, null);
                     });
