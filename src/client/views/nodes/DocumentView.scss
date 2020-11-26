@@ -34,14 +34,16 @@
         overflow-y: scroll;
         height: calc(100% - 20px);
     }
+
     .documentView-linkAnchorBoxAnchor {
-        display:flex;
+        display: flex;
         overflow: hidden;
 
         .documentView-node {
-            width:10px !important;
+            width: 10px !important;
         }
     }
+
     .documentView-treeView {
         max-height: 1.5em;
         text-overflow: ellipsis;
@@ -49,7 +51,8 @@
         white-space: pre;
         width: 100%;
         overflow: hidden;
-        > .documentView-node {
+
+        >.documentView-node {
             position: absolute;
         }
     }
@@ -58,23 +61,42 @@
         border-radius: inherit;
         width: 100%;
         height: 100%;
+
+        .sharingIndicator {
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            position: absolute;
+            right: -15;
+            opacity: 0.9;
+            pointer-events: auto;
+            background-color: #9dca96;
+            letter-spacing: 2px;
+            font-size: 10px;
+            transition: transform 0.2s;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
     }
 
     .documentView-anchorCont {
         position: absolute;
-        top: 0; 
-        left: 0; 
+        top: 0;
+        left: 0;
         width: 100%;
-        height: 100%; 
+        height: 100%;
         display: inline-block;
         pointer-events: none;
     }
 
     .documentView-lock {
-        width: 20; 
-        height: 20; 
-        position: absolute; 
-        right: -5; 
+        width: 20;
+        height: 20;
+        position: absolute;
+        right: -5;
         top: -5;
         background: transparent;
         pointer-events: all;
@@ -85,8 +107,9 @@
         justify-content: center;
         cursor: default;
     }
+
     .documentView-lock:hover {
-        opacity:1;
+        opacity: 1;
     }
 
     .documentView-contentBlocker {
@@ -97,6 +120,7 @@
         top: 0;
         left: 0;
     }
+
     .documentView-styleWrapper {
         position: absolute;
         display: inline-block;
@@ -110,7 +134,8 @@
             position: absolute;
         }
 
-        .documentView-titleWrapper, .documentView-titleWrapper-hover {
+        .documentView-titleWrapper,
+        .documentView-titleWrapper-hover {
             overflow: hidden;
             color: white;
             transform-origin: top left;
@@ -123,8 +148,9 @@
             white-space: pre;
             position: absolute;
         }
+
         .documentView-titleWrapper-hover {
-            display:none;
+            display: none;
         }
 
         .documentView-searchHighlight {
@@ -147,14 +173,16 @@
 
 }
 
-.documentView-node:hover, .documentView-node-topmost:hover {
-    > .documentView-styleWrapper {
-        > .documentView-titleWrapper-hover {
-            display:inline-block;
+.documentView-node:hover,
+.documentView-node-topmost:hover {
+    >.documentView-styleWrapper {
+        >.documentView-titleWrapper-hover {
+            display: inline-block;
         }
     }
-    > .documentView-styleWrapper {
-        > .documentView-captionWrapper {
+
+    >.documentView-styleWrapper {
+        >.documentView-captionWrapper {
             opacity: 1;
         }
     }

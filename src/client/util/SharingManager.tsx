@@ -6,7 +6,7 @@ import Select from "react-select";
 import * as RequestPromise from "request-promise";
 import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -165,6 +165,35 @@ export class SharingManager extends React.Component<{}> {
     }
 
     /**
+     * Shares the document with a user.
+     */
+    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
+        const { user, sharingDoc } = recipient;
+        const target = targetDoc || this.targetDoc!;
+        const acl = `acl-${normalizeEmail(user.email)}`;
+        const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
+
+        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        docs.forEach(doc => {
+            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+
+            if (permission === SharingPermissions.None) {
+                if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 1) - 1;
+            }
+            else {
+                if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 0) + 1;
+            }
+
+            console.log(doc.numUsersShared);
+
+            distributeAcls(acl, permission as SharingPermissions, doc);
+
+            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
+            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+        });
+    }
+
+    /**
      * Sets the permission on the target for the group.
      * @param group 
      * @param permission 
@@ -179,6 +208,15 @@ export class SharingManager extends React.Component<{}> {
 
         docs.forEach(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
+
+            if (permission === SharingPermissions.None) {
+                if (doc[acl] && doc[acl] !== SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 1) - 1;
+            }
+            else {
+                if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 0) + 1;
+            }
+
+            console.log(doc.numGroupsShared);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (group instanceof Doc) {
@@ -269,25 +307,6 @@ export class SharingManager extends React.Component<{}> {
                 users.forEach(({ sharingDoc }) => Doc.RemoveDocFromList(sharingDoc, storage, doc));
             });
         }
-    }
-
-    /**
-     * Shares the document with a user.
-     */
-    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
-        const { user, sharingDoc } = recipient;
-        const target = targetDoc || this.targetDoc!;
-        const acl = `acl-${normalizeEmail(user.email)}`;
-        const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
-
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
-        docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
-            distributeAcls(acl, permission as SharingPermissions, doc);
-
-            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
-            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
-        });
     }
 
 

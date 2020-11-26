@@ -9,7 +9,7 @@ import { RichTextField } from '../../../fields/RichTextField';
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
-import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse } from "../../../Utils";
@@ -42,6 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { List } from '../../../fields/List';
+import { Tooltip } from '@material-ui/core';
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -675,7 +676,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if ((e.target as any)?.closest?.("*.lm_content")) {
                 alert("You can't perform this move most likely because you don't have permission to modify the destination.");
             }
-            else alert("linking to document tabs not yet supported.  Drop link on document content.");
+            else alert("Linking to document tabs not yet supported. Drop link on document content.");
             return;
         }
         const makeLink = action((linkDoc: Doc) => {
@@ -960,8 +961,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             {/* {this.allAnchors} */}
             {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
-        </div>
+
+            {!this.props.Document.numUsersShared && !this.props.Document.numGroupsShared ? (null) :
+                <Tooltip title={<> <div className="dash-tooltip">Tap to open sharing menu</div></>}>
+                    <div className="sharingIndicator" onPointerDown={() => SharingManager.Instance.open(undefined, this.props.Document)}>
+                        <FontAwesomeIcon size="lg" icon={this.indicatorIcon} />
+                    </div>
+                </Tooltip >
+
+            }
+        </div >
         );
+    }
+
+    get indicatorIcon() {
+        if (this.props.Document["acl-Public"] !== SharingPermissions.None) return "globe-americas";
+        else if (this.props.Document.numGroupsShared || NumCast(this.props.Document.numUsersShared, 0) > 1) return "users";
+        else return "user";
     }
 
     // used to decide whether a link anchor view should be created or not.
