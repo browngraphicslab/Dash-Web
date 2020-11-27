@@ -416,7 +416,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         const ownerSame = Doc.CurrentUserEmail !== target.author && docs.filter(doc => doc).every(doc => doc.author === docs[0].author);
         // shifts the current user, owner, public to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Override", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Override"] === docs[0]["acl-Override"]) ? (AclMap.get(target[AclSym]?.["acl-Override"]) || "None") : "-multiple-"));
+        // tableEntries.unshift(this.sharingItem("Override", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Override"] === docs[0]["acl-Override"]) ? (AclMap.get(target[AclSym]?.["acl-Override"]) || "None") : "-multiple-"));
         tableEntries.unshift(this.sharingItem("Public", showAdmin, docs.filter(doc => doc).every(doc => doc["acl-Public"] === docs[0]["acl-Public"]) ? (AclMap.get(target[AclSym]?.["acl-Public"]) || SharingPermissions.None) : "-multiple-"));
         tableEntries.unshift(this.sharingItem("Me", showAdmin, docs.filter(doc => doc).every(doc => doc.author === Doc.CurrentUserEmail) ? "Owner" : effectiveAcls.every(acl => acl === effectiveAcls[0]) ? AclMap.get(effectiveAcls[0])! : "-multiple-", !ownerSame));
         if (ownerSame) tableEntries.unshift(this.sharingItem(StrCast(target.author), showAdmin, "Owner"));
@@ -900,11 +900,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                         />
                                         <div className="propertiesView-acls-checkbox-text">Layout</div>
                                     </div>) : (null)}
-                                    <Tooltip title={<><div className="dash-tooltip">{"Re-distribute sharing settings"}</div></>}>
+                                    {/* <Tooltip title={<><div className="dash-tooltip">{"Re-distribute sharing settings"}</div></>}>
                                         <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
                                             <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
                                         </button>
-                                    </Tooltip>
+                                    </Tooltip> */}
                                 </div>
                                 {this.sharingTable}
                             </div>}

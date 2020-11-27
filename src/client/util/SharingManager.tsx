@@ -184,8 +184,6 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numUsersShared = NumCast(doc.numUsersShared, 0) + 1;
             }
 
-            console.log(doc.numUsersShared);
-
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
@@ -216,7 +214,6 @@ export class SharingManager extends React.Component<{}> {
                 if (!doc[acl] || doc[acl] === SharingPermissions.None) doc.numGroupsShared = NumCast(doc.numGroupsShared, 0) + 1;
             }
 
-            console.log(doc.numGroupsShared);
             distributeAcls(acl, permission as SharingPermissions, doc);
 
             if (group instanceof Doc) {
@@ -566,7 +563,7 @@ export class SharingManager extends React.Component<{}> {
 
         // the list of groups shared with
         const groupListMap: (Doc | { title: string })[] = groups.filter(({ title }) => docs.length > 1 ? commonKeys.includes(`acl-${normalizeEmail(StrCast(title))}`) : true);
-        groupListMap.unshift({ title: "Public" }, { title: "Override" });
+        groupListMap.unshift({ title: "Public" });//, { title: "Override" });
         const groupListContents = groupListMap.map(group => {
             const groupKey = `acl-${StrCast(group.title)}`;
             const uniform = docs.every(doc => this.layoutDocAcls ? doc?.[AclSym]?.[groupKey] === docs[0]?.[AclSym]?.[groupKey] : doc?.[DataSym]?.[AclSym]?.[groupKey] === docs[0]?.[DataSym]?.[AclSym]?.[groupKey]);
@@ -644,16 +641,16 @@ export class SharingManager extends React.Component<{}> {
                         </div>
 
                         <div className="acl-container">
-                            <div className="myDocs-acls">
+                            {/* <div className="myDocs-acls">
                                 <input type="checkbox" onChange={action(() => this.myDocAcls = !this.myDocAcls)} checked={this.myDocAcls} /> <label>My Docs</label>
-                            </div>
+                            </div> */}
                             {Doc.UserDoc().noviceMode ? (null) :
                                 <div className="layoutDoc-acls">
                                     <input type="checkbox" onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)} checked={this.layoutDocAcls} /> <label>Layout</label>
                                 </div>}
-                            <button className="distribute-button" onClick={() => this.distributeOverCollection()}>
+                            {/* <button className="distribute-button" onClick={() => this.distributeOverCollection()}>
                                 Distribute
-                        </button>
+                        </button> */}
                         </div>
                     </div>
                     }
