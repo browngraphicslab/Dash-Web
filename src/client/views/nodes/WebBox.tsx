@@ -193,7 +193,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     this.layoutDoc._height = this.layoutDoc[WidthSym]() / youtubeaspect;
                 }
             } // else it's an HTMLfield
-        } else if (field?.url) {
+        } else if (field?.url && !this.dataDoc.text) {
             const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
             if (result) {
                 this.dataDoc.text = htmlToText.fromString(result.content);
