@@ -992,7 +992,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
                     </div>
-                    <div className="propertiesView-name">
+                    <div className="propertiesView-name" style={{ borderBottom: 0 }}>
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
                             <div className="propertiesView-selectedCount">
@@ -1029,7 +1029,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>} */}
-                    {/* {!selectedItem || (!scrollable && !pannable) ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
@@ -1041,7 +1041,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {this.openSlideOptions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.optionsDropdown}
                         </div> : null}
-                    </div>} */}
+                    </div>}
                     {/* <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openAddSlide = !this.openAddSlide; })}

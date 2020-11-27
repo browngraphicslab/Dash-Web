@@ -117,7 +117,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (Doc.UserDoc().activePresentation = this.rootDoc) runInAction(() => PresBox.Instance = this);
         if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", type: DocumentType.PRESELEMENT, backgroundColor: "transparent", _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
+                title: "pres element template", type: DocumentType.PRESELEMENT, _xMargin: 0, isTemplateDoc: true, isTemplateForField: "data"
             }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
@@ -191,7 +191,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
     nextAudioVideo = (targetDoc: Doc, activeItem: Doc) => {
-        if (targetDoc.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeItem.presStartTime));
+        if (targetDoc.type === DocumentType.AUDIO) {
+            targetDoc._audioStart = NumCast(activeItem.presStartTime);
+        }
         // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
         activeItem.playNow = false;
     }
@@ -201,13 +203,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const nextSelected = this.itemIndex + 1;
         this.gotoDocument(nextSelected);
 
-        // const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
+        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
         // If next slide is audio / video 'Play automatically' then the next slide should be played
-        // if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-        //     console.log('play next automatically');
-        //     if (targetNext.type === DocumentType.AUDIO) AudioBox.Instance.playFrom(NumCast(activeNext.presStartTime));
-        //     // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
-        // } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
+        if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
+            if (targetNext.type === DocumentType.AUDIO) targetNext._audioStart = NumCast(activeNext.presStartTime);
+            // if (targetNext.type === DocumentType.VID) { VideoBox.Instance.Play() };
+        } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
     }
 
     // Called when the user activates 'next' - to move to the next part of the pres. trail
@@ -229,11 +230,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
             // Case 4: Last slide and presLoop is toggled ON
             this.gotoDocument(0);
+        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
+            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
+            this.nextAudioVideo(targetDoc, activeItem);
         }
-        // else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
-        //     // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-        //     this.nextAudioVideo(targetDoc, activeItem);
-        // } 
     }
 
     // Called when the user activates 'back' - to move to the previous part of the pres. trail
@@ -1927,7 +1927,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                 </div></Tooltip> */}
                 <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}>
-                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3, color: this._pathBoolean ? PresColor.DarkBlue : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
+                    <div style={{ opacity: this.childDocs.length > 1 && this.layoutDoc.presCollection ? 1 : 0.3, color: this._pathBoolean ? PresColor.DarkBlue : 'white', width: isMini ? "100%" : undefined }} className={"toolbar-button"} onClick={this.childDocs.length > 1 && this.layoutDoc.presCollection ? this.viewPaths : undefined}>
                         <FontAwesomeIcon icon={"exchange-alt"} />
                     </div>
                 </Tooltip>

@@ -27,6 +27,8 @@ import Waveform from "react-audio-waveform";
 import axios from "axios";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { LinkDocPreview } from "./LinkDocPreview";
+import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -49,6 +51,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
     _scrubbingDisposer: IReactionDisposer | undefined;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
@@ -106,9 +109,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     componentWillUnmount() {
-        this._reactionDisposer?.();
-        this._linkPlayDisposer?.();
-        this._scrubbingDisposer?.();
+        this._disposers.reaction?.();
+        this._disposers.linkPlay?.();
+        this._disposers.scrubbing?.();
+        this._disposers.audioStart?.();
     }
 
     @action
@@ -118,7 +122,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
 
         this.audioState = this.path ? "paused" : undefined;
-        this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
+        this._disposers.linkPlay = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
                 if (scrollLinkId) {
                     DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
@@ -130,7 +134,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             }, { fireImmediately: true });
 
         // for play when link is selected
-        this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
+        this._disposers.reaction = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
                 let link;
@@ -145,7 +149,22 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
                 }
             });
-        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
+        this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
+
+        this._disposers._audioStart = reaction(
+            () => this.Document._audioStart,
+            (audioStart) => {
+                if (audioStart !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this._audioRef.current ? 0 : 250; // wait for mainCont and try again to play
+                        const startTime: number = NumCast(this.Document._audioStart);
+                        setTimeout(() => this._audioRef.current && this.playFrom(startTime), delay);
+                        setTimeout(() => { this.Document._currentTimecode = startTime; this.Document._audioStart = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
     }
 
     playLink = (doc: Doc) => {

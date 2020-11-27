@@ -305,10 +305,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerUp={this.headerUp}
             >
                 {miniView ?
+                    // when width is LESS than 110 px 
                     <div className={`presItem-miniSlide ${isSelected ? "active" : ""}`} ref={miniView ? this._dragRef : null}>
                         {`${this.indexInPres + 1}.`}
                     </div>
                     :
+                    // when width is MORE than 110 px 
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
