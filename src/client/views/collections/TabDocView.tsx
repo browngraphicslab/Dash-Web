@@ -166,6 +166,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             pinDoc.presentationTargetDoc = doc;
             pinDoc.title = doc.title + " - Slide";
             pinDoc.presMovement = PresMovement.Zoom;
+            pinDoc.groupWithUp = false;
             pinDoc.context = curPres;
             const presArray: Doc[] = PresBox.Instance?.sortArray();
             const size: number = PresBox.Instance?._selectedArray.size;

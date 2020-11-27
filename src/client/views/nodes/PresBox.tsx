@@ -57,7 +57,7 @@ enum PresStatus {
     Edit = "edit"
 }
 
-enum PresColor {
+export enum PresColor {
     LightBlue = "#AEDDF8",
     DarkBlue = "#5B9FDD",
     LightBackground = "#ececec",
