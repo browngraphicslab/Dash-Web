@@ -286,7 +286,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const miniView: boolean = this.toolbarWidth <= 110;
         const presBox: Doc = this.presBox; //presBox
         const presBoxColor: string = StrCast(presBox._backgroundColor);
-        const lightPresBoxColor: boolean = lightOrDark(presBoxColor) === 'light';
+        const presColorBool: boolean = presBoxColor ? (presBoxColor !== "white" && presBoxColor !== "transparent") : false;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
@@ -294,7 +294,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
                 style={{
-                    backgroundColor: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? lightPresBoxColor ? "rgba(0,0,0,0.3)" : "rgba(250,250,250,0.3)" : "transparent" : isSelected ? "#AEDDF8" : "transparent",
+                    backgroundColor: presColorBool ? isSelected ? "rgba(250,250,250,0.3)" : "transparent" : isSelected ? "#AEDDF8" : "transparent",
                     opacity: this._dragging ? 0.3 : 1
                 }}
                 onClick={e => {
@@ -344,13 +344,20 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                                 onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
-                        <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
+                        {this.indexInPres === 0 ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
                             <div className="slideButton"
                                 onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
-                                style={{ fontWeight: 700, backgroundColor: activeItem.groupWithUp ? PresColor.DarkBlue : "none" }}>
-                                <FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} />
+                                style={{
+                                    fontWeight: 700,
+                                    backgroundColor: activeItem.groupWithUp ? presColorBool ? presBoxColor : PresColor.DarkBlue : undefined,
+                                    height: activeItem.groupWithUp ? 53 : 18,
+                                    transform: activeItem.groupWithUp ? "translate(0, -17px)" : undefined
+                                }}>
+                                <div style={{ transform: activeItem.groupWithUp ? "rotate(180deg) translate(0, -17.5px)" : "rotate(0deg)" }}>
+                                    <FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} />
+                                </div>
                             </div>
-                        </Tooltip>
+                        </Tooltip>}
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>

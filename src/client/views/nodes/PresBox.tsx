@@ -200,9 +200,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     // No more frames in current doc and next slide is defined, therefore move to next slide 
     nextSlide = (targetDoc: Doc, activeNext: Doc) => {
-        const nextSelected = this.itemIndex + 1;
+        let nextSelected = this.itemIndex + 1;
         this.gotoDocument(nextSelected);
-
+        for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
+            if (!this.childDocs[nextSelected].groupWithUp) {
+                break;
+            } else {
+                console.log("Title: " + this.childDocs[nextSelected].title);
+                this.gotoDocument(nextSelected);
+            }
+        }
         const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
         // If next slide is audio / video 'Play automatically' then the next slide should be played
         if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
@@ -246,6 +253,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
         const curFrame = NumCast(targetDoc._currentFrame);
         let prevSelected = this.itemIndex;
+        // Functionality for group with up
+        let didZoom = activeItem.presMovement;
+        for (; !didZoom && prevSelected > 0 && this.childDocs[prevSelected].groupButton; prevSelected--) {
+            didZoom = this.childDocs[prevSelected].presMovement;
+        }
         if (lastFrame !== undefined && curFrame >= 1) {
             // Case 1: There are still other frames and should go through all frames before going to previous slide
             this.prevKeyframe(targetDoc, activeItem);
