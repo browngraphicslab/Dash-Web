@@ -1007,7 +1007,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
+                            &nbsp; <FontAwesomeIcon style={{ alignSelf: "center" }} icon={"rocket"} /> &nbsp; Transitions
                         <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresTransitions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
@@ -1029,17 +1029,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
                     </div>} */}
-                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                    {!selectedItem || (type !== DocumentType.VID && type !== DocumentType.AUDIO) ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {scrollable ? "Scroll options" : "Pan options"}
+                            &nbsp; <FontAwesomeIcon style={{ alignSelf: "center" }} icon={type === DocumentType.AUDIO ? "file-audio" : "file-video"} /> &nbsp; {type === DocumentType.AUDIO ? "Audio Options" : "Video Options"}
                             <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {this.openSlideOptions ? <div className="propertiesView-presTrails-content">
-                            {PresBox.Instance.optionsDropdown}
+                            {PresBox.Instance.mediaOptionsDropdown}
                         </div> : null}
                     </div>}
                     {/* <div className="propertiesView-presTrails">

@@ -48,9 +48,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     static RangeScript: ScriptField;
     static LabelScript: ScriptField;
 
-    _linkPlayDisposer: IReactionDisposer | undefined;
-    _reactionDisposer: IReactionDisposer | undefined;
-    _scrubbingDisposer: IReactionDisposer | undefined;
+    // _linkPlayDisposer: IReactionDisposer | undefined;
+    // _reactionDisposer: IReactionDisposer | undefined;
+    // _scrubbingDisposer: IReactionDisposer | undefined;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
@@ -151,7 +151,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             });
         this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
 
-        this._disposers._audioStart = reaction(
+        this._disposers.audioStart = reaction(
             () => this.Document._audioStart,
             (audioStart) => {
                 if (audioStart !== undefined) {
@@ -160,6 +160,20 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                         const startTime: number = NumCast(this.Document._audioStart);
                         setTimeout(() => this._audioRef.current && this.playFrom(startTime), delay);
                         setTimeout(() => { this.Document._currentTimecode = startTime; this.Document._audioStart = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
+
+        this._disposers.audioStop = reaction(
+            () => this.Document._audioStop,
+            (audioStop) => {
+                if (audioStop !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this._audioRef.current ? 0 : 250; // wait for mainCont and try again to play
+                        setTimeout(() => this._audioRef.current && this.pause(), delay);
+                        setTimeout(() => { this.Document._audioStop = undefined; }, 10 + delay);
                     }
                 }
             },

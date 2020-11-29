@@ -348,6 +348,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <div className="slideButton"
                                 onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
                                 style={{
+                                    zIndex: 1000 - this.indexInPres,
                                     fontWeight: 700,
                                     backgroundColor: activeItem.groupWithUp ? presColorBool ? presBoxColor : PresColor.DarkBlue : undefined,
                                     height: activeItem.groupWithUp ? 53 : 18,
@@ -367,7 +368,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
-                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
                 </div>}
             </div >);

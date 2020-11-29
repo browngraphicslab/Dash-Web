@@ -87,11 +87,11 @@ export class MainView extends React.Component {
     componentDidMount() {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         const ele = document.getElementById("loader");
+
         if (ele) {
-            setTimeout(() => {
-                // remove from DOM
-                ele.outerHTML = '';
-            }, 0);
+            // remove from DOM
+            setTimeout(() => { ele.style.opacity = "0"; }, 0);
+            setTimeout(() => ele.outerHTML = '', 10000);
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
