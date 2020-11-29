@@ -210,7 +210,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 break;
             } else {
                 console.log("Title: " + this.childDocs[nextSelected].title);
-                this.gotoDocument(nextSelected);
+                this.gotoDocument(nextSelected, true);
             }
         }
         const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
@@ -276,7 +276,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
-    public gotoDocument = action((index: number) => {
+    public gotoDocument = action((index: number, group?: boolean) => {
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
@@ -292,9 +292,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc._currentFrame = 0;
             }
-            this._selectedArray.clear();
+            if (!group) this._selectedArray.clear();
             this.childDocs[index] && this._selectedArray.set(this.childDocs[index], undefined); //Update selected array
-            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]); //Handles movement to element only when presTrail is list
+            if (this.layoutDoc._viewType === "stacking" && !group) this.navigateToElement(this.childDocs[index]); //Handles movement to element only when presTrail is list
             this.onHideDocument(); //Handles hide after/before
         }
     });
@@ -1073,7 +1073,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get transitionDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        const type: DocumentType = targetDoc.type;
+        const type = targetDoc.type;
         const isPresCollection: boolean = (targetDoc === this.layoutDoc.presCollection);
         const isPinWithView: boolean = BoolCast(activeItem.presPinView);
         if (activeItem && targetDoc) {
@@ -1103,7 +1103,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         }
                         <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "inline-flex" : "none" }}>
-                            <div className="presBox-subheading">Transition Speed</div>
+                            <div className="presBox-subheading">Movement Speed</div>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
                                     type="number" value={transitionSpeed}
@@ -1140,34 +1140,36 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             {isPresCollection ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-toggle ${activeItem.presHideAfter ? "active" : ""}`} onClick={() => this.updateHideAfter(activeItem)}>Hide after</div></Tooltip>}
                             <Tooltip title={<><div className="dash-tooltip">{"Open document in a new tab"}</div></>}><div className="ribbon-toggle" style={{ backgroundColor: activeItem.openDocument ? PresColor.LightBlue : "" }} onClick={() => this.updateOpenDoc(activeItem)}>Open</div></Tooltip>
                         </div>
-                        {(type === DocumentType.AUDIO || type === DocumentType.VID) ? (null) : <div className="ribbon-doubleButton" >
-                            <div className="presBox-subheading">Slide Duration</div>
-                            <div className="ribbon-property">
-                                <input className="presBox-input"
-                                    type="number" value={duration}
-                                    onChange={action((e) => this.setDurationTime(e.target.value))} /> s
+                        {(type === DocumentType.AUDIO || type === DocumentType.VID) ? (null) : <>
+                            <div className="ribbon-doubleButton" >
+                                <div className="presBox-subheading">Slide Duration</div>
+                                <div className="ribbon-property">
+                                    <input className="presBox-input"
+                                        type="number" value={duration}
+                                        onChange={action((e) => this.setDurationTime(e.target.value))} /> s
                             </div>
-                            <div className="ribbon-propertyUpDown">
-                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), 1000))}>
-                                    <FontAwesomeIcon icon={"caret-up"} />
-                                </div>
-                                <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), -1000))}>
-                                    <FontAwesomeIcon icon={"caret-down"} />
+                                <div className="ribbon-propertyUpDown">
+                                    <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), 1000))}>
+                                        <FontAwesomeIcon icon={"caret-up"} />
+                                    </div>
+                                    <div className="ribbon-propertyUpDownItem" onClick={undoBatch(() => this.setDurationTime(String(duration), -1000))}>
+                                        <FontAwesomeIcon icon={"caret-down"} />
+                                    </div>
                                 </div>
                             </div>
-                        </div>}
-                        <input type="range" step="0.1" min="0.1" max="20" value={duration}
-                            style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }}
-                            className={"toolbar-slider"} id="duration-slider"
-                            onPointerDown={() => { this._batch = UndoManager.StartBatch("presDuration"); }}
-                            onPointerUp={() => { if (this._batch) this._batch.end(); }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }}
-                        />
-                        <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "grid" }}>
-                            <div className="slider-text">Short</div>
-                            <div className="slider-text">Medium</div>
-                            <div className="slider-text">Long</div>
-                        </div>
+                            <input type="range" step="0.1" min="0.1" max="20" value={duration}
+                                style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }}
+                                className={"toolbar-slider"} id="duration-slider"
+                                onPointerDown={() => { this._batch = UndoManager.StartBatch("presDuration"); }}
+                                onPointerUp={() => { if (this._batch) this._batch.end(); }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }}
+                            />
+                            <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "grid" }}>
+                                <div className="slider-text">Short</div>
+                                <div className="slider-text">Medium</div>
+                                <div className="slider-text">Long</div>
+                            </div>
+                        </>}
                     </div>
                     {isPresCollection ? (null) : <div className="ribbon-box">
                         Effects
@@ -1368,24 +1370,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
                                         type="checkbox"
-                                        onChange={() => activeItem.mediaPlay = "manual"}
-                                        checked={activeItem.mediaPlay === "manual"}
+                                        onChange={() => activeItem.mediaStart = "manual"}
+                                        checked={activeItem.mediaStart === "manual"}
                                     />
                                     <div>Start manually</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
                                         type="checkbox"
-                                        onChange={() => activeItem.mediaPlay = "auto"}
-                                        checked={activeItem.mediaPlay === "auto"}
+                                        onChange={() => activeItem.mediaStart = "auto"}
+                                        checked={activeItem.mediaStart === "auto"}
                                     />
                                     <div>Play with slide</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
                                         type="checkbox"
-                                        onChange={() => activeItem.mediaPlay = "onClick"}
-                                        checked={activeItem.mediaPlay === "onClick"}
+                                        onChange={() => activeItem.mediaStart = "onClick"}
+                                        checked={activeItem.mediaStart === "onClick"}
                                     />
                                     <div>Play on click</div>
                                 </div>
@@ -1432,8 +1434,42 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 </div>
                             </div>
                             <div className="presBox-subheading">Range:</div>
+                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                                <div className="slider-text">
+                                    Start time:
+                                </div>
+                                <div className="slider-text">
+                                    Duration:
+                                </div>
+                                <div className="slider-text">
+                                    End time:
+                                </div>
+                            </div>
+                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                                <div className="slider-text">
+                                    <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
+                                        <input className="presBox-input"
+                                            style={{ textAlign: 'left', width: 50 }}
+                                            type="number" value={NumCast(activeItem.presStartTime)}
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })}
+                                        /> s
+                                    </div>
+                                </div>
+                                <div className="slider-text">
+                                    {Math.round((NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime)) * 10) / 10} s
+                                </div>
+                                <div className="slider-text">
+                                    <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
+                                        <input className="presBox-input"
+                                            style={{ textAlign: 'right', width: 50 }}
+                                            type="number" value={NumCast(activeItem.presEndTime)}
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presEndTime = Number(e.target.value); })}
+                                        /> s
+                                    </div>
+                                </div>
+                            </div>
                             <div className="multiThumb-slider">
-                                <input type="range" step="0.1" min="0" max={NumCast(activeItem.duration)} value={NumCast(activeItem.presEndTime)}
+                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
                                     style={{ gridColumn: 1, gridRow: 1 }}
                                     className={`toolbar-slider ${"end"}`}
                                     id="toolbar-slider"
@@ -1443,7 +1479,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         e.stopPropagation();
                                         activeItem.presEndTime = Number(e.target.value);
                                     }} />
-                                <input type="range" step="0.1" min="0" max={NumCast(activeItem.duration)} value={NumCast(activeItem.presStartTime)}
+                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
                                     style={{ gridColumn: 1, gridRow: 1 }}
                                     className={`toolbar-slider ${"start"}`}
                                     id="toolbar-slider"
@@ -1457,7 +1493,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
                                 <div className="slider-text">0 s</div>
                                 <div className="slider-text"></div>
-                                <div className="slider-text">{Math.round(NumCast(activeItem.duration))} s</div>
+                                <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
                             </div>
                         </div>
                         {/* <div className="ribbon-box">

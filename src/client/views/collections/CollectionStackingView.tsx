@@ -290,7 +290,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     dropAfter = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
-            // const oldDocs = this.childDocs.length;
+            const oldDocs = this.childDocs.length;
             if (super.onInternalDrop(e, de)) {
                 const droppedDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs); // if the drop operation adds something to the end of the list, then use that as the new document (may be different than what was dropped e.g., in the case of a button which is dropped but which creates say, a note).
                 const newDocs = droppedDocs.length ? droppedDocs : de.complete.docDragData.droppedDocuments; // if nothing was added to the end of the list, then presumably the dropped documents were already in the list, but possibly got reordered so we use them.

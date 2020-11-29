@@ -172,9 +172,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
             Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
-            if (pinDoc.type === "audio" && !audioRange) {
+            if (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID && !audioRange) {
+                pinDoc.mediaStart = "manual";
+                pinDoc.mediaStop = "manual";
                 pinDoc.presStartTime = 0;
-                pinDoc.presEndTime = doc.duration;
+                pinDoc.presEndTime = pinDoc.type === DocumentType.AUDIO ? doc.duration : NumCast(doc["data-duration"]);
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             const dview = CollectionDockingView.Instance.props.Document;
