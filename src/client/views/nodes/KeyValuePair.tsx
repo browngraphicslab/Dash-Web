@@ -68,6 +68,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             dropAction: "alias",
             bringToFront: emptyFunction,
             renderDepth: 1,
+            parentActive: returnFalse,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,

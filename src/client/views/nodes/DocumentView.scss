@@ -54,6 +54,12 @@
         }
     }
 
+    .documentView-contentsView {
+        border-radius: inherit;
+        width: 100%;
+        height: 100%;
+    }
+
     .documentView-anchorCont {
         position: absolute;
         top: 0; 

@@ -34,7 +34,8 @@ export class LinkManager {
     public getAllLinks(): Doc[] { return this.allLinks(); }
 
     allLinks = computedFn(function allLinks(this: any): Doc[] {
-        const lset = new Set<Doc>(DocListCast(Doc.LinkDBDoc().data));
+        const linkData = Doc.LinkDBDoc().data;
+        const lset = new Set<Doc>(DocListCast(linkData));
         SharingManager.Instance.users.forEach(user => DocListCast(user.linkDatabase?.data).forEach(doc => lset.add(doc)));
         return Array.from(lset);
     }, true);

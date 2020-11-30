@@ -240,7 +240,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                             PanelWidth={finalLayout[WidthSym]}
                             PanelHeight={finalLayout[HeightSym]}
                             focus={this.outerFocus}
-                            backgroundColor={returnEmptyString}
+                            styleProvider={returnEmptyString}
                             parentActive={returnFalse}
                             whenActiveChanged={returnFalse}
                             bringToFront={emptyFunction}

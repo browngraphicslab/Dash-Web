@@ -623,9 +623,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             ContainingCollectionDoc={this.props.Document}
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
-                                            backgroundColor={returnTransparent}
                                             ContentScaling={returnOne}
-                                            forcedBackgroundColor={returnTransparent}
+                                            styleProvider={(doc: Opt<Doc>, renderDepth: number, property: string) => property === "backgroundColor" ? "transparent" : undefined}
                                             pointerEvents={"none"}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}

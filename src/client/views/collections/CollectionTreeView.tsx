@@ -26,6 +26,7 @@ import { TreeView } from "./TreeView";
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
 import { FormattedTextBoxComment } from '../nodes/formattedText/FormattedTextBoxComment';
+import { DocumentView } from '../nodes/DocumentView';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
@@ -158,7 +159,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 e.stopPropagation();
                 e.key === "Enter" && this.makeTextCollection(childDocs);
             }}>
-            <ContentFittingDocumentView
+            <DocumentView
                 Document={this.doc}
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
@@ -167,7 +168,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 rootSelected={returnTrue}
                 treeViewDoc={undefined}
                 //dontRegisterView={true}
-                backgroundColor={this.props.backgroundColor}
+                styleProvider={this.props.styleProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}
@@ -203,7 +204,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(d, target, addDoc);
         return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
-            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
             this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null));
@@ -215,7 +216,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
+        const background = this.props.styleProvider?.(this.doc, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
         const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;

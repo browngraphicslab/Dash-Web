@@ -38,6 +38,7 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
+import { listSpec } from '../../../fields/Schema';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -75,6 +76,7 @@ export interface CollectionRenderProps {
     removeDocument: (document: Doc | Doc[]) => boolean;
     moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     active: () => boolean;
+    parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -116,7 +118,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return viewField as any as CollectionViewType;
     }
 
-    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) || this.props.rootSelected(outsideReaction) || this.props.Document.forceActive || this._isChildActive || this.props.renderDepth === 0) ? true : false;
+    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
+        this.props.rootSelected(outsideReaction) ||
+        this.props.Document.forceActive ||
+        this._isChildActive ||
+        this.props.renderDepth === 0) ?
+        true :
+        false
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
@@ -152,6 +160,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
                 if (effectiveAcl === AclAddonly) {
                     added.map(doc => {
+                        this.props.layerProvider?.(doc, true);
                         Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
                         doc.context = this.props.Document;
                     });
@@ -176,6 +185,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
+                    added.map(doc => this.props.layerProvider?.(doc, true));
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 }
@@ -382,15 +392,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             moveDocument: this.moveDocument,
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
+            parentActive: this.props.parentActive,
             PanelWidth: this.bodyPanelWidth,
             PanelHeight: this.props.PanelHeight,
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.props.Document._isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            `${CurrentUserUtils.ActiveDashboard?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.collectionViewType === CollectionViewType.Linear ? undefined :
+            this.props.styleProvider?.(this.props.Document, this.props.renderDepth, "boxShadow", this.props.layerProvider);
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
-            style={{ pointerEvents: this.props.Document._isBackground ? "none" : undefined, boxShadow }}>
+            style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => Cast(d.data, ImageField, null)).map(d =>

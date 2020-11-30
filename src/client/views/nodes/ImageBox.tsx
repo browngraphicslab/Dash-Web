@@ -161,7 +161,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (field) {
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Rotate Clockwise 90", event: this.rotate, icon: "expand-arrows-alt" });
-            funcs.push({ description: "Make Background", event: () => { this.layoutDoc._isBackground = true; this.props.bringToFront?.(this.rootDoc); }, icon: "expand-arrows-alt" });
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
@@ -411,7 +410,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
+                pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
             }} >
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
