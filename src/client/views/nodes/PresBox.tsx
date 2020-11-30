@@ -1367,7 +1367,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div>
                             <div className="presBox-subheading">Range:</div>
-                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                            <div className={"slider-headers"}>
                                 <div className="slider-text">
                                     Start time:
                                 </div>
@@ -1377,6 +1377,52 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="slider-text">
                                     End time:
                                 </div>
+                            </div>
+                            <div className={"slider-headers"} style={{ marginTop: 0 }}>
+                                <div className="slider-text">
+                                    <input className="presBox-input"
+                                        style={{ textAlign: 'left', width: 30, height: 15, fontSize: 10 }}
+                                        type="number" value={NumCast(activeItem.presStartTime)}
+                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })}
+                                    /> s
+                                    </div>
+                                <div className="slider-text">
+                                    {Math.round((NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime)) * 10) / 10} s
+                                </div>
+                                <div className="slider-text">
+                                    <input className="presBox-input"
+                                        style={{ textAlign: 'right', width: 30, height: 15, fontSize: 10 }}
+                                        type="number" value={NumCast(activeItem.presEndTime)}
+                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presEndTime = Number(e.target.value); })}
+                                    /> s
+                                </div>
+                            </div>
+                            <div className="multiThumb-slider">
+                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
+                                    style={{ gridColumn: 1, gridRow: 1 }}
+                                    className={`toolbar-slider ${"end"}`}
+                                    id="toolbar-slider"
+                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
+                                    onPointerUp={() => this._batch?.end()}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        e.stopPropagation();
+                                        activeItem.presEndTime = Number(e.target.value);
+                                    }} />
+                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
+                                    style={{ gridColumn: 1, gridRow: 1 }}
+                                    className={`toolbar-slider ${"start"}`}
+                                    id="toolbar-slider"
+                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
+                                    onPointerUp={() => this._batch?.end()}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        e.stopPropagation();
+                                        activeItem.presStartTime = Number(e.target.value);
+                                    }} />
+                            </div>
+                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                                <div className="slider-text">0 s</div>
+                                <div className="slider-text"></div>
+                                <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
                             </div>
                             <div className="presBox-subheading">Start playing:</div>
                             <div className="presBox-radioButtons">
@@ -1425,68 +1471,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     {activeItem.mediaStop !== "afterSlide" ?
                                             (null)
                                             :
-                                            <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown; })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? `solid 2px ${PresColor.DarkBlue}` : 'solid 1px black' }}>
-                                                {this.setMovementName(activeItem.presMovement, activeItem)}
-                                                <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? PresColor.DarkBlue : 'black' }} icon={"angle-down"} />
-                                                <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
-                                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.None ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.None)}>None</div>
-                                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Zoom ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Zoom)}>Pan {"&"} Zoom</div>
-                                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Pan ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Pan)}>Pan</div>
-                                                    <div className={`presBox-dropdownOption ${activeItem.presMovement === PresMovement.Jump ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement(PresMovement.Jump)}>Jump cut</div>
-                                                </div>
-                                            </div>}
+                                            <></>
+                                            // <select className="presBox-viewPicker"
+                                            //     style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
+                                            //     onPointerDown={e => e.stopPropagation()}
+                                            //     onChange={this.viewChanged}
+                                            //     value={}>
+                                            //     {this.mediaEn}
+                                            // </select>}
+                                        }
                                     </div>
                                 </div>
-                            </div>
-                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
-                                <div className="slider-text">
-                                    <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
-                                        <input className="presBox-input"
-                                            style={{ textAlign: 'left', width: 50 }}
-                                            type="number" value={NumCast(activeItem.presStartTime)}
-                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })}
-                                        /> s
-                                    </div>
-                                </div>
-                                <div className="slider-text">
-                                    {Math.round((NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime)) * 10) / 10} s
-                                </div>
-                                <div className="slider-text">
-                                    <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
-                                        <input className="presBox-input"
-                                            style={{ textAlign: 'right', width: 50 }}
-                                            type="number" value={NumCast(activeItem.presEndTime)}
-                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presEndTime = Number(e.target.value); })}
-                                        /> s
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="multiThumb-slider">
-                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
-                                    style={{ gridColumn: 1, gridRow: 1 }}
-                                    className={`toolbar-slider ${"end"}`}
-                                    id="toolbar-slider"
-                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
-                                    onPointerUp={() => this._batch?.end()}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        e.stopPropagation();
-                                        activeItem.presEndTime = Number(e.target.value);
-                                    }} />
-                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
-                                    style={{ gridColumn: 1, gridRow: 1 }}
-                                    className={`toolbar-slider ${"start"}`}
-                                    id="toolbar-slider"
-                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
-                                    onPointerUp={() => this._batch?.end()}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        e.stopPropagation();
-                                        activeItem.presStartTime = Number(e.target.value);
-                                    }} />
-                            </div>
-                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
-                                <div className="slider-text">0 s</div>
-                                <div className="slider-text"></div>
-                                <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
                             </div>
                         </div>
                         {/* <div className="ribbon-box">

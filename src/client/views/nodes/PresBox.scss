@@ -1,6 +1,7 @@
 $light-blue: #AEDDF8;
 $dark-blue: #5B9FDD;
 $light-background: #ececec;
+$dark-grey: #656565;
 
 .presBox-cont {
     cursor: auto;
@@ -629,7 +630,7 @@ $light-background: #ececec;
         position: relative;
         font-size: 13;
         padding-bottom: 10px;
-        border-bottom: solid 1px darkgrey;
+        border-bottom: solid 1px $dark-grey;
 
         .presBox-dropdown:hover {
             border: solid 1px $dark-blue;

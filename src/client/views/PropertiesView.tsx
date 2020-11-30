@@ -1020,7 +1020,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <div className="propertiesView-presTrails-title"
                             onPointerDown={action(() => this.openPresProgressivize = !this.openPresProgressivize)}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
+                            &nbsp; <FontAwesomeIcon style={{ alignSelf: "center" }} icon={"tasks"} /> &nbsp; Progressivize
                         <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresProgressivize ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
