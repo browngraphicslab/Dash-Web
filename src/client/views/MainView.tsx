@@ -302,7 +302,7 @@ export class MainView extends React.Component {
             <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
                 <div className="mainView-contentArea" >
                     <DocumentView
-                        Document={this._sidebarContent}
+                        Document={this._sidebarContent.proto || this._sidebarContent}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
                         addDocument={undefined}
@@ -327,7 +327,6 @@ export class MainView extends React.Component {
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                         relative={true}
-                        forcedBackgroundColor={() => this.darkScheme ? "rgb(62,62,62)" : "lightgrey"}
                     />
                 </div>
                 {this.docButtons}
