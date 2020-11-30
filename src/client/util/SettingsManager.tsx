@@ -53,7 +53,7 @@ export class SettingsManager extends React.Component<{}> {
         }
     }
 
-    @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any) ?.value === "Novice");
+    @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
     @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value ? "title" : undefined);
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
@@ -211,9 +211,9 @@ export class SettingsManager extends React.Component<{}> {
             <div className="tab-column">
                 <div className="tab-column-title">Permissions</div>
                 <div className="tab-column-content">
-                    <button onClick={() => GroupManager.Instance ?.open()}>Manage groups</button>
+                    <button onClick={() => GroupManager.Instance?.open()}>Manage groups</button>
                     <div className="default-acl">
-                        <input className="acl-check" type="checkbox" checked={BoolCast(Doc.UserDoc() ?.defaultAclPrivate)} onChange={action(() => Doc.UserDoc().defaultAclPrivate = !Doc.UserDoc().defaultAclPrivate)} />
+                        <input className="acl-check" type="checkbox" checked={BoolCast(Doc.UserDoc()?.defaultAclPrivate)} onChange={action(() => Doc.UserDoc().defaultAclPrivate = !Doc.UserDoc().defaultAclPrivate)} />
                         <div className="acl-text">Default access private</div>
                     </div>
                 </div>
@@ -233,7 +233,7 @@ export class SettingsManager extends React.Component<{}> {
         return <div className="settings-interface">
             <div className="settings-panel">
                 <div className="settings-tabs">
-                    {tabs.map(tab => <div className={"tab-control " + (this.activeTab === tab.title ? "active" : "inactive")} onClick={action(() => this.activeTab = tab.title)}>{tab.title}</div>)}
+                    {tabs.map(tab => <div key={tab.title} className={"tab-control " + (this.activeTab === tab.title ? "active" : "inactive")} onClick={action(() => this.activeTab = tab.title)}>{tab.title}</div>)}
                 </div>
 
                 <div className="settings-user">
@@ -249,7 +249,7 @@ export class SettingsManager extends React.Component<{}> {
             </div>
 
             <div className="settings-content">
-                {tabs.map(tab => <div className={"tab-section " + (this.activeTab === tab.title ? "active" : "inactive")}>{tab.ele}</div>)}
+                {tabs.map(tab => <div key={tab.title} className={"tab-section " + (this.activeTab === tab.title ? "active" : "inactive")}>{tab.ele}</div>)}
             </div>
         </div>;
 
