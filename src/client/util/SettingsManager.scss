@@ -33,9 +33,10 @@
     padding-right: 15px;
     color: black;
     margin-top: 10px;
+    margin-bottom: 10px;
     /* right: 135; */
-    position: absolute;
-    left: 243;
+    // position: absolute;
+    // left: 243;
 }
 
 .settings-section {
@@ -61,30 +62,38 @@
 
 .password-content {
     display: flex;
+    flex-direction: column;
 
     .password-content-inputs {
         width: 100;
+        // margin-bottom: 10px;
+        font-size: 10px;
 
         .password-inputs {
-            border: none;
+            border: 1px solid rgb(160, 160, 160);
             margin-bottom: 8px;
-            width: 180;
+            width: 130;
             color: black;
             border-radius: 5px;
+            padding:7px;
+            
         }
     }
 
     .password-content-buttons {
-        margin-left: 84px;
-        width: 100;
+        //margin-left: 84px;
+        //width: 100;
+        padding: 7px;
 
         .password-submit {
-            margin-left: 85px;
+            //margin-left: 85px;
+            margin-top: 5px;
         }
 
         .password-forgot {
-            margin-left: 65px;
-            margin-top: -20px;
+            //margin-left: 65px;
+            //margin-top: -20px;
+            font-size: 12px;
             white-space: nowrap;
         }
     }
@@ -97,10 +106,12 @@
 .modes-content {
     display: flex;
     margin-left: 10px;
-    font-size: 12;
+    font-size: 12px;
 
     .modes-select {
         // width: 170px;
+        width: 80%;
+        height: 35px;
         margin-right: 10px;
         color: black;
         border-radius: 5px;
@@ -114,7 +125,8 @@
     .default-acl {
         display: flex;
         margin-left: 10px;
-        font-size: 12;
+        margin-top: 10px;
+        font-size: 10px;
 
         .playground-check,
         .acl-check {
@@ -134,6 +146,7 @@
         .acl-text {
             color: black;
             margin-top: 2;
+            text-align: left;
         }
 
     }
@@ -141,7 +154,7 @@
 
 .colorFlyout {
     margin-top: 2px;
-    margin-right: 18px;
+    //margin-right: 18px;
 
     &:hover {
         cursor: pointer;
@@ -156,66 +169,84 @@
     }
 }
 
-.preferences-content {
+.prefs-content{
+    text-align: left;
+}
+
+.appearances-content {
     display: flex;
     margin-top: 4px;
     color: black;
-    font-size: 11;
+    font-size: 10px;
 
     .preferences-color {
         display: flex;
         margin-top: 2px;
-        width: 55;
 
         .preferences-color-text {
-            margin-top: 4;
+            margin-top: 3px;
             margin-right: 4;
+            flex: 1 1 auto;
+            text-align: left;
+        }
+
+        .colorFlyout {
+            align-self: flex-end;
         }
     }
 
     .preferences-font {
-        display: flex;
-        height: 23px;
+        //height: 23px;
         margin-top: 2px;
 
         .preferences-font-text {
             color: black;
             margin-top: 4;
             margin-right: 4;
+            margin-bottom: 2px;
+            text-align: left;
+        }
+
+        .preferences-font-controls {
+            display: flex;
+            justify-content: space-between;
         }
 
         .font-select {
-            width: 100px;
+            height: 35px;
             color: black;
             font-size: 9;
             margin-right: 6;
             border-radius: 5px;
+            width: 65%;
 
             &:hover {
                 cursor: pointer;
             }
-        }
-
-        .preferences-check {
-            color: black;
-            font-size: 9;
-            /* margin-top: 4; */
-            margin-right: 4;
-            margin-bottom: -3;
-            margin-left: 5;
-            margin-top: -1px;
         }
 
         .size-select {
-            width: 60px;
+            height: 35px;
             color: black;
             font-size: 9;
             border-radius: 5px;
+            width: 30%;
 
             &:hover {
                 cursor: pointer;
             }
         }
+    }
+
+    .preferences-check {
+        color: black;
+        margin-right: 4;
+        margin-bottom: -3;
+        margin-left: 5;
+        margin-top: -1px;
+        display: inline-block;
+        padding-left: 5px;
+        text-align: left;
     }
 }
 
@@ -247,16 +278,17 @@
         cursor: pointer;
     }
 
-    .logout-button {
-        right: 355;
-        position: absolute;
-    }
+    // .logout-button {
+    //     right: 355;
+    //     position: absolute;
+    // }
 
     .settings-content {
         background: #e4e4e4;
-        border-radius: 6px;
+        //border-radius: 6px;
         padding: 10px;
-        width: 560px;
+        //width: 560px;
+        flex: 1 1 auto;
     }
 
     .settings-top {
@@ -321,6 +353,94 @@
         }
 
     }
+}
+
+.settings-interface {
+    flex-direction: row;
+    position: relative;
+    min-height: 250px;
+    width: 100%;
+
+    .settings-content {
+        background-color: #fdfdfd;
+    }
+}
+
+.settings-panel {
+    position: relative;
+    min-width: 150px;
+    background-color: #e4e4e4;
+
+    .settings-user {
+        position: absolute;
+        bottom: 10px;
+        text-align: center;
+        left: 0;
+        right: 0;
+
+        .settings-username {
+            padding-right: 0px;
+        }
+
+        .logout-button {
+            margin-right: 2px;
+        }
+    }
+}
+
+.settings-tabs {
+    // font-size: 16px;
+    font-weight: 600;
+    color: black;
+
+    .tab-control {
+        padding: 10px;
+        border-bottom: 1px solid #9f9e9e;
+        cursor: pointer;
+
+        &.active {
+            background-color: #fdfdfd;
+        }
+    }
+}
+
+.settings-section-context {
+    width: 100%;
+}
+
+.tab-section {
+    display: none;
+    height: 200px;
+
+    &.active {
+        display: block;
+    }
+}
+
+.tab-content {
+    display: flex;
+    margin: 20px 0;
+
+    .tab-column {
+        flex: 0 0 50%;
+
+        .tab-column-title {
+            color: black;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 16px;
+       }
+
+       .tab-column-title, .tab-column-content {
+           padding-left: 16px;
+       }
+
+    }
+
+}
+
+.tab-column button {
+    font-size: 9px;
 }
 
 @media only screen and (max-device-width: 480px) {
