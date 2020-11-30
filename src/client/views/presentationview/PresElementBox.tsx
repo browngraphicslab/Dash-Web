@@ -75,7 +75,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     embedHeight = (): number => 97;
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
-    embedWidth = (): number => this.props.PanelWidth() - 30;
+    embedWidth = (): number => this.props.PanelWidth() - 35;
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.

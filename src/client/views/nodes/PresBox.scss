@@ -137,6 +137,13 @@ $dark-grey: #656565;
         height: 20px;
         align-items: center;
     }
+
+    .checkbox-dropdown {
+        display: flex;
+        width: 100%;
+        align-items: flex-end;
+        gap: 5px;
+    }
 }
 
 .presBox-ribbon {
