@@ -395,7 +395,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     getClusterColor = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
         let clusterColor = this.props.styleProvider?.(doc, this.props.renderDepth + 1, property, layerProvider);
-        if (property !== "color") return clusterColor;
+        if (property !== "backgroundColor") return clusterColor;
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
