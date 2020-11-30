@@ -326,7 +326,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
                     }}>
-                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>
                         <EditableView
                             ref={this._titleRef}
                             editing={!isSelected ? false : undefined}

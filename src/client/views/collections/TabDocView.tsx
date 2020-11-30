@@ -172,7 +172,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
             Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
-            if (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID && !audioRange) {
+            if (!audioRange && (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID)) {
                 pinDoc.mediaStart = "manual";
                 pinDoc.mediaStop = "manual";
                 pinDoc.presStartTime = 0;

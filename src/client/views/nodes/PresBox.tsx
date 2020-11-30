@@ -191,18 +191,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
     nextAudioVideo = (targetDoc: Doc, activeItem: Doc) => {
         if (targetDoc.type === DocumentType.AUDIO) {
+            console.log("play audio");
             targetDoc._audioStart = NumCast(activeItem.presStartTime);
-
         } else if (targetDoc.type === DocumentType.VID) {
-            targetDoc._currentTimecode = NumCast(activeItem.presStartTime);
-            setTimeout(() => targetDoc._videoStart = true, 0);
+            console.log("play video");
+            targetDoc._videoStop = true;
+            setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
+            setTimeout(() => targetDoc._videoStart = true, 20);
         }
-        // if (targetDoc.type === DocumentType.VID) { VideoBox.Instance.Play() };
         activeItem.playNow = false;
     }
 
     // No more frames in current doc and next slide is defined, therefore move to next slide 
     nextSlide = (targetDoc: Doc, activeNext: Doc) => {
+        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
         let nextSelected = this.itemIndex + 1;
         this.gotoDocument(nextSelected);
         for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
@@ -213,11 +215,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this.gotoDocument(nextSelected, true);
             }
         }
-        const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
         // If next slide is audio / video 'Play automatically' then the next slide should be played
-        if (activeNext && (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && activeNext.playAuto) {
-            if (targetNext.type === DocumentType.AUDIO) targetNext._audioStart = NumCast(activeNext.presStartTime);
-        } else if (targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) { activeNext.playNow = true; console.log('play next after it is navigated to'); }
+        if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && (activeNext.mediaStart === "auto" || activeNext.playNow)) {
+            this.nextAudioVideo(targetNext, activeNext);
+        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeNext.playNow && activeNext.mediaStart === "onClick") {
+            activeNext.playNow = true;
+        }
     }
 
     // Called when the user activates 'next' - to move to the next part of the pres. trail
@@ -234,14 +237,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // Case 1: There are still other frames and should go through all frames before going to next slide
             this.nextInternalFrame(targetDoc, activeItem);
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
-            // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide 
+            // Case 2: No more frames in current doc and next slide is defined, therefore move to next slide 
             this.nextSlide(targetDoc, activeNext);
-        } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
-            // Case 4: Last slide and presLoop is toggled ON
+        } else if (this.childDocs[this.itemIndex + 1] === undefined && (this.layoutDoc.presLoop || this.layoutDoc.presStatus === PresStatus.Edit)) {
+            // Case 3: Last slide and presLoop is toggled ON or it is in Edit mode
             this.gotoDocument(0);
-        } else if ((targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && !activeItem.playAuto && activeItem.playNow && this.layoutDoc.presStatus !== PresStatus.Autoplay) {
-            // Case 2: 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-            this.nextAudioVideo(targetDoc, activeItem);
         }
     }
 
@@ -517,10 +517,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             try {
                 doc.opacity = 1;
             } catch (e) {
-                console.log("REset presentation error: ", e);
+                console.log("Reset presentation error: ", e);
             }
         });
-        ///for (const doc of this.childDocs) Cast(doc.presentationTargetDoc, Doc, null).opacity = 1;
     }
 
     @action togglePath = (srcContext: Doc, off?: boolean) => {
@@ -628,6 +627,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (doc.type === DocumentType.LABEL) {
                 const audio = Cast(doc.annotationOn, Doc, null);
                 if (audio) {
+                    audio.mediaStart = "manual";
+                    audio.mediaStop = "manual";
                     audio.presStartTime = NumCast(doc.audioStart);
                     audio.presEndTime = NumCast(doc.audioEnd);
                     audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
@@ -1365,6 +1366,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div>
+                            <div className="presBox-subheading">Range:</div>
+                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                                <div className="slider-text">
+                                    Start time:
+                                </div>
+                                <div className="slider-text">
+                                    Duration:
+                                </div>
+                                <div className="slider-text">
+                                    End time:
+                                </div>
+                            </div>
                             <div className="presBox-subheading">Start playing:</div>
                             <div className="presBox-radioButtons">
                                 <div className="checkbox-container">
@@ -1373,7 +1386,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStart = "manual"}
                                         checked={activeItem.mediaStart === "manual"}
                                     />
-                                    <div>Start manually</div>
+                                    <div>Play manually</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
@@ -1381,15 +1394,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStart = "auto"}
                                         checked={activeItem.mediaStart === "auto"}
                                     />
-                                    <div>Play with slide</div>
-                                </div>
-                                <div className="checkbox-container">
-                                    <input className="presBox-checkbox"
-                                        type="checkbox"
-                                        onChange={() => activeItem.mediaStart = "onClick"}
-                                        checked={activeItem.mediaStart === "onClick"}
-                                    />
-                                    <div>Play on click</div>
+                                    <div>Play automatically (with slide)</div>
                                 </div>
                             </div>
                             <div className="presBox-subheading">Stop playing:</div>
@@ -1400,7 +1405,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStop = "manual"}
                                         checked={activeItem.mediaStop === "manual"}
                                     />
-                                    <div>Stop manually</div>
+                                    <div>Stop at end time</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
@@ -1408,7 +1413,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStop = "afterCurrent"}
                                         checked={activeItem.mediaStop === "afterCurrent"}
                                     />
-                                    <div>After current slide</div>
+                                    <div>Stop automatically (current slide)</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
@@ -1416,7 +1421,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStop = "afterSlide"}
                                         checked={activeItem.mediaStop === "afterSlide"}
                                     />
-                                    <div>After slide
+                                    <div>Stop after slide
                                     {activeItem.mediaStop !== "afterSlide" ?
                                             (null)
                                             :
@@ -1431,18 +1436,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                                 </div>
                                             </div>}
                                     </div>
-                                </div>
-                            </div>
-                            <div className="presBox-subheading">Range:</div>
-                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
-                                <div className="slider-text">
-                                    Start time:
-                                </div>
-                                <div className="slider-text">
-                                    Duration:
-                                </div>
-                                <div className="slider-text">
-                                    End time:
                                 </div>
                             </div>
                             <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
@@ -1673,10 +1666,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                 <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
-                    Minimize
+                    Mini-player
                 </div>
                 <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
-                    Sidebar view
+                    Sidebar player
                 </div>
             </div>
         );
@@ -1746,7 +1739,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             return (
                 <div>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                        {/* <div className="ribbon-box">
+                        <div className="ribbon-box">
                             {this.stringType} selected
                             <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeChild}>Contents</div>
@@ -1772,7 +1765,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.scrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeScroll}>Scroll</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.scrollProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editScrollProgressivize ? PresColor.LightBlue : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>
-                        </div> */}
+                        </div>
                         <div className="ribbon-final-box">
                             Frames
                             <div className="ribbon-doubleButton">
