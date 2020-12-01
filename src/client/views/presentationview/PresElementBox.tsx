@@ -344,7 +344,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                                 onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
-                        {this.indexInPres === 0 ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
+                        {this.indexInPres === 0 ? (null) : <Tooltip title={<><div className="dash-tooltip">{activeItem.groupWithUp ? "Ungroup" : "Group with up"}</div></>}>
                             <div className="slideButton"
                                 onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
                                 style={{

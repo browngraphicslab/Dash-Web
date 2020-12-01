@@ -189,18 +189,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         else targetDoc.editing = true;
     }
 
+    _mediaTimer!: [NodeJS.Timeout, Doc];
     // 'Play on next' for audio or video therefore first navigate to the audio/video before it should be played
-    nextAudioVideo = (targetDoc: Doc, activeItem: Doc) => {
+    startTempMedia = (targetDoc: Doc, activeItem: Doc) => {
         const duration: number = NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime);
         if (targetDoc.type === DocumentType.AUDIO) {
-            console.log("play audio");
+            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._audioStart = NumCast(activeItem.presStartTime);
-            setTimeout(() => targetDoc._audioStop = true, duration * 1000);
+            this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
         } else if (targetDoc.type === DocumentType.VID) {
+            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
             targetDoc._videoStop = true;
             setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
             setTimeout(() => targetDoc._videoStart = true, 20);
-            setTimeout(() => targetDoc._videoStop = true, (duration * 1000) + 20);
+            this._mediaTimer = [setTimeout(() => targetDoc._videoStop = true, (duration * 1000) + 20), targetDoc];
+        }
+    }
+
+    stopTempMedia = (targetDoc: Doc) => {
+        if (targetDoc.type === DocumentType.AUDIO) {
+            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
+            targetDoc._audioStop = true;
+        } else if (targetDoc.type === DocumentType.VID) {
+            if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
+            targetDoc._videoStop = true;
         }
     }
 
@@ -208,18 +220,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     nextSlide = (activeNext: Doc) => {
         const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
         let nextSelected = this.itemIndex + 1;
-        this.gotoDocument(nextSelected);
+        this.gotoDocument(nextSelected, this.activeItem);
         for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
             if (!this.childDocs[nextSelected].groupWithUp) {
                 break;
             } else {
                 console.log("Title: " + this.childDocs[nextSelected].title);
-                this.gotoDocument(nextSelected, true);
+                this.gotoDocument(nextSelected, this.activeItem, true);
             }
-        }
-        // If next slide is audio / video 'Play automatically' then the next slide should be played
-        if ((targetNext.type === DocumentType.AUDIO || targetNext.type === DocumentType.VID) && (activeNext.mediaStart === "auto")) {
-            this.nextAudioVideo(targetNext, activeNext);
         }
     }
 
@@ -241,7 +249,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.nextSlide(activeNext);
         } else if (this.childDocs[this.itemIndex + 1] === undefined && (this.layoutDoc.presLoop || this.layoutDoc.presStatus === PresStatus.Edit)) {
             // Case 3: Last slide and presLoop is toggled ON or it is in Edit mode
-            this.gotoDocument(0);
+            this.gotoDocument(0, this.activeItem);
         }
     }
 
@@ -266,31 +274,38 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else if (activeItem && this.childDocs[this.itemIndex - 1] !== undefined) {
             // Case 2: There are no other frames so it should go to the previous slide
             prevSelected = Math.max(0, prevSelected - 1);
-            this.gotoDocument(prevSelected);
+            this.gotoDocument(prevSelected, activeItem);
             if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
         } else if (this.childDocs[this.itemIndex - 1] === undefined && this.layoutDoc.presLoop) {
             // Case 3: Pres loop is on so it should go to the last slide
-            this.gotoDocument(this.childDocs.length - 1);
+            this.gotoDocument(this.childDocs.length - 1, activeItem);
         }
     }
 
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
-    public gotoDocument = action((index: number, group?: boolean) => {
+    public gotoDocument = action((index: number, from?: Doc, group?: boolean) => {
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
-            const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-            if (presTargetDoc) {
-                presTargetDoc && runInAction(() => {
-                    if (activeItem.presMovement === PresMovement.Jump) presTargetDoc.focusSpeed = 0;
-                    else presTargetDoc.focusSpeed = activeItem.presTransition ? activeItem.presTransition : 500;
-                });
-                setTimeout(() => presTargetDoc.focusSpeed = 500, this.activeItem.presTransition ? NumCast(this.activeItem.presTransition) + 10 : 510);
+            const targetDoc: Doc = this.targetDoc;
+            if (from && from.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                this.stopTempMedia(Cast(from.presentationTargetDoc, Doc, null));
             }
-            if (presTargetDoc?.lastFrame !== undefined) {
-                presTargetDoc._currentFrame = 0;
+            // If next slide is audio / video 'Play automatically' then the next slide should be played
+            if (this.layoutDoc.presStatus !== PresStatus.Edit && (targetDoc.type === DocumentType.AUDIO || targetDoc.type === DocumentType.VID) && (activeItem.mediaStart === "auto")) {
+                this.startTempMedia(targetDoc, activeItem);
+            }
+            if (targetDoc) {
+                targetDoc && runInAction(() => {
+                    if (activeItem.presMovement === PresMovement.Jump) targetDoc.focusSpeed = 0;
+                    else targetDoc.focusSpeed = activeItem.presTransition ? activeItem.presTransition : 500;
+                });
+                setTimeout(() => targetDoc.focusSpeed = 500, this.activeItem.presTransition ? NumCast(this.activeItem.presTransition) + 10 : 510);
+            }
+            if (targetDoc?.lastFrame !== undefined) {
+                targetDoc._currentFrame = 0;
             }
             if (!group) this._selectedArray.clear();
             this.childDocs[index] && this._selectedArray.set(this.childDocs[index], undefined); //Update selected array
@@ -496,7 +511,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         };
         this.layoutDoc.presStatus = PresStatus.Autoplay;
         this.startPresentation(startSlide);
-        this.gotoDocument(startSlide);
+        this.gotoDocument(startSlide, activeItem);
         load();
     }
 
@@ -605,6 +620,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
 
+
+    @action
+    updateMediaStopTriggerList = (list: any, activeItem: Doc): List<Doc> => {
+        const x: List<Doc> = list;
+        x.push(activeItem);
+        return x;
+    }
+
     /**
      * Called when the user changes the view type
      * Either 'List' (stacking) or 'Slides' (carousel)
@@ -613,7 +636,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     mediaStopChanged = action((e: React.ChangeEvent) => {
         const activeItem: Doc = this.activeItem;
         //@ts-ignore
-        activeItem.mediaStopDoc = e.target.selectedOptions[0].value as Doc;
+        const stopDoc = e.target.selectedOptions[0].value as string;
+        const stopDocIndex: number = Number(stopDoc[0]);
+        activeItem.mediaStopDoc = stopDocIndex;
+        const newList = this.updateMediaStopTriggerList(this.childDocs[stopDocIndex].mediaStopTriggerList, activeItem)
+        this.childDocs[stopDocIndex].mediaStopTriggerList = newList;
     });
 
 
@@ -702,7 +729,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     selectElement = (doc: Doc) => {
         const context = Cast(doc.context, Doc, null);
-        this.gotoDocument(this.childDocs.indexOf(doc));
+        this.gotoDocument(this.childDocs.indexOf(doc), this.activeItem);
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
     }
@@ -1371,11 +1398,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @computed get mediaStopSlides() {
         const activeItem: Doc = this.activeItem;
-        const list = this.childDocs.map((doc) => {
-            return (
-                <option>{doc.title}</option>
-            );
-        })
+        const list = this.childDocs.map((doc, i) => {
+            if (i > this.itemIndex) {
+                return (
+                    <option>{i + 1}. {doc.title}</option>
+                );
+            }
+        });
         return (
             list
         );
@@ -1384,6 +1413,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get mediaOptionsDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
+        const mediaStopDocInd: number = NumCast(activeItem.mediaStopDoc);
+        const mediaStopDocStr: string = mediaStopDocInd ? mediaStopDocInd + ". " + this.childDocs[mediaStopDocInd - 1].title : "";
         if (activeItem && targetDoc) {
             return (
                 <div>
@@ -1474,15 +1505,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStop = "manual"}
                                         checked={activeItem.mediaStop === "manual"}
                                     />
-                                    <div>Stop at end time</div>
+                                    <div>At audio end time</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
                                         type="checkbox"
-                                        onChange={() => activeItem.mediaStop = "afterCurrent"}
-                                        checked={activeItem.mediaStop === "afterCurrent"}
+                                        onChange={() => activeItem.mediaStop = "auto"}
+                                        checked={activeItem.mediaStop === "auto"}
                                     />
-                                    <div>Stop on slide change</div>
+                                    <div>On slide change</div>
                                 </div>
                                 <div className="checkbox-container">
                                     <input className="presBox-checkbox"
@@ -1490,17 +1521,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         onChange={() => activeItem.mediaStop = "afterSlide"}
                                         checked={activeItem.mediaStop === "afterSlide"}
                                     />
-                                    <div className="checkbox-dropdown">Stop after chosen slide
-                                    {activeItem.mediaStop !== "afterSlide" ?
-                                            (null)
-                                            :
-                                            <select className="presBox-viewPicker"
-                                                style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
-                                                onPointerDown={e => e.stopPropagation()}
-                                                onChange={this.mediaStopChanged}
-                                                value={activeItem.mediaStopDoc ? StrCast(activeItem.mediaStopDoc) : StrCast(activeItem.title)}>
-                                                {this.mediaStopSlides}
-                                            </select>}
+                                    <div className="checkbox-dropdown">
+                                        After chosen slide
+                                        <select className="presBox-viewPicker"
+                                            style={{ opacity: activeItem.mediaStop === "afterSlide" && this.itemIndex !== this.childDocs.length - 1 ? 1 : 0.3 }}
+                                            onPointerDown={e => e.stopPropagation()}
+                                            onChange={this.mediaStopChanged}
+                                            value={mediaStopDocStr}>
+                                            {this.mediaStopSlides}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -1631,7 +1660,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (data && presData) {
                 data.push(doc);
                 TabDocView.PinDoc(doc, false);
-                this.gotoDocument(this.childDocs.length);
+                this.gotoDocument(this.childDocs.length, this.activeItem);
             } else {
                 this.props.addDocTab(doc, "add:right");
             }
@@ -1681,10 +1710,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presentDropdown() {
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); this.gotoDocument(this.itemIndex, this.activeItem); }))}>
                     Mini-player
                 </div>
-                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); }))}>
+                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); this.gotoDocument(this.itemIndex, this.activeItem); }))}>
                     Sidebar player
                 </div>
             </div>
@@ -2160,7 +2189,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </select>}
                 <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length ? 1 : 0.3 }}>
                     <span className={`presBox-button ${this.layoutDoc.presStatus === "edit" ? "present" : ""}`}>
-                        <div className="presBox-button-left" onClick={undoBatch(() => (this.childDocs.length) && (this.layoutDoc.presStatus = "manual"))}>
+                        <div className="presBox-button-left"
+                            onClick={undoBatch(() => {
+                                if (this.childDocs.length) {
+                                    this.layoutDoc.presStatus = "manual";
+                                    this.gotoDocument(this.itemIndex, this.activeItem);
+                                }
+                            })}>
                             <FontAwesomeIcon icon={"play-circle"} />
                             <div style={{ display: this.props.PanelWidth() > 200 ? "inline-flex" : "none" }}>&nbsp; Present</div>
                         </div>
@@ -2268,10 +2303,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === PresStatus.Autoplay ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" style={{ opacity: presEnd ? 0.4 : 1 }} onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
-            <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0)}><b>1</b></div></Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0, this.activeItem)}><b>1</b></div></Tooltip>
             <div
                 className="presPanel-button-text"
-                onClick={() => this.gotoDocument(0)}
+                onClick={() => this.gotoDocument(0, this.activeItem)}
                 style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
                 Slide {this.itemIndex + 1} / {this.childDocs.length}
                 {this.playButtonFrames}
@@ -2308,7 +2343,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === PresStatus.Autoplay ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="presPanel-button" style={{ opacity: presEnd ? 0.4 : 1 }} onClick={() => { this.next(); if (this._presTimer) { clearTimeout(this._presTimer); this.layoutDoc.presStatus = PresStatus.Manual; } }}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="presPanel-divider"></div>
-                    <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0)}><b>1</b></div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Click to return to 1st slide"}</div></>}><div className="presPanel-button" style={{ border: 'solid 1px white' }} onClick={() => this.gotoDocument(0, this.activeItem)}><b>1</b></div></Tooltip>
                     <div className="presPanel-button-text">
                         Slide {this.itemIndex + 1} / {this.childDocs.length}
                         {this.playButtonFrames}
