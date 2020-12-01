@@ -290,6 +290,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const activeItem: Doc = this.activeItem;
             const targetDoc: Doc = this.targetDoc;
+            if (from && from.mediaStopTriggerList && this.layoutDoc.presStatus !== PresStatus.Edit) {
+                const mediaDocList = DocListCast(from.mediaStopTriggerList);
+                mediaDocList.forEach((doc) => {
+                    this.stopTempMedia(Cast(doc.presentationTargetDoc, Doc, null));
+                });
+            }
             if (from && from.mediaStop === "auto" && this.layoutDoc.presStatus !== PresStatus.Edit) {
                 this.stopTempMedia(Cast(from.presentationTargetDoc, Doc, null));
             }
@@ -620,14 +626,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 0;
     });
 
-
-    @action
-    updateMediaStopTriggerList = (list: any, activeItem: Doc): List<Doc> => {
-        const x: List<Doc> = list;
-        x.push(activeItem);
-        return x;
-    }
-
     /**
      * Called when the user changes the view type
      * Either 'List' (stacking) or 'Slides' (carousel)
@@ -639,8 +637,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const stopDoc = e.target.selectedOptions[0].value as string;
         const stopDocIndex: number = Number(stopDoc[0]);
         activeItem.mediaStopDoc = stopDocIndex;
-        const newList = this.updateMediaStopTriggerList(this.childDocs[stopDocIndex].mediaStopTriggerList, activeItem)
-        this.childDocs[stopDocIndex].mediaStopTriggerList = newList;
+        if (this.childDocs[stopDocIndex - 1].mediaStopTriggerList) {
+            const list = DocListCast(this.childDocs[stopDocIndex - 1].mediaStopTriggerList);
+            list.push(activeItem);
+        } else {
+            this.childDocs[stopDocIndex - 1].mediaStopTriggerList = new List<Doc>();
+            const list = DocListCast(this.childDocs[stopDocIndex - 1].mediaStopTriggerList);
+            list.push(activeItem);
+        }
     });
 
 
