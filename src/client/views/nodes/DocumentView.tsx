@@ -127,7 +127,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() {
         return StrCast(this.layoutDoc._showTitle,
-            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc ?
+            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc && !this.rootDoc.presentationTargetDoc ?
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
