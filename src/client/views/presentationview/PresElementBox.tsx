@@ -312,7 +312,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
-                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider) }}>
+                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "backgroundColor", this.props.layerProvider) }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
                         <EditableView
                             ref={this._titleRef}

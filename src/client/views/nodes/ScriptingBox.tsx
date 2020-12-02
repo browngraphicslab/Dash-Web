@@ -628,13 +628,13 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // toolbar (with compile and apply buttons) for scripting UI
     renderScriptingTools() {
-        const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
+        const buttonStyle = "scriptingBox-button" + (StrCast(this.rootDoc.layoutKey).startsWith("layout_on") ? "-finish" : "");
         return <div className="scriptingBox-toolbar">
-            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
-            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onApply(); e.stopPropagation(); }}>Apply</button>
-            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onSave(); e.stopPropagation(); }}>Save</button>
+            <button className={buttonStyle} onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
+            <button className={buttonStyle} onPointerDown={e => { this.onApply(); e.stopPropagation(); }}>Apply</button>
+            <button className={buttonStyle} onPointerDown={e => { this.onSave(); e.stopPropagation(); }}>Save</button>
 
-            {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
+            {!StrCast(this.rootDoc.layoutKey).startsWith("layout_on") ? (null) :  // onClick, onChecked, etc need a Finish button to return to their default layout
                 <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
         </div>;
     }
@@ -662,11 +662,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // toolbar (with edit and run buttons and error message) for params UI
     renderTools(toolSet: string, func: () => void) {
-        const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
+        const buttonStyle = "scriptingBox-button" + (StrCast(this.rootDoc.layoutKey).startsWith("layout_on") ? "-finish" : "");
         return <div className="scriptingBox-toolbar">
             <button className={buttonStyle} onPointerDown={e => { this.onEdit(); e.stopPropagation(); }}>Edit</button>
             <button className={buttonStyle} onPointerDown={e => { func(); e.stopPropagation(); }}>{toolSet}</button>
-            {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
+            {!StrCast(this.rootDoc.layoutKey).startsWith("layout_on") ? (null) :
                 <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
         </div>;
     }

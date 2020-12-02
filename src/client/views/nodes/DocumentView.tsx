@@ -12,7 +12,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -95,7 +95,7 @@ export interface DocumentViewProps {
     pinToPres: (document: Doc) => void;
     backgroundHalo?: (doc: Doc) => boolean;
     styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
-    forcedBackgroundColor?: (doc: Doc) => string | undefined;
+    forceHideLinkButton?: () => boolean;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
@@ -959,7 +959,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
+            {this.props.forceHideLinkButton?.() || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
 
             {!this.props.Document.numUsersShared && !this.props.Document.numGroupsShared ? (null) :
@@ -1019,7 +1019,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     PanelHeight={this.anchorPanelHeight}
                     ContentScaling={returnOne}
                     dontRegisterView={false}
-                    forcedBackgroundColor={returnTransparent}
+                    forceHideLinkButton={returnTrue}
+                    styleProvider={(doc: Opt<Doc>, renderDepth: number, property: string) => property === "backgroundColor" ? "transparent" : undefined}
                     removeDocument={this.hideLinkAnchor}
                     pointerEvents={"none"}
                     LayoutTemplate={undefined}
@@ -1107,7 +1108,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
         if (this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "hidden", this.props.layerProvider)) return null;
-        const backgroundColor = this.props.forcedBackgroundColor?.(this.Document) || this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider);
+        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
@@ -1148,7 +1149,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: highlighting && borderRounding && highlightStyles[fullDegree] !== "dashed" ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
-                    this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
+                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.forceHideLinkButton?.() ?
                         StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,
@@ -1159,7 +1160,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
-                <div className="documentView-contentBlocker" />
+                <div className="documentView-conentBlocker" />
             </> :
                 this.innards}
             {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props.renderDepth, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}

@@ -301,7 +301,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, TabDocView.styleProvider(this._document, 0, "color"))); }
+    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, TabDocView.styleProvider(this._document, 0, "backgroundColor"))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -374,7 +374,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                 <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
-                    style={{ background: TabDocView.styleProvider(this._document, 0, "color") }} >
+                    style={{ background: TabDocView.styleProvider(this._document, 0, "backgroundColor") }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
             </Tooltip>
@@ -437,7 +437,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     // 
     public static styleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
         switch (property) {
-            case "color": {
+            case "backgroundColor": {
                 if (Doc.UserDoc().renderStyle === "comic") return undefined;
                 let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
                 if (!docColor) {
