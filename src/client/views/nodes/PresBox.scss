@@ -129,7 +129,9 @@ $dark-grey: #656565;
 }
 
 .presBox-radioButtons {
-    background-color: rgba(0, 0, 0, 0.1);
+    font-size: 10px;
+    font-weight: 200;
+    // background-color: rgba(0, 0, 0, 0.1);
 
     .checkbox-container {
         margin-left: 10px;
@@ -345,6 +347,20 @@ $dark-grey: #656565;
         font-weight: 100;
         margin-top: 3px;
         font-size: 10px;
+
+        .slider-block {
+            width: 63px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 8px;
+            margin-top: 8px;
+        }
+
+        .slider-number {
+            border-radius: 3px;
+            width: 30px;
+            margin: auto;
+        }
     }
 
     .slider-value {

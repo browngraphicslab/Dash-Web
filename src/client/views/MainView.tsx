@@ -87,11 +87,15 @@ export class MainView extends React.Component {
     componentDidMount() {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
         const ele = document.getElementById("loader");
-
-        if (ele) {
+        const prog = document.getElementById("dash-progress");
+        if (ele && prog) {
             // remove from DOM
-            setTimeout(() => { ele.style.opacity = "0"; }, 0);
-            setTimeout(() => ele.outerHTML = '', 10000);
+            setTimeout(() => {
+                clearTimeout();
+                prog.style.transition = "1s";
+                prog.style.width = "100%";
+            }, 0);
+            setTimeout(() => ele.outerHTML = '', 1000);
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;

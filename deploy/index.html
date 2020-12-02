@@ -13,20 +13,51 @@
             align-content: center;
             justify-content: center;
             background-color: #AEDDF8;
+            transition: 3s;
             z-index: 10;
             width: 100vw;
             height: 100vh;
         }
 
         .dash-loader-container {
-            width: 20vw;
-            height: 20vw;
+            display: grid;
+            grid-auto-rows: auto 30px auto;
+        }
+
+        .dash-progress-bar {
+            width: 200px;
+            height: 5px;
+            align-self: center;
+            margin-top: 20px;
+            background-color: #ececec;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .dash-progress {
+            width: 0%;
+            height: 20px;
+            background-color: #5b9fdd;
+            transition: 0.1s;
+        }
+
+        .dash-animation-container {
+            width: 10vw;
+            height: 10vw;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 100%;
             background-color: #5B9FDD;
-            align-self: center;
+            justify-self: center;
+            align-self: flex-end;
+        }
+
+        .dash-loader-text {
+            font-size: 15px;
+            font-family: "Roboto";
+            text-align: center;
+            color: #5B9FDD;
         }
 
         .dash-d-path {
@@ -38,41 +69,63 @@
         @keyframes dash-d-path {
             0% {
                 stroke-dashoffset: 1000;
-                /* stroke-width: 0px; */
             }
 
             20% {
                 stroke-dashoffset: 0;
-                /* stroke-width: 20px; */
             }
 
             70% {
                 stroke-dashoffset: 0;
-                /* stroke-width: 20px; */
             }
 
             90% {
                 stroke-dashoffset: 1000;
-                /* stroke-width: 0px; */
             }
 
             100% {
                 stroke-dashoffset: 1000;
-                /* stroke-width: 0px; */
             }
         }
     </style>
 </head>
 
 <body style="display:flex" id="dash-body">
-    <div class="dash-loader" id="loader" style="z-index:10; width:100%; height:100%">
+    <div class="dash-loader" id="loader" style="z-index:10; width:100%; height:100%;">
         <div class="dash-loader-container">
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200px"
-                height="200px" viewBox="0 0 250 350">
-                <path class="dash-d-path" fill-rule="evenodd" stroke="#ececec" stroke-width="20px" stroke-linecap="butt"
-                    stroke-linejoin="miter" fill="none"
-                    d="M196.500,18.500 C195.888,79.462 194.655,160.273 197.500,195.500 C198.117,203.144 199.664,225.773 189.500,246.500 C183.949,257.819 175.192,268.535 163.500,277.500 C147.404,289.842 133.006,294.212 121.500,295.500 C106.618,297.166 92.057,294.673 79.500,288.500 C68.970,283.324 58.384,274.780 49.500,261.500 C39.958,247.237 35.188,230.375 35.500,213.500 C35.760,199.463 39.572,185.692 46.500,173.500 C55.433,157.780 65.945,148.829 75.500,143.500 C85.352,138.005 98.187,134.141 114.500,134.500 C128.982,134.819 143.177,139.076 155.500,146.500 C186.160,164.973 196.208,196.242 197.500,216.500 C197.663,219.061 197.578,222.985 197.500,226.500 C197.092,244.967 195.719,262.030 195.500,280.500 C195.460,283.898 195.500,293.783 195.500,300.500 C195.500,304.834 195.500,309.189 195.500,313.500 " />
-            </svg>
+            <div class="dash-animation-container">
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100px"
+                    height="100px" viewBox="0 0 250 350">
+                    <path class="dash-d-path" fill-rule="evenodd" stroke="#ececec" stroke-width="30px"
+                        stroke-linecap="butt" stroke-linejoin="miter" fill="none"
+                        d="M196.500,18.500 C195.888,79.462 194.655,160.273 197.500,195.500 C198.117,203.144 199.664,225.773 189.500,246.500 C183.949,257.819 175.192,268.535 163.500,277.500 C147.404,289.842 133.006,294.212 121.500,295.500 C106.618,297.166 92.057,294.673 79.500,288.500 C68.970,283.324 58.384,274.780 49.500,261.500 C39.958,247.237 35.188,230.375 35.500,213.500 C35.760,199.463 39.572,185.692 46.500,173.500 C55.433,157.780 65.945,148.829 75.500,143.500 C85.352,138.005 98.187,134.141 114.500,134.500 C128.982,134.819 143.177,139.076 155.500,146.500 C186.160,164.973 196.208,196.242 197.500,216.500 C197.663,219.061 197.578,222.985 197.500,226.500 C197.092,244.967 195.719,262.030 195.500,280.500 C195.460,283.898 195.500,293.783 195.500,300.500 C195.500,304.834 195.500,309.189 195.500,313.500 " />
+                </svg>
+            </div>
+            <div class="dash-progress-bar">
+                <div id="dash-progress" class="dash-progress">
+                </div>
+                <script>
+                    setTimeout(() => {
+                        document.getElementById("dash-progress").style.width = "10%"
+                        document.getElementById("dash-loader-text").innerHTML = "Loading Dash..."
+                    }, 500);
+                    setTimeout(() => {
+                        document.getElementById("dash-progress").style.width = "30%"
+                        document.getElementById("dash-loader-text").innerHTML = "Preparing dashboards..."
+                    }, 1000);
+                    setTimeout(() => {
+                        document.getElementById("dash-progress").style.width = "50%"
+                        document.getElementById("dash-loader-text").innerHTML = "Fetching documents..."
+                    }, 1500);
+                    setTimeout(() => {
+                        document.getElementById("dash-progress").style.width = "70%"
+                        document.getElementById("dash-loader-text").innerHTML = "Finalising setup..."
+                    }, 3000);
+                </script>
+            </div>
+            <div id="dash-loader-text" class="dash-loader-text">
+                Loading Dash...
+            </div>
         </div>
     </div>
     <!-- <script src="https://hypothes.is/embed.js" async></script> -->

@@ -640,10 +640,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (this.childDocs[stopDocIndex - 1].mediaStopTriggerList) {
             const list = DocListCast(this.childDocs[stopDocIndex - 1].mediaStopTriggerList);
             list.push(activeItem);
+            // this.childDocs[stopDocIndex - 1].mediaStopTriggerList = list;
+            console.log(list);
         } else {
             this.childDocs[stopDocIndex - 1].mediaStopTriggerList = new List<Doc>();
             const list = DocListCast(this.childDocs[stopDocIndex - 1].mediaStopTriggerList);
             list.push(activeItem);
+            // this.childDocs[stopDocIndex - 1].mediaStopTriggerList = list;
+            console.log(list);
         }
     });
 
@@ -1424,102 +1428,138 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div>
-                            <div className="presBox-subheading">Range:</div>
-                            <div className={"slider-headers"}>
-                                <div className="slider-text">
-                                    Start time:
-                                </div>
-                                <div className="slider-text">
-                                    Duration:
-                                </div>
-                                <div className="slider-text">
-                                    End time:
-                                </div>
-                            </div>
-                            <div className={"slider-headers"} style={{ marginTop: 0 }}>
-                                <div className="slider-text">
-                                    <input className="presBox-input"
-                                        style={{ textAlign: 'left', width: 30, height: 15, fontSize: 10 }}
-                                        type="number" value={NumCast(activeItem.presStartTime)}
-                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })}
-                                    /> s
+                            <div className="ribbon-box">
+                                Start {"&"} End Time
+                                <div className={"slider-headers"}>
+                                    <div className="slider-block" >
+                                        <div className="slider-text" style={{ fontWeight: 500 }}>
+                                            Start time (s)
+                                        </div>
+                                        <div id={"startTime"} className="slider-number" style={{ backgroundColor: PresColor.LightBackground }}>
+                                            <input className="presBox-input"
+                                                style={{ textAlign: 'center', width: 30, height: 15, fontSize: 10 }}
+                                                type="number" value={NumCast(activeItem.presStartTime)}
+                                                onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })}
+                                            />
+                                        </div>
                                     </div>
-                                <div className="slider-text">
-                                    {Math.round((NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime)) * 10) / 10} s
+                                    <div className="slider-block">
+                                        <div className="slider-text" style={{ fontWeight: 500 }}>
+                                            Duration (s)
+                                        </div>
+                                        <div className="slider-number" style={{ backgroundColor: PresColor.LightBlue }}>
+                                            {Math.round((NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime)) * 10) / 10}
+                                        </div>
+                                    </div>
+                                    <div className="slider-block">
+                                        <div className="slider-text" style={{ fontWeight: 500 }}>
+                                            End time (s)
+                                        </div>
+                                        <div id={"endTime"} className="slider-number" style={{ backgroundColor: PresColor.LightBackground }}>
+                                            <input className="presBox-input"
+                                                style={{ textAlign: 'center', width: 30, height: 15, fontSize: 10 }}
+                                                type="number" value={NumCast(activeItem.presEndTime)}
+                                                onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presEndTime = Number(e.target.value); })}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="slider-text">
-                                    <input className="presBox-input"
-                                        style={{ textAlign: 'right', width: 30, height: 15, fontSize: 10 }}
-                                        type="number" value={NumCast(activeItem.presEndTime)}
-                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presEndTime = Number(e.target.value); })}
-                                    /> s
+                                <div className="multiThumb-slider">
+                                    <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
+                                        style={{ gridColumn: 1, gridRow: 1 }}
+                                        className={`toolbar-slider ${"end"}`}
+                                        id="toolbar-slider"
+                                        onPointerDown={() => {
+                                            this._batch = UndoManager.StartBatch("presEndTime");
+                                            const endBlock = document.getElementById("endTime");
+                                            if (endBlock) {
+                                                endBlock.style.color = PresColor.LightBackground;
+                                                endBlock.style.backgroundColor = PresColor.DarkBlue;
+                                            }
+                                        }}
+                                        onPointerUp={() => {
+                                            this._batch?.end();
+                                            const endBlock = document.getElementById("endTime");
+                                            if (endBlock) {
+                                                endBlock.style.color = "black";
+                                                endBlock.style.backgroundColor = PresColor.LightBackground;
+                                            }
+                                        }}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            e.stopPropagation();
+                                            activeItem.presEndTime = Number(e.target.value);
+                                        }} />
+                                    <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
+                                        style={{ gridColumn: 1, gridRow: 1 }}
+                                        className={`toolbar-slider ${"start"}`}
+                                        id="toolbar-slider"
+                                        onPointerDown={() => {
+                                            this._batch = UndoManager.StartBatch("presStartTime");
+                                            const startBlock = document.getElementById("startTime");
+                                            if (startBlock) {
+                                                startBlock.style.color = PresColor.LightBackground;
+                                                startBlock.style.backgroundColor = PresColor.DarkBlue;
+                                            }
+                                        }}
+                                        onPointerUp={() => {
+                                            this._batch?.end();
+                                            const startBlock = document.getElementById("startTime");
+                                            if (startBlock) {
+                                                startBlock.style.color = "black";
+                                                startBlock.style.backgroundColor = PresColor.LightBackground;
+                                            }
+                                        }}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            e.stopPropagation();
+                                            activeItem.presStartTime = Number(e.target.value);
+                                        }} />
+                                </div>
+                                <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
+                                    <div className="slider-text">0 s</div>
+                                    <div className="slider-text"></div>
+                                    <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
                                 </div>
                             </div>
-                            <div className="multiThumb-slider">
-                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
-                                    style={{ gridColumn: 1, gridRow: 1 }}
-                                    className={`toolbar-slider ${"end"}`}
-                                    id="toolbar-slider"
-                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
-                                    onPointerUp={() => this._batch?.end()}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        e.stopPropagation();
-                                        activeItem.presEndTime = Number(e.target.value);
-                                    }} />
-                                <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
-                                    style={{ gridColumn: 1, gridRow: 1 }}
-                                    className={`toolbar-slider ${"start"}`}
-                                    id="toolbar-slider"
-                                    onPointerDown={() => this._batch = UndoManager.StartBatch("presEndTime")}
-                                    onPointerUp={() => this._batch?.end()}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                        e.stopPropagation();
-                                        activeItem.presStartTime = Number(e.target.value);
-                                    }} />
-                            </div>
-                            <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
-                                <div className="slider-text">0 s</div>
-                                <div className="slider-text"></div>
-                                <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
-                            </div>
-                            <div className="presBox-subheading">Start playing:</div>
-                            <div className="presBox-radioButtons">
-                                <div className="checkbox-container">
-                                    <input className="presBox-checkbox"
-                                        type="checkbox"
-                                        onChange={() => activeItem.mediaStart = "manual"}
-                                        checked={activeItem.mediaStart === "manual"}
-                                    />
-                                    <div>On click</div>
+                            <div className="ribbon-final-box">
+                                Playback
+                                <div className="presBox-subheading">Start playing:</div>
+                                <div className="presBox-radioButtons">
+                                    <div className="checkbox-container">
+                                        <input className="presBox-checkbox"
+                                            type="checkbox"
+                                            onChange={() => activeItem.mediaStart = "manual"}
+                                            checked={activeItem.mediaStart === "manual"}
+                                        />
+                                        <div>On click</div>
+                                    </div>
+                                    <div className="checkbox-container">
+                                        <input className="presBox-checkbox"
+                                            type="checkbox"
+                                            onChange={() => activeItem.mediaStart = "auto"}
+                                            checked={activeItem.mediaStart === "auto"}
+                                        />
+                                        <div>Automatically</div>
+                                    </div>
                                 </div>
-                                <div className="checkbox-container">
-                                    <input className="presBox-checkbox"
-                                        type="checkbox"
-                                        onChange={() => activeItem.mediaStart = "auto"}
-                                        checked={activeItem.mediaStart === "auto"}
-                                    />
-                                    <div>Automatically</div>
-                                </div>
-                            </div>
-                            <div className="presBox-subheading">Stop playing:</div>
-                            <div className="presBox-radioButtons">
-                                <div className="checkbox-container">
-                                    <input className="presBox-checkbox"
-                                        type="checkbox"
-                                        onChange={() => activeItem.mediaStop = "manual"}
-                                        checked={activeItem.mediaStop === "manual"}
-                                    />
-                                    <div>At audio end time</div>
-                                </div>
-                                <div className="checkbox-container">
-                                    <input className="presBox-checkbox"
-                                        type="checkbox"
-                                        onChange={() => activeItem.mediaStop = "auto"}
-                                        checked={activeItem.mediaStop === "auto"}
-                                    />
-                                    <div>On slide change</div>
-                                </div>
-                                <div className="checkbox-container">
+                                <div className="presBox-subheading">Stop playing:</div>
+                                <div className="presBox-radioButtons">
+                                    <div className="checkbox-container">
+                                        <input className="presBox-checkbox"
+                                            type="checkbox"
+                                            onChange={() => activeItem.mediaStop = "manual"}
+                                            checked={activeItem.mediaStop === "manual"}
+                                        />
+                                        <div>At audio end time</div>
+                                    </div>
+                                    <div className="checkbox-container">
+                                        <input className="presBox-checkbox"
+                                            type="checkbox"
+                                            onChange={() => activeItem.mediaStop = "auto"}
+                                            checked={activeItem.mediaStop === "auto"}
+                                        />
+                                        <div>On slide change</div>
+                                    </div>
+                                    {/* <div className="checkbox-container">
                                     <input className="presBox-checkbox"
                                         type="checkbox"
                                         onChange={() => activeItem.mediaStop = "afterSlide"}
@@ -1535,33 +1575,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             {this.mediaStopSlides}
                                         </select>
                                     </div>
+                                </div> */}
                                 </div>
                             </div>
                         </div>
-                        {/* <div className="ribbon-box">
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
-                                <div className="ribbon-toggle" style={{ backgroundColor: activeItem.playAuto ? PresColor.LightBlue : "" }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play automatically</div>
-                                <div className="ribbon-toggle" style={{ display: "flex", backgroundColor: activeItem.playAuto ? "" : PresColor.LightBlue }} onClick={() => activeItem.playAuto = !activeItem.playAuto}>Play on next</div>
-                            </div>
-                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
-                                <div className="presBox-subheading">Start time</div>
-                                <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
-                                    <input className="presBox-input"
-                                        style={{ textAlign: 'left', width: 50 }}
-                                        type="number" value={NumCast(activeItem.presStartTime)}
-                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { activeItem.presStartTime = Number(e.target.value); })} />
-                                </div>
-                            </div> : (null)}
-                            {targetDoc.type === DocumentType.AUDIO ? <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
-                                <div className="presBox-subheading">End time</div>
-                                <div className="ribbon-property" style={{ paddingRight: 0, paddingLeft: 0 }}>
-                                    <input className="presBox-input"
-                                        style={{ textAlign: 'left', width: 50 }}
-                                        type="number" value={NumCast(activeItem.presEndTime)}
-                                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presEndTime = Number(val); })} />
-                                </div>
-                            </div> : (null)}
-                        </div> */}
                     </div>
                 </div >
             );
