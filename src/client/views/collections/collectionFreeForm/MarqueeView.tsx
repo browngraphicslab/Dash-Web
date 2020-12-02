@@ -404,6 +404,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
             pinDoc.presMovement = PresMovement.Zoom;
+            pinDoc.groupWithUp = false;
             pinDoc.context = curPres;
             pinDoc.title = doc.title + " - Slide";
             const presArray: Doc[] = PresBox.Instance?.sortArray();

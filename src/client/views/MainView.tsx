@@ -86,6 +86,17 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
+        const ele = document.getElementById("loader");
+        const prog = document.getElementById("dash-progress");
+        if (ele && prog) {
+            // remove from DOM
+            setTimeout(() => {
+                clearTimeout();
+                prog.style.transition = "1s";
+                prog.style.width = "100%";
+            }, 0);
+            setTimeout(() => ele.outerHTML = '', 1000);
+        }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
@@ -141,7 +152,7 @@ export class MainView extends React.Component {
             fa.faSearch, fa.faFileDownload, fa.faFileUpload, fa.faStop, fa.faCalculator, fa.faWindowMaximize, fa.faAddressCard, fa.faQuestionCircle, fa.faArrowLeft,
             fa.faArrowRight, fa.faArrowDown, fa.faArrowUp, fa.faBolt, fa.faBullseye, fa.faCaretUp, fa.faCat, fa.faCheck, fa.faChevronRight, fa.faChevronLeft, fa.faChevronDown, fa.faChevronUp,
             fa.faClone, fa.faCloudUploadAlt, fa.faCommentAlt, fa.faCompressArrowsAlt, fa.faCut, fa.faEllipsisV, fa.faEraser, fa.faExclamation, fa.faFileAlt,
-            fa.faFileAudio, fa.faFilePdf, fa.faFilm, fa.faFilter, fa.faFont, fa.faGlobeAmericas, fa.faGlobeAsia, fa.faHighlighter, fa.faLongArrowAltRight, fa.faMousePointer,
+            fa.faFileAudio, fa.faFileVideo, fa.faFilePdf, fa.faFilm, fa.faFilter, fa.faFont, fa.faGlobeAmericas, fa.faGlobeAsia, fa.faHighlighter, fa.faLongArrowAltRight, fa.faMousePointer,
             fa.faMusic, fa.faObjectGroup, fa.faPause, fa.faPen, fa.faPenNib, fa.faPhone, fa.faPlay, fa.faPortrait, fa.faRedoAlt, fa.faStamp, fa.faStickyNote,
             fa.faTimesCircle, fa.faThumbtack, fa.faTree, fa.faTv, fa.faUndoAlt, fa.faVideo, fa.faAsterisk, fa.faBrain, fa.faImage, fa.faPaintBrush, fa.faTimes,
             fa.faEye, fa.faArrowsAlt, fa.faQuoteLeft, fa.faSortAmountDown, fa.faAlignLeft, fa.faAlignCenter, fa.faAlignRight, fa.faHeading, fa.faRulerCombined,

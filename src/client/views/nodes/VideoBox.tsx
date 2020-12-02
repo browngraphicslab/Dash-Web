@@ -21,6 +21,8 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { Networking } from "../../Network";
 import { SnappingManager } from "../../util/SnappingManager";
 import { SelectionManager } from "../../util/SelectionManager";
+import { LinkDocPreview } from "./LinkDocPreview";
+import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -32,8 +34,9 @@ const VideoDocument = makeInterface(documentSchema, timeSchema);
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     static _youtubeIframeCounter: number = 0;
-    private _reactionDisposer?: IReactionDisposer;
-    private _youtubeReactionDisposer?: IReactionDisposer;
+    // private _reactionDisposer?: IReactionDisposer;
+    // private _youtubeReactionDisposer?: IReactionDisposer;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
@@ -181,7 +184,32 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
-
+        this._disposers.videoStart = reaction(
+            () => this.Document._videoStart,
+            (videoStart) => {
+                if (videoStart !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
+                        setTimeout(() => this.player && this.Play(), delay);
+                        setTimeout(() => { this.Document._videoStart = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
+        this._disposers.videoStop = reaction(
+            () => this.Document._videoStop,
+            (videoStop) => {
+                if (videoStop !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
+                        setTimeout(() => this.player && this.Pause(), delay);
+                        setTimeout(() => { this.Document._videoStop = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
         if (this.youtubeVideoId) {
             const youtubeaspect = 400 / 315;
             const nativeWidth = Doc.NativeWidth(this.layoutDoc);
@@ -196,8 +224,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     componentWillUnmount() {
         this.Pause();
-        this._reactionDisposer?.();
-        this._youtubeReactionDisposer?.();
+        this._disposers.reactionDisposer?.();
+        this._disposers.youtubeReactionDisposer?.();
+        this._disposers.videoStart?.();
     }
 
     @action
@@ -207,8 +236,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._videoRef!.ontimeupdate = this.updateTimecode;
             // @ts-ignore
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
-            this._reactionDisposer?.();
-            this._reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
+            this._disposers.reactionDisposer?.();
+            this._disposers.reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }
     }
@@ -293,10 +322,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             if (event.data === YT.PlayerState.PAUSED && this._playing) this.Pause(false);
         });
         const onYoutubePlayerReady = (event: any) => {
-            this._reactionDisposer?.();
-            this._youtubeReactionDisposer?.();
-            this._reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
-            this._youtubeReactionDisposer = reaction(
+            this._disposers.reactionDisposer?.();
+            this._disposers.youtubeReactionDisposer?.();
+            this._disposers.reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
+            this._disposers.youtubeReactionDisposer = reaction(
                 () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
