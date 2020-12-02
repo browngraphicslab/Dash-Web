@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
         integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/3.3.1/typescript.min.js"></script>
+
+    <script>
+        function getCookie(cname) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return Number(c.substring(name.length, c.length));
+                }
+            }
+            return 3000;
+        } 
+    </script>
     <style>
         .dash-loader {
             display: flex;
@@ -105,22 +122,29 @@
                 <div id="dash-progress" class="dash-progress">
                 </div>
                 <script>
+                    let load = getCookie("loadtime");
+                    document.startLoad = Date.now();
+                    console.log("Last Load = " + load);
                     setTimeout(() => {
                         document.getElementById("dash-progress").style.width = "10%"
                         document.getElementById("dash-loader-text").innerHTML = "Loading Dash..."
-                    }, 500);
+                    }, load / 10);
                     setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "30%"
+                        document.getElementById("dash-progress").style.width = "33%"
                         document.getElementById("dash-loader-text").innerHTML = "Preparing dashboards..."
-                    }, 1000);
+                    }, load / 3);
                     setTimeout(() => {
                         document.getElementById("dash-progress").style.width = "50%"
-                        document.getElementById("dash-loader-text").innerHTML = "Fetching documents..."
-                    }, 1500);
+                        document.getElementById("dash-loader-text").innerHTML = "Initializing scripts..."
+                    }, load / 2);
                     setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "70%"
+                        document.getElementById("dash-progress").style.width = "75%"
+                        document.getElementById("dash-loader-text").innerHTML = "Fetching documents..."
+                    }, load / 4 * 3);
+                    setTimeout(() => {
+                        document.getElementById("dash-progress").style.width = "100%"
                         document.getElementById("dash-loader-text").innerHTML = "Finalising setup..."
-                    }, 3000);
+                    }, load);
                 </script>
             </div>
             <div id="dash-loader-text" class="dash-loader-text">
