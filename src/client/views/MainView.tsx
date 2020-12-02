@@ -280,7 +280,7 @@ export class MainView extends React.Component {
         setupMoveUpEvents(this, e,
             action(e => (CurrentUserUtils.propertiesWidth = Math.max(0, this._panelWidth - e.clientX)) ? false : false),
             action(() => CurrentUserUtils.propertiesWidth < 5 && (CurrentUserUtils.propertiesWidth = 0)),
-            action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
+            action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
     }
 
     @action

@@ -524,8 +524,8 @@ export class CurrentUserUtils {
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
             { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
-            { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
+            // { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
+            // { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
             { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
         ];
