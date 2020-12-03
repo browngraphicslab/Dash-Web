@@ -154,7 +154,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     rtfOutlineHeight = () => Math.min(this.layoutDoc?.[HeightSym](), (StrCast(this.layoutDoc?._fontSize) ? Number(StrCast(this.layoutDoc?._fontSize, "32px").replace("px", "")) : NumCast(this.layoutDoc?._fontSize)) * 2);
     titleTransform = () => this.props.ScreenToLocalTransform().translate(-NumCast(this.doc._xPadding, 10), -NumCast(this.doc._yPadding, 20));
     documentTitle = (childDocs: Doc[]) => {
-        return <div style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
+        return <div style={{ display: "inline-block", width: "100%", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
             onKeyDown={e => {
                 e.stopPropagation();
                 e.key === "Enter" && this.makeTextCollection(childDocs);
@@ -216,7 +216,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = this.props.styleProvider?.(this.doc, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
+        const background = this.props.styleProvider?.(this.doc, this.props, "backgroundColor", this.props.layerProvider);
         const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         // const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;

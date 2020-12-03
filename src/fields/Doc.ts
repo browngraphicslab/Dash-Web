@@ -1141,6 +1141,29 @@ export namespace Doc {
         return ndoc;
     }
 
+    export function toIcon(doc: Doc) {
+        switch (StrCast(doc.type)) {
+            case DocumentType.IMG: return "image";
+            case DocumentType.COMPARISON: return "columns";
+            case DocumentType.RTF: return "sticky-note";
+            case DocumentType.COL: return "folder";
+            case DocumentType.WEB: return "globe-asia";
+            case DocumentType.SCREENSHOT: return "photo-video";
+            case DocumentType.WEBCAM: return "video";
+            case DocumentType.AUDIO: return "microphone";
+            case DocumentType.BUTTON: return "bolt";
+            case DocumentType.PRES: return "tv";
+            case DocumentType.SCRIPTING: return "terminal";
+            case DocumentType.IMPORT: return "cloud-upload-alt";
+            case DocumentType.DOCHOLDER: return "expand";
+            case DocumentType.VID: return "video";
+            case DocumentType.INK: return "pen-nib";
+            case DocumentType.PDF: return "file-pdf";
+            case DocumentType.LINK: return "link";
+            default: return "question";
+        }
+    }
+
 
     export namespace Get {
 

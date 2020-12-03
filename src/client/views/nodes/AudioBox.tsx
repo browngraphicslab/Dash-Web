@@ -16,7 +16,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { Id } from "../../../fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DocumentView } from "./DocumentView";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Networking } from "../../Network";
@@ -657,7 +657,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
                                             ContentScaling={returnOne}
-                                            styleProvider={(doc: Opt<Doc>, renderDepth: number, property: string) => property === "backgroundColor" ? "transparent" : undefined}
+                                            styleProvider={(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => property === "backgroundColor" ? "transparent" : undefined}
                                             pointerEvents={"none"}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}

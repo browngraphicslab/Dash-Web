@@ -21,7 +21,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
@@ -49,7 +49,7 @@ export interface TreeViewProps {
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     dontRegisterView?: boolean;
-    backgroundColor?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -422,6 +422,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderBullet() {
         TraceMobx();
+        const iconType = Doc.toIcon(this.doc);
         const checked = this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
@@ -430,12 +431,20 @@ export class TreeView extends React.Component<TreeViewProps> {
                 color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"),
                 opacity: checked === "unchecked" ? undefined : 0.4
             }}>
-            {this.outlineMode && !(this.doc.text as RichTextField)?.Text ? (null) :
-                <FontAwesomeIcon icon={this.outlineMode ? [this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"] :
-                    checked === "check" ? "check" :
-                        (checked === "x" ? "times" : checked === "unchecked" ? "square" :
-                            !this.treeViewOpen ? (this.childDocs?.length ? "caret-square-right" : "caret-right") :
-                                (this.childDocs?.length ? "caret-square-down" : "caret-down"))} />}
+            {this.outlineMode ?
+                !(this.doc.text as RichTextField)?.Text ? (null) :
+                    <FontAwesomeIcon size="sm" icon={[this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"]} /> :
+                <div className="treeView-bulletIcons" >
+                    <div className="treeView-expandIcon">
+                        <FontAwesomeIcon size="sm" icon={this.outlineMode ? [this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"] :
+                            checked === "check" ? "check" :
+                                (checked === "x" ? "times" : checked === "unchecked" ? "square" :
+                                    !this.treeViewOpen ? "caret-right" :
+                                        "caret-down")} />
+                    </div>
+                    <FontAwesomeIcon icon={iconType} />
+                </div>
+            }
         </div>;
     }
     @computed get showTitleEditorControl() { return ["*", this._uniqueId, this.props.treeView._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || ""); }
@@ -661,7 +670,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
+        backgroundColor: undefined | ((document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
