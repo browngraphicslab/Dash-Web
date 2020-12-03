@@ -379,8 +379,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
                 // then the modification would be done here
                 const ordering = StrCast(this.doc[this.fieldKey + "-sortCriteria"]);
-                const docs = TreeView.sortDocs(this.childDocs || ([] as Doc[]), ordering);
                 if (ordering === "zorder") {
+                    const docs = TreeView.sortDocs(this.childDocs || ([] as Doc[]), ordering);
                     doc.zIndex = addBefore ? (before ? NumCast(addBefore.zIndex) - 0.5 : NumCast(addBefore.zIndex) + 0.5) : 1000;
                     docs.push(doc);
                     docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1);
