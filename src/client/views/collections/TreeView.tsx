@@ -376,15 +376,29 @@ export class TreeView extends React.Component<TreeViewProps> {
         if (["links", "annotations", this.fieldKey].includes(expandKey)) {
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
             const localAdd = (doc: Doc, addBefore?: Doc, before?: boolean) => {
+                // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
+                // then the modification would be done here
+                const ordering = StrCast(this.doc[this.fieldKey + "-sortCriteria"]);
+                const docs = TreeView.sortDocs(this.childDocs || ([] as Doc[]), ordering);
+                if (ordering === "zorder") {
+                    doc.zIndex = addBefore ? (before ? NumCast(addBefore.zIndex) - 0.5 : NumCast(addBefore.zIndex) + 0.5) : 1000;
+                    docs.push(doc);
+                    docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1);
+                    docs.forEach((d, i) => d.zIndex = i);
+                }
                 const added = Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
                 added && (doc.context = this.doc.context);
                 return added;
             };
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
-            const sortKey = `${this.fieldKey}-sortAscending`;
+            const sortKey = `${this.fieldKey}-sortCriteria`;
             return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""} onClick={(e) => {
-                !this.outlineMode && (this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true)));
+                !this.outlineMode && (this.doc[sortKey] =
+                    (this.doc[sortKey] === "ascending" ? "descending" :
+                        (this.doc[sortKey] === "descending" ? "zorder" :
+                            (this.doc[sortKey] === "zorder" ? undefined :
+                                "ascending"))));
                 e.stopPropagation();
             }}>
                 {!docs ? (null) :
@@ -614,9 +628,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get renderBorder() {
-        const sorting = this.doc[`${this.fieldKey}-sortAscending`];
+        const sorting = this.doc[`${this.fieldKey}-sortCriteria`];
         return <div className={`treeView-border${this.outlineMode ? "outline" : ""}`}
-            style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
+            style={{ borderColor: sorting === undefined ? undefined : sorting === "ascending" ? "crimson" : sorting === "descending" ? "blue" : "green" }}>
             {!this.treeViewOpen ? (null) : this.renderContent}
         </div>;
     }
@@ -656,6 +670,34 @@ export class TreeView extends React.Component<TreeViewProps> {
             </div>;
     }
 
+    public static sortDocs(childDocs: Doc[], criterion: string | undefined) {
+        const docs = childDocs.slice();
+        if (criterion) {
+            const sortAlphaNum = (a: string, b: string): 0 | 1 | -1 => {
+                const reN = /[0-9]*$/;
+                const aA = a.replace(reN, ""); // get rid of trailing numbers
+                const bA = b.replace(reN, "");
+                if (aA === bA) {  // if header string matches, then compare numbers numerically
+                    const aN = parseInt(a.match(reN)![0], 10);
+                    const bN = parseInt(b.match(reN)![0], 10);
+                    return aN === bN ? 0 : aN > bN ? 1 : -1;
+                } else {
+                    return aA > bA ? 1 : -1;
+                }
+            };
+            docs.sort(function (d1, d2): 0 | 1 | -1 {
+                const a = (criterion === "ascending" ? d2 : d1);
+                const b = (criterion === "ascending" ? d1 : d2);
+                const first = a[criterion === "zorder" ? "zIndex" : "title"];
+                const second = b[criterion === "zorder" ? "zIndex" : "title"];
+                if (typeof first === 'number' && typeof second === 'number') return (first - second) > 0 ? 1 : -1;
+                if (typeof first === 'string' && typeof second === 'string') return sortAlphaNum(first, second);
+                return criterion ? 1 : -1;
+            });
+        }
+        return docs;
+    }
+
     public static GetChildElements(
         childDocs: Doc[],
         treeView: CollectionTreeView,
@@ -691,29 +733,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             childDocs = childDocs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result);
         }
 
-        const docs = childDocs.slice();
-        const ascending = containingCollection?.[key + "-sortAscending"];
-        if (ascending !== undefined) {
-            const sortAlphaNum = (a: string, b: string): 0 | 1 | -1 => {
-                const reN = /[0-9]*$/;
-                const aA = a.replace(reN, ""); // get rid of trailing numbers
-                const bA = b.replace(reN, "");
-                if (aA === bA) {  // if header string matches, then compare numbers numerically
-                    const aN = parseInt(a.match(reN)![0], 10);
-                    const bN = parseInt(b.match(reN)![0], 10);
-                    return aN === bN ? 0 : aN > bN ? 1 : -1;
-                } else {
-                    return aA > bA ? 1 : -1;
-                }
-            };
-            docs.sort(function (a, b): 0 | 1 | -1 {
-                const first = (ascending ? b : a).title;
-                const second = (ascending ? a : b).title;
-                if (typeof first === 'number' && typeof second === 'number') return (first - second) > 0 ? 1 : -1;
-                if (typeof first === 'string' && typeof second === 'string') return sortAlphaNum(first, second);
-                return ascending ? 1 : -1;
-            });
-        }
+        const docs = TreeView.sortDocs(childDocs, StrCast(containingCollection?.[key + "-sortCriteria"]));
 
         const rowWidth = () => panelWidth() - 20;
         return docs.filter(child => child instanceof Doc).map((child, i) => {
