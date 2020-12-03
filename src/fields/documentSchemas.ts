@@ -102,7 +102,7 @@ export const documentSchema = createSchema({
     linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
-    _isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
+    layers: listSpec("string"), // which layers the document is part of
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 

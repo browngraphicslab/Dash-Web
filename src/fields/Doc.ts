@@ -76,6 +76,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 
 export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> { return Cast(field, Doc); }
 
+export function StrListCast(field: FieldResult) { return Cast(field, listSpec("string"), []); }
 export function DocListCast(field: FieldResult) { return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[]; }
 export function DocListCastOrNull(field: FieldResult) { return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined; }
 

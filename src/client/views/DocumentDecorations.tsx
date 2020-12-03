@@ -28,7 +28,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { KeyManager } from './GlobalKeyHandler';
 
 @observer
-export class DocumentDecorations extends React.Component<{}, { value: string }> {
+export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
     static Instance: DocumentDecorations;
     private _resizeHdlId = "";
     private _keyinput = React.createRef<HTMLInputElement>();
@@ -54,7 +54,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: any) {
         super(props);
         DocumentDecorations.Instance = this;
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
@@ -603,17 +603,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
             </div>;
 
-        bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
-        bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
+        const leftBounds = this.props.boundsLeft;
+        const topBounds = this.props.boundsTop;
+        bounds.x = Math.max(leftBounds, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
+        bounds.y = Math.max(topBounds, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
         const borderRadiusDraggerWidth = 15;
-        bounds.r = Math.min(window.innerWidth, bounds.r + borderRadiusDraggerWidth + this._resizeBorderWidth / 2) - this._resizeBorderWidth / 2 - borderRadiusDraggerWidth;
-        bounds.b = Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight;
-        if (bounds.x > bounds.r) {
-            bounds.x = bounds.r - this._resizeBorderWidth;
-        }
-        if (bounds.y > bounds.b) {
-            bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
-        }
+        bounds.r = Math.max(bounds.x, Math.max(leftBounds, Math.min(window.innerWidth, bounds.r + borderRadiusDraggerWidth + this._resizeBorderWidth / 2) - this._resizeBorderWidth / 2 - borderRadiusDraggerWidth));
+        bounds.b = Math.max(bounds.y, Math.max(topBounds, Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight));
         const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
         return (<div className="documentDecorations" style={{ background: darkScheme }} >

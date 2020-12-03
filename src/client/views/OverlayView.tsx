@@ -15,6 +15,7 @@ import { ScriptingRepl } from './ScriptingRepl';
 import { DragManager } from "../util/DragManager";
 import { List } from "../../fields/List";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { TabDocView } from "./collections/TabDocView";
 
 export type OverlayDisposer = () => void;
 
@@ -195,7 +196,7 @@ export class OverlayView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
+                    styleProvider={TabDocView.styleProvider}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

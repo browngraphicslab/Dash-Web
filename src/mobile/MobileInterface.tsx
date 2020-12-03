@@ -215,7 +215,7 @@ export class MobileInterface extends React.Component {
                     PanelHeight={this.returnHeight}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={this.whitebackground}
+                    styleProvider={this.whitebackground}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}

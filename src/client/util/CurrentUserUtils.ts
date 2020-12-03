@@ -63,7 +63,7 @@ export class CurrentUserUtils {
                 [this.ficon({
                     ignoreClick: true,
                     icon: "mobile",
-                    backgroundColor: "rgba(0,0,0,0)"
+                    backgroundColor: "transparent"
                 }),
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
@@ -378,10 +378,8 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            const textDoc = Docs.Create.TextDocument("Slide", { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
-            Doc.GetProto(textDoc).layout = CollectionView.LayoutString("data");
+            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
             Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
-            Doc.GetProto(textDoc).data = new List<Doc>([]);
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
@@ -496,7 +494,7 @@ export class CurrentUserUtils {
             activeInkPen,
             backgroundColor,
             _hideContextMenu: true,
-            removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+            removeDropProperties: new List<string>(["_stayInCollection"]),
             _stayInCollection: true,
             dragFactory,
             clickFactory,
@@ -1052,7 +1050,12 @@ export class CurrentUserUtils {
                     Docs.newAccount = !(field instanceof Doc);
                     await Docs.Prototypes.initialize();
                     const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
-                    return this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    const updated = this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null)?.data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
+                        const a1 = await Cast(link?.anchor1, Doc, null);
+                        const a2 = await Cast(link?.anchor2, Doc, null);
+                    });
+                    return updated;
                 });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");

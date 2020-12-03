@@ -47,6 +47,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { isUndefined } from "lodash";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -73,6 +74,7 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
+    parentActive: (outsideReaction: boolean) => boolean;
     scaleField?: string;
     noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)
 };
@@ -87,7 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
     private _clusterDistance: number = 75;
-    private _hitCluster = false;
+    private _hitCluster: number = -1;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _boundsReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
@@ -225,6 +227,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
             if (this.Document._currentFrame !== undefined) {
+                CollectionFreeFormDocumentView.setupKeyframes([d], this.Document._currentFrame, false);
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
                 CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, this.Document.editScrollProgressivize ? vals.scroll : undefined, vals.opacity);
             } else {
@@ -234,7 +237,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [Doc.NativeWidth(layoutDoc), Doc.NativeHeight(layoutDoc)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            !d._isBackground && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !Cast(d, listSpec("string"), []).includes("background") && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
@@ -273,7 +276,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
-        // if (this.props.Document._isBackground) return false;
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (this.isAnnotationOverlay !== true && de.complete.linkDragData) {
             return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
@@ -287,21 +289,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     pickCluster(probe: number[]) {
         return this.childLayoutPairs.map(pair => pair.layout).reduce((cluster, cd) => {
-            const layoutDoc = Doc.Layout(cd);
-            const cx = NumCast(cd.x) - this._clusterDistance;
-            const cy = NumCast(cd.y) - this._clusterDistance;
-            const cw = NumCast(layoutDoc._width) + 2 * this._clusterDistance;
-            const ch = NumCast(layoutDoc._height) + 2 * this._clusterDistance;
-            return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ?
-                NumCast(cd.cluster) : cluster;
+            const grouping = this.props.Document._useClusters ? NumCast(cd.cluster, -1) : NumCast(cd.group, -1);
+            if (grouping !== -1) {
+                const layoutDoc = Doc.Layout(cd);
+                const cx = NumCast(cd.x) - this._clusterDistance;
+                const cy = NumCast(cd.y) - this._clusterDistance;
+                const cw = NumCast(layoutDoc._width) + 2 * this._clusterDistance;
+                const ch = NumCast(layoutDoc._height) + 2 * this._clusterDistance;
+                return !layoutDoc.z && intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }) ? grouping : cluster;
+            }
+            return cluster;
         }, -1);
     }
-    tryDragCluster(e: PointerEvent | TouchEvent) {
-        const ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
-        if (ptsParent) {
-            const cluster = this.pickCluster(this.getTransform().transformPoint(ptsParent.clientX, ptsParent.clientY));
-            if (cluster !== -1) {
-                const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => NumCast(cd.cluster) === cluster);
+    tryDragCluster(e: PointerEvent | TouchEvent, cluster: number) {
+        if (cluster !== -1) {
+            const ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
+            if (ptsParent) {
+                const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => (this.props.Document._useClusters ? NumCast(cd.cluster) : NumCast(cd.group, -1)) === cluster);
                 const clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
                 const de = new DragManager.DocumentDragData(eles);
                 de.moveDocument = this.props.moveDocument;
@@ -389,8 +393,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>) => {
-        let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
+    getClusterColor = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
+        let clusterColor = this.props.styleProvider?.(doc, this.props.renderDepth + 1, property, layerProvider);
+        if (property !== "backgroundColor") return clusterColor;
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
@@ -401,10 +406,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 clusterColor = colors[cluster % colors.length];
                 const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
-                set && set.filter(s => !s._isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
-                set && set.filter(s => s._isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
+                set && set.filter(s => !Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
+                set && set.filter(s => Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
             }
-        }
+        } else if (doc && NumCast(doc.group, -1) !== -1) clusterColor = "gray";
         return clusterColor;
     }
 
@@ -414,8 +419,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             return;
         }
-        this._hitCluster = this.props.Document._useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
+        if (e.button === 0 && (!e.shiftKey || this._hitCluster !== -1) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
 
             // if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
             //     this.props.addDocTab(this.props.Document, "replace");
@@ -446,7 +451,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt = me.changedTouches[0];
             if (pt) {
-                this._hitCluster = this.props.Document.useCluster ? this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY)) !== -1 : false;
+                this._hitCluster = this.pickCluster(this.getTransform().transformPoint(pt.clientX, pt.clientY));
                 if (!e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
                     this.removeMoveListeners();
                     this.addMoveListeners();
@@ -640,7 +645,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         if (!e.cancelBubble) {
             if (Doc.GetSelectedTool() === InkTool.None) {
-                if (this._hitCluster && this.tryDragCluster(e)) {
+                if (this.tryDragCluster(e, this._hitCluster)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                     e.preventDefault();
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -660,7 +665,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const pt = myTouches[0];
             if (pt) {
                 if (Doc.GetSelectedTool() === InkTool.None) {
-                    if (this._hitCluster && this.tryDragCluster(e)) {
+                    if (this.tryDragCluster(e, this._hitCluster)) {
                         e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                         e.preventDefault();
                         document.removeEventListener("pointermove", this.onPointerMove);
@@ -860,7 +865,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     bringToFront = action((doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack || doc._isBackground) {
+        if (sendToBack || Cast(doc.layers, listSpec("string"), []).includes("background")) {
             doc.zIndex = 0;
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;
@@ -975,11 +980,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get backgroundActive() { return this.layoutDoc._isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = () => BoolCast(this.Document._useClusters);
-    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
+    backgroundHalo = computedFn(function (doc: Doc) { return BoolCast(this.Document._useClusters) || (NumCast(doc.group, -1) !== -1); }).bind(this);
+    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             addDocument: this.props.addDocument,
@@ -987,6 +992,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             moveDocument: this.props.moveDocument,
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
+            parentActive: this.parentActive,
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
@@ -1011,9 +1017,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             docRangeFilters: this.docRangeFilters,
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
-            backgroundColor: this.getClusterColor,
+            styleProvider: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
-            parentActive: this.parentActive,
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
         };
@@ -1121,7 +1126,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get doInternalLayoutComputation() {
         TraceMobx();
 
-
         const newPool = new Map<string, PoolData>();
         const engine = this.props.layoutEngine?.() || StrCast(this.layoutDoc._layoutEngine);
         switch (engine) {
@@ -1160,6 +1164,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
+                    layerProvider={this.props.layerProvider}
                     pointerEvents={this.backgroundActive || this.props.childPointerEvents ?
                         "all" :
                         (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
@@ -1379,7 +1384,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         };
         const snappableDocs: Doc[] = [];  // the set of documents in the visible viewport that we will try to snap to;
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-        this.getActiveDocuments().filter(doc => !doc._isBackground && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
+        this.getActiveDocuments().filter(doc => !Cast(doc.layers, listSpec("string"), []).includes("background") && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
         !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => isDocInView(doc, selRect)); // if not, see if there are background docs to snap to
         !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => isDocInView(doc, otherBounds)); // if not, then why not snap to floating docs
 
@@ -1475,11 +1480,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             }} />;
     }
+    trySelectCluster = (addToSel: boolean) => {
+        if (this._hitCluster !== -1) {
+            if (!addToSel) {
+                SelectionManager.DeselectAll();
+            }
+            const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => (this.props.Document._useClusters ? NumCast(cd.cluster) : NumCast(cd.group, -1)) === this._hitCluster);
+            this.selectDocuments(eles);
+            return true;
+        }
+        return false;
+    }
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
-            nudge={this.isAnnotationOverlay ? undefined : this.nudge}
+            nudge={this.isAnnotationOverlay || this.props.renderDepth > 0 ? undefined : this.nudge}
             addDocTab={this.addDocTab}
+            trySelectCluster={this.trySelectCluster}
             activeDocuments={this.getActiveDocuments}
             selectDocuments={this.selectDocuments}
             addDocument={this.addDocument}
@@ -1490,6 +1507,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <div ref={this._marqueeRef}>
                 {this.layoutDoc["_backgroundGrid-show"] ? this.grid : (null)}
                 <CollectionFreeFormViewPannableContents
+                    isAnnotationOverlay={this.isAnnotationOverlay}
                     centeringShiftX={this.centeringShiftX}
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
@@ -1514,7 +1532,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
-    @computed get backgroundEvents() { return this.layoutDoc._isBackground && SnappingManager.GetIsDragging(); }
+    @computed get backgroundEvents() { return this.props.layerProvider?.(this.layoutDoc) === false && SnappingManager.GetIsDragging(); }
 
     render() {
         TraceMobx();
@@ -1583,6 +1601,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     presPaths?: boolean;
     progressivize?: boolean;
     presPinView?: boolean;
+    isAnnotationOverlay: boolean | undefined;
 }
 
 @observer
@@ -1728,6 +1747,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             style={{
                 transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
                 transition: this.props.transition,
+                width: this.props.isAnnotationOverlay ? undefined : 0, // if not an overlay, then this will be the size of the collection, but panning and zooming will move it outside the visible border of the collection and make it selectable.  This problem shows up after zooming/panning on a background collection -- you can drag the collection by clicking on apparently empty space outside the collection
                 //willChange: "transform"
             }}>
             {this.props.children()}

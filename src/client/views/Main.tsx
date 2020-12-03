@@ -24,5 +24,12 @@ AssignAllExtensions();
             event.preventDefault();
         }
     }, true);
+    const startload = (document as any).startLoad;
+    const loading = Date.now() - (startload ? Number(startload) : (Date.now() - 3000));
+    console.log("Load Time = " + loading);
+    const d = new Date();
+    d.setTime(d.getTime() + (100 * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = `loadtime=${loading};${expires};path=/`;
     ReactDOM.render(<MainView />, document.getElementById('root'));
 })();

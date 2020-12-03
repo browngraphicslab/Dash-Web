@@ -1,12 +1,12 @@
 import { action, computed, Lambda, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc, Opt, WidthSym } from '../../../../fields/Doc';
+import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
-import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
+import { emptyFunction, OmitKeys, returnFalse, returnOne, setupMoveUpEvents } from '../../../../Utils';
 import { Docs } from '../../../documents/Documents';
 import { DragManager } from '../../../util/DragManager';
 import { SnappingManager } from '../../../util/SnappingManager';
@@ -165,15 +165,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
+            ContentScaling={returnOne}
+            FreezeDimensions={true}
+            fitToBox={true}
             ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            dontCenter={true}
+            dontCenter={"y"}
         />;
     }
 

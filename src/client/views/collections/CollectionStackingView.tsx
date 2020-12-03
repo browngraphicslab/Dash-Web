@@ -192,7 +192,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             LayoutTemplate={this.props.ChildLayoutTemplate}
             LayoutTemplateString={this.props.ChildLayoutString}
             LibraryPath={this.props.LibraryPath}
@@ -202,7 +202,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             PanelHeight={height}
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
-            dontCenter={this.props.childIgnoreNativeSize ? true : false}
+            dontCenter={this.props.childIgnoreNativeSize ? "xy" : ""}
             fitToBox={false}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
@@ -292,9 +292,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             });
             const oldDocs = this.childDocs.length;
             if (super.onInternalDrop(e, de)) {
-                const newDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs);
+                const droppedDocs = this.childDocs.slice().filter((d: Doc, ind: number) => ind >= oldDocs); // if the drop operation adds something to the end of the list, then use that as the new document (may be different than what was dropped e.g., in the case of a button which is dropped but which creates say, a note).
+                const newDocs = droppedDocs.length ? droppedDocs : de.complete.docDragData.droppedDocuments; // if nothing was added to the end of the list, then presumably the dropped documents were already in the list, but possibly got reordered so we use them.
 
-                //de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 DragManager.docsBeingDragged = [];
                 if (docs && newDocs.length) {
@@ -410,7 +410,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = Math.max(height * NumCast(doc[this.props.fieldKey + "-height"]), NumCast(doc[this.props.fieldKey + "-height"]));
+                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);

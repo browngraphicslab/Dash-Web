@@ -810,7 +810,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this.dataDoc[UpdatingFromServer] = this.dataDoc[ForceServerWrite] = false;
         }
     }
+
+    IsActive = () => {
+        return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
+    }
+
     componentDidMount() {
+        this.props.contentsActive?.(this.IsActive);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.sidebarheight = reaction(
             () => ({ annoHeight: NumCast(this.rootDoc[this.annotationKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
@@ -1466,7 +1472,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static LiveTextUndo: UndoManager.Batch | undefined;
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
-        RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
+        if (RichTextMenu.Instance?.view === this._editorView && !this.props.isSelected(true)) {
+            RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
+        }
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();
@@ -1616,13 +1624,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const active = this.active();
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && !this.layoutDoc._isBackground;
+        const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);
         if (!selected && FormattedTextBoxComment.textBox === this) setTimeout(() => FormattedTextBoxComment.Hide());
         const minimal = this.props.ignoreAutoHeight;
         const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
         const selPad = Math.min(margins, 10);
         const padding = Math.max(margins + ((selected && !this.layoutDoc._singleLine) || minimal ? -selPad : 0), 0);
-        const selclass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
+        const selPaddingClass = selected && !this.layoutDoc._singleLine && margins >= 10 ? "-selected" : "";
         return (
             <div className="formattedTextBox-cont" ref={this._boxRef}
                 style={{
@@ -1665,12 +1673,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     })}
                     onDoubleClick={this.onDoubleClick}
                 >
-                    <div className={`formattedTextBox-outer${selclass}`} ref={this._scrollRef}
-                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined }}
+                    <div className={`formattedTextBox-outer${selected ? "-selected" : ""}`} ref={this._scrollRef}
+                        style={{
+                            width: `calc(100% - ${this.sidebarWidthPercent})`,
+                            pointerEvents: !active && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                            overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
+                        }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
-                        <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
+                        <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selPaddingClass}`} ref={this.createDropTarget}
                             style={{
-                                overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
                                 pointerEvents: !active && !SnappingManager.GetIsDragging() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}

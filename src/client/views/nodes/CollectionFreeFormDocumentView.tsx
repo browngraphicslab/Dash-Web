@@ -1,4 +1,4 @@
-import { computed, IReactionDisposer, observable, reaction, trace } from "mobx";
+import { computed, IReactionDisposer, observable, reaction, trace, action } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -18,10 +18,13 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
 import { PresBox, PresEffect } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
+import { SnappingManager } from "../../util/SnappingManager";
+import { InkTool } from "../../../fields/InkField";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
     sizeProvider?: (doc: Doc, replica: string) => { width: number, height: number } | undefined;
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     zIndex?: number;
     highlight?: boolean;
     jitterRotation: number;
@@ -33,6 +36,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
     @observable _animPos: number[] | undefined = undefined;
+    @observable _contentView: ContentFittingDocumentView | undefined | null;
     random(min: number, max: number) { // min should not be equal to max
         const mseed = Math.abs(this.X * this.Y);
         const seed = (mseed * 9301 + 49297) % 233280;
@@ -204,8 +208,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             dragDivName={"collectionFreeFormDocumentView-container"}
             ContentScaling={this.contentScaling}
             ScreenToLocalTransform={this.getTransform}
-            backgroundColor={this.props.backgroundColor}
+            styleProvider={this.props.styleProvider}
             opacity={this.opacity}
+            layerProvider={this.props.layerProvider}
             NativeHeight={this.NativeHeight}
             NativeWidth={this.NativeWidth}
             PanelWidth={this.panelWidth}
@@ -244,17 +249,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     opacity = () => this.Opacity;
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
+    @computed get pointerEvents() {
+        if (this.props.pointerEvents === "none") return "none";
+        return this.props.styleProvider?.(this.Document, this.props.renderDepth, !this._contentView?.docView?.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
+    }
     render() {
         TraceMobx();
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document, this.props.renderDepth);
+        const backgroundColor = this.props.styleProvider?.(this.Document, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
         const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
                     this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document, this.props.renderDepth)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc._isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                this.layoutDoc._isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
+                            this.props.backgroundHalo?.(this.props.Document) && this.props.Document.type !== DocumentType.INK ? (`${this.props.styleProvider?.(this.props.Document, this.props.renderDepth, "backgroundColor", this.props.layerProvider)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(Cast(this.layoutDoc.layers, listSpec("string"), []).includes("background") ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                Cast(this.layoutDoc.layers, listSpec("string"), []).includes('background') ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: borderRounding,
                 outline: this.Highlight ? "orange solid 2px" : "",
@@ -266,7 +275,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
                 // @ts-ignore
-                pointerEvents: this.props.Document._isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents
+                pointerEvents: this.pointerEvents
             }} >
 
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
@@ -280,6 +289,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             {!this.props.fitToBox ?
                 <>{this.freeformNodeDiv}</>
                 : <ContentFittingDocumentView {...this.props}
+                    ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     DataDoc={this.props.DataDoc}
                     ScreenToLocalTransform={this.getTransform}
