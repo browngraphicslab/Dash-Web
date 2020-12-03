@@ -60,7 +60,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _hold: boolean = false;
     _left: boolean = false;
     _first: boolean = false;
-    _dragging = false;
     _play: any = null;
 
     _count: Array<any> = [];
@@ -263,6 +262,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " range markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.hideLabels ? "Don't hide" : "Hide") + " label markers", event: () => this.layoutDoc.hideLabels = !this.layoutDoc.hideLabels, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " markers onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " markers onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -532,7 +532,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
             return <DocumentView {...this.props}
                 Document={mark}
-                focus={() => script}
                 pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}

@@ -9,6 +9,129 @@
     .inkingCanvas-paths-markers {
         opacity : 0.4; // we shouldn't have to do this, but since chrome crawls to a halt with z-index unset in videoBox-content, this is a workaround
     }
+
+    .audiobox-timeline {
+        position: absolute;
+        height: 20%;
+        width: 100%;
+        bottom: -60px;
+        background: white;
+        border: gray solid 1px;
+        border-radius: 3px;
+        z-index: 1000;
+        overflow: hidden;
+
+        .audiobox-current {
+            width: 1px;
+            height: 100%;
+            background-color: red;
+            position: absolute;
+            top: 0px;
+        }
+
+        .audiobox-container {
+            position: absolute;
+            width: 10px;
+            top: 2.5%;
+            height: 0px;
+            background: lightblue;
+            border-radius: 5px;
+            // box-shadow: black 2px 2px 1px;
+            opacity: 0.3;
+            z-index: 500;
+            border-style: solid;
+            border-color: darkblue;
+            border-width: 1px;
+        }
+
+        .audiobox-marker-container,
+        .audiobox-marker-minicontainer {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            top: 2.5%;
+            background: gray;
+            border-radius: 50%;
+            box-shadow: black 2px 2px 1px;
+            overflow: visible;
+            cursor: pointer;
+
+            .audiobox-marker {
+                position: relative;
+                height: 100%;
+                // height: calc(100% - 15px);
+                width: 100%;
+                //margin-top: 15px;
+            }
+
+            .audio-marker:hover {
+                border: orange 2px solid;
+            }
+        }
+
+        .audiobox-marker-container1,
+        .audiobox-marker-minicontainer {
+            position: absolute;
+            width: 10px;
+            height: 90%;
+            top: 2.5%;
+            background: gray;
+            border-radius: 5px;
+            box-shadow: black 2px 2px 1px;
+            opacity: 0.3;
+
+            .audiobox-marker {
+                position: relative;
+                height: calc(100% - 15px);
+                margin-top: 15px;
+            }
+
+            .audio-marker:hover {
+                border: orange 2px solid;
+            }
+
+            .resizer {
+                position: absolute;
+                right: 0;
+                cursor: ew-resize;
+                height: 100%;
+                width: 2px;
+                z-index: 100;
+            }
+
+            .click {
+                position: relative;
+                height: 100%;
+                width: 100%;
+                z-index: 100;
+            }
+
+            .left-resizer {
+                position: absolute;
+                left: 0;
+                cursor: ew-resize;
+                height: 100%;
+                width: 2px;
+                z-index: 100;
+            }
+        }
+
+        .audiobox-marker-container1:hover,
+        .audiobox-marker-minicontainer:hover {
+            opacity: 0.8;
+        }
+
+        .audiobox-marker-minicontainer {
+            width: 5px;
+            border-radius: 1px;
+
+            .audiobox-marker {
+                position: relative;
+                height: calc(100% - 8px);
+                margin-top: 8px;
+            }
+        }
+    }
 }
 
 .videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen,
@@ -47,6 +170,15 @@
     background-color:rgba(50, 50, 50, 0.2);
     transform-origin: left top;
     pointer-events:all;
+}
+
+.timeline-button {
+    position: absolute;
+    bottom: 15px;
+    right: 17%;
+    color: lightgrey;
+    width: 20px;
+
 }
 .videoBox-play {
     width: 25px;
