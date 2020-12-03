@@ -139,7 +139,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 this.props.addDocument(slide);
                 //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
-            } else if (!e.ctrlKey && !e.metaKey) {
+            } else if (!e.ctrlKey && !e.metaKey && SelectionManager.SelectedDocuments().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.ChildLayoutString ? e.key : "";
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
                 this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0));
