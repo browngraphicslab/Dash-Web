@@ -448,7 +448,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "" : ""; break;
                         case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "white"; break;
                         case DocumentType.FONTICON: docColor = "black"; break;
-                        case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
+                        case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb"; break;
                         case DocumentType.LABEL:
                         case DocumentType.BUTTON: docColor = TabDocView.darkScheme ? "#2d2d2d" : "lightgray"; break;
                         case DocumentType.LINK:
@@ -463,6 +463,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
                 return docColor;
             }
+            case "widgetColor": return TabDocView.darkScheme ? "lightgrey" : "dimgrey";
             case "hidden": return (BoolCast(doc?.hidden) /* || layerProvider?.(doc) === false*/);
             case "boxShadow": {
                 switch (doc?.type) {
