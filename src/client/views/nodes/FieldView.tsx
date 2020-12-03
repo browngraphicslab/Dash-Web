@@ -11,7 +11,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { VideoBox } from "./VideoBox";
 import { dropActionType } from "../../util/DragManager";
-import { DocAfterFocusFunc, DocFocusFunc } from "./DocumentView";
+import { DocAfterFocusFunc, DocFocusFunc, DocumentViewProps } from "./DocumentView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -43,7 +43,7 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc | Doc[]) => boolean;
     moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    styleProvider?: (document: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     parentActive: (outsideReaction: boolean) => boolean;

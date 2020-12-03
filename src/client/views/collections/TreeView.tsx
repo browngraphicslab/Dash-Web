@@ -21,7 +21,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
@@ -49,7 +49,7 @@ export interface TreeViewProps {
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     dontRegisterView?: boolean;
-    backgroundColor?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -670,7 +670,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
+        backgroundColor: undefined | ((document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,

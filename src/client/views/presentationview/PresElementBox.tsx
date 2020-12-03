@@ -6,7 +6,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents, lightOrDark } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
@@ -323,7 +323,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
                     style={{
-                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider),
+                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, "color", this.props.layerProvider),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
                     }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>

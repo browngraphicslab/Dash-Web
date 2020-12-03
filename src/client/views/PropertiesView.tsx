@@ -28,6 +28,7 @@ import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { CollectionViewType } from "./collections/CollectionView";
+import { DocumentViewProps } from "./nodes/DocumentView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -36,7 +37,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
 }
 
 @observer

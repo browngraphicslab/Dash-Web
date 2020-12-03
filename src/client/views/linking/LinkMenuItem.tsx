@@ -18,6 +18,7 @@ import { DocumentView } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 
 interface LinkMenuItemProps {
@@ -194,7 +195,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     render() {
-        let destinationIcon = Doc.toIcon(this.props.destinationDoc);
+        const destinationIcon = Doc.toIcon(this.props.destinationDoc) as any as IconProp;
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
             StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;
