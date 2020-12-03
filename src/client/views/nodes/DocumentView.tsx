@@ -964,7 +964,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             {!this.props.Document.numUsersShared && !this.props.Document.numGroupsShared ? (null) :
                 <Tooltip title={<> <div className="dash-tooltip">Tap to open sharing menu</div></>}>
-                    <div className="sharingIndicator" onPointerDown={() => SharingManager.Instance.open(undefined, this.props.Document)}>
+                    <div className="sharingIndicator"
+                        onPointerDown={() => SharingManager.Instance.open(undefined, this.props.Document)}
+                        style={{ backgroundColor: GetEffectiveAcl(this.props.Document[DataSym]) === AclAdmin ? "#9dca96" : "lightgrey" }}
+                    >
                         <FontAwesomeIcon size="lg" icon={this.indicatorIcon} />
                     </div>
                 </Tooltip >
