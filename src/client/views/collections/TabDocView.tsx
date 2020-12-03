@@ -166,14 +166,17 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             pinDoc.presentationTargetDoc = doc;
             pinDoc.title = doc.title + " - Slide";
             pinDoc.presMovement = PresMovement.Zoom;
+            pinDoc.groupWithUp = false;
             pinDoc.context = curPres;
             const presArray: Doc[] = PresBox.Instance?.sortArray();
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
             Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
-            if (pinDoc.type === "audio" && !audioRange) {
+            if (!audioRange && (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID)) {
+                pinDoc.mediaStart = "manual";
+                pinDoc.mediaStop = "manual";
                 pinDoc.presStartTime = 0;
-                pinDoc.presEndTime = doc.duration;
+                pinDoc.presEndTime = pinDoc.type === DocumentType.AUDIO ? doc.duration : NumCast(doc["data-duration"]);
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             const dview = CollectionDockingView.Instance.props.Document;
@@ -442,8 +445,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
                 if (!docColor) {
                     switch (doc?.type) {
-                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "dimgrey" : ""; break;
-                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "black"; break;
+                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "" : ""; break;
+                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "white"; break;
                         case DocumentType.FONTICON: docColor = "black"; break;
                         case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
                         case DocumentType.LABEL:

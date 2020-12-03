@@ -63,7 +63,7 @@ export class CurrentUserUtils {
                 [this.ficon({
                     ignoreClick: true,
                     icon: "mobile",
-                    backgroundColor: "rgba(0,0,0,0)"
+                    backgroundColor: "transparent"
                 }),
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);

@@ -6,14 +6,14 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents, lightOrDark } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
-import { PresBox, PresMovement } from "../nodes/PresBox";
+import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
@@ -75,7 +75,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     embedHeight = (): number => 97;
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
-    embedWidth = (): number => this.props.PanelWidth() - 30;
+    embedWidth = (): number => this.props.PanelWidth() - 35;
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -117,7 +117,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @computed get duration() {
         let durationInS: number;
-        if (this.rootDoc.type === DocumentType.AUDIO) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10; }
+        if (this.rootDoc.type === DocumentType.AUDIO || this.rootDoc.type === DocumentType.VID) { durationInS = NumCast(this.rootDoc.presEndTime) - NumCast(this.rootDoc.presStartTime); durationInS = Math.round(durationInS * 10) / 10; }
         else if (this.rootDoc.presDuration) durationInS = NumCast(this.rootDoc.presDuration) / 1000;
         else durationInS = 2;
         return "D: " + durationInS + "s";
@@ -284,12 +284,19 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const toolbarWidth: number = this.toolbarWidth;
         const showMore: boolean = this.toolbarWidth >= 300;
         const miniView: boolean = this.toolbarWidth <= 110;
+        const presBox: Doc = this.presBox; //presBox
+        const presBoxColor: string = StrCast(presBox._backgroundColor);
+        const presColorBool: boolean = presBoxColor ? (presBoxColor !== "white" && presBoxColor !== "transparent") : false;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
         return (
-            <div className={`presItem-container`} key={this.props.Document[Id] + this.indexInPres}
+            <div className={`presItem-container`}
+                key={this.props.Document[Id] + this.indexInPres}
                 ref={this._itemRef}
-                style={{ backgroundColor: isSelected ? "#AEDDF8" : "rgba(0,0,0,0)", opacity: this._dragging ? 0.3 : 1 }}
+                style={{
+                    backgroundColor: presColorBool ? isSelected ? "rgba(250,250,250,0.3)" : "transparent" : isSelected ? "#AEDDF8" : "transparent",
+                    opacity: this._dragging ? 0.3 : 1
+                }}
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -305,15 +312,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerUp={this.headerUp}
             >
                 {miniView ?
+                    // when width is LESS than 110 px 
                     <div className={`presItem-miniSlide ${isSelected ? "active" : ""}`} ref={miniView ? this._dragRef : null}>
                         {`${this.indexInPres + 1}.`}
                     </div>
                     :
+                    // when width is MORE than 110 px 
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
-                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`} style={{ backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "backgroundColor", this.props.layerProvider) }}>
-                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95, cursor: isSelected ? 'text' : 'grab' }}>
+                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
+                    style={{
+                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider),
+                        boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
+                    }}>
+                    <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>
                         <EditableView
                             ref={this._titleRef}
                             editing={!isSelected ? false : undefined}
@@ -331,13 +344,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                                 onClick={() => this.updateView(targetDoc, activeItem)}
                                 style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>V</div>
                         </Tooltip>
-                        {/* <Tooltip title={<><div className="dash-tooltip">{"Group with up"}</div></>}>
+                        {this.indexInPres === 0 ? (null) : <Tooltip title={<><div className="dash-tooltip">{activeItem.groupWithUp ? "Ungroup" : "Group with up"}</div></>}>
                             <div className="slideButton"
                                 onClick={() => activeItem.groupWithUp = !activeItem.groupWithUp}
-                                style={{ fontWeight: 700, display: activeItem.presPinView ? "flex" : "none" }}>
-                                <FontAwesomeIcon icon={""} onPointerDown={e => e.stopPropagation()} />
+                                style={{
+                                    zIndex: 1000 - this.indexInPres,
+                                    fontWeight: 700,
+                                    backgroundColor: activeItem.groupWithUp ? presColorBool ? presBoxColor : PresColor.DarkBlue : undefined,
+                                    height: activeItem.groupWithUp ? 53 : 18,
+                                    transform: activeItem.groupWithUp ? "translate(0, -17px)" : undefined
+                                }}>
+                                <div style={{ transform: activeItem.groupWithUp ? "rotate(180deg) translate(0, -17.5px)" : "rotate(0deg)" }}>
+                                    <FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} />
+                                </div>
                             </div>
-                        </Tooltip> */}
+                        </Tooltip>}
                         <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"slideButton"} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                             <FontAwesomeIcon icon={this.rootDoc.presExpandInlineButton ? "eye-slash" : "eye"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
@@ -347,7 +368,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                         </div></Tooltip>
                     </div>
-                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 185) : toolbarWidth - 95 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
+                    <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
                     {this.renderEmbeddedInline}
                 </div>}
             </div >);
