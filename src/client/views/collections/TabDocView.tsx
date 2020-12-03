@@ -32,7 +32,6 @@ import React = require("react");
 import { List } from '../../../fields/List';
 import { DocumentType } from '../../documents/DocumentTypes';
 import Color = require('color');
-import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -417,9 +416,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @undoBatch
-    @action
-    static toggleBackground = (doc: Doc) => {
+    static toggleBackground = undoBatch(action((doc: Doc) => {
         const layers = StrListCast(doc.layers);
         if (!layers.includes("background")) {
             if (!layers.length) doc.layers = new List<string>(["background"]);
@@ -434,7 +431,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
             // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
         }
-    }
+    }))
     //
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 
