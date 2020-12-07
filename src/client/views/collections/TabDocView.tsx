@@ -431,7 +431,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
             // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
         }
-    }))
+    }));
     //
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 

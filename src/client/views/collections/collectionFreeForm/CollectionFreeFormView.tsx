@@ -222,14 +222,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
         zsorted.forEach((doc, index) => doc.zIndex = doc.isInkMask ? 5000 : index + 1);
         const dvals = CollectionFreeFormDocumentView.getValues(refDoc, NumCast(refDoc.activeFrame, 1000));
-        const dropPos = this.Document._currentFrame !== undefined ? [dvals.x, dvals.y] : [NumCast(refDoc.x), NumCast(refDoc.y)];
+        const dropPos = this.Document._currentFrame !== undefined ? [dvals.x || 0, dvals.y || 0] : [NumCast(refDoc.x), NumCast(refDoc.y)];
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
             if (this.Document._currentFrame !== undefined) {
                 CollectionFreeFormDocumentView.setupKeyframes([d], this.Document._currentFrame, false);
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, this.Document.editScrollProgressivize ? vals.scroll : undefined, vals.opacity);
+                vals.x = x + (vals.x || 0) - dropPos[0];
+                vals.y = y + (vals.y || 0) - dropPos[1];
+                vals._scrollTop = this.Document.editScrollProgressivize ? vals._scrollTop : undefined;
+                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, vals);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];

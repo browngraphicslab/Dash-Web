@@ -1,25 +1,23 @@
-import { computed, IReactionDisposer, observable, reaction, trace, action } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
+import { Doc, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
+import { Document } from "../../../fields/documentSchemas";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
+import { numberRange, returnVal } from "../../../Utils";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
-import "./CollectionFreeFormDocumentView.scss";
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import React = require("react");
-import { Document } from "../../../fields/documentSchemas";
-import { TraceMobx } from "../../../fields/util";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
-import { List } from "../../../fields/List";
-import { numberRange, smoothScroll, returnVal } from "../../../Utils";
-import { ComputedField } from "../../../fields/ScriptField";
-import { listSpec } from "../../../fields/Schema";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
-import { PresBox, PresEffect } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
-import { SnappingManager } from "../../util/SnappingManager";
-import { InkTool } from "../../../fields/InkField";
+import "./CollectionFreeFormDocumentView.scss";
+import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { PresBox, PresEffect } from "./PresBox";
+import React = require("react");
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -62,46 +60,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
 
+    static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];
     public static getValues(doc: Doc, time: number) {
-        const timecode = Math.round(time);
-        return ({
-            h: Cast(doc["h-indexed"], listSpec("number"), [NumCast(doc._height)]).reduce((p, h, i) => (i <= timecode && h !== undefined) || p === undefined ? h : p, undefined as any as number),
-            w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
-            x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
-            y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
-            opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
-        });
+        return CollectionFreeFormDocumentView.animFields.reduce((p, val) => {
+            p[val] = Cast(`${val}-indexed`, listSpec("number"), [NumCast(doc[val])]).reduce((p, v, i) => (i <= Math.round(time) && v !== undefined) || p === undefined ? v : p, undefined as any as number);
+            return p;
+        }, {} as { [val: string]: Opt<number> });
     }
 
-    public static setValues(time: number, d: Doc, x?: number, y?: number, h?: number, w?: number, scroll?: number, opacity?: number) {
+    public static setValues(time: number, d: Doc, vals: { [val: string]: Opt<number> }) {
         const timecode = Math.round(time);
-        const hindexed = Cast(d["h-indexed"], listSpec("number"), []).slice();
-        const windexed = Cast(d["w-indexed"], listSpec("number"), []).slice();
-        const xindexed = Cast(d["x-indexed"], listSpec("number"), []).slice();
-        const yindexed = Cast(d["y-indexed"], listSpec("number"), []).slice();
-        const oindexed = Cast(d["opacity-indexed"], listSpec("number"), []).slice();
-        const scrollIndexed = Cast(d["scroll-indexed"], listSpec("number"), []).slice();
-        xindexed[timecode] = x as any as number;
-        yindexed[timecode] = y as any as number;
-        hindexed[timecode] = h as any as number;
-        windexed[timecode] = w as any as number;
-        oindexed[timecode] = opacity as any as number;
-        if (scroll) scrollIndexed[timecode] = scroll as any as number;
-        d["x-indexed"] = new List<number>(xindexed);
-        d["y-indexed"] = new List<number>(yindexed);
-        d["h-indexed"] = new List<number>(hindexed);
-        d["w-indexed"] = new List<number>(windexed);
-        d["opacity-indexed"] = new List<number>(oindexed);
-        d["scroll-indexed"] = new List<number>(scrollIndexed);
-        if (d.appearFrame) {
-            if (d.appearFrame === timecode + 1) {
-                d["text-color"] = "red";
-            } else if (d.appearFrame < timecode + 1) {
-                d["text-color"] = "grey";
-            } else { d["text-color"] = "black"; }
-        } else if (d.appearFrame === 0) {
-        }
+        Object.keys(vals).forEach(val => {
+            const findexed = Cast(d[`${val}-indexed`], listSpec("number"), []).slice();
+            findexed[timecode] = vals[val] as any as number;
+            d[`${val}-indexed`] = new List<number>(findexed);
+        });
+        d.appearFrame && (d["text-color"] =
+            d.appearFrame === timecode + 1 ? "red" :
+                d.appearFrame < timecode + 1 ? "grey" : "black");
     }
 
     // public static updateScrollframe(doc: Doc, time: number) {
@@ -123,36 +99,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static updateKeyframe(docs: Doc[], time: number, targetDoc?: Doc) {
         const timecode = Math.round(time);
-        docs.forEach(doc => {
-            const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
-            const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
-            const hindexed = Cast(doc['h-indexed'], listSpec("number"), null);
-            const windexed = Cast(doc['w-indexed'], listSpec("number"), null);
-            const opacityindexed = Cast(doc['opacity-indexed'], listSpec("number"), null);
-            hindexed?.length <= timecode + 1 && hindexed.push(undefined as any as number);
-            windexed?.length <= timecode + 1 && windexed.push(undefined as any as number);
-            xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
-            yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
-            opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
-            if (doc.appearFrame && targetDoc) {
-                if (doc.appearFrame === timecode + 1) {
-                    doc["text-color"] = StrCast(targetDoc["pres-text-color"]);
-                } else if (doc.appearFrame < timecode + 1) {
-                    doc["text-color"] = StrCast(targetDoc["pres-text-viewed-color"]);
-                } else { doc["text-color"] = "black"; }
-            } else if (doc.appearFrame === 0) {
-                doc["text-color"] = "black";
-            }
-            doc.dataTransition = "all 1s";
-        });
-        setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
+        docs.forEach(action(doc => {
+            doc._viewTransition = doc.dataTransition = "all 1s";
+            doc["text-color"] =
+                !doc.appearFrame || !targetDoc ? "black" :
+                    doc.appearFrame === timecode + 1 ? StrCast(targetDoc["pres-text-color"]) :
+                        doc.appearFrame < timecode + 1 ? StrCast(targetDoc["pres-text-viewed-color"]) :
+                            "black";
+            CollectionFreeFormDocumentView.animFields.forEach(val => {
+                const findexed = Cast(doc[`${val}-indexed`], listSpec("number"), null);
+                findexed?.length <= timecode + 1 && findexed.push(undefined as any as number);
+            });
+        }));
+        setTimeout(() => docs.forEach(doc => { doc._viewTransition = undefined; doc.dataTransition = "inherit"; }), 1010);
     }
 
     public static gotoKeyframe(docs: Doc[]) {
-        docs.forEach(doc => doc.dataTransition = "all 1s");
-        setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
+        docs.forEach(doc => doc._viewTransition = doc.dataTransition = "all 1s");
+        setTimeout(() => docs.forEach(doc => { doc._viewTransition = undefined; doc.dataTransition = "inherit" }), 1010);
     }
-
 
     public static setupZoom(doc: Doc, targDoc: Doc) {
         const width = new List<number>();
@@ -172,27 +137,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static setupKeyframes(docs: Doc[], currTimecode: number, makeAppear: boolean = false) {
         docs.forEach(doc => {
             if (doc.appearFrame === undefined) doc.appearFrame = currTimecode;
-            const curTimecode = currTimecode;
-            const xlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
-            const ylist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
-            const wlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
-            const hlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
-            wlist[curTimecode] = NumCast(doc._width);
-            hlist[curTimecode] = NumCast(doc._height);
-            xlist[curTimecode] = NumCast(doc.x);
-            ylist[curTimecode] = NumCast(doc.y);
-            doc["x-indexed"] = xlist;
-            doc["y-indexed"] = ylist;
-            doc["w-indexed"] = wlist;
-            doc["h-indexed"] = hlist;
-            doc["opacity-indexed"] = olist;
+            if (!doc["opacity-indexed"]) { // opacity is unlike other fields because it's value should not be undefined before it appears to enable it to fade-in
+                const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
+                doc["opacity-indexed"] = olist;
+            }
+            CollectionFreeFormDocumentView.animFields.forEach(val => doc[val] = ComputedField.MakeInterpolated(val, "activeFrame", doc, currTimecode));
             doc.activeFrame = ComputedField.MakeFunction("self.context?._currentFrame||0");
-            doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
-            doc._width = ComputedField.MakeInterpolated("w", "activeFrame");
-            doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
-            doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
-            doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
             doc.dataTransition = "inherit";
         });
     }

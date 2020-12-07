@@ -12,6 +12,7 @@ import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import React = require("react");
 import { DocumentViewProps } from './DocumentView';
+import { Id } from '../../../fields/FieldSymbols';
 
 interface Props {
     linkDoc?: Doc;
@@ -64,8 +65,11 @@ export class LinkDocPreview extends React.Component<Props> {
             runInAction(() => {
                 this._toolTipText = "";
                 LinkDocPreview.TargetDoc = this._targetDoc = target;
-                if (anchor !== this._targetDoc && anchor && this._targetDoc) {
-                    this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
+                if (this._targetDoc) {
+                    this._targetDoc._scrollToPreviewLinkID = linkDoc?.[Id];
+                    if (anchor !== this._targetDoc && anchor) {
+                        this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
+                    }
                 }
             });
         }
