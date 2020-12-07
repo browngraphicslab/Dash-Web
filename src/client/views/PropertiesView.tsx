@@ -267,7 +267,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
-                    LibraryPath={emptyPath}
                     renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}

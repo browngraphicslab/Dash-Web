@@ -244,7 +244,6 @@ export class MainView extends React.Component {
         return <DocumentView
             Document={this.mainContainer!}
             DataDoc={undefined}
-            LibraryPath={emptyPath}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
@@ -294,7 +293,7 @@ export class MainView extends React.Component {
     flyoutWidthFunc = () => this._flyoutWidth;
     sidebarScreenToLocal = () => new Transform(0, -this.topOffset, 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(-this.leftOffset, 0);
-    addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
+    addDocTabFunc = (doc: Doc, where: string): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
@@ -308,7 +307,6 @@ export class MainView extends React.Component {
                     <DocumentView
                         Document={this._sidebarContent.proto || this._sidebarContent}
                         DataDoc={undefined}
-                        LibraryPath={emptyPath}
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
@@ -342,7 +340,6 @@ export class MainView extends React.Component {
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
                 DataDoc={undefined}
-                LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
@@ -457,7 +454,6 @@ export class MainView extends React.Component {
                 <CollectionLinearView
                     Document={this.userDoc.dockedBtns}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
@@ -532,7 +528,6 @@ export class MainView extends React.Component {
                 isSelected={returnTrue}
                 active={returnTrue}
                 select={this.select}
-                LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
@@ -565,7 +560,6 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     Document={DocumentLinksButton.invisibleWebDoc}
-                    LibraryPath={emptyPath}
                     dropAction={"move"}
                     isSelected={returnFalse}
                     select={returnFalse}
@@ -632,7 +626,6 @@ export class MainView extends React.Component {
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined}
                             Document={invisibleDoc}
-                            LibraryPath={emptyPath}
                             dropAction={"move"}
                             isSelected={returnFalse}
                             select={returnFalse}

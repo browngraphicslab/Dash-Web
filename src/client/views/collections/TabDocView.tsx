@@ -288,7 +288,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name, 
     //                                   "replace:monkeys" - will replace any tab that has the label 'monkeys', or a tab with that label will be created by default on the right
     //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
-    addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
+    addDocTab = (doc: Doc, location: string) => {
         SelectionManager.DeselectAll();
         const locationFields = doc._viewType === CollectionViewType.Docking ? ["dashboard"] : location.split(":");
         const locationParams = locationFields.length > 1 ? locationFields[1] : "";
@@ -335,7 +335,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
                 <CollectionFreeFormView
                     Document={this._document!}
-                    LibraryPath={emptyPath}
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
@@ -507,7 +506,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><DocumentView key={this._document[Id]}
-                LibraryPath={emptyPath}
                 Document={this._document}
                 getView={this.setView}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}

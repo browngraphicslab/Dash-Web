@@ -118,7 +118,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 <DocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
@@ -147,7 +146,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 <ContentFittingDocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}

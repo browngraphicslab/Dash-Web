@@ -86,7 +86,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
-                    LibraryPath={emptyPath}
                     fitToBox={true}
                     styleProvider={this.props.styleProvider}
                     rootSelected={returnTrue}

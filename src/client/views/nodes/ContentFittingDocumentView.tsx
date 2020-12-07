@@ -71,7 +71,6 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         DataDoc={this.props.DataDoc}
                         LayoutTemplate={this.props.LayoutTemplate}
                         LayoutTemplateString={this.props.LayoutTemplateString}
-                        LibraryPath={this.props.LibraryPath}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         ContentScaling={returnOne}

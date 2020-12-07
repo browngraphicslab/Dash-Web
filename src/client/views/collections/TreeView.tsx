@@ -39,7 +39,7 @@ export interface TreeViewProps {
     removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
-    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
@@ -521,7 +521,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 Document={this.doc}
                 DataDoc={undefined}
                 treeViewDoc={this.props.treeView.props.Document}
-                LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
                 rootSelected={returnTrue}
@@ -598,7 +597,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             focus={asText ? this.refocus : returnFalse}
             dontRegisterView={asText ? undefined : this.props.dontRegisterView}
             ScreenToLocalTransform={this.docTransform}
-            LibraryPath={emptyPath}
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
             treeViewDoc={undefined}

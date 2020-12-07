@@ -99,7 +99,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _currentTime: number = 0;
     private _linkTime: number | null = null;
     private _pause: boolean = false;
-    private _animatingScroll: numher = 0; // hack to prevent scroll values from being written to document when scroll is animating
+    private _animatingScroll: number = 0; // hack to prevent scroll values from being written to document when scroll is animating
 
     @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
     set _recording(value) {

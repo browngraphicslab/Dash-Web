@@ -202,7 +202,6 @@ export class MobileInterface extends React.Component {
                 <DocumentView
                     Document={this.mainContainer}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     addDocument={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}

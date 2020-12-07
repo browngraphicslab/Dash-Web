@@ -94,7 +94,6 @@ export class LinkDocPreview extends React.Component<Props> {
             :
             <ContentFittingDocumentView
                 Document={this._targetDoc}
-                LibraryPath={emptyPath}
                 fitToBox={true}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}

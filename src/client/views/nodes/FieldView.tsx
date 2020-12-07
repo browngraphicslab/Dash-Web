@@ -25,7 +25,6 @@ export interface FieldViewProps {
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
-    LibraryPath: Doc[];
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     contentsActive?: (setActive: () => boolean) => void;
     onClick?: () => ScriptField;

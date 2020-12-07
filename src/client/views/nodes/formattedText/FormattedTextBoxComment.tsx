@@ -297,7 +297,6 @@ export class FormattedTextBoxComment {
                                     <div className="FormattedTextBoxComment-preview-wrapper">
                                         <ContentFittingDocumentView
                                             Document={target}
-                                            LibraryPath={emptyPath}
                                             fitToBox={true}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}

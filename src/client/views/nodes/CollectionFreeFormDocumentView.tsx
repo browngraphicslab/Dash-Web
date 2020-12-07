@@ -116,7 +116,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static gotoKeyframe(docs: Doc[]) {
         docs.forEach(doc => doc._viewTransition = doc.dataTransition = "all 1s");
-        setTimeout(() => docs.forEach(doc => { doc._viewTransition = undefined; doc.dataTransition = "inherit" }), 1010);
+        setTimeout(() => docs.forEach(doc => { doc._viewTransition = undefined; doc.dataTransition = "inherit"; }), 1010);
     }
 
     public static setupZoom(doc: Doc, targDoc: Doc) {
@@ -153,41 +153,41 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     @computed get freeformNodeDiv() {
-        const node = <DocumentView {...this.props}
-            nudge={this.nudge}
-            dragDivName={"collectionFreeFormDocumentView-container"}
-            ContentScaling={this.contentScaling}
-            ScreenToLocalTransform={this.getTransform}
-            styleProvider={this.props.styleProvider}
-            opacity={this.opacity}
-            layerProvider={this.props.layerProvider}
-            NativeHeight={this.NativeHeight}
-            NativeWidth={this.NativeWidth}
-            PanelWidth={this.panelWidth}
-            PanelHeight={this.panelHeight} />;
-        if (PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
-            const effectProps = {
-                left: this.layoutDoc.presEffectDirection === PresEffect.Left,
-                right: this.layoutDoc.presEffectDirection === PresEffect.Right,
-                top: this.layoutDoc.presEffectDirection === PresEffect.Top,
-                bottom: this.layoutDoc.presEffectDirection === PresEffect.Bottom,
-                opposite: true,
-                delay: this.layoutDoc.presTransition,
-                // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
-            };
-            switch (this.layoutDoc.presEffect) {
-                case "Zoom": return (<Zoom {...effectProps}>{node}</Zoom>); break;
-                case PresEffect.Fade: return (<Fade {...effectProps}>{node}</Fade>); break;
-                case PresEffect.Flip: return (<Flip {...effectProps}>{node}</Flip>); break;
-                case PresEffect.Rotate: return (<Rotate {...effectProps}>{node}</Rotate>); break;
-                case PresEffect.Bounce: return (<Bounce {...effectProps}>{node}</Bounce>); break;
-                case PresEffect.Roll: return (<Roll {...effectProps}>{node}</Roll>); break;
-                case "LightSpeed": return (<LightSpeed {...effectProps}>{node}</LightSpeed>); break;
-                case PresEffect.None: return node; break;
-                default: return node; break;
-            }
-        } else {
-            return node;
+        const divProps = {
+            ...this.props,
+            nudge: this.nudge,
+            dragDivName: "collectionFreeFormDocumentView-container",
+            opacity: this.opacity,
+            ScreenToLocalTransform: this.getTransform,
+            NativeHeight: this.NativeHeight,
+            NativeWidth: this.NativeWidth,
+            PanelWidth: this.panelWidth,
+            PanelHeight: this.panelHeight
+        };
+        return this.props.fitToBox ?
+            <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
+            <DocumentView {...divProps} ContentScaling={this.contentScaling} />;
+    }
+    @computed get effectsNodeDiv() {
+        const effectProps = {
+            left: this.layoutDoc.presEffectDirection === PresEffect.Left,
+            right: this.layoutDoc.presEffectDirection === PresEffect.Right,
+            top: this.layoutDoc.presEffectDirection === PresEffect.Top,
+            bottom: this.layoutDoc.presEffectDirection === PresEffect.Bottom,
+            opposite: true,
+            delay: this.layoutDoc.presTransition,
+            // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
+        };
+        switch (this.layoutDoc.presEffect) {
+            case "Zoom": return (<Zoom {...effectProps}>{this.freeformNodeDiv}</Zoom>);
+            case PresEffect.Fade: return (<Fade {...effectProps}>{this.freeformNodeDiv}</Fade>);
+            case PresEffect.Flip: return (<Flip {...effectProps}>{this.freeformNodeDiv}</Flip>);
+            case PresEffect.Rotate: return (<Rotate {...effectProps}>{this.freeformNodeDiv}</Rotate>);
+            case PresEffect.Bounce: return (<Bounce {...effectProps}>{this.freeformNodeDiv}</Bounce>);
+            case PresEffect.Roll: return (<Roll {...effectProps}>{this.freeformNodeDiv}</Roll>);
+            case "LightSpeed": return (<LightSpeed {...effectProps}>{this.freeformNodeDiv}</LightSpeed>);
+            case PresEffect.None:
+            default: return this.freeformNodeDiv;
         }
     }
 
@@ -207,6 +207,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         TraceMobx();
         const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor", this.props.layerProvider);
         const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
+
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
@@ -236,18 +237,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     </svg>
                 </div>}
 
-            {!this.props.fitToBox ?
-                <>{this.freeformNodeDiv}</>
-                : <ContentFittingDocumentView {...this.props}
-                    ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                    DataDoc={this.props.DataDoc}
-                    ScreenToLocalTransform={this.getTransform}
-                    NativeHeight={this.NativeHeight}
-                    NativeWidth={this.NativeWidth}
-                    PanelWidth={this.panelWidth}
-                    PanelHeight={this.panelHeight}
-                />}
+            {PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc ?
+                this.effectsNodeDiv
+                :
+                this.freeformNodeDiv
+            }
         </div>;
     }
 }

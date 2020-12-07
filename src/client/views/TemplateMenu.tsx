@@ -136,7 +136,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}
                 onChildClick={this.scriptField}
-                LibraryPath={emptyPath}
                 dropAction={undefined}
                 active={returnTrue}
                 parentActive={returnFalse}

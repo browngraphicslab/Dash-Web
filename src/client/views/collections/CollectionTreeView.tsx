@@ -163,7 +163,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 Document={this.doc}
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
-                LibraryPath={emptyPath}
                 renderDepth={this.props.renderDepth + 1}
                 rootSelected={returnTrue}
                 treeViewDoc={undefined}

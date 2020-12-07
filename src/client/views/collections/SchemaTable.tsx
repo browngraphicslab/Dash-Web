@@ -573,7 +573,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         fitToBox={true}
                         FreezeDimensions={true}
                         focus={emptyFunction}
-                        LibraryPath={emptyPath}
                         renderDepth={this.props.renderDepth}
                         rootSelected={() => false}
                         PanelWidth={() => 150}

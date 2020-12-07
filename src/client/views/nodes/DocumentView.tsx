@@ -62,7 +62,6 @@ export interface DocumentViewProps {
     getView?: (view: DocumentView) => any;
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
-    LibraryPath: Doc[];
     fitToBox?: boolean;
     ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -90,7 +89,7 @@ export interface DocumentViewProps {
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: (doc: Doc) => boolean;
     styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
@@ -386,7 +385,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
         focus: DocFocusFunc,
-        addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean,
+        addDocTab: (doc: Doc, where: string) => boolean,
         ContainingCollectionDoc?: Doc
     }, shiftKey: boolean, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
@@ -933,7 +932,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
-                LibraryPath={this.props.LibraryPath}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}

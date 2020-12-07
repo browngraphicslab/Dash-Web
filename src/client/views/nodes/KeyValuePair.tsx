@@ -55,7 +55,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         const props: FieldViewProps = {
             Document: this.props.doc,
             DataDoc: this.props.doc,
-            LibraryPath: [],
             docFilters: returnEmptyFilter,
             docRangeFilters: returnEmptyFilter,
             searchFilterDocs: returnEmptyDoclist,
