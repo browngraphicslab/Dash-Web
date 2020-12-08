@@ -1,7 +1,6 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
-import { Doc, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
+import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -16,7 +15,6 @@ import { InkingStroke } from "../InkingStroke";
 import "./CollectionFreeFormDocumentView.scss";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { PresBox, PresEffect } from "./PresBox";
 import React = require("react");
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -80,23 +78,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 d.appearFrame < timecode + 1 ? "grey" : "black");
     }
 
-    // public static updateScrollframe(doc: Doc, time: number) {
-    //     console.log('update scroll frame');
-    //     const timecode = Math.round(time);
-    //     const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
-    //     scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
-    //     setTimeout(() => doc.dataTransition = "inherit", 1010);
-    // }
-
-    // public static setupScroll(doc: Doc, timecode: number) {
-    //     const scrollList = new List<number>();
-    //     scrollList[timecode] = NumCast(doc._scrollTop);
-    //     doc["scroll-indexed"] = scrollList;
-    //     doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
-    //     doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
-    // }
-
-
     public static updateKeyframe(docs: Doc[], time: number, targetDoc?: Doc) {
         const timecode = Math.round(time);
         docs.forEach(action(doc => {
@@ -151,46 +132,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
     }
-
-    @computed get freeformNodeDiv() {
-        const divProps = {
-            ...this.props,
-            nudge: this.nudge,
-            dragDivName: "collectionFreeFormDocumentView-container",
-            opacity: this.opacity,
-            ScreenToLocalTransform: this.getTransform,
-            NativeHeight: this.NativeHeight,
-            NativeWidth: this.NativeWidth,
-            PanelWidth: this.panelWidth,
-            PanelHeight: this.panelHeight
-        };
-        return this.props.fitToBox ?
-            <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
-            <DocumentView {...divProps} ContentScaling={this.contentScaling} />;
-    }
-    @computed get effectsNodeDiv() {
-        const effectProps = {
-            left: this.layoutDoc.presEffectDirection === PresEffect.Left,
-            right: this.layoutDoc.presEffectDirection === PresEffect.Right,
-            top: this.layoutDoc.presEffectDirection === PresEffect.Top,
-            bottom: this.layoutDoc.presEffectDirection === PresEffect.Bottom,
-            opposite: true,
-            delay: this.layoutDoc.presTransition,
-            // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
-        };
-        switch (this.layoutDoc.presEffect) {
-            case "Zoom": return (<Zoom {...effectProps}>{this.freeformNodeDiv}</Zoom>);
-            case PresEffect.Fade: return (<Fade {...effectProps}>{this.freeformNodeDiv}</Fade>);
-            case PresEffect.Flip: return (<Flip {...effectProps}>{this.freeformNodeDiv}</Flip>);
-            case PresEffect.Rotate: return (<Rotate {...effectProps}>{this.freeformNodeDiv}</Rotate>);
-            case PresEffect.Bounce: return (<Bounce {...effectProps}>{this.freeformNodeDiv}</Bounce>);
-            case PresEffect.Roll: return (<Roll {...effectProps}>{this.freeformNodeDiv}</Roll>);
-            case "LightSpeed": return (<LightSpeed {...effectProps}>{this.freeformNodeDiv}</LightSpeed>);
-            case PresEffect.None:
-            default: return this.freeformNodeDiv;
-        }
-    }
-
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
@@ -208,6 +149,17 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor", this.props.layerProvider);
         const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
 
+        const divProps = {
+            ...this.props,
+            nudge: this.nudge,
+            dragDivName: "collectionFreeFormDocumentView-container",
+            opacity: this.opacity,
+            ScreenToLocalTransform: this.getTransform,
+            NativeHeight: this.NativeHeight,
+            NativeWidth: this.NativeWidth,
+            PanelWidth: this.panelWidth,
+            PanelHeight: this.panelHeight
+        };
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
@@ -237,11 +189,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     </svg>
                 </div>}
 
-            {PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc ?
-                this.effectsNodeDiv
-                :
-                this.freeformNodeDiv
-            }
+            {this.props.fitToBox ?
+                <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
+                <DocumentView {...divProps} ContentScaling={this.contentScaling} />}
         </div>;
     }
 }

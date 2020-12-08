@@ -1,7 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, StrListCast } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -12,7 +11,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, returnOne, returnTrue, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -38,10 +37,10 @@ import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
+import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
-import { List } from '../../../fields/List';
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -655,7 +654,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
 
-
     @undoBatch
     noOnClick = (): void => {
         this.Document.ignoreClick = false;
@@ -1084,8 +1082,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
-
-    render() {
+    @computed get renderDoc() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
@@ -1106,21 +1103,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const topmost = this.topMost ? "-topmost" : "";
         return this.props.styleProvider?.(this.rootDoc, this.props, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
-            ref={this._mainCont} onKeyDown={this.onKeyDown}
+            onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;
-                const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
-                for (let child: any = target; child; child = child?.parentElement) {
-                    if (child === this.ContentDiv) {
-                        entered = true;
-                    }
+                for (let child = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y); child; child = child.parentElement) {
+                    entered = entered || child === this.ContentDiv;
                 }
-                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
-                //}
-
             })}
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
@@ -1142,10 +1133,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
-                <div className="documentView-conentBlocker" />
+                <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
             {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
+        </div>;
+    }
+    render() {
+        return <div className="documentView-effectsWrapper" ref={this._mainCont} >
+            {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
         </div>;
     }
 }
