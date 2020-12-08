@@ -396,8 +396,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
-        let clusterColor = this.props.styleProvider?.(doc, props, property, layerProvider);  // bcz: check 'props'  used to be renderDepth + 1
+    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
+        let clusterColor = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
         if (property !== "backgroundColor") return clusterColor;
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
@@ -985,7 +985,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = this.Document._useClusters ? returnTrue : computedFn(function (doc: Doc) { return NumCast(doc.group, -1) !== -1; });
+    // @ts-ignore
+    backgroundHalo = computedFn(function (doc: Doc) { return this.Document._useClusters || NumCast(doc.group, -1) !== -1; }).bind(this);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {

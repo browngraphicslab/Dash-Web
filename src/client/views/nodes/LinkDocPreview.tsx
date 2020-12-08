@@ -18,7 +18,7 @@ interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }
