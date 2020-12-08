@@ -158,7 +158,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
-        this.layoutDoc.presStatus = PresStatus.Edit;
+        if (CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+            this.layoutDoc.presStatus = PresStatus.Manual;
+        } else {
+            this.layoutDoc.presStatus = PresStatus.Edit;
+        }
         this.layoutDoc._gridGap = 0;
         this.layoutDoc._yMargin = 0;
         this.turnOffEdit(true);
@@ -590,22 +594,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddSplit(this.rootDoc, "right");
         } else if (this.layoutDoc.context && docView) {
-            this.layoutDoc.presStatus = PresStatus.Edit;
+            this.layoutDoc.presStatus = PresStatus.Manual;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
+            this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 260);
             this.rootDoc.y = pt[1] + 10;
-            this.rootDoc._height = 35;
+            this.rootDoc._height = 30;
             this.rootDoc._width = 250;
             docView.props.removeDocument?.(this.layoutDoc);
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         } else {
-            this.layoutDoc.presStatus = PresStatus.Edit;
+            this.layoutDoc.presStatus = PresStatus.Manual;
             clearTimeout(this._presTimer);
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
+            this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 260);
             this.rootDoc.y = pt[1] + 10;
-            this.rootDoc._height = 35;
+            this.rootDoc._height = 30;
             this.rootDoc._width = 250;
             this.props.addDocTab?.(this.rootDoc, "close");
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
@@ -1731,7 +1735,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presentDropdown() {
         return (
             <div className={`dropdown-play ${this.presentTools ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.updateMinimize(); this.turnOffEdit(true); this.gotoDocument(this.itemIndex, this.activeItem); }))}>
+                <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.updateMinimize(); this.turnOffEdit(true); this.gotoDocument(this.itemIndex, this.activeItem); }))}>
                     Mini-player
                 </div>
                 <div className="dropdown-play-button" onClick={undoBatch(action(() => { this.layoutDoc.presStatus = "manual"; this.turnOffEdit(true); this.gotoDocument(this.itemIndex, this.activeItem); }))}>

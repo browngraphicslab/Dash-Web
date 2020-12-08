@@ -445,8 +445,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
                 if (!docColor) {
                     switch (doc?.type) {
-                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "" : ""; break;
-                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "white"; break;
+                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "black" : ""; break;
+                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "transparent"; break;
                         case DocumentType.FONTICON: docColor = "black"; break;
                         case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
                         case DocumentType.LABEL:
