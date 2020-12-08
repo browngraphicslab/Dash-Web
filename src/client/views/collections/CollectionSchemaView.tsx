@@ -404,7 +404,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     FreezeDimensions={true}
                     dontCenter={"y"}
                     focus={emptyFunction}
-                    LibraryPath={this.props.LibraryPath}
                     renderDepth={this.props.renderDepth}
                     rootSelected={this.rootSelected}
                     PanelWidth={this.previewWidth}

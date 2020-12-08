@@ -228,7 +228,6 @@ export class DashDocView extends React.Component<IDashDocView> {
                         <DocumentView
                             Document={finalLayout}
                             DataDoc={resolvedDataDoc}
-                            LibraryPath={this._textBox.props.LibraryPath}
                             fitToBox={BoolCast(dashDoc._fitToBox)}
                             addDocument={returnFalse}
                             rootSelected={this._textBox.props.isSelected}

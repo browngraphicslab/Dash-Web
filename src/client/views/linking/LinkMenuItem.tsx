@@ -18,6 +18,7 @@ import { DocumentView } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 
 interface LinkMenuItemProps {
@@ -194,26 +195,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     render() {
-        let destinationIcon: FontAwesomeIconProps["icon"] = "question";
-        switch (this.props.destinationDoc.type) {
-            case DocumentType.IMG: destinationIcon = "image"; break;
-            case DocumentType.COMPARISON: destinationIcon = "columns"; break;
-            case DocumentType.RTF: destinationIcon = "sticky-note"; break;
-            case DocumentType.COL: destinationIcon = "folder"; break;
-            case DocumentType.WEB: destinationIcon = "globe-asia"; break;
-            case DocumentType.SCREENSHOT: destinationIcon = "photo-video"; break;
-            case DocumentType.WEBCAM: destinationIcon = "video"; break;
-            case DocumentType.AUDIO: destinationIcon = "microphone"; break;
-            case DocumentType.BUTTON: destinationIcon = "bolt"; break;
-            case DocumentType.PRES: destinationIcon = "tv"; break;
-            case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
-            case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
-            case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
-            case DocumentType.VID: destinationIcon = "video"; break;
-            case DocumentType.INK: destinationIcon = "pen-nib"; break;
-            case DocumentType.PDF: destinationIcon = "file"; break;
-            default: destinationIcon = "question"; break;
-        }
+        const destinationIcon = Doc.toIcon(this.props.destinationDoc) as any as IconProp;
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
             StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;

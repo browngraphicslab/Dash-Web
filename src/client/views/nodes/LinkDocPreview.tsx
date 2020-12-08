@@ -11,12 +11,14 @@ import { ContextMenu } from '../ContextMenu';
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import React = require("react");
+import { DocumentViewProps } from './DocumentView';
+import { Id } from '../../../fields/FieldSymbols';
 
 interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }
@@ -63,8 +65,11 @@ export class LinkDocPreview extends React.Component<Props> {
             runInAction(() => {
                 this._toolTipText = "";
                 LinkDocPreview.TargetDoc = this._targetDoc = target;
-                if (anchor !== this._targetDoc && anchor && this._targetDoc) {
-                    this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
+                if (this._targetDoc) {
+                    this._targetDoc._scrollToPreviewLinkID = linkDoc?.[Id];
+                    if (anchor !== this._targetDoc && anchor) {
+                        this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
+                    }
                 }
             });
         }
@@ -89,7 +94,6 @@ export class LinkDocPreview extends React.Component<Props> {
             :
             <ContentFittingDocumentView
                 Document={this._targetDoc}
-                LibraryPath={emptyPath}
                 fitToBox={true}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}

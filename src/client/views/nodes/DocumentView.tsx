@@ -62,7 +62,6 @@ export interface DocumentViewProps {
     getView?: (view: DocumentView) => any;
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
-    LibraryPath: Doc[];
     fitToBox?: boolean;
     ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -90,10 +89,10 @@ export interface DocumentViewProps {
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: (doc: Doc) => boolean;
-    styleProvider?: (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
     forceHideLinkButton?: () => boolean;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
@@ -127,7 +126,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() {
         return StrCast(this.layoutDoc._showTitle,
-            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc ?
+            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc && !this.rootDoc.presentationTargetDoc ?
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
@@ -386,7 +385,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
         focus: DocFocusFunc,
-        addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean,
+        addDocTab: (doc: Doc, where: string) => boolean,
         ContainingCollectionDoc?: Doc
     }, shiftKey: boolean, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
@@ -933,7 +932,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
-                LibraryPath={this.props.LibraryPath}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
@@ -1004,7 +1002,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     ContentScaling={returnOne}
                     dontRegisterView={false}
                     forceHideLinkButton={returnTrue}
-                    styleProvider={(doc: Opt<Doc>, renderDepth: number, property: string) => property === "backgroundColor" ? "transparent" : undefined}
+                    styleProvider={(doc: Opt<Doc>, props: DocumentViewProps, property: string) => property === "backgroundColor" ? "transparent" : undefined}
                     removeDocument={this.hideLinkAnchor}
                     pointerEvents={"none"}
                     LayoutTemplate={undefined}
@@ -1066,7 +1064,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props.renderDepth, this.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
+        return this.props.styleProvider?.(this.Document, this.props, this.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
     }
     @undoBatch
     @action
@@ -1091,8 +1089,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "hidden", this.props.layerProvider)) return null;
-        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
+        if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden", this.props.layerProvider)) return null;
+        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor", this.props.layerProvider);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
@@ -1106,7 +1104,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         const topmost = this.topMost ? "-topmost" : "";
-        return this.props.styleProvider?.(this.rootDoc, this.props.renderDepth, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
+        return this.props.styleProvider?.(this.rootDoc, this.props, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
@@ -1128,7 +1126,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
                 transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
-                pointerEvents: this.pointerEvents as any,
+                pointerEvents: this.pointerEvents,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
@@ -1147,7 +1145,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-conentBlocker" />
             </> :
                 this.innards}
-            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props.renderDepth, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
+            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
         </div>;
     }
 }

@@ -889,7 +889,6 @@ export class GestureOverlay extends Touchable {
             <DocumentView
                 Document={doc}
                 DataDoc={undefined}
-                LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={returnFalse}
                 rootSelected={returnTrue}

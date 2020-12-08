@@ -40,7 +40,6 @@ export default class Palette extends React.Component<PaletteProps> {
                         <DocumentView
                             Document={this.props.thumbDoc}
                             DataDoc={undefined}
-                            LibraryPath={emptyPath}
                             addDocument={undefined}
                             addDocTab={returnFalse}
                             rootSelected={returnTrue}

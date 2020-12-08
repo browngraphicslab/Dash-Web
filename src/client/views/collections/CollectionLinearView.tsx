@@ -140,7 +140,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             <ContentFittingDocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
-                                LibraryPath={this.props.LibraryPath}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}

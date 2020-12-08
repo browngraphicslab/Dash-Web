@@ -161,7 +161,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     render() {
-        const facetCollection = this.props.Document as Doc;
+        const facetCollection = this.props.Document;
         const flyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
             {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                 <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
@@ -193,7 +193,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.props.PanelWidth}
                     PanelHeight={this.props.PanelHeight}
-                    LibraryPath={emptyPath}
                     rootSelected={this.props.rootSelected}
                     renderDepth={1}
                     dropAction={this.props.dropAction}

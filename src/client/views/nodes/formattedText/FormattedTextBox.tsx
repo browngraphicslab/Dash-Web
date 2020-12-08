@@ -61,6 +61,7 @@ import { DocumentManager } from '../../../util/DocumentManager';
 import { CollectionStackingView } from '../../collections/CollectionStackingView';
 import { CollectionViewType } from '../../collections/CollectionView';
 import { SnappingManager } from '../../../util/SnappingManager';
+import { LinkDocPreview } from '../LinkDocPreview';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -98,6 +99,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _currentTime: number = 0;
     private _linkTime: number | null = null;
     private _pause: boolean = false;
+    private _animatingScroll: number = 0; // hack to prevent scroll values from being written to document when scroll is animating
 
     @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
     set _recording(value) {
@@ -815,6 +817,50 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
+    scrollToLinkId = (linkId: string) => {
+        const findLinkFrag = (frag: Fragment, editor: EditorView) => {
+            const nodes: Node[] = [];
+            let hadStart = start !== 0;
+            frag.forEach((node, index) => {
+                const examinedNode = findLinkNode(node, editor);
+                if (examinedNode?.node.textContent) {
+                    nodes.push(examinedNode.node);
+                    !hadStart && (start = index + examinedNode.start);
+                    hadStart = true;
+                }
+            });
+            return { frag: Fragment.fromArray(nodes), start };
+        };
+        const findLinkNode = (node: Node, editor: EditorView) => {
+            if (!node.isText) {
+                const content = findLinkFrag(node.content, editor);
+                return { node: node.copy(content.frag), start: content.start };
+            }
+            const marks = [...node.marks];
+            const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.linkAnchor);
+            return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => linkId === item.href.replace(/.*\/doc\//, "")) ? { node, start: 0 } : undefined;
+        };
+
+        let start = 0;
+        if (this._editorView && linkId) {
+            const editor = this._editorView;
+            const ret = findLinkFrag(editor.state.doc.content, editor);
+
+            if (ret.frag.size > 2 && ret.start >= 0) {
+                let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
+                if (ret.frag.firstChild) {
+                    selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                }
+                editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
+                const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
+                setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
+                setTimeout(() => this.unhighlightSearchTerms(), 2000);
+            }
+            Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
+            Doc.SetInPlace(this.layoutDoc, "_scrollToPreviewLinkID", undefined, false);
+        }
+    }
+
     componentDidMount() {
         this.props.contentsActive?.(this.IsActive);
         this._cachedLinks = DocListCast(this.Document.links);
@@ -910,7 +956,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()], search.searchMatch < 0) : this.unhighlightSearchTerms(),
             { fireImmediately: Doc.IsSearchMatchUnmemoized(this.rootDoc) ? true : false });
 
-        this._disposers.selected = reaction(() => this.props.isSelected(), action(() => this._recording = false));
+        this._disposers.selected = reaction(() => this.props.isSelected(),
+            action((selected) => {
+                this._recording = false;
+                if (RichTextMenu.Instance?.view === this._editorView && !selected) {
+                    RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
+                }
+            }));
 
         if (!this.props.dontRegisterView) {
             this._disposers.record = reaction(() => this._recording,
@@ -924,65 +976,36 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             );
         }
-        this._disposers.scrollToRegion = reaction(
-            () => StrCast(this.layoutDoc.scrollToLinkID),
-            async (scrollToLinkID) => {
-                const findLinkFrag = (frag: Fragment, editor: EditorView) => {
-                    const nodes: Node[] = [];
-                    let hadStart = start !== 0;
-                    frag.forEach((node, index) => {
-                        const examinedNode = findLinkNode(node, editor);
-                        if (examinedNode?.node.textContent) {
-                            nodes.push(examinedNode.node);
-                            !hadStart && (start = index + examinedNode.start);
-                            hadStart = true;
-                        }
-                    });
-                    return { frag: Fragment.fromArray(nodes), start };
-                };
-                const findLinkNode = (node: Node, editor: EditorView) => {
-                    if (!node.isText) {
-                        const content = findLinkFrag(node.content, editor);
-                        return { node: node.copy(content.frag), start: content.start };
-                    }
-                    const marks = [...node.marks];
-                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.linkAnchor);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? { node, start: 0 } : undefined;
-                };
-
-                let start = 0;
-                if (this._editorView && scrollToLinkID) {
-                    const editor = this._editorView;
-                    const ret = findLinkFrag(editor.state.doc.content, editor);
-
-                    if (ret.frag.size > 2 && ret.start >= 0) {
-                        let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
-                        if (ret.frag.firstChild) {
-                            selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
-                        }
-                        editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
-                        const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
-                        setTimeout(() => editor.dispatch(editor.state.tr.addMark(selection.from, selection.to, mark)), 0);
-                        setTimeout(() => this.unhighlightSearchTerms(), 2000);
-                    }
-                    Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
-                }
-
-            },
-            { fireImmediately: true }
+        this._disposers.previewScrollToRegion = reaction(() => StrCast(this.layoutDoc._scrollToPreviewLinkID),
+            scrollToLinkID => this.props.renderDepth === -1 && scrollToLinkID && this.scrollToLinkId(scrollToLinkID), { fireImmediately: true }
+        );
+        this._disposers.scrollToRegion = reaction(() => StrCast(this.layoutDoc.scrollToLinkID),
+            scrollToLinkID => scrollToLinkID && this.scrollToLinkId(scrollToLinkID), { fireImmediately: true }
         );
         this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
-            pos => this._scrollRef.current?.scrollTo({ top: pos }), { fireImmediately: true }
+            pos => {
+                const durationMiliStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
+                const durationSecStr = StrCast(this.Document._viewTransition).match(/([0-9.]*)s/);
+                const duration = durationMiliStr ? Number(durationMiliStr[1]) : durationSecStr ? Number(durationSecStr[1]) * 1000 : 0;
+                if (duration) {
+                    this._animatingScroll++;
+                    this._scrollRef.current && smoothScroll(duration, this._scrollRef.current, Math.abs(pos || 0));
+                    setTimeout(() => this._animatingScroll--, duration);
+                } else {
+                    this._scrollRef.current?.scrollTo({ top: pos });
+                }
+            }, { fireImmediately: true }
         );
         this._disposers.scrollY = reaction(() => Cast(this.layoutDoc._scrollY, "number", null),
-            scrollY => {
-                if (scrollY !== undefined) {
-                    const delay = this._scrollRef.current ? 0 : 250; // wait for mainCont and try again to scroll
-                    const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
-                    const duration = durationStr ? Number(durationStr[1]) : 1000;
-                    setTimeout(() => this._scrollRef.current && smoothScroll(duration, this._scrollRef.current, Math.abs(scrollY || 0)), delay);
-                    setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
-                }
+            pos => {
+                this.Document._scrollY = undefined;
+                pos !== undefined && setTimeout(() => this.layoutDoc._scrollTop = pos, this._scrollRef.current ? 0 : 250);
+            }, { fireImmediately: true }
+        );
+        this._disposers.scrollPreviewY = reaction(() => Cast(this.layoutDoc.scrollPreviewY, "number", null),
+            pos => {
+                this.Document.scrollPreviewY = undefined;
+                pos !== undefined && setTimeout(() => this.layoutDoc._scrollTop = pos, this._scrollRef.current ? 0 : 250);
             }, { fireImmediately: true }
         );
 
@@ -1233,6 +1256,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     componentWillUnmount() {
         this.endUndoTypingBatch();
+        this.unhighlightSearchTerms();
         Object.values(this._disposers).forEach(disposer => disposer?.());
         this._editorView?.destroy();
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
@@ -1529,7 +1553,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
     }
     onscrolled = (ev: React.UIEvent) => {
-        this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
+        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && !this._animatingScroll) {
+            this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
+        }
     }
     @action
     tryUpdateHeight(limitHeight?: number) {
@@ -1572,7 +1598,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.author).length;
         return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
-                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : undefined }}
+                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightBlue" : this.props.styleProvider?.(this.props.Document, this.props, "widgetColor", this.props.layerProvider) }}
                 onPointerDown={this.sidebarDown}
             />;
     }
