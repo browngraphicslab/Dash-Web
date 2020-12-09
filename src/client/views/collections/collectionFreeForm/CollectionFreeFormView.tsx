@@ -976,7 +976,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.65) => {
         const pw = this.isAnnotationOverlay ? Doc.NativeWidth(this.props.Document) : this.props.PanelWidth();
         const ph = this.isAnnotationOverlay ? Doc.NativeHeight(this.props.Document) : this.props.PanelHeight();
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
