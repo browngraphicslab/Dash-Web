@@ -562,9 +562,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     });
 
     touchesLine(r1: { left: number, top: number, width: number, height: number }) {
-        // @ts-ignore
-        for (let i = 0; i < this._lassoPts.length; i++) {
-            const topLeft = this.Transform.transformPoint(this._lassoPts[i][0], this._lassoPts[i][1]);
+        for (const lassoPt of this._lassoPts) {
+            const topLeft = this.Transform.transformPoint(lassoPt[0], lassoPt[1]);
             if (r1.left < topLeft[0] && topLeft[0] < r1.left + r1.width &&
                 r1.top < topLeft[1] && topLeft[1] < r1.top + r1.height) {
                 return true;
@@ -584,9 +583,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             let hasLeft = false;
             let hasBottom = false;
             let hasRight = false;
-            // @ts-ignore
-            for (let i = 0; i < this._lassoPts.length; i++) {
-                const truePoint = this.Transform.transformPoint(this._lassoPts[i][0], this._lassoPts[i][1]);
+            for (const lassoPt of this._lassoPts) {
+                const truePoint = this.Transform.transformPoint(lassoPt[0], lassoPt[1]);
                 hasLeft = hasLeft || (truePoint[0] > tl[0] && truePoint[0] < r1.left) && (truePoint[1] > r1.top && truePoint[1] < r1.top + r1.height);
                 hasTop = hasTop || (truePoint[1] > tl[1] && truePoint[1] < r1.top) && (truePoint[0] > r1.left && truePoint[0] < r1.left + r1.width);
                 hasRight = hasRight || (truePoint[0] < br[0] && truePoint[0] > r1.left + r1.width) && (truePoint[1] > r1.top && truePoint[1] < r1.top + r1.height);
