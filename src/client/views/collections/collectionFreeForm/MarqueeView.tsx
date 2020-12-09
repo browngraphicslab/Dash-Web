@@ -559,10 +559,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             e.preventDefault();
             this._lassoFreehand = !this._lassoFreehand;
         }
-    })
+    });
 
     touchesLine(r1: { left: number, top: number, width: number, height: number }) {
-        for (var i = 0; i < this._lassoPts.length; i++) {
+        // @ts-ignore
+        for (let i = 0; i < this._lassoPts.length; i++) {
             const topLeft = this.Transform.transformPoint(this._lassoPts[i][0], this._lassoPts[i][1]);
             if (r1.left < topLeft[0] && topLeft[0] < r1.left + r1.width &&
                 r1.top < topLeft[1] && topLeft[1] < r1.top + r1.height) {
@@ -583,6 +584,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             let hasLeft = false;
             let hasBottom = false;
             let hasRight = false;
+            // @ts-ignore
             for (let i = 0; i < this._lassoPts.length; i++) {
                 const truePoint = this.Transform.transformPoint(this._lassoPts[i][0], this._lassoPts[i][1]);
                 hasLeft = hasLeft || (truePoint[0] > tl[0] && truePoint[0] < r1.left) && (truePoint[1] > r1.top && truePoint[1] < r1.top + r1.height);
