@@ -508,6 +508,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // returns the audio waveform
     @computed get waveform() {
+        !this._buckets.length && this.props.isSelected() && setTimeout(() => this.buckets());
         return <Waveform
             color={"darkblue"}
             height={this._waveHeight}
@@ -550,18 +551,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             });
     }
 
-    // Returns the peaks of the audio waveform
-    @computed get peaks() {
-        return this.buckets();
-    }
-
     rangeScript = () => AudioBox.RangeScript;
     labelScript = () => AudioBox.LabelScript;
 
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
-        this.path && this._buckets.length !== 100 ? this.peaks : null; // render waveform if audio is done recording
         const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
             return <DocumentView {...this.props}
                 Document={mark}
@@ -596,7 +591,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                         :
                         <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
                             RECORD
-                            </button>}
+                        </button>}
                 </div> :
                 <div className="audiobox-controls" >
                     <div className="audiobox-dictation"></div>
