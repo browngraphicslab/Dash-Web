@@ -5,7 +5,7 @@ import "./AudioBox.scss";
 import { Cast, DateCast, NumCast, FieldValue, ScriptCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { makeInterface, createSchema } from "../../../fields/Schema";
+import { makeInterface, createSchema, listSpec } from "../../../fields/Schema";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero, formatTime, setupMoveUpEvents } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace, toJS } from "mobx";
@@ -76,7 +76,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable _visible: boolean = false;
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
-    @observable _buckets: Array<number> = new Array<number>();
     @observable _waveHeight: Opt<number> = this.layoutDoc._height;
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
@@ -508,7 +507,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // returns the audio waveform
     @computed get waveform() {
-        !this._buckets.length && this.props.isSelected() && setTimeout(() => this.buckets());
+        const audioBuckets = Cast(this.dataDoc.audioBuckets, listSpec("number"), []);
+        !audioBuckets.length && setTimeout(() => this.buckets());
         return <Waveform
             color={"darkblue"}
             height={this._waveHeight}
@@ -516,7 +516,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             // pos={this.layoutDoc._currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
             pos={this.audioDuration}
             duration={this.audioDuration}
-            peaks={this._buckets.length === 100 ? this._buckets : undefined}
+            peaks={audioBuckets.length === 100 ? audioBuckets : undefined}
             progressColor={"blue"} />;
     }
 
@@ -533,7 +533,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     const decodedAudioData = buffer.getChannelData(0);
                     const NUMBER_OF_BUCKETS = 100;
                     const bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
-
+                    let _buckets: number[] = [];
                     for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
                         const startingPoint = i * bucketDataSize;
                         const endingPoint = i * bucketDataSize + bucketDataSize;
@@ -544,9 +544,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             }
                         }
                         const size = Math.abs(max);
-                        this._buckets.push(size / 2);
+                        _buckets.push(size / 2);
                     }
-
+                    this.dataDoc.audioBuckets = new List<number>(_buckets);
                 }));
             });
     }
