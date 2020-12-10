@@ -918,7 +918,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 !dontCenter && this.props.focus(doc);
                 afterFocus && setTimeout(afterFocus, delay);
             } else {
-                const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
+                const contextHgt = NumCast(annotOn._height);
                 const curScroll = NumCast(this.props.Document._scrollTop);
                 let scrollTo = curScroll;
                 if (curScroll + contextHgt < NumCast(doc.y)) {
@@ -998,30 +998,30 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
+            ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.Document,
             LayoutTemplate: childLayout.z ? undefined : this.props.childLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.childLayoutString,
-            FreezeDimensions: this.props.childFreezeDimensions,
             setupDragLines: this.setupDragLines,
-            dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
-            dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             onClick: this.onChildClickHandler,
             onDoubleClick: this.onChildDoubleClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
-            renderDepth: this.props.renderDepth + 1,
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
-            ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.Document,
             docFilters: this.docFilters,
             docRangeFilters: this.docRangeFilters,
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
+            freezeDimensions: this.props.childFreezeDimensions,
+            dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
+            renderDepth: this.props.renderDepth + 1,
+            dontRegisterView: this.props.dontRegisterView,
         };
     }
 
@@ -1172,7 +1172,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.childFreezeDimensions)} // bcz: check this
-                    FreezeDimensions={BoolCast(this.props.childFreezeDimensions)}
+                    freezeDimensions={BoolCast(this.props.childFreezeDimensions)}
                 />,
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));

@@ -3,7 +3,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import Switch from 'rc-switch';
 import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
@@ -12,23 +11,23 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll, returnVal } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnVal, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
+import { DocUtils } from "../../documents/Documents";
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { DocAfterFocusFunc } from "../nodes/DocumentView";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { SnappingManager } from "../../util/SnappingManager";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocUtils } from "../../documents/Documents";
-import { DocAfterFocusFunc } from "../nodes/DocumentView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -56,7 +55,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
-    @computed get isStackingView() { return BoolCast(this.layoutDoc._columnsStack, true); }
+    @computed get isStackingView() { return this.layoutDoc._viewType === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
@@ -192,13 +191,13 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
-            styleProvider={this.props.styleProvider}
-            LayoutTemplate={this.props.childLayoutTemplate}
-            LayoutTemplateString={this.props.childLayoutString}
-            FreezeDimensions={this.props.childFreezeDimensions}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
+            styleProvider={this.props.styleProvider}
+            LayoutTemplate={this.props.childLayoutTemplate}
+            LayoutTemplateString={this.props.childLayoutString}
+            freezeDimensions={this.props.childFreezeDimensions}
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : ""}

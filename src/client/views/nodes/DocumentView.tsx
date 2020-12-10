@@ -84,7 +84,7 @@ export interface DocumentViewSharedProps {
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
-    FreezeDimensions?: boolean;
+    freezeDimensions?: boolean;
     fitToBox?: boolean;
     treeViewDoc?: Doc;
     dragDivName?: string;
@@ -133,7 +133,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 undefined);
     }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }

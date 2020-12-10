@@ -22,7 +22,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
             (this.props.layoutKey && Doc.Layout(this.props.Document, Cast(this.props.Document[this.props.layoutKey], Doc, null))) ||
             Doc.Layout(this.props.Document);
     }
-    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get nativeWidth() { return !this.layoutDoc._fitWidth && returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.freezeDimensions) || 0); }
     @computed get nativeScaling() {

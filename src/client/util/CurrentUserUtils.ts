@@ -801,7 +801,6 @@ export class CurrentUserUtils {
         }
     }
 
-
     static setupUserDoc(doc: Doc) {
         if (doc.myUserDoc === undefined) {
             doc.treeViewOpen = true;

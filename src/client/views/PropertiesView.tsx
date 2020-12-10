@@ -272,7 +272,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     treeViewDoc={undefined}
                     styleProvider={this.props.styleProvider}
                     fitToBox={true}
-                    FreezeDimensions={true}
+                    freezeDimensions={true}
                     dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}

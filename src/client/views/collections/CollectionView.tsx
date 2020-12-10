@@ -66,7 +66,6 @@ export interface CollectionViewProps extends FieldViewProps {
     layoutEngine?: () => string;
     parentActive: (outsideReaction: boolean) => boolean;
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
-    VisibleHeight?: () => number;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 
     // property overrides for child documents
@@ -242,28 +241,27 @@ export class CollectionView extends Touchable<CollectionViewProps> {
     private SubView = (type: CollectionViewType, props: SubCollectionViewProps) => {
         TraceMobx();
         switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
-            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
-            case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
-            case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
-            case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
-            case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
-            case CollectionViewType.Carousel3D: { return (<CollectionCarousel3DView key="collview" {...props} />); }
-            case CollectionViewType.Stacking: { this.props.Document._columnsStack = true; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Masonry: { this.props.Document._columnsStack = false; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
-            case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
-            case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
-            case CollectionViewType.Freeform:
-            default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
+            default:
+            case CollectionViewType.Freeform: return <CollectionFreeFormView key="collview" {...props} />;
+            case CollectionViewType.Schema: return <CollectionSchemaView key="collview" {...props} />;
+            case CollectionViewType.Docking: return <CollectionDockingView key="collview" {...props} />;
+            case CollectionViewType.Tree: return <CollectionTreeView key="collview" {...props} />;
+            case CollectionViewType.Multicolumn: return <CollectionMulticolumnView key="collview" {...props} />;
+            case CollectionViewType.Multirow: return <CollectionMultirowView key="collview" {...props} />;
+            case CollectionViewType.Linear: return <CollectionLinearView key="collview" {...props} />;
+            case CollectionViewType.Pile: return <CollectionPileView key="collview" {...props} />;
+            case CollectionViewType.Carousel: return <CollectionCarouselView key="collview" {...props} />;
+            case CollectionViewType.Carousel3D: return <CollectionCarousel3DView key="collview" {...props} />;
+            case CollectionViewType.Stacking: return <CollectionStackingView key="collview" {...props} />;
+            case CollectionViewType.Masonry: return <CollectionStackingView key="collview" {...props} />;
+            case CollectionViewType.Time: return <CollectionTimeView key="collview" {...props} />;
+            case CollectionViewType.Map: return <CollectionMapView key="collview" {...props} />;
+            case CollectionViewType.Grid: return <CollectionGridView key="collview" {...props} />;
+            //case CollectionViewType.Staff: return <CollectionStaffView key="collview" {...props} />;
         }
     }
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-
         const subItems: ContextMenuProps[] = [];
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {

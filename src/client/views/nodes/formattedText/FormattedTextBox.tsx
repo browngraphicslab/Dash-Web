@@ -1620,8 +1620,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             isAnnotationOverlay: true,
             fieldKey: this.annotationKey,
             fitToBox: fitToBox,
-            focus: this.props.focus,
-            isSelected: this.props.isSelected,
             select: emptyFunction,
             active: this.annotationsActive,
             ContentScaling: this.sidebarContentScaling,
@@ -1632,7 +1630,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             CollectionView: undefined,
             ScreenToLocalTransform: this.sidebarScreenToLocal,
             renderDepth: this.props.renderDepth + 1,
-            ContainingCollectionDoc: this.props.ContainingCollectionDoc,
         };
         return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}

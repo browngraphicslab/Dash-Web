@@ -571,7 +571,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
                         fitToBox={true}
-                        FreezeDimensions={true}
+                        freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}
                         rootSelected={() => false}

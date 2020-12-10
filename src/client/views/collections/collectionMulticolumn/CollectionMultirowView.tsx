@@ -219,7 +219,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             styleProvider={this.props.styleProvider}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
-            FreezeDimensions={this.props.childFreezeDimensions}
+            freezeDimensions={this.props.childFreezeDimensions}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
