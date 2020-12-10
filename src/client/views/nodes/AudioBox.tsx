@@ -1,34 +1,34 @@
 import React = require("react");
-import { FieldViewProps, FieldView } from './FieldView';
-import { observer } from "mobx-react";
-import "./AudioBox.scss";
-import { Cast, DateCast, NumCast, FieldValue, ScriptCast } from "../../../fields/Types";
-import { AudioField, nullAudio } from "../../../fields/URLField";
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { makeInterface, createSchema } from "../../../fields/Schema";
-import { documentSchema } from "../../../fields/documentSchemas";
-import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero, formatTime, setupMoveUpEvents } from "../../../Utils";
-import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace, toJS } from "mobx";
-import { DateField } from "../../../fields/DateField";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
-import { ContextMenuProps } from "../ContextMenuItem";
-import { ContextMenu } from "../ContextMenu";
-import { Id } from "../../../fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { Docs, DocUtils } from "../../documents/Documents";
-import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { Networking } from "../../Network";
-import { LinkAnchorBox } from "./LinkAnchorBox";
-import { List } from "../../../fields/List";
-import { Scripting } from "../../util/Scripting";
-import Waveform from "react-audio-waveform";
 import axios from "axios";
-import { SnappingManager } from "../../util/SnappingManager";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import Waveform from "react-audio-waveform";
+import { DateField } from "../../../fields/DateField";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { Cast, DateCast, NumCast } from "../../../fields/Types";
+import { AudioField, nullAudio } from "../../../fields/URLField";
+import { emptyFunction, formatTime, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils, numberRange } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { LinkDocPreview } from "./LinkDocPreview";
+import { Scripting } from "../../util/Scripting";
+import { SelectionManager } from "../../util/SelectionManager";
+import { SnappingManager } from "../../util/SnappingManager";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import "./AudioBox.scss";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
+import { LinkAnchorBox } from "./LinkAnchorBox";
+import { LinkDocPreview } from "./LinkDocPreview";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -43,6 +43,7 @@ const AudioDocument = makeInterface(documentSchema, audioSchema);
 export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
+    public static NUMBER_OF_BUCKETS = 100;
 
     static Instance: AudioBox;
     static RangeScript: ScriptField;
@@ -76,7 +77,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable _visible: boolean = false;
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
-    @observable _buckets: Array<number> = new Array<number>();
     @observable _waveHeight: Opt<number> = this.layoutDoc._height;
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
@@ -508,6 +508,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // returns the audio waveform
     @computed get waveform() {
+        const audioBuckets = Cast(this.dataDoc.audioBuckets, listSpec("number"), []);
+        !audioBuckets.length && setTimeout(() => this.createWaveformBuckets());
         return <Waveform
             color={"darkblue"}
             height={this._waveHeight}
@@ -515,44 +517,23 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             // pos={this.layoutDoc._currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
             pos={this.audioDuration}
             duration={this.audioDuration}
-            peaks={this._buckets.length === 100 ? this._buckets : undefined}
+            peaks={audioBuckets.length === AudioBox.NUMBER_OF_BUCKETS ? audioBuckets : undefined}
             progressColor={"blue"} />;
     }
 
     // decodes the audio file into peaks for generating the waveform
-    @action
-    buckets = async () => {
-        const audioCtx = new (window.AudioContext)();
-
+    createWaveformBuckets = async () => {
         axios({ url: this.path, responseType: "arraybuffer" })
-            .then(response => {
-                const audioData = response.data;
-
-                audioCtx.decodeAudioData(audioData, action(buffer => {
+            .then(response => (new (window.AudioContext)()).decodeAudioData(response.data,
+                action(buffer => {
                     const decodedAudioData = buffer.getChannelData(0);
-                    const NUMBER_OF_BUCKETS = 100;
-                    const bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
-
-                    for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
-                        const startingPoint = i * bucketDataSize;
-                        const endingPoint = i * bucketDataSize + bucketDataSize;
-                        let max = 0;
-                        for (let j = startingPoint; j < endingPoint; j++) {
-                            if (decodedAudioData[j] > max) {
-                                max = decodedAudioData[j];
-                            }
-                        }
-                        const size = Math.abs(max);
-                        this._buckets.push(size / 2);
-                    }
-
-                }));
-            });
-    }
-
-    // Returns the peaks of the audio waveform
-    @computed get peaks() {
-        return this.buckets();
+                    const bucketDataSize = Math.floor(decodedAudioData.length / AudioBox.NUMBER_OF_BUCKETS);
+                    const brange = Array.from(Array(bucketDataSize));
+                    this.dataDoc.audioBuckets = new List<number>(
+                        numberRange(AudioBox.NUMBER_OF_BUCKETS).map(i =>
+                            brange.reduce((p, x, j) => Math.abs(Math.max(p, decodedAudioData[i * bucketDataSize + j])), 0) / 2));
+                }))
+            );
     }
 
     rangeScript = () => AudioBox.RangeScript;
@@ -561,7 +542,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
-        this.path && this._buckets.length !== 100 ? this.peaks : null; // render waveform if audio is done recording
         const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
             return <DocumentView {...this.props}
                 Document={mark}
@@ -596,7 +576,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                         :
                         <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
                             RECORD
-                            </button>}
+                        </button>}
                 </div> :
                 <div className="audiobox-controls" >
                     <div className="audiobox-dictation"></div>

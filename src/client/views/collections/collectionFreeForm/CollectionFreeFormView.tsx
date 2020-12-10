@@ -12,7 +12,7 @@ import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnVal } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnVal, returnTrue } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -222,14 +222,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
         zsorted.forEach((doc, index) => doc.zIndex = doc.isInkMask ? 5000 : index + 1);
         const dvals = CollectionFreeFormDocumentView.getValues(refDoc, NumCast(refDoc.activeFrame, 1000));
-        const dropPos = this.Document._currentFrame !== undefined ? [dvals.x, dvals.y] : [NumCast(refDoc.x), NumCast(refDoc.y)];
+        const dropPos = this.Document._currentFrame !== undefined ? [dvals.x || 0, dvals.y || 0] : [NumCast(refDoc.x), NumCast(refDoc.y)];
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
             if (this.Document._currentFrame !== undefined) {
                 CollectionFreeFormDocumentView.setupKeyframes([d], this.Document._currentFrame, false);
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, this.Document.editScrollProgressivize ? vals.scroll : undefined, vals.opacity);
+                vals.x = x + (vals.x || 0) - dropPos[0];
+                vals.y = y + (vals.y || 0) - dropPos[1];
+                vals._scrollTop = this.Document.editScrollProgressivize ? vals._scrollTop : undefined;
+                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, vals);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];
@@ -393,8 +396,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => {
-        let clusterColor = this.props.styleProvider?.(doc, props, property, layerProvider);  // bcz: check 'props'  used to be renderDepth + 1
+    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
+        let clusterColor = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
         if (property !== "backgroundColor") return clusterColor;
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
@@ -979,11 +982,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
     }
 
-    @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = computedFn(function (doc: Doc) { return BoolCast(this.Document._useClusters) || (NumCast(doc.group, -1) !== -1); }).bind(this);
+    // @ts-ignore
+    backgroundHalo = computedFn(function (doc: Doc) { return this.Document._useClusters || NumCast(doc.group, -1) !== -1; }).bind(this);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -996,7 +999,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
-            LibraryPath: this.libraryPath,
             LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,

@@ -81,7 +81,6 @@ export class AudioUpload extends React.Component {
                     <DocumentView
                         Document={this._audioCol}
                         DataDoc={undefined}
-                        LibraryPath={emptyPath}
                         addDocument={undefined}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}

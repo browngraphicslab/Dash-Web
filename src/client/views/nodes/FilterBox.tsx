@@ -193,7 +193,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.props.PanelWidth}
                     PanelHeight={this.props.PanelHeight}
-                    LibraryPath={emptyPath}
                     rootSelected={this.props.rootSelected}
                     renderDepth={1}
                     dropAction={this.props.dropAction}

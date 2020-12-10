@@ -136,7 +136,6 @@ export class DashDocView {
                 ReactDOM.render(<DocumentView
                     Document={finalLayout}
                     DataDoc={resolvedDataDoc}
-                    LibraryPath={this._textBox.props.LibraryPath}
                     fitToBox={BoolCast(dashDoc._fitToBox)}
                     addDocument={returnFalse}
                     rootSelected={this._textBox.props.isSelected}

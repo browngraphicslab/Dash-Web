@@ -36,6 +36,7 @@ export namespace Field {
     export function toScriptString(field: Field): string {
         if (typeof field === "string") return `"${field}"`;
         if (typeof field === "number" || typeof field === "boolean") return String(field);
+        if (field === undefined || field === null) return "null";
         return field[ToScriptString]();
     }
     export function toString(field: Field): string {

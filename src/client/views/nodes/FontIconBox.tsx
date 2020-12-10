@@ -61,7 +61,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     render() {
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
-        const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, "backgroundColor", this.props.layerProvider);
+        const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, "backgroundColor");
         const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
         const icon = StrCast(this.dataDoc.icon, "user") as any;
         const presSize = shape === 'round' ? 25 : 30;

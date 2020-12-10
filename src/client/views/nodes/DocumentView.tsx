@@ -1,7 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, StrListCast } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -12,7 +11,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, returnOne, returnTrue, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -38,6 +37,7 @@ import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
+import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
@@ -63,7 +63,6 @@ export interface DocumentViewProps {
     getView?: (view: DocumentView) => any;
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
-    LibraryPath: Doc[];
     fitToBox?: boolean;
     ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -91,10 +90,10 @@ export interface DocumentViewProps {
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     backgroundHalo?: (doc: Doc) => boolean;
-    styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string) => any;
     forceHideLinkButton?: () => boolean;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
@@ -387,7 +386,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
         focus: DocFocusFunc,
-        addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean,
+        addDocTab: (doc: Doc, where: string) => boolean,
         ContainingCollectionDoc?: Doc
     }, shiftKey: boolean, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
@@ -656,7 +655,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.isPushpin = false;
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
-
 
     @undoBatch
     noOnClick = (): void => {
@@ -934,7 +932,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
-                LibraryPath={this.props.LibraryPath}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
@@ -1085,7 +1082,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, this.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
+        return this.props.styleProvider?.(this.Document, this.props, this.isSelected() ? "pointerEvents:selected" : "pointerEvents");
     }
     @undoBatch
     @action
@@ -1105,13 +1102,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
-
-    render() {
+    @computed get renderDoc() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden", this.props.layerProvider)) return null;
-        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor", this.props.layerProvider);
+        if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden")) return null;
+        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor");
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
@@ -1125,23 +1121,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         const topmost = this.topMost ? "-topmost" : "";
-        return this.props.styleProvider?.(this.rootDoc, this.props, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
+        return this.props.styleProvider?.(this.rootDoc, this.props, "docContents") ?? <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
-            ref={this._mainCont} onKeyDown={this.onKeyDown}
+            onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;
-                const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
-                for (let child: any = target; child; child = child?.parentElement) {
-                    if (child === this.ContentDiv) {
-                        entered = true;
-                    }
+                for (let child = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y); !entered && child; child = child.parentElement) {
+                    entered = entered || child === this.ContentDiv;
                 }
-                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
-                //}
-
             })}
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
@@ -1161,12 +1151,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: !this.props.treeViewDoc ? Cast(this.Document._fontSize, "string", null) : undefined,
             }}>
-            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
-                {this.innards}
-                <div className="documentView-conentBlocker" />
-            </> :
-                this.innards}
-            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
+            {this.innards}
+            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <div className="documentView-contentBlocker" /> : (null)}
+            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations") || (null)}
+        </div>;
+    }
+    render() {
+        return <div className="documentView-effectsWrapper" ref={this._mainCont} >
+            {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
         </div>;
     }
 }

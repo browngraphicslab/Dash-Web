@@ -37,7 +37,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
 }
 
 @observer
@@ -267,7 +267,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
-                    LibraryPath={emptyPath}
                     renderDepth={1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}

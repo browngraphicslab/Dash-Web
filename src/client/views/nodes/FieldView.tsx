@@ -25,7 +25,6 @@ export interface FieldViewProps {
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
-    LibraryPath: Doc[];
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     contentsActive?: (setActive: () => boolean) => void;
     onClick?: () => ScriptField;
@@ -43,7 +42,7 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc | Doc[]) => boolean;
     moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    styleProvider?: (document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: (document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     parentActive: (outsideReaction: boolean) => boolean;

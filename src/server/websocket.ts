@@ -279,13 +279,13 @@ export namespace WebSocket {
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const newListItems = diff.diff.$set[updatefield].fields;
         const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields.filter((item: any) => item !== undefined) || [];
-        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => newItem && !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
+        diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => newItem === null || !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
         const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
         delete diff.diff.length;
         Database.Instance.update(diff.id, diff.diff,
             () => {
                 if (sendBack) {
-                    console.log("RET BACK");
+                    console.log("Warning: list modified during update. Composite list is being returned.");
                     const id = socket.id;
                     socket.id = "";
                     socket.broadcast.emit(MessageStore.UpdateField.Message, diff);

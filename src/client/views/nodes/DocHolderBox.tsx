@@ -118,7 +118,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 <DocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
@@ -147,7 +146,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 <ContentFittingDocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
@@ -184,7 +182,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: this.props.styleProvider?.(containedDoc, this.props, "backgroundColor", this.props.layerProvider),
+                background: this.props.styleProvider?.(containedDoc, this.props, "backgroundColor"),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,

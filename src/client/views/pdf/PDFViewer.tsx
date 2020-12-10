@@ -736,7 +736,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 transform: `scale(${this._zoomed})`
             }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
                 annotationsKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}

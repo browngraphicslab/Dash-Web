@@ -32,7 +32,6 @@ import React = require("react");
 import { List } from '../../../fields/List';
 import { DocumentType } from '../../documents/DocumentTypes';
 import Color = require('color');
-import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -289,7 +288,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name, 
     //                                   "replace:monkeys" - will replace any tab that has the label 'monkeys', or a tab with that label will be created by default on the right
     //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
-    addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
+    addDocTab = (doc: Doc, location: string) => {
         SelectionManager.DeselectAll();
         const locationFields = doc._viewType === CollectionViewType.Docking ? ["dashboard"] : location.split(":");
         const locationParams = locationFields.length > 1 ? locationFields[1] : "";
@@ -336,7 +335,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
                 <CollectionFreeFormView
                     Document={this._document!}
-                    LibraryPath={emptyPath}
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
@@ -417,9 +415,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @undoBatch
-    @action
-    static toggleBackground = (doc: Doc) => {
+    static toggleBackground = undoBatch(action((doc: Doc) => {
         const layers = StrListCast(doc.layers);
         if (!layers.includes("background")) {
             if (!layers.length) doc.layers = new List<string>(["background"]);
@@ -434,11 +430,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
             // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
         }
-    }
+    }));
     //
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 
-    public static styleProvider = (doc: Opt<Doc>, props: DocumentViewProps | undefined, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
+    public static styleProvider = (doc: Opt<Doc>, props: DocumentViewProps | undefined, property: string): any => {
         switch (property) {
             case "backgroundColor": {
                 if (Doc.UserDoc().renderStyle === "comic") return undefined;
@@ -460,11 +456,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
                     }
                 }
-                if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
+                if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
                 return docColor;
             }
             case "widgetColor": return TabDocView.darkScheme ? "lightgrey" : "dimgrey";
-            case "hidden": return (BoolCast(doc?.hidden) /* || layerProvider?.(doc) === false*/);
+            case "hidden": return (BoolCast(doc?.hidden) /* || props?.layerProvider?.(doc) === false*/);
             case "boxShadow": {
                 switch (doc?.type) {
                     case DocumentType.COL: return StrListCast(doc.layers).includes("background") ? undefined :
@@ -475,7 +471,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "docContents": return undefined;
             default:
                 if (property.startsWith("pointerEvents")) {
-                    const layer = doc && layerProvider?.(doc);
+                    const layer = doc && props?.layerProvider?.(doc);
                     if (doc?.Opacity === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
                     if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
                     if (doc?.type !== DocumentType.INK && layer === true) return "all";
@@ -492,7 +488,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 }
         }
     }
-    public static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
+    public static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         if (doc) {
             switch (property) {
                 case "docContents":
@@ -502,7 +498,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     return <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
                 default:
                     if (property.startsWith("pointerEvents")) return "none";
-                    return TabDocView.styleProvider(doc, props, property, layerProvider);
+                    return TabDocView.styleProvider(doc, props, property);
             }
         }
     }
@@ -510,7 +506,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><DocumentView key={this._document[Id]}
-                LibraryPath={emptyPath}
                 Document={this._document}
                 getView={this.setView}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
