@@ -47,7 +47,7 @@ import { FootnoteView } from "./FootnoteView";
 import { schema } from "./schema_rts";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
-import { CollectionFreeFormView } from '../../collections/collectionFreeForm/CollectionFreeFormView';
+import { CollectionFreeFormView, collectionFreeformViewProps } from '../../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenu } from '../../ContextMenu';
 import { ContextMenuProps } from '../../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from "../../DocComponent";
@@ -59,9 +59,10 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } 
 import React = require("react");
 import { DocumentManager } from '../../../util/DocumentManager';
 import { CollectionStackingView } from '../../collections/CollectionStackingView';
-import { CollectionViewType } from '../../collections/CollectionView';
+import { CollectionViewType, CollectionViewProps } from '../../collections/CollectionView';
 import { SnappingManager } from '../../../util/SnappingManager';
 import { LinkDocPreview } from '../LinkDocPreview';
+import { SubCollectionViewProps } from '../../collections/CollectionSubView';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -1606,7 +1607,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     sidebarContentScaling = () => this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
     @computed get sidebarCollection() {
         const fitToBox = this.props.Document._fitToBox;
-        const collectionProps = {
+        const collectionProps: SubCollectionViewProps & collectionFreeformViewProps = {
             ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
             NativeWidth: returnZero,
             NativeHeight: returnZero,
@@ -1616,8 +1617,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             yMargin: 0,
             chromeStatus: "enabled",
             scaleField: this.annotationKey + "-scale",
-            annotationsKey: this.annotationKey,
             isAnnotationOverlay: true,
+            fieldKey: this.annotationKey,
             fitToBox: fitToBox,
             focus: this.props.focus,
             isSelected: this.props.isSelected,
@@ -1636,7 +1637,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                 style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ? <CollectionFreeFormView {...collectionProps} /> : <CollectionStackingView {...collectionProps} />}
+                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
+                    <CollectionFreeFormView {...collectionProps} /> :
+                    <CollectionStackingView {...collectionProps} />}
             </div>;
     }
 

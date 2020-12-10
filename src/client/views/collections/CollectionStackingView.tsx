@@ -352,8 +352,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
-                            if (this.props.annotationsKey) {
-                                doc[this.props.annotationsKey + "-height"] = height;
+                            if (this.props.isAnnotationOverlay) {
+                                doc[this.props.fieldKey + "-height"] = height;
                             } else {
                                 Doc.Layout(doc)._height = height * NumCast(Doc.Layout(doc)._viewScale, 1);
                             }

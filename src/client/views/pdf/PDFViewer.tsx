@@ -736,7 +736,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 transform: `scale(${this._zoomed})`
             }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                annotationsKey={this.annotationKey}
+                isAnnotationOverlay={true}
+                fieldKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
@@ -744,7 +745,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
-                isAnnotationOverlay={true}
                 select={emptyFunction}
                 active={this.annotationsActive}
                 ContentScaling={this.contentZoom}

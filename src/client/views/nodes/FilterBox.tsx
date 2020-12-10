@@ -208,8 +208,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
-                    ignoreFilters={true} // otherwise, the filters would filter themselves out of the tree view
-                    annotationsKey={""}
                     dontRegisterView={true}
                     styleProvider={this.filterBackground}
                     moveDocument={returnFalse}

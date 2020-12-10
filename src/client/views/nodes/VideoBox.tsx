@@ -429,7 +429,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     forceScaling={true}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
-                    annotationsKey={this.annotationKey}
+                    fieldKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
                     isAnnotationOverlay={true}

@@ -63,8 +63,6 @@ export enum CollectionViewType {
 }
 export interface CollectionViewProps extends FieldViewProps {
     isAnnotationOverlay?: boolean;  // is the collection an annotation overlay (eg an overlay on an image/video/etc)
-    annotationsKey: string;    // which data field on the collection stores the collection of annotation documents
-    ignoreFilters?: boolean;
     layoutEngine?: () => string;
     parentActive: (outsideReaction: boolean) => boolean;
     filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
@@ -72,11 +70,11 @@ export interface CollectionViewProps extends FieldViewProps {
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 
     // property overrides for child documents
+    children?: never | (() => JSX.Element[]) | React.ReactNode;
     childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     childOpacity?: () => number;
     childLayoutTemplate?: () => (Doc | undefined);// specify a layout Doc template to use for children of the collection
     childLayoutString?: string;
-    children?: never | (() => JSX.Element[]) | React.ReactNode;
     childFreezeDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
     childIgnoreNativeSize?: boolean;
     childClickScript?: ScriptField;
@@ -387,7 +385,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             childLayoutString: this.childLayoutString,
             ScreenToLocalTransform: this.screenToLocalTransform,
             CollectionView: this,
-            annotationsKey: ""
         };
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.collectionViewType === CollectionViewType.Linear ? undefined :
             this.props.styleProvider?.(this.props.Document, this.props, "boxShadow");

@@ -346,7 +346,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     dropAction={undefined}
                     isSelected={returnFalse}
                     dontRegisterView={true}
-                    annotationsKey={""}
                     fieldKey={Doc.LayoutFieldKey(this._document!)}
                     bringToFront={emptyFunction}
                     rootSelected={returnTrue}

@@ -699,7 +699,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.props.PanelWidth}
-                            annotationsKey={this.annotationKey}
+                            fieldKey={this.annotationKey}
                             VisibleHeight={this.visibleHeight}
                             focus={this.props.focus}
                             setPreviewCursor={this.setPreviewCursor}

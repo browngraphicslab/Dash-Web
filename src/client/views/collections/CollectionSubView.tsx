@@ -67,14 +67,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
             // setTimeout changes it outside of the @computed section
             setTimeout(() => {
-                if (!this.dataDoc[this.props.annotationsKey || this.props.fieldKey]) this.dataDoc[this.props.annotationsKey || this.props.fieldKey] = new List<Doc>();
+                if (!this.dataDoc[this.props.fieldKey]) this.dataDoc[this.props.fieldKey] = new List<Doc>();
             }, 1000);
-            return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
+            return this.dataDoc[this.props.fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
             const { Document, DataDoc } = this.props;
-            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.isAnnotationOverlay ? DataDoc : undefined, doc)).
                 filter(pair => {  // filter out any documents that have a proto that we don't have permissions to (which we determine by not having any keys
                     return pair.layout && (!pair.layout.proto || (pair.layout.proto instanceof Doc && GetEffectiveAcl(pair.layout.proto) !== AclPrivate));// Object.keys(pair.layout.proto).length));
                 });
@@ -84,12 +84,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         docFilters = () => {
-            return this.props.ignoreFilters ? [] :
-                [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
+            return [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         docRangeFilters = () => {
-            return this.props.ignoreFilters ? [] :
-                [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
+            return [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
         }
         searchFilterDocs = () => {
             return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
@@ -104,7 +102,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // For example, if an image doc is rendered with a slide template, the template will try to render the data field as a collection.
                 // Since the data field is actually an image, we set the list of documents to the singleton of root document's proto which will be an image.
                 const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
-                rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
+                rawdocs = rootDoc && !this.props.isAnnotationOverlay ? [Doc.GetProto(rootDoc)] : [];
             }
 
             const docs = rawdocs.filter(d => !(d instanceof Promise) && GetEffectiveAcl(Doc.GetProto(d)) !== AclPrivate).map(d => d as Doc);

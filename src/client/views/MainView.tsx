@@ -456,7 +456,6 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     fieldKey={"data"}
                     dropAction={"alias"}
-                    annotationsKey={""}
                     parentActive={returnFalse}
                     styleProvider={TabDocView.styleProvider}
                     rootSelected={returnTrue}

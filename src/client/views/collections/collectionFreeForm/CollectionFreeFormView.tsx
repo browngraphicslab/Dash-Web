@@ -47,7 +47,6 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
-import { isUndefined } from "lodash";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -950,7 +949,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
 
-            if (DocListCast(this.dataDoc[this.props.annotationsKey || this.props.fieldKey]).includes(doc)) {
+            if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
                 if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             }
@@ -1193,7 +1192,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
-        if (!this.props.annotationsKey) {
+        if (!this.props.isAnnotationOverlay) {
             this._boundsReaction = reaction(() => this.contentBounds,
                 bounds => (!this.fitToContent && this._layoutElements?.length) && setTimeout(() => {
                     const rbounds = Cast(this.Document._renderContentBounds, listSpec("number"), [0, 0, 0, 0]);
@@ -1291,7 +1290,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
-        if (this.props.annotationsKey || this.props.Document.annotationOn || !ContextMenu.Instance) return;
+        if (this.props.isAnnotationOverlay || this.props.Document.annotationOn || !ContextMenu.Instance) return;
 
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
@@ -1527,7 +1526,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
 
     @computed get contentScaling() {
-        if (this.props.annotationsKey && !this.props.forceScaling) return 0;
+        if (this.props.isAnnotationOverlay && !this.props.forceScaling) return 0;
         const nw = returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document));
         const nh = returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.Document));
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
@@ -1555,7 +1554,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
                 height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
             }}>
-            {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
+            {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             {!this.props.noOverlay ? <CollectionFreeFormOverlayView elements={this.elementFunc} /> : (null)}
 

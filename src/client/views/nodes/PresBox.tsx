@@ -2412,7 +2412,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div className="presBox-listCont">
                     {mode !== CollectionViewType.Invalid ?
                         <CollectionView {...this.props}
-                            annotationsKey={""}
                             ContainingCollectionDoc={this.props.Document}
                             PanelWidth={this.props.PanelWidth}
                             PanelHeight={this.panelHeight}
