@@ -141,10 +141,10 @@ export class KeyManager {
                 UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
-            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left"); break;
-            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(1, 0)), "nudge right"); break;
-            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -1)), "nudge up"); break;
-            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 1)), "nudge down"); break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -1)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 1)), "nudge down"); break;
         }
 
         return {
@@ -158,10 +158,10 @@ export class KeyManager {
         const preventDefault = false;
 
         switch (keyname) {
-            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-10, 0)), "nudge left"); break;
-            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(10, 0)), "nudge right"); break;
-            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -10)), "nudge up"); break;
-            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 10)), "nudge down"); break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(-10, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(10, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -10)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 10)), "nudge down"); break;
         }
 
         return {

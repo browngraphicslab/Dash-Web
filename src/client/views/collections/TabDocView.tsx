@@ -386,7 +386,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
         afterFocus?.(false);
     }
-    setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
 
     //
@@ -504,9 +503,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @computed get docView() {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
-            <><DocumentView key={this._document[Id]}
+            <><DocumentView key={this._document[Id]} ref={action((r: DocumentView) => this._view = r)}
                 Document={this._document}
-                getView={this.setView}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
                 bringToFront={emptyFunction}
                 rootSelected={returnTrue}

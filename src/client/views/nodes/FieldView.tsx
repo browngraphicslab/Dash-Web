@@ -31,7 +31,6 @@ export interface FieldViewProps extends DocumentViewSharedProps {
     color?: string;
     xMargin?: number;
     yMargin?: number;
-    scriptContext?: any;
 }
 
 @observer

@@ -140,6 +140,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     opacity = () => this.Opacity;
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
+    returnThis = () => this;
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
         return this.props.styleProvider?.(this.Document, this.props, !this._contentView?.docView?.isSelected() ? "pointerEvents:selected" : "pointerEvents");
@@ -149,9 +150,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor");
         const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
 
-        const divProps = {
+        const divProps: DocumentViewProps = {
             ...this.props,
-            nudge: this.nudge,
+            CollectionFreeFormDocumentView: this.returnThis,
             dragDivName: "collectionFreeFormDocumentView-container",
             opacity: this.opacity,
             ScreenToLocalTransform: this.getTransform,

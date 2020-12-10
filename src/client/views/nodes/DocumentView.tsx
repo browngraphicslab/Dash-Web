@@ -41,6 +41,7 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
+import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -48,6 +49,7 @@ export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterF
 export interface DocumentViewSharedProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     Document: Doc;
     DataDoc?: Doc;
     contentsActive?: (setActive: () => boolean) => void;
@@ -81,29 +83,27 @@ export interface DocumentViewSharedProps {
     ContentScaling: () => number;
     ChromeHeight?: () => number;
     pointerEvents?: string;
+    scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
+    layoutKey?: string;
     freezeDimensions?: boolean;
     fitToBox?: boolean;
     treeViewDoc?: Doc;
     dragDivName?: string;
     contentsPointerEvents?: string;
-    getView?: (view: DocumentView) => any;
+    radialMenu?: String[];
+    display?: string;
+    relative?: boolean;
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
     onPointerUp?: () => ScriptField;
-    nudge?: (x: number, y: number) => void;
     setupDragLines?: (snapToDraggedDoc: boolean) => void;
     forceHideLinkButton?: () => boolean;
     opacity?: () => number | undefined;
-    layoutKey?: string;
-    radialMenu?: String[];
-    display?: string;
-    relative?: boolean;
-    scriptContext?: any;
 }
 
 @observer
