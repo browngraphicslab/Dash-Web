@@ -21,8 +21,8 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
 
             <CollectionTreeView {...this.props}
                 ChromeHeight={returnZero}
-                overrideDocuments={[this.dataDoc]}
-                ignoreFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
+                childDocuments={[this.dataDoc]}
+                treeViewSkipFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
                 annotationsKey={""}
                 dontRegisterView={true}
                 renderDepth={this.props.renderDepth + 1}

@@ -2,70 +2,29 @@ import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { DateField } from "../../../fields/DateField";
-import { Doc, FieldResult, Opt, Field } from "../../../fields/Doc";
+import { Doc, Field, FieldResult, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
-import { ScriptField } from "../../../fields/ScriptField";
-import { AudioField, VideoField, WebField } from "../../../fields/URLField";
-import { Transform } from "../../util/Transform";
-import { CollectionView } from "../collections/CollectionView";
-import { AudioBox } from "./AudioBox";
+import { VideoField, WebField } from "../../../fields/URLField";
+import { DocumentViewSharedProps } from "./DocumentView";
 import { VideoBox } from "./VideoBox";
-import { dropActionType } from "../../util/DragManager";
-import { DocAfterFocusFunc, DocFocusFunc, DocumentViewProps } from "./DocumentView";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
 // However, that only happens because the properties are "defined" in the markup for the field view.
 // See the LayoutString method on each field view :   ImageBox, FormattedTextBox, etc. 
 //
-export interface FieldViewProps {
+export interface FieldViewProps extends DocumentViewSharedProps {
+    // FieldView specific props that are not part of DocumentView props
     fieldKey: string;
     fitToBox?: boolean;
-    ContainingCollectionView: Opt<CollectionView>;
-    ContainingCollectionDoc: Opt<Doc>;
-    Document: Doc;
-    DataDoc?: Doc;
-    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
-    contentsActive?: (setActive: () => boolean) => void;
-    onClick?: () => ScriptField;
-    dropAction: dropActionType;
-    backgroundHalo?: () => boolean;
-    docFilters: () => string[];
-    docRangeFilters: () => string[];
-    searchFilterDocs: () => Doc[];
-    isSelected: (outsideReaction?: boolean) => boolean;
-    select: (isCtrlPressed: boolean) => void;
-    rootSelected: (outsideReaction?: boolean) => boolean;
-    renderDepth: number;
-    addDocument?: (document: Doc | Doc[]) => boolean;
-    addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc) => void;
-    removeDocument?: (document: Doc | Doc[]) => boolean;
-    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    styleProvider?: (document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
-    ScreenToLocalTransform: () => Transform;
-    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    parentActive: (outsideReaction: boolean) => boolean;
+    overflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
     active: (outsideReaction?: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    LayoutTemplateString?: string;
-    dontRegisterView?: boolean;
-    focus: DocFocusFunc;
-    presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation
-    ignoreAutoHeight?: boolean;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    PanelPosition?: string;
-    overflow?: boolean;
-    NativeHeight?: () => number;
-    NativeWidth?: () => number;
-    setVideoBox?: (player: VideoBox) => void;
-    ContentScaling: () => number;
-    ChromeHeight?: () => number;
-    childLayoutTemplate?: () => Opt<Doc>;
+    select: (isCtrlPressed: boolean) => void;
+    isSelected: (outsideReaction?: boolean) => boolean;
+
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
-    fontSize?: number;
     pointerEvents?: string;
+    fontSize?: number;
     height?: number;
     width?: number;
     background?: string;

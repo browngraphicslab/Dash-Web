@@ -49,7 +49,7 @@ export interface TreeViewProps {
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     dontRegisterView?: boolean;
-    backgroundColor?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
+    backgroundColor?: (doc: Opt<Doc>, props: DocumentViewProps, property: string) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -59,7 +59,7 @@ export interface TreeViewProps {
     renderedIds: string[]; // list of document ids rendered used to avoid unending expansion of items in a cycle
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
-    ignoreFields?: string[];
+    skipFields?: string[];
     firstLevel: boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -311,7 +311,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
         for (const key of Object.keys(ids).slice().sort()) {
-            if (this.props.ignoreFields?.includes(key) || key === "title" || key === "treeViewOpen") continue;
+            if (this.props.skipFields?.includes(key) || key === "title" || key === "treeViewOpen") continue;
             const contents = doc[key];
             let contentElement: (JSX.Element | null)[] | JSX.Element = [];
 
@@ -327,7 +327,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
             } else {
                 contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
@@ -406,7 +406,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                         StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
             return <ul key={this.doc[Id] + this.doc.title}><div style={{ display: "inline-block" }} >
@@ -449,14 +449,14 @@ export class TreeView extends React.Component<TreeViewProps> {
                 !(this.doc.text as RichTextField)?.Text ? (null) :
                     <FontAwesomeIcon size="sm" icon={[this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"]} /> :
                 <div className="treeView-bulletIcons" >
-                    <div className="treeView-expandIcon">
-                        <FontAwesomeIcon size="sm" icon={this.outlineMode ? [this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"] :
+                    <div className={`treeView-${this.onCheckedClick ? "checkIcon" : "expandIcon"}`}>
+                        <FontAwesomeIcon size="sm" icon={
                             checked === "check" ? "check" :
                                 (checked === "x" ? "times" : checked === "unchecked" ? "square" :
                                     !this.treeViewOpen ? "caret-right" :
                                         "caret-down")} />
                     </div>
-                    <FontAwesomeIcon icon={iconType} />
+                    {this.onCheckedClick ? (null) : <FontAwesomeIcon icon={iconType} />}
                 </div>
             }
         </div>;
@@ -710,7 +710,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
+        styleProvider: undefined | ((document: Opt<Doc>, props: DocumentViewProps, property: string) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
@@ -722,7 +722,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         renderedIds: string[],
         onCheckedClick: undefined | (() => ScriptField),
         onChildClick: undefined | (() => ScriptField),
-        ignoreFields: string[] | undefined,
+        skipFields: string[] | undefined,
         firstLevel: boolean,
         whenActiveChanged: (isActive: boolean) => void,
         dontRegisterView: boolean | undefined) {
@@ -783,7 +783,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 renderDepth={renderDepth}
                 removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
-                backgroundColor={backgroundColor}
+                backgroundColor={styleProvider}
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
                 ChromeHeight={ChromeHeight}
@@ -799,7 +799,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 treeViewHideHeaderFields={treeViewHideHeaderFields}
                 treeViewPreventOpen={treeViewPreventOpen}
                 renderedIds={renderedIds}
-                ignoreFields={ignoreFields}
+                skipFields={skipFields}
                 firstLevel={firstLevel}
                 whenActiveChanged={whenActiveChanged} />;
         });

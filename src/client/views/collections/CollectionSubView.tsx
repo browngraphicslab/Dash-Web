@@ -8,48 +8,20 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
+import { Utils, returnFalse } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
-import { FieldViewProps } from "../nodes/FieldView";
 import React = require("react");
 import * as rp from 'request-promise';
 import ReactLoading from 'react-loading';
 
-export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc | Doc[]) => boolean;
-    removeDocument: (document: Doc | Doc[]) => boolean;
-    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    VisibleHeight?: () => number;
-    setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
-    rootSelected: (outsideReaction?: boolean) => boolean;
-    fieldKey: string;
-    NativeWidth?: () => number;
-    NativeHeight?: () => number;
-}
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
-    children?: never | (() => JSX.Element[]) | React.ReactNode;
-    ChildLayoutTemplate?: () => Doc;
-    childOpacity?: () => number;
-    childIgnoreNativeSize?: boolean;
-    ChildLayoutString?: string;
-    childClickScript?: ScriptField;
-    childDoubleClickScript?: ScriptField;
-    freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
-    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
-    ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
-    parentActive: (outsideReaction: boolean) => boolean;
-    isAnnotationOverlay?: boolean;
-    annotationsKey: string;
-    layoutEngine?: () => string;
 }
 
 export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?: X) {
@@ -112,11 +84,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         docFilters = () => {
-            return this.props.ignoreFields?.includes("_docFilters") ? [] :
+            return this.props.ignoreFilters ? [] :
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         docRangeFilters = () => {
-            return this.props.ignoreFields?.includes("_docRangeFilters") ? [] :
+            return this.props.ignoreFilters ? [] :
                 [...this.props.docRangeFilters(), ...Cast(this.props.Document._docRangeFilters, listSpec("string"), [])];
         }
         searchFilterDocs = () => {
@@ -220,7 +192,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
         }
 
-        addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
+        addDocument = (doc: Doc | Doc[]) => this.props.addDocument?.(doc) || false;
 
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
@@ -329,7 +301,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             DocServer.GetRefField(docid).then(f => {
                                 if (f instanceof Doc) {
                                     if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                    (f instanceof Doc) && this.props.addDocument(f);
+                                    (f instanceof Doc) && this.addDocument(f);
                                 }
                             });
                         } else {
@@ -343,7 +315,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
-                            this.props.addDocument(htmlDoc);
+                            this.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const iframe = SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0];
                                 const focusNode = (iframe?.contentDocument?.getSelection()?.focusNode as any);
@@ -503,7 +475,7 @@ import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
-import { CollectionView, CollectionViewType } from "./CollectionView";
+import { CollectionView, CollectionViewType, CollectionViewProps } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";

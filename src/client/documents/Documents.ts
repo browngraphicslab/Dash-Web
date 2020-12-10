@@ -1136,7 +1136,7 @@ export namespace DocUtils {
                         newDoc.x = x;
                         newDoc.y = y;
                         if (newDoc.type === DocumentType.RTF) FormattedTextBox.SelectOnLoad = newDoc[Id];
-                        docAdder(newDoc);
+                        docAdder?.(newDoc);
                     }
                 }),
                 icon: "eye"

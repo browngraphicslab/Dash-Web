@@ -158,11 +158,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     addDocument = action((newBox: Doc | Doc[]) => {
         let retVal = false;
         if (newBox instanceof Doc) {
-            retVal = this.props.addDocument(newBox);
+            retVal = this.props.addDocument?.(newBox) || false;
             retVal && this.bringToFront(newBox);
             retVal && this.updateCluster(newBox);
         } else {
-            retVal = this.props.addDocument(newBox);
+            retVal = this.props.addDocument?.(newBox) || false;
             // bcz: deal with clusters
         }
         if (retVal) {
@@ -270,7 +270,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return false;
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            this.props.addDocument(source);
+            this.props.addDocument?.(source);
             linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation", ""); // TODODO this is where in text links get passed
             e.stopPropagation();
             return true;
@@ -396,7 +396,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
+    getClusterColor = (doc: Opt<Doc>, props: DocumentViewProps, property: string) => {
         let clusterColor = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
         if (property !== "backgroundColor") return clusterColor;
         const cluster = NumCast(doc?.cluster);
@@ -510,7 +510,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     return pass;
                 });
                 this.addDocument(Docs.Create.FreeformDocument(sel, { title: "nested collection", x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
-                sel.forEach(d => this.props.removeDocument(d));
+                sel.forEach(d => this.props.removeDocument?.(d));
                 e.stopPropagation();
                 break;
             case GestureUtils.Gestures.StartBracket:
@@ -999,9 +999,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
-            LayoutTemplate: childLayout.z ? undefined : this.props.ChildLayoutTemplate,
-            LayoutTemplateString: childLayout.z ? undefined : this.props.ChildLayoutString,
-            FreezeDimensions: this.props.freezeChildDimensions,
+            LayoutTemplate: childLayout.z ? undefined : this.props.childLayoutTemplate,
+            LayoutTemplateString: childLayout.z ? undefined : this.props.childLayoutString,
+            FreezeDimensions: this.props.childFreezeDimensions,
             setupDragLines: this.setupDragLines,
             dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
@@ -1032,14 +1032,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const pt = this.getTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
                 doc.x = pt[0];
                 doc.y = pt[1];
-                return this.props.addDocument(doc);
+                return this.props.addDocument?.(doc) || false;
             } else {
                 (doc as any as Doc[]).forEach(doc => {
                     const pt = this.getTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
                     doc.x = pt[0];
                     doc.y = pt[1];
                 });
-                return this.props.addDocument(doc);
+                return this.props.addDocument?.(doc) || false;
             }
         }
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -1172,8 +1172,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
-                    fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
-                    FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
+                    fitToBox={BoolCast(this.props.childFreezeDimensions)} // bcz: check this
+                    FreezeDimensions={BoolCast(this.props.childFreezeDimensions)}
                 />,
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));

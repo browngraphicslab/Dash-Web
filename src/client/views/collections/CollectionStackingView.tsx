@@ -152,7 +152,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     @action
     moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean): boolean => {
-        return this.props.removeDocument(doc) && addDocument(doc);
+        return this.props.removeDocument?.(doc) && addDocument?.(doc) ? true : false;
     }
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
@@ -193,9 +193,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             styleProvider={this.props.styleProvider}
-            LayoutTemplate={this.props.ChildLayoutTemplate}
-            LayoutTemplateString={this.props.ChildLayoutString}
-            FreezeDimensions={this.props.freezeChildDimensions}
+            LayoutTemplate={this.props.childLayoutTemplate}
+            LayoutTemplateString={this.props.childLayoutString}
+            FreezeDimensions={this.props.childFreezeDimensions}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
@@ -232,14 +232,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     getDocWidth(d?: Doc) {
         if (!d) return 0;
-        const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
+        const layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = Doc.NativeWidth(layoutDoc);
         return Math.min(nw && !this.layoutDoc._columnsFill ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
         const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
-        const childLayoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
+        const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc);
         const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);

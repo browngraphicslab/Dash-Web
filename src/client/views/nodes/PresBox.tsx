@@ -2412,6 +2412,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div className="presBox-listCont">
                     {mode !== CollectionViewType.Invalid ?
                         <CollectionView {...this.props}
+                            annotationsKey={""}
                             ContainingCollectionDoc={this.props.Document}
                             PanelWidth={this.props.PanelWidth}
                             PanelHeight={this.panelHeight}
@@ -2423,7 +2424,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             removeDocument={returnFalse}
                             dontRegisterView={true}
                             focus={this.selectElement}
-                            ScreenToLocalTransform={this.getTransform} />
+                            ScreenToLocalTransform={this.getTransform}
+                        />
                         : (null)
                     }
                 </div>

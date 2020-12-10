@@ -339,7 +339,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     parentActive={returnFalse}
-                    ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
+                    childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
                     select={emptyFunction}

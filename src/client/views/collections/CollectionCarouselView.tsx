@@ -53,8 +53,8 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
-                        LayoutTemplate={this.props.ChildLayoutTemplate}
-                        LayoutTemplateString={this.props.ChildLayoutString}
+                        LayoutTemplate={this.props.childLayoutTemplate}
+                        LayoutTemplateString={this.props.childLayoutString}
                         Document={curDoc.layout}
                         DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}

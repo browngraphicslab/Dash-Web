@@ -183,7 +183,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
-        if (this.props.setVideoBox) this.props.setVideoBox(this);
         this._disposers.videoStart = reaction(
             () => this.Document._videoStart,
             (videoStart) => {
