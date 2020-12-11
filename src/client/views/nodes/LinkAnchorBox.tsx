@@ -119,7 +119,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
         const linkSource = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkSource);
-        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkBackgroundColor);
+        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.ItemBackgroundColor);
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 

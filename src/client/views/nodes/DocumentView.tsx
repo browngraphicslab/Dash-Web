@@ -86,7 +86,6 @@ export interface DocumentViewSharedProps {
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
-    layoutKey?: string;
     freezeDimensions?: boolean;
     hideTitle?: boolean;
     fitToBox?: boolean;
@@ -124,7 +123,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private get active() { return this.isSelected(true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
+    public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() {
         return StrCast(this.layoutDoc._showTitle,
             !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.rootDoc.presentationTargetDoc ?
@@ -892,11 +891,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @computed get finalLayoutKey() {
-        if (typeof this.props.layoutKey === "string") {
-            return this.props.layoutKey;
-        }
-        const fallback = Cast(this.props.Document.layoutKey, "string");
-        return typeof fallback === "string" ? fallback : "layout";
+        return StrCast(this.props.Document.layoutKey, "layout");
     }
     rootSelected = (outsideReaction?: boolean) => {
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
@@ -980,11 +975,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         switch (property.split(":")[0]) {
             case StyleProp.BackgroundColor: return "transparent";
-            case StyleProp.LinkBackgroundColor: return this.props.styleProvider?.(doc, props, StyleProp.BackgroundColor);
             case StyleProp.HideLinkButton: return true;
             case StyleProp.PointerEvents: return "none";
             case StyleProp.LinkSource: return this.props.Document;
         }
+        return this.props.styleProvider?.(doc, props, property);
     }
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
@@ -1012,6 +1007,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
     }
+    captionStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        if (property === StyleProp.Color) return "white";
+        if (property === StyleProp.BackgroundColor) return "rgba(0,0,0 ,0.4)";
+        return this.props?.styleProvider?.(doc, props, property);
+    }
     @computed get innards() {
         TraceMobx();
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
@@ -1022,6 +1022,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     yMargin={10}
                     xMargin={10}
                     hideOnLeave={true}
+                    styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}

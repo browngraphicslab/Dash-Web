@@ -910,7 +910,7 @@ export class CurrentUserUtils {
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
-            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
             doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, lockedPosition: true, system: true }));
         }
     }

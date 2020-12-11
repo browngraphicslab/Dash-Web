@@ -53,6 +53,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
+    @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
@@ -211,7 +212,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             freezeDimensions={this.props.childFreezeDimensions}
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
-            dontCenter={this.props.childIgnoreNativeSize ? "xy" : ""}
+            dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
             fitToBox={false}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
@@ -360,7 +361,9 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
+                            const height = this.headerMargin +
+                                Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER),
+                                    Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
                             if (this.props.isAnnotationOverlay) {
                                 doc[this.props.fieldKey + "-height"] = height;
                             } else {
@@ -396,7 +399,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     forceAutoHeight = () => {
         const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-        Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+        Doc.Layout(doc)._height = this.headerMargin + this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
     }
 
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
@@ -418,7 +421,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
+                            Doc.Layout(doc)._height = this.headerMargin + Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);

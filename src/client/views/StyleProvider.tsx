@@ -15,6 +15,7 @@ import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
 import { listSpec } from '../../fields/Schema';
+import { Utils } from '../../Utils';
 
 export enum StyleLayers {
     Background = "background"
@@ -26,9 +27,10 @@ export enum StyleProp {
     Hidden = "hidden",                    // whether the document view should not be isplayed
     BoxShadow = "boxShadow",              // box shadow - used for making collections standout and for showing clusters in free form views
     BorderRounding = "borderRounding",    // border radius of the document view
+    Color = "color",                      // foreground color of Document view items
     BackgroundColor = "backgroundColor",  // background color of a document view
+    ItemBackgroundColor = "itemBackgroundColor", // background color for <item>Box inside DocumentView
     WidgetColor = "widgetColor",                 // color to display UI widgets on a document view -- used for the sidebar divider dragger on a text note
-    LinkBackgroundColor = "linkBackgroundColor", // background color of a link dot -- defaults to the backgroundColor of the link document
     HideLinkButton = "hideLinkButton",  // hides the blue-dot link button.  used when a document acts like a button
     LinkSource = "linkSource",      // source document of a link -- used by LinkAnchorBox
     PointerEvents = "pointerEvents",// pointer events for DocumentView -- inherits pointer events if not specified
@@ -65,32 +67,44 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
+        case StyleProp.Color:
+            const backColor = props?.styleProvider?.(doc, props, StyleProp.ItemBackgroundColor) || "black";
+            const col = Color(backColor).rgb();
+            const colsum = (col.red() + col.green() + col.blue());
+            if (colsum / col.alpha() > 600 || col.alpha() < 0.25) return "black";
+            return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
         case StyleProp.BorderRounding: return !doc ? undefined : StrCast(doc._borderRounding, StrCast(doc.borderRounding));
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
-        case StyleProp.BackgroundColor: {
-            if (Doc.UserDoc().renderStyle === "comic") return undefined;
+        case StyleProp.ItemBackgroundColor:
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
-            if (!docColor) {
-                switch (doc?.type) {
-                    case DocumentType.PRESELEMENT: docColor = darkScheme() ? "" : ""; break;
-                    case DocumentType.PRES: docColor = darkScheme() ? "#3e3e3e" : "white"; break;
-                    case DocumentType.FONTICON: docColor = "black"; break;
-                    case DocumentType.RTF: docColor = darkScheme() ? "#2d2d2d" : "#f1efeb"; break;
-                    case DocumentType.LABEL:
-                    case DocumentType.BUTTON: docColor = darkScheme() ? "#2d2d2d" : "lightgray"; break;
-                    case DocumentType.LINK:
-                    case DocumentType.COL:
-                        docColor = Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
+            if (docColor) return docColor;
+            switch (doc?.type) {
+                case DocumentType.FONTICON: return "black";
+                case DocumentType.LINK: return "lightblue";
+            }
+        case StyleProp.BackgroundColor: {
+            if (Doc.UserDoc().renderStyle === "comic") return "transparent";
+            let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            switch (doc?.type) {
+                case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
+                case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
+                case DocumentType.FONTICON: docColor = undefined; break;
+                case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
+                case DocumentType.LABEL:
+                case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
+                case DocumentType.LINK:
+                case DocumentType.COL:
+                    docColor = docColor ||
+                        (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
                             StrListCast(doc.layers).includes(StyleLayers.Background) ? "cyan" :
                                 doc.annotationOn ? "#00000015" :
                                     StrCast((props?.renderDepth || 0) > 0 ?
                                         Doc.UserDoc().activeCollectionNestedBackground :
-                                        Doc.UserDoc().activeCollectionBackground);
-                        break;
-                    //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                    default: docColor = darkScheme() ? "black" : "white"; break;
-                }
+                                        Doc.UserDoc().activeCollectionBackground));
+                    break;
+                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                default: docColor = darkScheme() ? "black" : "white"; break;
             }
             if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor.toLowerCase()).fade(0.5).toString();
             return docColor;

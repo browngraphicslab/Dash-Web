@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
-import * as fa from '@fortawesome/free-solid-svg-icons';
 import * as far from '@fortawesome/free-regular-svg-icons';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,7 +12,8 @@ import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { TraceMobx } from '../../fields/util';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -22,10 +23,12 @@ import { GroupManager } from '../util/GroupManager';
 import { HistoryUtil } from '../util/History';
 import { Hypothesis } from '../util/HypothesisUtils';
 import { Scripting } from '../util/Scripting';
+import { SelectionManager } from '../util/SelectionManager';
 import { SettingsManager } from '../util/SettingsManager';
 import { SharingManager } from '../util/SharingManager';
 import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
+import { UndoManager } from '../util/UndoManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
@@ -35,15 +38,15 @@ import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
-import { InkStrokeProperties } from './InkStrokeProperties';
 import { GestureOverlay } from './GestureOverlay';
 import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
+import { InkStrokeProperties } from './InkStrokeProperties';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView } from './nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -55,11 +58,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { TraceMobx } from '../../fields/util';
-import { SelectionManager } from '../util/SelectionManager';
-import { UndoManager } from '../util/UndoManager';
-import { TabDocView } from './collections/TabDocView';
-import { DefaultStyleProvider } from './StyleProvider';
+import { DefaultStyleProvider, StyleProp } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -67,7 +66,7 @@ export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
-    private _lastButton: Doc | undefined;
+    @observable private _lastButton: Doc | undefined;
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -299,6 +298,13 @@ export class MainView extends React.Component {
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
 
+    menuStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        if (property === StyleProp.ItemBackgroundColor && this._lastButton === doc) {
+            return this.darkScheme ? "dimgrey" : "lightgrey";
+        }
+        return DefaultStyleProvider(doc, props, property);
+    }
+
     @computed get flyout() {
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
@@ -353,7 +359,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                styleProvider={DefaultStyleProvider}
+                styleProvider={this.menuStyleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -426,14 +432,11 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        button._backgroundColor = this.darkScheme ? "dimgrey" : "lightgrey";
-        button.color = "black";
         this._lastButton = button;
     });
 
     closeFlyout = action(() => {
-        this._lastButton && (this._lastButton.color = "white");
-        this._lastButton && (this._lastButton._backgroundColor = "");
+        this._lastButton = undefined;
         this._panelContent = "none";
         this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
