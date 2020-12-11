@@ -103,7 +103,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const top = rect.top, height = rect.height;
         var el = el.parentNode;
         while (el && el !== document.body) {
-            rect = el?.getBoundingClientRect();
+            rect = el.getBoundingClientRect?.();
             if (rect?.width) {
                 if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
                 // Check if the element is out of view due to a container scrolling

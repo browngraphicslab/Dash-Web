@@ -1,5 +1,13 @@
 @import "../globalCssVariables";
 
+.treeView-label {
+    max-height: 1.5em;
+    text-overflow: ellipsis;
+    display: inline-block;
+    white-space: pre;
+    width: 100%;
+    overflow: hidden;
+}
 .treeView-container,
 .treeView-container-active {
     .bullet-outline {

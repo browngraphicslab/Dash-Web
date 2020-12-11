@@ -112,7 +112,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     (document.activeElement !== titleEle) && titleEle.focus();
                 }
             };
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => (v.topMost || v.props.treeViewDoc) && v.props.Document === doc),
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.topMost && v.props.Document === doc),
                 action((selected) => {
                     if (selected) this._activated = true;
                     const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;

@@ -4,7 +4,7 @@ import { Doc, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Utils, setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { Utils, setupMoveUpEvents, emptyFunction, OmitKeys } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
@@ -117,7 +117,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const small = this.props.PanelWidth() <= 1; // this happens when rendered in a treeView
         const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
-        const c = StrCast(this.layoutDoc._backgroundColor, StrCast(this.layoutDoc.backgroundColor, StrCast(this.dataDoc.backgroundColor, "lightBlue"))); // note this is not where the typical lightBlue default color comes from.  See Documents.Create.LinkDocument()
+        const c = this.props.styleProvider?.(this.dataDoc, OmitKeys(this.props, ["LayoutTemplateString"]).omit, "backgroundColor");
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 

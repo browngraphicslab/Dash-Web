@@ -269,7 +269,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     DataDoc={this.dataDoc}
                     renderDepth={1}
                     rootSelected={returnFalse}
-                    treeViewDoc={undefined}
                     styleProvider={this.props.styleProvider}
                     fitToBox={true}
                     freezeDimensions={true}

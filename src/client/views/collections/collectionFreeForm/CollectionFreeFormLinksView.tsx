@@ -28,10 +28,8 @@ export class CollectionFreeFormLinksView extends React.Component {
             }
             return drawnPairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
-        return connections.filter(c =>
-            c.a.props.Document.type === DocumentType.LINK
-            && !c.a.props.treeViewDoc?.treeViewHideLinkLines && !c.b.props.treeViewDoc?.treeViewHideLinkLines
-        ).map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.filter(c => c.a.props.Document.type === DocumentType.LINK)
+            .map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {
