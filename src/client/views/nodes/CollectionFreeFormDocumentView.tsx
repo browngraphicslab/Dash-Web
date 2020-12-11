@@ -44,8 +44,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
-    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : Cast(this.layoutDoc.opacity, "number", null); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
+    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : undefined; }
     get Highlight() { return this.dataProvider?.highlight; }
     get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
     get height() {
@@ -57,6 +57,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
+
+    styleProvider = (doc: Doc | undefined, props: DocumentViewProps, property: string) => {
+        if (property === "opacity" && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
+        return this.props.styleProvider?.(doc, props, property);
+    }
 
     static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];
     public static getValues(doc: Doc, time: number) {
@@ -137,7 +142,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
-    opacity = () => this.Opacity;
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     returnThis = () => this;
@@ -148,13 +152,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     render() {
         TraceMobx();
         const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor");
-        const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
-
+        const borderRadius = this.props.styleProvider?.(this.Document, this.props, "borderRounding");
+        const boxShadow = this.props.styleProvider?.(this.Document, this.props, "boxShadow");
         const divProps: DocumentViewProps = {
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,
             dragDivName: "collectionFreeFormDocumentView-container",
-            opacity: this.opacity,
+            styleProvider: this.styleProvider,
             ScreenToLocalTransform: this.getTransform,
             NativeHeight: this.NativeHeight,
             NativeWidth: this.NativeWidth,
@@ -163,13 +167,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         };
         return <div className="collectionFreeFormDocumentView-container"
             style={{
-                boxShadow:
-                    this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
-                        this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.(this.props.Document) && this.props.Document.type !== DocumentType.INK ? (`${this.props.styleProvider?.(this.props.Document, this.props, "backgroundColor")} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(Cast(this.layoutDoc.layers, listSpec("string"), []).includes("background") ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                Cast(this.layoutDoc.layers, listSpec("string"), []).includes('background') ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
-                                    StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: borderRounding,
+                boxShadow,
+                borderRadius,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
@@ -178,7 +177,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                // @ts-ignore
                 pointerEvents: this.pointerEvents
             }} >
 

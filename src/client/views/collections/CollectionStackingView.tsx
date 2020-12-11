@@ -22,7 +22,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { DocAfterFocusFunc } from "../nodes/DocumentView";
+import { DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
@@ -187,14 +187,24 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const opacity = () => this.Document._currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
+        const styleProvider = (doc: Doc | undefined, props: DocumentViewProps, property: string) => {
+            if (property === "opacity" && doc) {
+                if (this.props.childOpacity) {
+                    return this.props.childOpacity();
+                }
+                if (this.Document._currentFrame !== undefined) {
+                    return CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
+                }
+            }
+            return this.props.styleProvider?.(doc, props, property);
+        };
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            styleProvider={this.props.styleProvider}
+            styleProvider={styleProvider}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
@@ -208,7 +218,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
-            opacity={opacity}
             focus={this.focusDocument}
             docFilters={this.docFilters}
             docRangeFilters={this.docRangeFilters}

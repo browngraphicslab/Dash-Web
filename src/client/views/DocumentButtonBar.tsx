@@ -339,7 +339,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
         while (child.children.length) {
             const next = Array.from(child.children).find(c => typeof (c.className) === "string");
-            if (next?.className.includes("documentView-node")) break;
+            if (next?.className.includes(DocumentView.ROOT_DIV)) break;
             if (next?.className.includes("dashFieldView")) break;
             if (next) child = next;
             else break;

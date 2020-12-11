@@ -1049,7 +1049,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     });
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, opacity } = this.Document._currentFrame === undefined ? params.pair.layout :
+        const { x, y, opacity } = this.Document._currentFrame === undefined ?
+            { x: params.pair.layout.x, y: params.pair.layout.y, opacity: this.props.styleProvider?.(params.pair.layout, this.props, "opacity") } :
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame || 0);
         const { z, color, zIndex } = params.pair.layout;
         return {

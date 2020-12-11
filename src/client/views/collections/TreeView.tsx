@@ -441,7 +441,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
-            style={this.outlineMode ? { opacity: NumCast(this.doc.opacity, 1) } : {
+            style={this.outlineMode ? { opacity: this.styleProvider?.(this.doc, this.props.treeView.props, "opacity") } : {
                 color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"),
                 opacity: checked === "unchecked" ? undefined : 0.4
             }}>
@@ -496,6 +496,12 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
+    styleProvider = (doc: (Doc | undefined), props: DocumentViewProps, property: string): any => {
+        // override opacity and backgroundColor just for this treeView document: opacity = 1, and backgroundColor = undefined unless it is explicitly set on the document
+        if (property === "opacity" && doc === this.props.document) return this.outlineMode ? undefined : 1;
+        if (property === "backgroundColor" && doc === this.props.document) return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
+        return this.props.treeView.props.styleProvider?.(doc, props, property);
+    }
     onKeyDown = (e: React.KeyboardEvent) => {
         if (this.doc.treeViewHideHeader || this.outlineMode) {
             e.stopPropagation();
@@ -520,6 +526,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 ref={this._docRef}
                 Document={this.doc}
                 DataDoc={undefined}
+                styleProvider={this.styleProvider}
                 treeViewDoc={this.props.treeView.props.Document}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
@@ -535,7 +542,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
                 contextMenuItems={this.contextMenuItems}
-                opacity={this.outlineMode ? undefined : returnOne}
                 renderDepth={1}
                 focus={returnTrue}
                 parentActive={returnTrue}

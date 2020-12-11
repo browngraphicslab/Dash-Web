@@ -48,7 +48,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
         const defaultValues = [NumCast(this.dataDoc[this.minThumbKey]), NumCast(this.dataDoc[this.maxThumbKey])];
         return domain[1] <= domain[0] ? (null) : (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
-                style={{ boxShadow: this.layoutDoc.opacity === 0 ? undefined : StrCast(this.layoutDoc.boxShadow, "") }}>
+                style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, "boxShadow") }}>
                 <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
                     background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
                     fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)

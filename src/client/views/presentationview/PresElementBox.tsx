@@ -21,6 +21,7 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentViewProps } from "../nodes/DocumentView";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -76,6 +77,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
+    styleProvider = (doc: (Doc | undefined), props: DocumentViewProps, property: string): any => {
+        if (property === "opacity") return 1;
+        return this.props.styleProvider?.(doc, props, property);
+    }
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -87,7 +92,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     fitToBox={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.styleProvider}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -102,7 +107,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
                     bringToFront={returnFalse}
-                    opacity={returnOne}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}

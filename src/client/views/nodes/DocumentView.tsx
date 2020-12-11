@@ -103,11 +103,11 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     onPointerUp?: () => ScriptField;
     setupDragLines?: (snapToDraggedDoc: boolean) => void;
     forceHideLinkButton?: () => boolean;
-    opacity?: () => number | undefined;
 }
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
+    public static ROOT_DIV = "documentView-effectsWrapper";
     @observable _animateScalingTo = 0;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -1090,24 +1090,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
         if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden")) return null;
-        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor");
-        const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
-        const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
-        const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
-        const fullDegree = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
-        const borderRounding = this.layoutDoc.borderRounding;
-        const localScale = fullDegree;
+        const background = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor");
+        const borderRounding = this.props.styleProvider?.(this.layoutDoc, this.props, "borderRounding");
+        const opacity = this.props.styleProvider?.(this.layoutDoc, this.props, "opacity");
+        const highlightIndex = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
         const highlightColors = CurrentUserUtils.ActiveDashboard?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
+        let highlighting = highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         const topmost = this.topMost ? "-topmost" : "";
         return this.props.styleProvider?.(this.rootDoc, this.props, "docContents") ?? <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
             onKeyDown={this.onKeyDown}
-            onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+            onPointerDown={this.onPointerDown}
+            onClick={this.onClick}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;
@@ -1122,15 +1120,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
                 pointerEvents: this.pointerEvents,
                 color: StrCast(this.layoutDoc.color, "inherit"),
-                outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: highlighting && borderRounding && highlightStyles[fullDegree] !== "dashed" ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
+                outline: highlighting && !borderRounding ? `${highlightColors[highlightIndex]} ${highlightStyles[highlightIndex]} ${highlightIndex}px` : "solid 0px",
+                border: highlighting && borderRounding && highlightStyles[highlightIndex] === "dashed" ? `${highlightStyles[highlightIndex]} ${highlightColors[highlightIndex]} ${highlightIndex}px` : undefined,
+                boxShadow: highlighting && borderRounding && highlightStyles[highlightIndex] !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColors[highlightIndex]}` :
                     this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.forceHideLinkButton?.() ?
                         StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,
-                background: finalColor,
-                opacity: finalOpacity,
+                background,
+                opacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: !this.props.treeViewDoc ? Cast(this.Document._fontSize, "string", null) : undefined,
             }}>
@@ -1140,7 +1138,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </div>;
     }
     render() {
-        return <div className="documentView-effectsWrapper" ref={this._mainCont} >
+        return <div className={DocumentView.ROOT_DIV} onContextMenu={this.onContextMenu} ref={this._mainCont} >
             {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
         </div>;
     }

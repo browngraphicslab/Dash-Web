@@ -1,5 +1,8 @@
 @import "../globalCssVariables";
 
+.documentView-effectsWrapper {
+    border-radius: inherit;
+}
 .documentView-node,
 .documentView-node-topmost {
     position: inherit;

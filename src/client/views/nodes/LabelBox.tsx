@@ -72,7 +72,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 onMouseLeave={action(() => this._mouseOver = false)}
                 onMouseOver={action(() => this._mouseOver = true)}
                 ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
-                style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
+                style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, "boxShadow") }}>
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     backgroundColor: this.backColor,
