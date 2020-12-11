@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, StrListCast } from "../../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../../fields/documentSchemas";
 import { Id } from "../../../../fields/FieldSymbols";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
@@ -80,6 +80,8 @@ export type collectionFreeformViewProps = {
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, Partial<collectionFreeformViewProps>>(PanZoomDocument) {
+    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
+
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _downX: number = 0;
@@ -94,18 +96,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _layoutPoolData = new ObservableMap<string, PoolData>();
     private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
     private _cachedPool: Map<string, PoolData> = new Map();
+    private _lastTap = 0;
+    private _nudgeTime = 0;
+    private _thumbIdentifier?: number;
+
+    @observable private _hLines: number[] | undefined;
+    @observable private _vLines: number[] | undefined;
     @observable private _pullCoords: number[] = [0, 0];
     @observable private _pullDirection: string = "";
+    @observable private _showAnimTimeline = false;
 
-    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
-
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
-    @observable canPanX: boolean = true;
-    @observable canPanY: boolean = true;
 
+    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent ? this.props.ContentScaling() : 1; }
@@ -154,6 +160,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox);
     }
+
     addDocument = action((newBox: Doc | Doc[]) => {
         let retVal = false;
         if (newBox instanceof Doc) {
@@ -303,6 +310,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return cluster;
         }, -1);
     }
+
     tryDragCluster(e: PointerEvent | TouchEvent, cluster: number) {
         if (cluster !== -1) {
             const ptsParent = e instanceof PointerEvent ? e : e.targetTouches.item(0);
@@ -414,7 +422,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else if (doc && NumCast(doc.group, -1) !== -1) clusterColor = "gray";
         return clusterColor;
     }
-
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -595,8 +602,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    _lastTap = 0;
-
     @action
     onPointerUp = (e: PointerEvent): void => {
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
@@ -768,7 +773,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     }
                 }
 
-
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -795,7 +799,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.removeMoveListeners();
         this.removeEndListeners();
     }
-
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
@@ -981,7 +984,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
     }
 
-    @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     // @ts-ignore
@@ -1047,6 +1049,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return this.props.addDocTab(doc, where);
     });
+
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, opacity } = this.Document._currentFrame === undefined ?
@@ -1097,6 +1100,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc, replica: string) {
         return this._layoutPoolData.get(doc[Id] + (replica || ""));
     }.bind(this));
+
     childSizeProvider = computedFn(function childSizeProvider(this: any, doc: Doc, replica: string) {
         return this._layoutSizeData.get(doc[Id] + (replica || ""));
     }.bind(this));
@@ -1220,9 +1224,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         //  super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-
-    // <div ref={this._marqueeRef}>
-
     @action
     onDragAutoScroll = (e: CustomEvent<React.DragEvent>) => {
         if ((e as any).handlePan || this.props.isAnnotationOverlay) return;
@@ -1253,7 +1254,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.addDocTab(childDocs as any as Doc, "inParent");
         this.props.ContainingCollectionView?.removeDocument(this.props.Document);
     }));
-
 
     @undoBatch
     layoutDocsInGrid = action(() => {
@@ -1288,8 +1288,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true;
     }
 
-    private thumbIdentifier?: number;
-
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.isAnnotationOverlay || this.props.Document.annotationOn || !ContextMenu.Instance) return;
 
@@ -1304,7 +1302,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const viewctrls = ContextMenu.Instance.findByDescription("UI Controls...");
         const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
 
-
         !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" }) : null;
         !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (this.Document._useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document._useClusters), icon: "braille" }) : null;
         !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
@@ -1312,7 +1309,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
-            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: "eye" });
+            optionItems.push({ description: (this._showAnimTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this._showAnimTimeline = !this._showAnimTimeline), icon: "eye" });
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Move Items Out of Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
@@ -1320,7 +1317,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
-
         }
         !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         const mores = ContextMenu.Instance.findByDescription("More...");
@@ -1349,11 +1345,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
                         doc.x = xx, doc.y = yy;
                         this.props.addDocument?.(doc);
-                        setTimeout(() => {
+                        setTimeout(() =>
                             SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
                                 docs.docs.forEach(d => LinkManager.Instance.addLink(d));
-                            });
-                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                            }), 2000); // need to give solr some time to update so that this query will find any link docs we've added.
                     }
                 }
             }
@@ -1361,56 +1356,37 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         input.click();
     }
 
-
-    @observable showTimeline = false;
-
-    intersectRect(r1: { left: number, top: number, width: number, height: number },
-        r2: { left: number, top: number, width: number, height: number }) {
-        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
-    }
-
     @action
     setupDragLines = (snapToDraggedDoc: boolean = false) => {
         const activeDocs = this.getActiveDocuments();
-        if (activeDocs.length > 50) {
-            DragManager.SetSnapLines([], []);
-            return;
-        }
         const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
         const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
         const docDims = (doc: Doc) => ({ left: NumCast(doc.x), top: NumCast(doc.y), width: NumCast(doc._width), height: NumCast(doc._height) });
-        const isDocInView = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => {
-            if (this.intersectRect(docDims(doc), rect)) {
-                snappableDocs.push(doc);
-            }
-        };
-        const snappableDocs: Doc[] = [];  // the set of documents in the visible viewport that we will try to snap to;
+        const isDocInView = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => intersectRect(docDims(doc), rect);
+
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-        this.getActiveDocuments().filter(doc => !Cast(doc.layers, listSpec("string"), []).includes("background") && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
-        !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => isDocInView(doc, selRect)); // if not, see if there are background docs to snap to
-        !snappableDocs.length && this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => isDocInView(doc, otherBounds)); // if not, then why not snap to floating docs
+        let snappableDocs = activeDocs.filter(doc => !StrListCast(doc.layers).includes("background") && doc.z === undefined && isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
+        !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z === undefined && isDocInView(doc, selRect))); // if not, see if there are background docs to snap to
+        !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z !== undefined && isDocInView(doc, otherBounds))); // if not, then why not snap to floating docs
 
         const horizLines: number[] = [];
         const vertLines: number[] = [];
+        const invXf = this.getTransform().inverse();
         snappableDocs.filter(doc => snapToDraggedDoc || !DragManager.docsBeingDragged.includes(Cast(doc.rootDocument, Doc, null) || doc)).forEach(doc => {
             const { left, top, width, height } = docDims(doc);
-            const topLeftInScreen = this.getTransform().inverse().transformPoint(left, top);
-            const docSize = this.getTransform().inverse().transformDirection(width, height);
+            const topLeftInScreen = invXf.transformPoint(left, top);
+            const docSize = invXf.transformDirection(width, height);
 
             horizLines.push(topLeftInScreen[1], topLeftInScreen[1] + docSize[1] / 2, topLeftInScreen[1] + docSize[1]); // horiz center line
             vertLines.push(topLeftInScreen[0], topLeftInScreen[0] + docSize[0] / 2, topLeftInScreen[0] + docSize[0]);// right line
         });
         DragManager.SetSnapLines(horizLines, vertLines);
     }
+
     onPointerOver = (e: React.PointerEvent) => {
-        if (SnappingManager.GetIsDragging()) {
-            this.setupDragLines(e.ctrlKey || e.shiftKey);
-        }
+        SnappingManager.GetIsDragging() && this.setupDragLines(e.ctrlKey || e.shiftKey);
         e.stopPropagation();
     }
-
-    @observable private _hLines: number[] | undefined;
-    @observable private _vLines: number[] | undefined;
 
     private childViews = () => {
         const children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
@@ -1426,13 +1402,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
     }
+
     @computed get placeholder() {
         return <div className="collectionfreeformview-placeholder" style={{ background: this.Document.backgroundColor }}>
             <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title?.toString()}</span>
         </div>;
     }
 
-    _nudgeTime = 0;
     nudge = action((x: number, y: number) => {
         if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ||
             this.props.ContainingCollectionDoc._panX !== undefined) { // bcz: this isn't ideal, but want to try it out...
@@ -1450,7 +1426,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return divisions < 60 ? gridSpace : this.chooseGridSpace(gridSpace * 10);
     }
 
-    @computed get grid() {
+    @computed get backgroundGrid() {
         const gridSpace = this.chooseGridSpace(NumCast(this.layoutDoc["_backgroundGrid-spacing"], 50));
         const shiftX = (this.props.isAnnotationOverlay ? 0 : -this.panX() % gridSpace - gridSpace) * this.zoomScaling();
         const shiftY = (this.props.isAnnotationOverlay ? 0 : -this.panY() % gridSpace - gridSpace) * this.zoomScaling();
@@ -1482,17 +1458,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             }} />;
     }
+
     trySelectCluster = (addToSel: boolean) => {
         if (this._hitCluster !== -1) {
-            if (!addToSel) {
-                SelectionManager.DeselectAll();
-            }
+            !addToSel && SelectionManager.DeselectAll();
             const eles = this.childLayoutPairs.map(pair => pair.layout).filter(cd => (this.props.Document._useClusters ? NumCast(cd.cluster) : NumCast(cd.group, -1)) === this._hitCluster);
             this.selectDocuments(eles);
             return true;
         }
         return false;
     }
+
     @computed get marqueeView() {
         return <MarqueeView
             {...this.props}
@@ -1507,7 +1483,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
             <div ref={this._marqueeRef}>
-                {this.layoutDoc["_backgroundGrid-show"] ? this.grid : (null)}
+                {this.layoutDoc["_backgroundGrid-show"] ? this.backgroundGrid : (null)}
                 <CollectionFreeFormViewPannableContents
                     isAnnotationOverlay={this.isAnnotationOverlay}
                     centeringShiftX={this.centeringShiftX}
@@ -1521,10 +1497,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     {this.children}
                 </CollectionFreeFormViewPannableContents>
             </div>
-            {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
+            {this._showAnimTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }
-
 
     @computed get contentScaling() {
         if (this.props.isAnnotationOverlay && !this.props.forceScaling) return 0;
