@@ -19,6 +19,7 @@ import "./DocHolderBox.scss";
 import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
+import { StyleProp } from "../StyleProvider";
 
 type DocHolderBoxSchema = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const DocHolderBoxDocument = makeInterface(documentSchema, collectionSchema);
@@ -182,7 +183,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: this.props.styleProvider?.(containedDoc, this.props, "backgroundColor"),
+                background: this.props.styleProvider?.(containedDoc, this.props, StyleProp.BackgroundColor),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,

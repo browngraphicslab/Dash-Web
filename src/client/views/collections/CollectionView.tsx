@@ -39,6 +39,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { ScriptField } from '../../../fields/ScriptField';
+import { StyleProp } from '../StyleProvider';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 
@@ -385,7 +386,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             CollectionView: this,
         };
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            this.props.styleProvider?.(this.props.Document, this.props, "boxShadow");
+            this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BoxShadow);
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}

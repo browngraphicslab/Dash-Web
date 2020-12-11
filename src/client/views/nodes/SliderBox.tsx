@@ -13,6 +13,7 @@ import { ScriptBox } from '../ScriptBox';
 import { FieldView, FieldViewProps } from './FieldView';
 import { Handle, Tick, TooltipRail, Track } from './SliderBox-components';
 import './SliderBox.scss';
+import { StyleProp } from '../StyleProvider';
 
 const SliderSchema = createSchema({
     _sliderMin: "number",
@@ -48,7 +49,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
         const defaultValues = [NumCast(this.dataDoc[this.minThumbKey]), NumCast(this.dataDoc[this.maxThumbKey])];
         return domain[1] <= domain[0] ? (null) : (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
-                style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, "boxShadow") }}>
+                style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) }}>
                 <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
                     background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
                     fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)

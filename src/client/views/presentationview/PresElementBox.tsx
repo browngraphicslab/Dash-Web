@@ -22,6 +22,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DocumentViewProps } from "../nodes/DocumentView";
+import { StyleProp } from "../StyleProvider";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -78,7 +79,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
     styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
-        if (property === "opacity") return 1;
+        if (property === StyleProp.Opacity) return 1;
         return this.props.styleProvider?.(doc, props, property);
     }
     /**
@@ -326,7 +327,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
                     style={{
-                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, "color"),
+                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
                     }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>

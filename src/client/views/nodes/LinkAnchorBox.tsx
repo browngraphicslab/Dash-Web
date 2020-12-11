@@ -19,6 +19,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
 import { Id } from "../../../fields/FieldSymbols";
 import { LinkDocPreview } from "./LinkDocPreview";
+import { StyleProp } from "../StyleProvider";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -68,7 +69,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             this.props.select(false);
         }
         if (!this._doubleTap && !e.ctrlKey && e.button < 2) {
-            const anchorContainerDoc = this.props.ContainingCollectionDoc; // bcz: hack!  need a better prop for passing the anchor's container 
+            const anchorContainerDoc = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkSource);
             this._editing = true;
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
@@ -117,7 +118,8 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const small = this.props.PanelWidth() <= 1; // this happens when rendered in a treeView
         const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
-        const c = this.props.styleProvider?.(this.dataDoc, OmitKeys(this.props, ["LayoutTemplateString"]).omit, "backgroundColor");
+        const linkSource = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkSource);
+        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkBackgroundColor);
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
@@ -135,13 +137,13 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
             onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
                 addDocTab: this.props.addDocTab,
-                linkSrc: this.props.ContainingCollectionDoc!,
+                linkSrc: linkSource,
                 linkDoc: this.rootDoc,
                 Location: [e.clientX, e.clientY + 20]
             })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
-                background: c,
+                background,
                 left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
                 top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`

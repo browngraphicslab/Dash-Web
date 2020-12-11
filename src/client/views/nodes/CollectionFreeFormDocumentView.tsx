@@ -16,6 +16,7 @@ import "./CollectionFreeFormDocumentView.scss";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
+import { StyleProp } from "../StyleProvider";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -59,7 +60,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
-        if (property === "opacity" && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
+        if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
         return this.props.styleProvider?.(doc, props, property);
     }
 
@@ -147,13 +148,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     returnThis = () => this;
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, !this._contentView?.docView?.isSelected() ? "pointerEvents:selected" : "pointerEvents");
+        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : ""));
     }
     render() {
         TraceMobx();
-        const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor");
-        const borderRadius = this.props.styleProvider?.(this.Document, this.props, "borderRounding");
-        const boxShadow = this.props.styleProvider?.(this.Document, this.props, "boxShadow");
+        const backgroundColor = this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
+        const borderRadius = this.props.styleProvider?.(this.Document, this.props, StyleProp.BorderRounding);
+        const boxShadow = this.props.styleProvider?.(this.Document, this.props, StyleProp.BoxShadow);
         const divProps: DocumentViewProps = {
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,

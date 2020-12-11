@@ -59,6 +59,7 @@ import { TraceMobx } from '../../fields/util';
 import { SelectionManager } from '../util/SelectionManager';
 import { UndoManager } from '../util/UndoManager';
 import { TabDocView } from './collections/TabDocView';
+import { DefaultStyleProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -319,7 +320,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        styleProvider={TabDocView.styleProvider}
+                        styleProvider={DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -352,7 +353,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                styleProvider={TabDocView.styleProvider}
+                styleProvider={DefaultStyleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -404,7 +405,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={TabDocView.styleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -457,7 +458,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     parentActive={returnFalse}
-                    styleProvider={TabDocView.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
@@ -532,7 +533,7 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 onClick={undefined}
-                styleProvider={TabDocView.styleProvider}
+                styleProvider={DefaultStyleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
@@ -595,7 +596,7 @@ export class MainView extends React.Component {
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={TabDocView.styleProvider}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={DefaultStyleProvider}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <GestureOverlay >

@@ -28,6 +28,7 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
+import { StyleProp } from "../StyleProvider";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -188,7 +189,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
         const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
-            if (property === "opacity" && doc) {
+            if (property === StyleProp.Opacity && doc) {
                 if (this.props.childOpacity) {
                     return this.props.childOpacity();
                 }

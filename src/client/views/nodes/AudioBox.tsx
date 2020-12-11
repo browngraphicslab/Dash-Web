@@ -29,6 +29,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { LinkDocPreview } from "./LinkDocPreview";
+import { StyleProp } from "../StyleProvider";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -538,7 +539,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     rangeScript = () => AudioBox.RangeScript;
     labelScript = () => AudioBox.LabelScript;
-
+    static audioStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        if (property === StyleProp.BackgroundColor) return "transparent";
+        if (property === StyleProp.PointerEvents) return "none";
+    }
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
@@ -637,8 +641,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
                                             ContentScaling={returnOne}
-                                            styleProvider={(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => property === "backgroundColor" ? "transparent" : undefined}
-                                            pointerEvents={"none"}
+                                            styleProvider={AudioBox.audioStyleProvider}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                         />

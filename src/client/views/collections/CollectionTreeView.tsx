@@ -24,6 +24,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { TreeView } from "./TreeView";
 import React = require("react");
+import { StyleProp } from '../StyleProvider';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
@@ -211,7 +212,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = this.props.styleProvider?.(this.doc, this.props, "backgroundColor");
+        const background = this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
         const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;

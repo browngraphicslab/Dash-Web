@@ -63,6 +63,7 @@ import { CollectionViewType, CollectionViewProps } from '../../collections/Colle
 import { SnappingManager } from '../../../util/SnappingManager';
 import { LinkDocPreview } from '../LinkDocPreview';
 import { SubCollectionViewProps } from '../../collections/CollectionSubView';
+import { StyleProp } from '../../StyleProvider';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -1599,7 +1600,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.author).length;
         return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
-                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightblue" : this.props.styleProvider?.(this.props.Document, this.props, "widgetColor") }}
+                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightblue" : this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor) }}
                 onPointerDown={this.sidebarDown}
             />;
     }

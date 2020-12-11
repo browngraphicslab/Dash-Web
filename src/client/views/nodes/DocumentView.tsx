@@ -1,6 +1,6 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -42,11 +42,11 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { StyleProp, StyleLayers } from "../StyleProvider";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
-
 export interface DocumentViewSharedProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -118,6 +118,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _titleRef = React.createRef<EditableView>();
+    private _timeout: NodeJS.Timeout | undefined;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -310,14 +311,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    _timeout: NodeJS.Timeout | undefined;
-
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !Cast(this.props.Document.layers, listSpec("string"), []).includes("background") && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
+            !StrListCast(this.props.Document.layers).includes(StyleLayers.Background) && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -957,7 +956,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
-            {this.props.styleProvider?.(this.layoutDoc, this.props, "hideLinkButton") || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
+            {this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
@@ -980,8 +979,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
-        if (property === "backgroundColor") return props?.LayoutTemplateString ? "transparent" : this.props.styleProvider?.(doc, props, "backgroundColor");
-        if (property === "hideLinkButton") return true;
+        switch (property.split(":")[0]) {
+            case StyleProp.BackgroundColor: return "transparent";
+            case StyleProp.LinkBackgroundColor: return this.props.styleProvider?.(doc, props, StyleProp.BackgroundColor);
+            case StyleProp.HideLinkButton: return true;
+            case StyleProp.PointerEvents: return "none";
+            case StyleProp.LinkSource: return this.props.Document;
+        }
     }
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
@@ -999,15 +1003,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className="documentView-anchorCont" key={i + 1}>
                 <DocumentView {...this.props}
                     Document={d}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     ContentScaling={returnOne}
                     dontRegisterView={false}
                     styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
-                    pointerEvents={"none"}
                     LayoutTemplate={undefined}
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
@@ -1056,7 +1057,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, this.isSelected() ? "pointerEvents:selected" : "pointerEvents");
+        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.isSelected() ? ":selected" : ""));
     }
     @undoBatch
     @action
@@ -1080,13 +1081,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden")) return null;
-        return this.props.styleProvider?.(this.rootDoc, this.props, "docContents") ??
+        if (this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden)) return null;
+        return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents) ??
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 id={this.props.Document[Id]}
                 style={{
-                    background: this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor"),
-                    opacity: this.props.styleProvider?.(this.layoutDoc, this.props, "opacity"),
+                    background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                    opacity: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity),
                     color: StrCast(this.layoutDoc.color, "inherit"),
                     fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                     fontSize: Cast(this.Document._fontSize, "string", null),
@@ -1096,11 +1097,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }}>
                 {this.innards}
                 {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <div className="documentView-contentBlocker" /> : (null)}
-                {this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations") || (null)}
+                {this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.isSelected() ? ":selected" : "")) || (null)}
             </div>;
     }
     render() {
-        const borderRounding = this.props.styleProvider?.(this.layoutDoc, this.props, "borderRounding");
+        const borderRounding = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow);
         const highlightIndex = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
         const highlightColor = (CurrentUserUtils.ActiveDashboard?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
@@ -1127,7 +1128,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 outline: highlighting && !borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow: highlighting && borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
-                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.styleProvider?.(this.layoutDoc, this.props, "hideLinkButton") ?
+                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) ?
                         StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,

@@ -47,6 +47,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { StyleProp, StyleLayers } from "../../StyleProvider";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -246,7 +247,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [Doc.NativeWidth(layoutDoc), Doc.NativeHeight(layoutDoc)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            !Cast(d, listSpec("string"), []).includes("background") && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !StrListCast(d.layers).includes(StyleLayers.Background) && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
@@ -404,8 +405,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     getClusterColor = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => {
-        let clusterColor = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
-        if (property !== "backgroundColor") return clusterColor;
+        let styleProp = this.props.styleProvider?.(doc, props, property);  // bcz: check 'props'  used to be renderDepth + 1
+        if (property !== StyleProp.BackgroundColor) return styleProp;
         const cluster = NumCast(doc?.cluster);
         if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
@@ -413,14 +414,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             } else {
                 // choose a cluster color from a palette
                 const colors = ["#da42429e", "#31ea318c", "rgba(197, 87, 20, 0.55)", "#4a7ae2c4", "rgba(216, 9, 255, 0.5)", "#ff7601", "#1dffff", "yellow", "rgba(27, 130, 49, 0.55)", "rgba(0, 0, 0, 0.268)"];
-                clusterColor = colors[cluster % colors.length];
+                styleProp = colors[cluster % colors.length];
                 const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
-                set && set.filter(s => !Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
-                set && set.filter(s => Cast(s.layers, listSpec("string"), []).includes("background")).map(s => clusterColor = StrCast(s.backgroundColor));
+                set && set.filter(s => !StrListCast(s.layers).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
+                set && set.filter(s => StrListCast(s.layers).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
             }
-        } else if (doc && NumCast(doc.group, -1) !== -1) clusterColor = "gray";
-        return clusterColor;
+        } else if (doc && NumCast(doc.group, -1) !== -1) styleProp = "gray";
+        return styleProp;
     }
 
     @action
@@ -870,7 +871,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     bringToFront = action((doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack || Cast(doc.layers, listSpec("string"), []).includes("background")) {
+        if (sendToBack || StrListCast(doc.layers).includes(StyleLayers.Background)) {
             doc.zIndex = 0;
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;
@@ -1053,7 +1054,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, opacity } = this.Document._currentFrame === undefined ?
-            { x: params.pair.layout.x, y: params.pair.layout.y, opacity: this.props.styleProvider?.(params.pair.layout, this.props, "opacity") } :
+            { x: params.pair.layout.x, y: params.pair.layout.y, opacity: this.props.styleProvider?.(params.pair.layout, this.props, StyleProp.Opacity) } :
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame || 0);
         const { z, color, zIndex } = params.pair.layout;
         return {
@@ -1365,7 +1366,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const isDocInView = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => intersectRect(docDims(doc), rect);
 
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-        let snappableDocs = activeDocs.filter(doc => !StrListCast(doc.layers).includes("background") && doc.z === undefined && isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
+        let snappableDocs = activeDocs.filter(doc => !StrListCast(doc.layers).includes(StyleLayers.Background) && doc.z === undefined && isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
         !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z === undefined && isDocInView(doc, selRect))); // if not, see if there are background docs to snap to
         !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z !== undefined && isDocInView(doc, otherBounds))); // if not, then why not snap to floating docs
 

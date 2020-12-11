@@ -27,6 +27,7 @@ import { CollectionView } from "../CollectionView";
 import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { StyleLayers } from "../../StyleProvider";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -349,7 +350,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
         newCollection.system = undefined;
         newCollection.layers = new List<string>(layers);
-        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : layers.includes("background") ? "cyan" : undefined;
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection.x = this.Bounds.left;
@@ -523,7 +523,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], undefined, ["background"]);
+        const newCollection = this.getCollection([], undefined, [StyleLayers.Background]);
         this.props.addDocument?.(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();

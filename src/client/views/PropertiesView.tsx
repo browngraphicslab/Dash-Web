@@ -29,6 +29,7 @@ import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { CollectionViewType } from "./collections/CollectionView";
 import { DocumentViewProps, StyleProviderFunc } from "./nodes/DocumentView";
+import { DefaultStyleProvider } from "./StyleProvider";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -269,7 +270,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     DataDoc={this.dataDoc}
                     renderDepth={1}
                     rootSelected={returnFalse}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     fitToBox={true}
                     freezeDimensions={true}
                     dontCenter={"y"}

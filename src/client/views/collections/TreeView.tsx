@@ -29,6 +29,7 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { StyleProp } from '../StyleProvider';
 
 export interface TreeViewProps {
     document: Doc;
@@ -441,7 +442,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
-            style={this.outlineMode ? { opacity: this.titleStyleProvider?.(this.doc, this.props.treeView.props, "opacity") } : {
+            style={this.outlineMode ? { opacity: this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.Opacity) } : {
                 color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"),
                 opacity: checked === "unchecked" ? undefined : 0.4
             }}>
@@ -499,22 +500,22 @@ export class TreeView extends React.Component<TreeViewProps> {
     titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         if (!doc || doc !== this.doc) return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
 
-        switch (property) {
-            case "opacity": return this.outlineMode ? undefined : 1;
-            case "backgroundColor": return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
-            case "docContents": return !props?.treeViewDoc ? (null) :
+        switch (property.split(":")[0]) {
+            case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
+            case StyleProp.BackgroundColor: return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
+            case StyleProp.DocContents: return !props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
                     position: props?.relative ? "relative" : undefined,
-                    background: props?.styleProvider?.(doc, props, "backgroundColor"),
+                    background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
                 }}>
                     {StrCast(doc?.title)}
                 </div>;
-            default: if (property.startsWith("decorations")) return (null);
+            case StyleProp.Decorations: return (null);
         }
     }
     embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
-        if (property.startsWith("decorations")) return (null);
+        if (property.startsWith(StyleProp.Decorations)) return (null);
         return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
     }
     onKeyDown = (e: React.KeyboardEvent) => {

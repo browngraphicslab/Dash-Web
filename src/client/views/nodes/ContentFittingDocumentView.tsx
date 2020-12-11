@@ -67,32 +67,13 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                     }}>
                     <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         ref={action((r: DocumentView | null) => this.docView = r)}
-                        Document={this.props.Document}
-                        DataDoc={this.props.DataDoc}
                         LayoutTemplate={this.props.LayoutTemplate}
-                        LayoutTemplateString={this.props.LayoutTemplateString}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         ContentScaling={returnOne}
-                        fitToBox={this.props.fitToBox}
-                        layoutKey={this.props.layoutKey}
-                        dropAction={this.props.dropAction}
-                        onClick={this.props.onClick}
-                        styleProvider={this.props.styleProvider}
-                        addDocument={this.props.addDocument}
-                        removeDocument={this.props.removeDocument}
-                        moveDocument={this.props.moveDocument}
-                        whenActiveChanged={this.props.whenActiveChanged}
-                        ContainingCollectionView={this.props.ContainingCollectionView}
-                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                        addDocTab={this.props.addDocTab}
-                        pinToPres={this.props.pinToPres}
-                        parentActive={this.props.parentActive}
                         ScreenToLocalTransform={this.getTransform}
-                        renderDepth={this.props.renderDepth}
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}
-                        dontRegisterView={this.props.dontRegisterView}
                     />
                 </div>)}
         </div>);
