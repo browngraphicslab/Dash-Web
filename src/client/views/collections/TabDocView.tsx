@@ -433,7 +433,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 
     public static styleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
-        switch (property) {
+        switch (property.split(":")[0]) {
             case "docContents": return undefined;
             case "widgetColor": return TabDocView.darkScheme ? "lightgrey" : "dimgrey";
             case "opacity": return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
@@ -459,7 +459,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                         default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
                     }
                 }
-                if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
+                if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor.toLowerCase()).fade(0.5).toString();
                 return docColor;
             }
             case "boxShadow": {
@@ -475,15 +475,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                                     StrCast(doc.boxShadow, "");
                 }
             }
-            default:
-                if (property.startsWith("pointerEvents")) {
-                    const layer = doc && props?.layerProvider?.(doc);
-                    if (props?.styleProvider?.(doc, props, "opacity") === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
-                    if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
-                    if (doc?.type !== DocumentType.INK && layer === true) return "all";
-                    return undefined;
-                }
-                if (property.startsWith("decorations") && props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
+            case "pointerEvents":
+                const layer = doc && props?.layerProvider?.(doc);
+                if (props?.styleProvider?.(doc, props, "opacity") === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
+                if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
+                if (doc?.type !== DocumentType.INK && layer === true) return "all";
+                return undefined;
+            case "decorations":
+                if (props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
                     const isBackground = StrListCast(doc?.layers).includes("background");
                     return doc && (isBackground || property.includes(":selected")) && (props?.renderDepth || 0) > 0 &&
                         ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
@@ -498,13 +497,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         if (doc) {
             switch (property) {
                 case "docContents":
-                    if (doc.type === DocumentType.COL) return null;
                     const background = doc.type === DocumentType.PDF ? "red" : doc.type === DocumentType.IMG ? "blue" : doc.type === DocumentType.RTF ? "orange" :
                         doc.type === DocumentType.VID ? "purple" : doc.type === DocumentType.WEB ? "yellow" : "gray";
-                    return <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
+                    return doc.type === DocumentType.COL ? undefined : <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
                 default:
-                    if (property.startsWith("pointerEvents")) return "none";
-                    return TabDocView.styleProvider(doc, props, property);
+                    return (property.startsWith("pointerEvents")) ? "none" : TabDocView.styleProvider(doc, props, property);
             }
         }
     }

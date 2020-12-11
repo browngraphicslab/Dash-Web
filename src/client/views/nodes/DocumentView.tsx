@@ -1093,7 +1093,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transformOrigin: this._animateScalingTo ? "center center" : undefined,
                     transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
                     transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
-                    pointerEvents: this.pointerEvents,
                 }}>
                 {this.innards}
                 {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <div className="documentView-contentBlocker" /> : (null)}
@@ -1124,6 +1123,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !entered && Doc.UnBrushDoc(this.props.Document);
             })}
             style={{
+                pointerEvents: this.pointerEvents,
                 outline: highlighting && !borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
                 boxShadow: highlighting && borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :

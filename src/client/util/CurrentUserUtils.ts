@@ -252,7 +252,7 @@ export class CurrentUserUtils {
             doc["template-note-Idea"] = new PrefetchProxy(noteView);
         }
         if (doc["template-note-Topic"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightBlue", system: true });
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightblue", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
             doc["template-note-Topic"] = new PrefetchProxy(noteView);
         }
