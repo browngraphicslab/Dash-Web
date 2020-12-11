@@ -1559,6 +1559,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
         }
     }
+
+    get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
+
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this.ProseRef?.scrollHeight || 0;
@@ -1571,7 +1574,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight, 0);
             const dh = NumCast(this.rootDoc._height, 0);
-            const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
+            const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + this.titleHeight);
             if (!this.props.LayoutTemplateString && this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
                 // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
                 console.log("Delayed height adjustment...");
@@ -1582,7 +1585,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             } else {
                 try {
                     const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", "")) * NumCast(this.Document._viewScale, 1);
-                    const outer = this.rootDoc[HeightSym]() - boxHeight - (this.props.ChromeHeight ? this.props.ChromeHeight() : 0);
+                    const outer = this.rootDoc[HeightSym]() - boxHeight - this.titleHeight;
                     this.rootDoc[this.fieldKey + "-height"] = newHeight + Math.max(0, outer);
                 } catch (e) { console.log("Error in tryUpdateHeight"); }
             }
@@ -1664,7 +1667,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
                     width: `${100 / scale}%`,
-                    height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
+                    height: `${100 / scale}%`,
                     overflowY: this.layoutDoc._autoHeight ? "hidden" : undefined,
                     ...this.styleFromLayoutString(scale)   // this converts any expressions in the format string to style props.  e.g., <FormattedTextBox height='{this._headerHeight}px' >
                 }}>

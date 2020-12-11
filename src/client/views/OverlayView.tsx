@@ -183,7 +183,6 @@ export class OverlayView extends React.Component {
             return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ top: d.type === 'presentation' ? 0 : undefined, width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
-                    ChromeHeight={returnZero}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     addDocument={undefined}

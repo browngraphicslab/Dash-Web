@@ -987,8 +987,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    // @ts-ignore
-    backgroundHalo = computedFn(function (doc: Doc) { return this.Document._useClusters || NumCast(doc.group, -1) !== -1; }).bind(this);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -1018,7 +1016,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
-            backgroundHalo: this.backgroundHalo,
             freezeDimensions: this.props.childFreezeDimensions,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             bringToFront: this.bringToFront,

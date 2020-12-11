@@ -21,7 +21,6 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
             style={{ background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor) }} >
 
             <CollectionTreeView {...this.props}
-                ChromeHeight={returnZero}
                 childDocuments={[this.dataDoc]}
                 treeViewSkipFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
                 dontRegisterView={true}

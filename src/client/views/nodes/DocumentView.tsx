@@ -48,41 +48,39 @@ export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
 export interface DocumentViewSharedProps {
+    renderDepth: number;
+    Document: Doc;
+    DataDoc?: Doc;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
-    Document: Doc;
-    DataDoc?: Doc;
-    contentsActive?: (setActive: () => boolean) => void;
-    onClick?: () => ScriptField;
-    dropAction?: dropActionType;
-    backgroundHalo?: (doc: Doc) => boolean;
-    docFilters: () => string[];
-    docRangeFilters: () => string[];
-    searchFilterDocs: () => Doc[];
-    rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
-    renderDepth: number;
-    addDocTab: (doc: Doc, where: string) => boolean;
-    addDocument?: (doc: Doc | Doc[]) => boolean;
-    removeDocument?: (doc: Doc | Doc[]) => boolean;
-    moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    pinToPres: (document: Doc) => void;
-    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
-    styleProvider?: StyleProviderFunc;
-    ScreenToLocalTransform: () => Transform;
-    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    parentActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    LayoutTemplateString?: string;
-    dontRegisterView?: boolean;
-    focus: DocFocusFunc;
-    ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     NativeWidth?: () => number;
     NativeHeight?: () => number;
     ContentScaling: () => number;
-    ChromeHeight?: () => number;
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
+    styleProvider?: StyleProviderFunc;
+    focus: DocFocusFunc;
+    docFilters: () => string[];
+    docRangeFilters: () => string[];
+    searchFilterDocs: () => Doc[];
+    contentsActive?: (setActive: () => boolean) => void;
+    parentActive: (outsideReaction: boolean) => boolean;
+    whenActiveChanged: (isActive: boolean) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
+    addDocTab: (doc: Doc, where: string) => boolean;
+    addDocument?: (doc: Doc | Doc[]) => boolean;
+    removeDocument?: (doc: Doc | Doc[]) => boolean;
+    moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
+    pinToPres: (document: Doc) => void;
+    ScreenToLocalTransform: () => Transform;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
+    onClick?: () => ScriptField;
+    dropAction?: dropActionType;
+    LayoutTemplateString?: string;
+    dontRegisterView?: boolean;
+    ignoreAutoHeight?: boolean;
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
 }
@@ -94,9 +92,8 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     fitToBox?: boolean;
     treeViewDoc?: Doc;
     dragDivName?: string;
-    contentsPointerEvents?: string;
+    contentPointerEvents?: string;
     radialMenu?: String[];
-    display?: string;
     relative?: boolean;
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -890,11 +887,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
-    @computed get showOverlappingTitle() {
-        const excluded = ["PresBox", /* "FormattedTextBox", */ "FontIconBox"]; // bcz: shifting the title for texst causes problems with collaborative use when some people see titles, and others don't
-        return !excluded.includes(StrCast(this.layoutDoc.layout));
+    @computed get headerMargin() {
+        return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0;
     }
-    chromeHeight = () => this.showOverlappingTitle ? 0 : 25;
 
     @computed get finalLayoutKey() {
         if (typeof this.props.layoutKey === "string") {
@@ -906,52 +901,56 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     rootSelected = (outsideReaction?: boolean) => {
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
+    panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
+    screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     @computed get contents() {
         TraceMobx();
-        return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any }}>
+        return (<div className="documentView-contentsView"
+            style={{
+                pointerEvents: this.props.contentPointerEvents as any,
+                height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
+            }}>
             <DocumentContentsView key={1}
-                docFilters={this.props.docFilters}
-                contentsActive={this.setContentsActive}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
+                renderDepth={this.props.renderDepth}
+                Document={this.props.Document}
+                DataDoc={this.props.DataDoc}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}
                 NativeHeight={this.NativeHeight}
-                Document={this.props.Document}
-                DataDoc={this.props.DataDoc}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
                 layerProvider={this.props.layerProvider}
+                styleProvider={this.props.styleProvider}
                 LayoutTemplateString={this.props.LayoutTemplateString}
                 LayoutTemplate={this.props.LayoutTemplate}
+                docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
+                searchFilterDocs={this.props.searchFilterDocs}
+                contentsActive={this.setContentsActive}
+                parentActive={this.parentActive}
+                whenActiveChanged={this.props.whenActiveChanged}
                 makeLink={this.makeLink}
-                rootSelected={this.rootSelected}
-                backgroundHalo={this.props.backgroundHalo}
+                focus={this.props.focus}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                renderDepth={this.props.renderDepth}
-                PanelWidth={this.props.PanelWidth}
-                PanelHeight={this.props.PanelHeight}
-                ignoreAutoHeight={this.props.ignoreAutoHeight}
-                focus={this.props.focus}
-                parentActive={this.parentActive}
-                whenActiveChanged={this.props.whenActiveChanged}
-                bringToFront={this.props.bringToFront}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
-                styleProvider={this.props.styleProvider}
+                ScreenToLocalTransform={this.screenToLocal}
+                ignoreAutoHeight={this.props.ignoreAutoHeight}
+                bringToFront={this.props.bringToFront}
                 ContentScaling={this.childScaling}
-                ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
+                rootSelected={this.rootSelected}
                 scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
@@ -1026,7 +1025,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}
-                    ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
                     select={this.select}
                     onClick={this.onClickFunc}
@@ -1034,7 +1032,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!this.ShowTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
-                position: this.showOverlappingTitle ? "absolute" : "relative",
+                position: this.headerMargin ? "relative" : "absolute",
+                height: this.headerMargin || undefined,
                 background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
@@ -1051,7 +1050,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.props.hideTitle || (!this.ShowTitle && !showCaption) ?
             this.contents :
             <div className="documentView-styleWrapper" >
-                {this.showOverlappingTitle ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
+                {!this.headerMargin ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
                 {captionView}
             </div>;
     }

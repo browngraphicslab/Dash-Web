@@ -44,7 +44,6 @@ export interface TreeViewProps {
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
-    ChromeHeight: undefined | (() => number);
     addDocument: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
     indentDocument?: () => void;
     outdentDocument?: () => void;
@@ -327,7 +326,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
-                    this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
+                    this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                     [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
             } else {
                 contentElement = <EditableView key="editableView"
@@ -406,7 +405,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     TreeView.GetChildElements(docs, this.props.treeView, this.layoutDoc,
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                         StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.ScreenToLocalTransform,
-                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
+                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                         [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
@@ -737,7 +736,6 @@ export class TreeView extends React.Component<TreeViewProps> {
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
         panelWidth: () => number,
-        ChromeHeight: undefined | (() => number),
         renderDepth: number,
         treeViewHideHeaderFields: () => boolean,
         treeViewPreventOpen: boolean,
@@ -808,7 +806,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 styleProvider={styleProvider}
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
-                ChromeHeight={ChromeHeight}
                 dontRegisterView={dontRegisterView}
                 moveDocument={move}
                 dropAction={dropAction}

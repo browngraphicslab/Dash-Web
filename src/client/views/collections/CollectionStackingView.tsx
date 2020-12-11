@@ -54,7 +54,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
     @computed get isStackingView() { return this.layoutDoc._viewType === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
@@ -228,7 +228,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            contentsPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
+            contentPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
             parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
@@ -390,7 +390,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         const outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const offsety = (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0);
+        const offsety = 0;
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
     }
 

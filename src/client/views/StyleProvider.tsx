@@ -4,7 +4,7 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
 import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
-import { BoolCast, Cast, StrCast } from "../../fields/Types";
+import { BoolCast, Cast, StrCast, NumCast } from "../../fields/Types";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { SnappingManager } from '../util/SnappingManager';
@@ -21,18 +21,19 @@ export enum StyleLayers {
 }
 
 export enum StyleProp {
-    DocContents = "docContents",
-    Opacity = "opacity",
-    Hidden = "hidden",
-    BoxShadow = "boxShadow",
-    BorderRounding = "borderRounding",
-    BackgroundColor = "backgroundColor",
-    WidgetColor = "widgetColor",
-    LinkBackgroundColor = "linkBackgroundColor",
-    HideLinkButton = "hideLinkButton",
-    LinkSource = "linkSource",
-    PointerEvents = "pointerEvents",
-    Decorations = "decorations",
+    DocContents = "docContents",          // when specified, the JSX returned will replace the normal rendering of the document view
+    Opacity = "opacity",                  // opacity of the document view
+    Hidden = "hidden",                    // whether the document view should not be isplayed
+    BoxShadow = "boxShadow",              // box shadow - used for making collections standout and for showing clusters in free form views
+    BorderRounding = "borderRounding",    // border radius of the document view
+    BackgroundColor = "backgroundColor",  // background color of a document view
+    WidgetColor = "widgetColor",                 // color to display UI widgets on a document view -- used for the sidebar divider dragger on a text note
+    LinkBackgroundColor = "linkBackgroundColor", // background color of a link dot -- defaults to the backgroundColor of the link document
+    HideLinkButton = "hideLinkButton",  // hides the blue-dot link button.  used when a document acts like a button
+    LinkSource = "linkSource",      // source document of a link -- used by LinkAnchorBox
+    PointerEvents = "pointerEvents",// pointer events for DocumentView -- inherits pointer events if not specified
+    Decorations = "decorations",    // additional decoration to display above a DocumentView -- currently only used to display a Lock for making things background
+    HeaderMargin = "headerMargin",  // margin at top of documentview, typically for displaying a title -- doc contents will start below that
 }
 
 function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -66,6 +67,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
         case StyleProp.BorderRounding: return !doc ? undefined : StrCast(doc._borderRounding, StrCast(doc.borderRounding));
+        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (Doc.UserDoc().renderStyle === "comic") return undefined;
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
@@ -95,14 +97,16 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         }
         case StyleProp.BoxShadow: {
             if (!doc || props?.styleProvider?.(doc, props, StyleProp.Opacity) === 0) return undefined;  // if it's not visible, then no shadow)
-            const isBackground = StrListCast(doc.layers).includes(StyleLayers.Background);
+            const isBackground = () => StrListCast(doc.layers).includes(StyleLayers.Background);
+            const backgroundHalo = (doc: Doc) => props?.ContainingCollectionDoc?._useClusters || NumCast(doc.group, -1) !== -1;
+
             switch (doc?.type) {
-                case DocumentType.COL: return isBackground ? undefined :
+                case DocumentType.COL: return isBackground() ? undefined :
                     `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                        props?.backgroundHalo?.(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground ? 100 : 50) / props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                            isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
+                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (props?.ContentScaling() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                 StrCast(doc.boxShadow, "");
             }
         }
