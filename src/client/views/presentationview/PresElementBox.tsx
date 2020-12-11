@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../../fields/Doc";
+import { Doc, DataSym, Opt } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
@@ -77,7 +77,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
-    styleProvider = (doc: (Doc | undefined), props: DocumentViewProps, property: string): any => {
+    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         if (property === "opacity") return 1;
         return this.props.styleProvider?.(doc, props, property);
     }

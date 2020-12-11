@@ -21,7 +21,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
-import { DocumentView, DocumentViewProps } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
@@ -49,7 +49,7 @@ export interface TreeViewProps {
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     dontRegisterView?: boolean;
-    backgroundColor?: (doc: Opt<Doc>, props: DocumentViewProps, property: string) => string | undefined;
+    styleProvider?: StyleProviderFunc | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -325,7 +325,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
+                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.styleProvider, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
                     this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                     [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
             } else {
@@ -404,7 +404,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeView, this.layoutDoc,
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                        StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+                        StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.styleProvider, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                         [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
@@ -496,11 +496,11 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
-    styleProvider = (doc: (Doc | undefined), props: DocumentViewProps, property: string): any => {
+    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
         // override opacity and backgroundColor just for this treeView document: opacity = 1, and backgroundColor = undefined unless it is explicitly set on the document
         if (property === "opacity" && doc === this.props.document) return this.outlineMode ? undefined : 1;
         if (property === "backgroundColor" && doc === this.props.document) return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
-        return this.props.treeView.props.styleProvider?.(doc, props, property);
+        return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
     }
     onKeyDown = (e: React.KeyboardEvent) => {
         if (this.doc.treeViewHideHeader || this.outlineMode) {
@@ -606,7 +606,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
             treeViewDoc={undefined}
-            styleProvider={this.props.backgroundColor}
+            styleProvider={this.styleProvider}
             docFilters={returnEmptyFilter}
             docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}
@@ -716,7 +716,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        styleProvider: undefined | ((document: Opt<Doc>, props: DocumentViewProps, property: string) => string | undefined),
+        styleProvider: undefined | StyleProviderFunc,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
@@ -789,7 +789,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 renderDepth={renderDepth}
                 removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
-                backgroundColor={styleProvider}
+                styleProvider={styleProvider}
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
                 ChromeHeight={ChromeHeight}

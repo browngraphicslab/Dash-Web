@@ -45,6 +45,7 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
+export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
 
 export interface DocumentViewSharedProps {
     ContainingCollectionView: Opt<CollectionView>;
@@ -67,7 +68,7 @@ export interface DocumentViewSharedProps {
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     pinToPres: (document: Doc) => void;
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
-    styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string) => any;
+    styleProvider?: StyleProviderFunc;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     parentActive: (outsideReaction: boolean) => boolean;
@@ -982,6 +983,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
+        return property === "backgroundColor" ? "transparent" : undefined;
+    }
     @computed get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
@@ -1003,7 +1007,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     ContentScaling={returnOne}
                     dontRegisterView={false}
                     forceHideLinkButton={returnTrue}
-                    styleProvider={(doc: Opt<Doc>, props: DocumentViewProps, property: string) => property === "backgroundColor" ? "transparent" : undefined}
+                    styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
                     pointerEvents={"none"}
                     LayoutTemplate={undefined}

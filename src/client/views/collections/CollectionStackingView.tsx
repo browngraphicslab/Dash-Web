@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -187,7 +187,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const styleProvider = (doc: Doc | undefined, props: DocumentViewProps, property: string) => {
+        const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
             if (property === "opacity" && doc) {
                 if (this.props.childOpacity) {
                     return this.props.childOpacity();

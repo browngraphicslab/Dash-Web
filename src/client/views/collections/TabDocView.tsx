@@ -432,7 +432,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     //
     // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
     // 
-    public static styleProvider = (doc: Opt<Doc>, props: DocumentViewProps, property: string): any => {
+    public static styleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
         switch (property) {
             case "docContents": return undefined;
             case "widgetColor": return TabDocView.darkScheme ? "lightgrey" : "dimgrey";
@@ -463,22 +463,22 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 return docColor;
             }
             case "boxShadow": {
-                if (!doc || props.styleProvider?.(doc, props, "opacity") === 0) return undefined;  // if it's not visible, then no shadow)
+                if (!doc || props?.styleProvider?.(doc, props, "opacity") === 0) return undefined;  // if it's not visible, then no shadow)
                 const isBackground = StrListCast(doc.layers).includes("background");
                 switch (doc?.type) {
                     case DocumentType.COL: return isBackground ? undefined :
                         `${TabDocView.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
                     default:
                         return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            props.backgroundHalo?.(doc) && doc.type !== DocumentType.INK ? (`${props.styleProvider?.(doc, props, "backgroundColor")} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground ? 100 : 50) / props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            props?.backgroundHalo?.(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, "backgroundColor")} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground ? 100 : 50) / props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
-                                    StrCast(doc.boxShadow, "")
+                                    StrCast(doc.boxShadow, "");
                 }
             }
             default:
                 if (property.startsWith("pointerEvents")) {
                     const layer = doc && props?.layerProvider?.(doc);
-                    if (props.styleProvider?.(doc, props, "opacity") === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
+                    if (props?.styleProvider?.(doc, props, "opacity") === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
                     if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
                     if (doc?.type !== DocumentType.INK && layer === true) return "all";
                     return undefined;
