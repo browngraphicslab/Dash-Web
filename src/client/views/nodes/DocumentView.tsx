@@ -93,6 +93,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     dragDivName?: string;
     contentPointerEvents?: string;
     radialMenu?: String[];
+    contentFittingScaling?: () => number;
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
@@ -128,6 +129,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
+    @computed get LocalScaling() { return this.props.ContentScaling() * (this.props.contentFittingScaling?.() || 1); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }

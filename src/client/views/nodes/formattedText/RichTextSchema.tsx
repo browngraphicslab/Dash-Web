@@ -14,6 +14,7 @@ import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { DefaultStyleProvider } from "../../StyleProvider";
 
 
 export class DashDocView {
@@ -147,7 +148,7 @@ export class DashDocView {
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}
-                    styleProvider={returnEmptyString}
+                    styleProvider={DefaultStyleProvider}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}

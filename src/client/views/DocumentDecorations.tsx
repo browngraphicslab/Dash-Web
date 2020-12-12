@@ -69,7 +69,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
-            const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.LocalScaling)).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
