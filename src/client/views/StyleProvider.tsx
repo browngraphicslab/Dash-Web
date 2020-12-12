@@ -93,6 +93,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                 case DocumentType.FONTICON: docColor = undefined; break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
                 case DocumentType.LABEL:
+                case DocumentType.INK: docColor = undefined; break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK:
                 case DocumentType.COL:
