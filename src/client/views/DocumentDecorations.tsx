@@ -633,12 +633,13 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {closeIcon}
-                    {titleArea}
+                    {bounds.r - bounds.x < 100 ? null : titleArea}
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
-                            </div></Tooltip>}
+                            </div>
+                        </Tooltip>}
                     {openIcon}
                     <div className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                     <div className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
