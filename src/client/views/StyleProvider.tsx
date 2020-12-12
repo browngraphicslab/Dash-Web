@@ -77,7 +77,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.BorderRounding: return !doc ? undefined : StrCast(doc._borderRounding, StrCast(doc.borderRounding));
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
         case StyleProp.ItemBackgroundColor:
-            let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            const docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
             if (docColor) return docColor;
             if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
