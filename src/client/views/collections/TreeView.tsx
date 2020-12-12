@@ -409,12 +409,13 @@ export class TreeView extends React.Component<TreeViewProps> {
                         [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul key={this.doc[Id] + this.doc.title}><div style={{ display: "inline-block" }} >
-                {this.expandedField}
-            </div></ul>;
-        } else {
-            return this.renderEmbeddedDocument(false);
+            return <ul key={this.doc[Id] + this.doc.title}>
+                <div style={{ display: "inline-block" }} >
+                    {this.expandedField}
+                </div>
+            </ul>;
         }
+        return <ul>{this.renderEmbeddedDocument(false)}</ul>;
     }
 
     get onCheckedClick() { return this.doc.type === DocumentType.COL ? undefined : this.props.onCheckedClick?.() ?? ScriptCast(this.doc.onCheckedClick); }
@@ -583,15 +584,18 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderBulletHeader = (contents: JSX.Element) => {
-        return <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
-            ref={this._header}
-            style={{ maxWidth: this._editMaxWidth }}
-            onClick={this.ignoreEvent}
-            onPointerDown={this.ignoreEvent}
-            onPointerEnter={this.onPointerEnter}
-            onPointerLeave={this.onPointerLeave}>
-            {contents}
-        </div>;
+        return <>
+            <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
+                ref={this._header}
+                style={{ maxWidth: this._editMaxWidth }}
+                onClick={this.ignoreEvent}
+                onPointerDown={this.ignoreEvent}
+                onPointerEnter={this.onPointerEnter}
+                onPointerLeave={this.onPointerLeave}>
+                {contents}
+            </div>
+            {this.renderBorder}
+        </>;
     }
 
     // renders the text version of a document as the header (e.g., useful for Slide views where the "")
@@ -668,24 +672,16 @@ export class TreeView extends React.Component<TreeViewProps> {
         else this._editMaxWidth = "";
 
         const hideTitle = this.doc.treeViewHideHeader || this.outlineMode;
-        return hideTitle && !StrCast(Doc.LayoutField(this.doc)).includes("CollectionView") ?
-            this.renderContent
-            :
-            <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
-                ref={this.createTreeDropTarget}
-                onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
-                onKeyDown={this.onKeyDown}>
-                {hideTitle ?
-                    <li className="collection-child">
-                        {this.renderBulletHeader(this.renderDocumentAsHeader)}
-                        {this.renderBorder}
-                    </li> :
-                    <li className="collection-child">
-                        {this.renderBulletHeader(this.renderTitleAsHeader)}
-                        {this.renderBorder}
-                    </li>
-                }
-            </div>;
+        return <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
+            ref={this.createTreeDropTarget}
+            onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
+            onKeyDown={this.onKeyDown}>
+            <li className="collection-child">
+                {hideTitle && this.doc.type !== DocumentType.RTF ?
+                    this.renderEmbeddedDocument(false) :
+                    this.renderBulletHeader(hideTitle ? this.renderDocumentAsHeader : this.renderTitleAsHeader)}
+            </li>
+        </div>;
     }
 
     public static sortDocs(childDocs: Doc[], criterion: string | undefined) {

@@ -65,15 +65,6 @@
     cursor: pointer;
 }
 
-.treeView-borderoutline {
-    ul {
-        .contentFittingDocumentView  {
-            width: unset;
-            height: unset;
-        }
-    }
-}
-
 .treeView-borderoutline,
 .treeView-border {
     display: flex;
