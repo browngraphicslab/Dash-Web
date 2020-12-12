@@ -327,7 +327,6 @@ export class MainView extends React.Component {
                         searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        relative={true}
                     />
                 </div>
                 {this.docButtons}
@@ -360,7 +359,6 @@ export class MainView extends React.Component {
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                relative={true}
                 scriptContext={this}
             />
         </div>;

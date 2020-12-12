@@ -505,7 +505,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             case StyleProp.DocContents: return !props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
-                    position: props?.relative ? "relative" : undefined,
                     background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
                 }}>
                     {StrCast(doc?.title)}

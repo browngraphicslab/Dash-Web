@@ -86,6 +86,8 @@ export class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
+            case "a": SnappingManager.GetIsDragging() && (DragManager.CanEmbed = true);
+                break;
             case "u":
                 if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
                     return { stopPropagation: false, preventDefault: false };

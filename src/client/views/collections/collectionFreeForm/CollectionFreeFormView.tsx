@@ -48,6 +48,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { StyleProp, StyleLayers } from "../../StyleProvider";
+import { DocumentDecorations } from "../../DocumentDecorations";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -1003,7 +1004,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ContainingCollectionDoc: this.props.Document,
             LayoutTemplate: childLayout.z ? undefined : this.props.childLayoutTemplate,
             LayoutTemplateString: childLayout.z ? undefined : this.props.childLayoutString,
-            setupDragLines: this.setupDragLines,
             rootSelected: childData ? this.rootSelected : returnFalse,
             onClick: this.onChildClickHandler,
             onDoubleClick: this.onChildDoubleClickHandler,
@@ -1382,7 +1382,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     onPointerOver = (e: React.PointerEvent) => {
-        SnappingManager.GetIsDragging() && this.setupDragLines(e.ctrlKey || e.shiftKey);
+        (DocumentDecorations.Instance.Interacting || SnappingManager.GetIsDragging()) && this.setupDragLines(e.ctrlKey || e.shiftKey);
         e.stopPropagation();
     }
 

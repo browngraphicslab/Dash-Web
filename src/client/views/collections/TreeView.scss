@@ -65,7 +65,16 @@
     cursor: pointer;
 }
 
-.treeView-border-outline,
+.treeView-borderoutline {
+    ul {
+        .contentFittingDocumentView  {
+            width: unset;
+            height: unset;
+        }
+    }
+}
+
+.treeView-borderoutline,
 .treeView-border {
     display: flex;
     overflow: hidden;

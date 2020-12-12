@@ -113,7 +113,7 @@ export interface DocumentOptions {
     _viewScale?: number;
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
-    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" sidebar views that are intended to document "menus"
+    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children

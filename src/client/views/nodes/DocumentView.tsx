@@ -87,19 +87,17 @@ export interface DocumentViewSharedProps {
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
     freezeDimensions?: boolean;
-    hideTitle?: boolean;
+    hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     fitToBox?: boolean;
     treeViewDoc?: Doc;
     dragDivName?: string;
     contentPointerEvents?: string;
     radialMenu?: String[];
-    relative?: boolean;
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
     onPointerUp?: () => ScriptField;
-    setupDragLines?: (snapToDraggedDoc: boolean) => void;
 }
 
 @observer
