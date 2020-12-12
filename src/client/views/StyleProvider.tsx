@@ -15,7 +15,7 @@ import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
 import { listSpec } from '../../fields/Schema';
-import { Utils } from '../../Utils';
+import { MainView } from './MainView';
 
 export enum StyleLayers {
     Background = "background"
@@ -79,6 +79,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
         case StyleProp.ItemBackgroundColor:
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
             if (docColor) return docColor;
+            if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
             switch (doc?.type) {
                 case DocumentType.FONTICON: return "black";
                 case DocumentType.LINK: return "lightblue";

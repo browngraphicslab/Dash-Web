@@ -66,8 +66,7 @@ export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
-    @observable private _lastButton: Doc | undefined;
-
+    @observable public LastButton: Opt<Doc>;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -298,13 +297,6 @@ export class MainView extends React.Component {
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
 
-    menuStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
-        if (property === StyleProp.ItemBackgroundColor && this._lastButton === doc) {
-            return this.darkScheme ? "dimgrey" : "lightgrey";
-        }
-        return DefaultStyleProvider(doc, props, property);
-    }
-
     @computed get flyout() {
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
@@ -359,7 +351,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                styleProvider={this.menuStyleProvider}
+                styleProvider={DefaultStyleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -432,11 +424,11 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        this._lastButton = button;
+        this.LastButton = button;
     });
 
     closeFlyout = action(() => {
-        this._lastButton = undefined;
+        this.LastButton = undefined;
         this._panelContent = "none";
         this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
