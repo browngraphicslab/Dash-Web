@@ -16,7 +16,6 @@ import { VideoBox } from "./VideoBox";
 export interface FieldViewProps extends DocumentViewSharedProps {
     // FieldView specific props that are not part of DocumentView props
     fieldKey: string;
-    fitToBox?: boolean;
     overflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
     active: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;

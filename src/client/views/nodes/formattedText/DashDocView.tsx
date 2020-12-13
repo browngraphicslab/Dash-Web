@@ -228,7 +228,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                         <DocumentView
                             Document={finalLayout}
                             DataDoc={resolvedDataDoc}
-                            fitToBox={BoolCast(dashDoc._fitToBox)}
+                            fitDocToPanel={BoolCast(dashDoc._fitToBox)}
                             addDocument={returnFalse}
                             rootSelected={this._textBox.props.isSelected}
                             removeDocument={this.removeDoc}

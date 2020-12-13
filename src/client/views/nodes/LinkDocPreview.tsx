@@ -94,7 +94,7 @@ export class LinkDocPreview extends React.Component<Props> {
             :
             <ContentFittingDocumentView
                 Document={this._targetDoc}
-                fitToBox={true}
+                fitDocToPanel={true}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
@@ -125,6 +125,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width() + 16, height: this.height() + 16,
                 zIndex: 1000,
+                backgroundColor: "lightblue",
                 border: "8px solid white", borderRadius: "7px",
                 boxShadow: "3px 3px 1.5px grey",
                 borderBottom: "8px solid white", borderRight: "8px solid white"

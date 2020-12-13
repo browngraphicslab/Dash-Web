@@ -297,7 +297,7 @@ export class FormattedTextBoxComment {
                                     <div className="FormattedTextBoxComment-preview-wrapper">
                                         <ContentFittingDocumentView
                                             Document={target}
-                                            fitToBox={true}
+                                            fitDocToPanel={true}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}
                                             ScreenToLocalTransform={Transform.Identity}

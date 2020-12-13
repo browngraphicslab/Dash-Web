@@ -400,7 +400,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 <ContentFittingDocumentView
                     Document={this.previewDocument}
                     DataDoc={undefined}
-                    fitToBox={true}
+                    fitDocToPanel={true}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     focus={emptyFunction}

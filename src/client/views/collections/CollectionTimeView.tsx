@@ -86,7 +86,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
             <CollectionFreeFormView {...this.props}
-                fitToBox={true}
+                fitContentsToDoc={true}
                 childClickScript={this._childClickedScript}
                 viewDefDivClick={this._viewDefDivClick}
                 childFreezeDimensions={true}

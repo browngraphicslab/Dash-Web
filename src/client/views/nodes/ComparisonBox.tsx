@@ -12,7 +12,7 @@ import "./ComparisonBox.scss";
 import React = require("react");
 import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 import { undoBatch } from '../../util/UndoManager';
-import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { setupMoveUpEvents, emptyFunction, returnOne } from '../../../Utils';
 import { SnappingManager } from '../../util/SnappingManager';
 import { DocumentViewProps } from './DocumentView';
 
@@ -74,7 +74,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     render() {
         const clipWidth = NumCast(this.layoutDoc._clipWidth) + "%";
-        const childProps: DocumentViewProps = { ...this.props, pointerEvents: "none", parentActive: this.props.active };
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`}
                 onPointerDown={e => e.stopPropagation()} // prevent triggering slider movement in registerSliding 
@@ -85,7 +84,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const displayDoc = (which: string) => {
             const whichDoc = Cast(this.dataDoc[`compareBox-${which}`], Doc, null);
             return whichDoc ? <>
-                <ContentFittingDocumentView {...childProps} Document={whichDoc} />
+                <ContentFittingDocumentView {...this.props}
+                    ContentScaling={returnOne}
+                    pointerEvents={"none"}
+                    parentActive={this.props.active}
+                    Document={whichDoc} />
                 {clearButton(which)}
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">

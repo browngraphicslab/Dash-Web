@@ -27,7 +27,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     highlight?: boolean;
     jitterRotation: number;
     dataTransition?: string;
-    fitToBox?: boolean;
+    fitDocToPanel?: boolean;
     replica: string;
 }
 
@@ -139,7 +139,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
     }
-    contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
+    contentScaling = () => this.nativeWidth > 0 && !this.props.fitDocToPanel && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
@@ -190,7 +190,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     </svg>
                 </div>}
 
-            {this.props.fitToBox ?
+            {this.props.fitDocToPanel ?
                 <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
                 <DocumentView {...divProps} ContentScaling={this.contentScaling} />}
         </div>;

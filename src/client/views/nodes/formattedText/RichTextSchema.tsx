@@ -137,7 +137,7 @@ export class DashDocView {
                 ReactDOM.render(<DocumentView
                     Document={finalLayout}
                     DataDoc={resolvedDataDoc}
-                    fitToBox={BoolCast(dashDoc._fitToBox)}
+                    fitDocToPanel={BoolCast(dashDoc._fitToBox)}
                     addDocument={returnFalse}
                     rootSelected={this._textBox.props.isSelected}
                     removeDocument={removeDoc}

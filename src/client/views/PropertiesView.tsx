@@ -271,7 +271,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     styleProvider={DefaultStyleProvider}
-                    fitToBox={true}
+                    fitDocToPanel={true}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}

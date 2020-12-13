@@ -30,13 +30,12 @@ export enum StyleProp {
     BorderRounding = "borderRounding",    // border radius of the document view
     Color = "color",                      // foreground color of Document view items
     BackgroundColor = "backgroundColor",  // background color of a document view
-    ItemBackgroundColor = "itemBackgroundColor", // background color for <item>Box inside DocumentView
-    WidgetColor = "widgetColor",                 // color to display UI widgets on a document view -- used for the sidebar divider dragger on a text note
-    HideLinkButton = "hideLinkButton",  // hides the blue-dot link button.  used when a document acts like a button
-    LinkSource = "linkSource",      // source document of a link -- used by LinkAnchorBox
-    PointerEvents = "pointerEvents",// pointer events for DocumentView -- inherits pointer events if not specified
-    Decorations = "decorations",    // additional decoration to display above a DocumentView -- currently only used to display a Lock for making things background
-    HeaderMargin = "headerMargin",  // margin at top of documentview, typically for displaying a title -- doc contents will start below that
+    WidgetColor = "widgetColor",          // color to display UI widgets on a document view -- used for the sidebar divider dragger on a text note
+    HideLinkButton = "hideLinkButton",    // hides the blue-dot link button.  used when a document acts like a button
+    LinkSource = "linkSource",            // source document of a link -- used by LinkAnchorBox
+    PointerEvents = "pointerEvents",      // pointer events for DocumentView -- inherits pointer events if not specified
+    Decorations = "decorations",          // additional decoration to display above a DocumentView -- currently only used to display a Lock for making things background
+    HeaderMargin = "headerMargin",        // margin at top of documentview, typically for displaying a title -- doc contents will start below that
 }
 
 function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -61,22 +60,20 @@ function toggleBackground(doc: Doc) {
 }
 
 export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
-    if (toBeDetermined.ContentScaling) {
-        return true;
-    }
-    return false;
+    return (toBeDetermined?.ContentScaling) ? true : false;
 }
 
 //
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
+    const docProps = testDocProps(props);
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.Color:
-            const backColor = props?.styleProvider?.(doc, props, StyleProp.ItemBackgroundColor) || "black";
+            const backColor = props?.styleProvider?.(doc, props, StyleProp.BackgroundColor) || "black";
             const col = Color(backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 600 || col.alpha() < 0.25) return "black";
@@ -84,17 +81,17 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
         case StyleProp.BorderRounding: return !doc ? undefined : StrCast(doc._borderRounding, StrCast(doc.borderRounding));
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
-        case StyleProp.ItemBackgroundColor:
-            const docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
-            if (docColor) return docColor;
-            if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
-            switch (doc?.type) {
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.LINK: return "lightblue";
-            }
         case StyleProp.BackgroundColor: {
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            if (!docProps) {
+                if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
+                switch (doc?.type) {
+                    case DocumentType.FONTICON: return docColor || "black";
+                    case DocumentType.LINK: return docColor || "lightblue";
+                    default: undefined;
+                }
+            }
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
@@ -103,7 +100,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.LABEL:
                 case DocumentType.INK: docColor = undefined; break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
-                case DocumentType.LINK:
+                case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:
                     docColor = docColor ||
                         (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
@@ -129,7 +126,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                     `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / ((testDocProps(props) && props?.ContentScaling()) || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / ((docProps && (props as DocumentViewProps).ContentScaling()) || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                             isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                 StrCast(doc.boxShadow, "");
             }

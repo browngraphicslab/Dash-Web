@@ -42,7 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { StyleProp, StyleLayers } from "../StyleProvider";
+import { StyleProp, StyleLayers, testDocProps } from "../StyleProvider";
 import { FieldViewProps } from "./FieldView";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
@@ -78,7 +78,6 @@ export interface DocumentViewSharedProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     onClick?: () => ScriptField;
     dropAction?: dropActionType;
-    LayoutTemplateString?: string;
     dontRegisterView?: boolean;
     ignoreAutoHeight?: boolean;
     pointerEvents?: string;
@@ -88,14 +87,15 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
     freezeDimensions?: boolean;
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
-    fitToBox?: boolean;
+    fitDocToPanel?: boolean;
     treeViewDoc?: Doc;
     dragDivName?: string;
-    contentPointerEvents?: string;
+    contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
+    LayoutTemplateString?: string;
+    LayoutTemplate?: () => Opt<Doc>;
     ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     contentFittingScaling?: () => number;// scaling done outside the document view (eg in ContentFittingDocumentView) to fit contents into panel (needed for ScreenToLocal but not needed by DocumentView to scale its content)
-    LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
@@ -934,7 +934,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 makeLink={this.makeLink}
                 focus={this.props.focus}
                 dontRegisterView={this.props.dontRegisterView}
-                fitToBox={this.props.fitToBox}
+                fitDocToPanel={this.props.fitDocToPanel}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
@@ -974,11 +974,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
-        switch (property.split(":")[0]) {
-            case StyleProp.BackgroundColor: return "transparent";
-            case StyleProp.HideLinkButton: return true;
-            case StyleProp.PointerEvents: return "none";
-            case StyleProp.LinkSource: return this.props.Document;
+        if (testDocProps(props)) {
+            switch (property.split(":")[0]) {
+                case StyleProp.BackgroundColor: return "transparent"; // background of linkanchor documentView is transparent since it covers the whole document
+                case StyleProp.HideLinkButton: return true; // don't want linkAnchor documentview to show its own link button
+                case StyleProp.PointerEvents: return "none"; // don't want linkAnchor documentView to handle events (since it covers the whole document).  However, the linkAnchorBox itself is set to pointerEvent all
+            }
+        } else {
+            switch (property.split(":")[0]) {
+                case StyleProp.LinkSource: return this.props.Document; // pass the LinkSource to the LinkAnchorBox
+            }
         }
         return this.props.styleProvider?.(doc, props, property);
     }

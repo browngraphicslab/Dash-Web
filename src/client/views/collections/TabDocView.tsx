@@ -365,7 +365,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     docFilters={CollectionDockingView.Instance.docFilters}
                     docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                     searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                    fitToBox={true}
+                    fitContentsToDoc={true}
                 />
                 <div className="miniOverlay" onPointerDown={this.miniDown} >
                     <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />

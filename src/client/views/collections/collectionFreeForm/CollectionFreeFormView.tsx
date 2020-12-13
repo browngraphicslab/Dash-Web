@@ -76,6 +76,7 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
+    fitContentsToDoc?: boolean;
     parentActive: (outsideReaction: boolean) => boolean;
     scaleField?: string;
     noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)
@@ -116,7 +117,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
-    @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
+    @computed get fitToContent() { return (this.props.fitContentsToDoc || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
     @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document)); }
@@ -998,7 +999,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
             parentActive: this.parentActive,
-            fitToBox: false,
+            fitDocToPanel: false,
             DataDoc: childData,
             Document: childLayout,
             ContainingCollectionView: this.props.CollectionView,
@@ -1175,7 +1176,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? "none" : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
-                    fitToBox={BoolCast(this.props.childFreezeDimensions)} // bcz: check this
+                    fitDocToPanel={BoolCast(this.props.childFreezeDimensions)} // bcz: check this
                     freezeDimensions={BoolCast(this.props.childFreezeDimensions)}
                 />,
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
