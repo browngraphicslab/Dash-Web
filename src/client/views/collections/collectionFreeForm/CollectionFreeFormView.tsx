@@ -76,7 +76,6 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
-    fitContentsToDoc?: boolean;
     parentActive: (outsideReaction: boolean) => boolean;
     scaleField?: string;
     noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)

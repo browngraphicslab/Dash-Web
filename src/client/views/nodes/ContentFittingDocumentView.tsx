@@ -7,11 +7,9 @@ import { emptyFunction, OmitKeys, returnOne, returnVal } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { StyleProp } from "../StyleProvider";
 import "./ContentFittingDocumentView.scss";
-
 interface ContentFittingDocumentViewProps {
     dontCenter?: "x" | "y" | "xy";
 }
-
 @observer
 export class ContentFittingDocumentView extends React.Component<DocumentViewProps & ContentFittingDocumentViewProps> {
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
@@ -20,23 +18,27 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     @observable public docView: DocumentView | undefined | null;
 
     @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return this.layoutDoc._fitWidth ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
+
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
     @computed get nativeScaling() {
-        if (!this.nativeWidth || !this.nativeHeight) return 1;
-        const wscale = this.props.PanelWidth() / this.nativeWidth;
-        const hscale = this.props.PanelHeight() / this.nativeHeight;
-        if (wscale * this.nativeHeight > this.props.PanelHeight()) {
-            return hscale || 1;
+        const nativeW = this.nativeWidth;
+        const nativeH = this.nativeHeight;
+        let scaling = 1;
+        if (nativeW && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / nativeH > this.props.PanelWidth() / nativeW)) {
+            scaling = this.props.PanelWidth() / nativeW;  // width-limited or fitWidth
+        } else if (nativeW && nativeH) {
+            scaling = this.props.PanelHeight() / nativeH; // height-limited
         }
-        return wscale || 1;
+        return scaling;
     }
 
     @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
         if (this.nativeHeight) {
-            if (this.props.Document._fitWidth) return Math.min(this.props.PanelHeight(), this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 1);
-            return Math.min(this.props.PanelHeight(), this.nativeHeight * this.nativeScaling);
+            if (this.props.Document._fitWidth)
+                return Math.min(this.props.PanelHeight(), this.panelWidth / Doc.NativeAspect(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 1);
+            else return Math.min(this.props.PanelHeight(), this.nativeHeight * this.nativeScaling);
         }
         return this.props.PanelHeight();
     }
@@ -67,8 +69,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         LayoutTemplate={this.props.LayoutTemplate}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
-                        ContentScaling={returnOne}
-                        contentFittingScaling={this.NativeScaling}
+                        ContentScaling={this.NativeScaling}
                         ScreenToLocalTransform={this.screenToLocalTransform}
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}

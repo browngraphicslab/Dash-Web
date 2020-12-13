@@ -24,6 +24,7 @@ import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView"
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
+import { DefaultStyleProvider } from "../StyleProvider";
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {
@@ -401,6 +402,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     Document={this.previewDocument}
                     DataDoc={undefined}
                     fitDocToPanel={true}
+                    fitContentsToDoc={true}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     focus={emptyFunction}
@@ -412,6 +414,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     docFilters={this.docFilters}
                     docRangeFilters={this.docRangeFilters}
                     searchFilterDocs={this.searchFilterDocs}
+                    styleProvider={DefaultStyleProvider}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}

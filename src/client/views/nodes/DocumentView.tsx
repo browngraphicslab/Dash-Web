@@ -54,6 +54,7 @@ export interface DocumentViewSharedProps {
     DataDoc?: Doc;
     DocumentView?: DocumentView;
     ContainingCollectionView: Opt<CollectionView>;
+    fitContentsToDoc?: boolean;
     ContainingCollectionDoc: Opt<Doc>;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
@@ -96,7 +97,6 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
     ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
-    contentFittingScaling?: () => number;// scaling done outside the document view (eg in ContentFittingDocumentView) to fit contents into panel (needed for ScreenToLocal but not needed by DocumentView to scale its content)
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
@@ -131,7 +131,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
-    @computed get LocalScaling() { return this.props.ContentScaling() * (this.props.contentFittingScaling?.() || 1); }
+    @computed get LocalScaling() { return this.props.ContentScaling(); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
@@ -917,6 +917,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocumentView={this}
                 Document={this.props.Document}
                 DataDoc={this.props.DataDoc}
+                fitContentsToDoc={this.props.fitContentsToDoc}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}
