@@ -167,7 +167,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     contentFunc = () => [this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{ width: `${100}%`, height: `${100}%` }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     PanelHeight={this.props.PanelHeight}

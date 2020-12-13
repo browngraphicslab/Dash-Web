@@ -539,7 +539,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     rangeScript = () => AudioBox.RangeScript;
     labelScript = () => AudioBox.LabelScript;
-    static audioStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+    static audioStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.BackgroundColor) return "transparent";
         if (property === StyleProp.PointerEvents) return "none";
     }
@@ -554,6 +554,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
                 ContainingCollectionDoc={this.props.Document}
+                ContentScaling={returnOne}
                 removeDocument={this.removeDocument}
                 parentActive={returnTrue}
                 onClick={this.layoutDoc.playOnClick ? script : undefined}

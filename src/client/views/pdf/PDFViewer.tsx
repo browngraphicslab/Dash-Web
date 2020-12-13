@@ -370,7 +370,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = (this.props.PanelHeight() / this.props.ContentScaling()) / 2;
+            const offset = this.props.PanelHeight() / 2;
             this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
@@ -737,7 +737,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get pdfViewerDiv() {
         return <div className={"pdfViewerDash-text" + ((this.props.isSelected() || this.props.isChildActive()) ? "-selected" : "")} ref={this._viewer} />;
     }
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    @computed get contentScaling() { return 1; }
     @computed get standinViews() {
         return <>
             {this._showCover ? this.getCoverImage() : (null)}
@@ -758,7 +758,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
                 width: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeWidth(this.props.Document) : `${100 / this.contentScaling}%`,
                 height: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeHeight(this.props.Document) : `${100 / this.contentScaling}%`,
-                transform: `scale(${this.props.ContentScaling()})`
             }}  >
             {this.pdfViewerDiv}
             {this.annotationLayer}

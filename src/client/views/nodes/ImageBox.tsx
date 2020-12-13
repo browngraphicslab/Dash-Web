@@ -67,7 +67,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    @computed get contentScaling() { return 1; }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer?.();

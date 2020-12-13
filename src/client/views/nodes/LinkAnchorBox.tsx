@@ -146,7 +146,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 background,
                 left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
                 top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
-                transform: `scale(${anchorScale / this.props.ContentScaling()})`
+                transform: `scale(${anchorScale})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} open={this._forceOpen ? true : undefined} onOpen={() => this._isOpen = true} onClose={action(() => this._isOpen = this._forceOpen = this._editing = false)}>

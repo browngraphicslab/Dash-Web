@@ -76,7 +76,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelHeight: this.props.PanelHeight,
             addDocTab: returnFalse,
             pinToPres: returnZero,
-            ContentScaling: returnOne
         };
         const contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";

@@ -17,6 +17,7 @@ import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { StyleProp } from "../StyleProvider";
+import { FieldViewProps } from "./FieldView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -59,7 +60,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
 
-    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
         return this.props.styleProvider?.(doc, props, property);
     }

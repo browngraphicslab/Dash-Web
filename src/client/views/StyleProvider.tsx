@@ -16,6 +16,7 @@ import React = require("react");
 import Color = require('color');
 import { listSpec } from '../../fields/Schema';
 import { MainView } from './MainView';
+import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"
@@ -59,10 +60,17 @@ function toggleBackground(doc: Doc) {
     }), "toggleBackground");
 }
 
+export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
+    if (toBeDetermined.ContentScaling) {
+        return true;
+    }
+    return false;
+}
+
 //
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
-export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any {
+export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
@@ -121,7 +129,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<DocumentViewProps
                     `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (props?.ContentScaling() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / ((testDocProps(props) && props?.ContentScaling()) || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                             isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                 StrCast(doc.boxShadow, "");
             }

@@ -29,6 +29,7 @@ import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewField
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { StyleProp } from "../StyleProvider";
+import { FieldViewProps } from "../nodes/FieldView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -61,7 +62,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
-        return Math.min(this.props.PanelWidth() / this.props.ContentScaling() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
+        return Math.min(this.props.PanelWidth() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
@@ -189,7 +190,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
             if (property === StyleProp.Opacity && doc) {
                 if (this.props.childOpacity) {
                     return this.props.childOpacity();

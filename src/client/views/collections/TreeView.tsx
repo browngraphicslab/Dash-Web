@@ -29,7 +29,8 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
-import { StyleProp } from '../StyleProvider';
+import { StyleProp, testDocProps } from '../StyleProvider';
+import { FieldViewProps } from '../nodes/FieldView';
 
 export interface TreeViewProps {
     document: Doc;
@@ -497,13 +498,13 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
-    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (!doc || doc !== this.doc) return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
 
         switch (property.split(":")[0]) {
             case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
             case StyleProp.BackgroundColor: return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
-            case StyleProp.DocContents: return !props?.treeViewDoc ? (null) :
+            case StyleProp.DocContents: return testDocProps(props) && !props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
                     background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
@@ -513,7 +514,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             case StyleProp.Decorations: return (null);
         }
     }
-    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (property.startsWith(StyleProp.Decorations)) return (null);
         return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
     }

@@ -139,7 +139,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 dropAction={undefined}
                 active={returnTrue}
                 parentActive={returnFalse}
-                ContentScaling={returnOne}
                 bringToFront={emptyFunction}
                 focus={emptyFunction}
                 whenActiveChanged={emptyFunction}

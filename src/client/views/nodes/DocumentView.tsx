@@ -43,10 +43,11 @@ import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { StyleProp, StyleLayers } from "../StyleProvider";
+import { FieldViewProps } from "./FieldView";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
-export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
+export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
@@ -58,7 +59,6 @@ export interface DocumentViewSharedProps {
     PanelHeight: () => number;
     NativeWidth?: () => number;
     NativeHeight?: () => number;
-    ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     styleProvider?: StyleProviderFunc;
     focus: DocFocusFunc;
@@ -93,6 +93,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     dragDivName?: string;
     contentPointerEvents?: string;
     radialMenu?: String[];
+    ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     contentFittingScaling?: () => number;// scaling done outside the document view (eg in ContentFittingDocumentView) to fit contents into panel (needed for ScreenToLocal but not needed by DocumentView to scale its content)
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -972,7 +973,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         switch (property.split(":")[0]) {
             case StyleProp.BackgroundColor: return "transparent";
             case StyleProp.HideLinkButton: return true;

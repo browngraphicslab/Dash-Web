@@ -1,13 +1,12 @@
 import React = require("react");
-import { computed, observable, action } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, WidthSym, HeightSym } from "../../../fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, returnVal, returnOne } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnVal } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
-import "./ContentFittingDocumentView.scss";
 import { StyleProp } from "../StyleProvider";
-import { StrCast } from "../../../fields/Types";
+import "./ContentFittingDocumentView.scss";
 
 interface ContentFittingDocumentViewProps {
     dontCenter?: "x" | "y" | "xy";

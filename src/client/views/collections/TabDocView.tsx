@@ -33,6 +33,7 @@ import { List } from '../../../fields/List';
 import { DocumentType } from '../../documents/DocumentTypes';
 import Color = require('color');
 import { StyleProp, DefaultStyleProvider, DefaultLayerProvider, StyleLayers } from '../StyleProvider';
+import { FieldViewProps } from '../nodes/FieldView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -352,7 +353,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     addDocument={returnFalse}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ContentScaling={returnOne}
                     PanelWidth={this.returnMiniSize}
                     PanelHeight={this.returnMiniSize}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
@@ -389,7 +389,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     active = () => this._isActive;
 
 
-    public static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
+    public static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (doc) {
             switch (property.split(":")[0]) {
                 default: return DefaultStyleProvider(doc, props, property);
