@@ -54,7 +54,7 @@ export interface DocumentViewSharedProps {
     DataDoc?: Doc;
     DocumentView?: DocumentView;
     ContainingCollectionView: Opt<CollectionView>;
-    fitContentsToDoc?: boolean;
+    fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionDoc: Opt<Doc>;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
@@ -89,7 +89,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
     freezeDimensions?: boolean;
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
-    fitDocToPanel?: boolean;
+    fitDocToPanel?: boolean; // makes the document view fit the panel available to it (if it has native dimensions, then only one dimension will be fit)
     treeViewDoc?: Doc;
     dragDivName?: string;
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
