@@ -1,19 +1,19 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { AclPrivate, Doc, DocListCast } from '../../../fields/Doc';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { DocComponent } from '../DocComponent';
-import './FontIconBox.scss';
-import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast, ScriptCast } from '../../../fields/Types';
-import { Utils, setupMoveUpEvents, returnFalse, emptyFunction } from "../../../Utils";
-import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
-import { Doc, DocListCast, AclPrivate } from '../../../fields/Doc';
-import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Tooltip } from '@material-ui/core';
-import { DragManager } from '../../util/DragManager';
+import { Cast, StrCast } from '../../../fields/Types';
 import { GetEffectiveAcl } from '../../../fields/util';
+import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
+import { DragManager } from '../../util/DragManager';
+import { ContextMenu } from '../ContextMenu';
+import { DocComponent } from '../DocComponent';
+import { StyleProp } from '../StyleProvider';
+import { FieldView, FieldViewProps } from './FieldView';
+import './FontIconBox.scss';
 const FontIconSchema = createSchema({
     icon: "string",
 });
@@ -23,21 +23,6 @@ const FontIconDocument = makeInterface(FontIconSchema);
 @observer
 export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(FontIconDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FontIconBox, fieldKey); }
-    @observable _foregroundColor = "white";
-    _ref: React.RefObject<HTMLButtonElement> = React.createRef();
-    _backgroundReaction: IReactionDisposer | undefined;
-    componentDidMount() {
-        this._backgroundReaction = reaction(() => this.layoutDoc.backgroundColor,
-            () => {
-                if (this._ref && this._ref.current) {
-                    const col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor);
-                    const colsum = (col.r + col.g + col.b);
-                    if (colsum / col.a > 600 || col.a < 0.25) runInAction(() => this._foregroundColor = "black");
-                    else if (colsum / col.a <= 600 || col.a >= .25) runInAction(() => this._foregroundColor = "white");
-                }
-            }, { fireImmediately: true });
-    }
-
     showTemplate = (): void => {
         const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
         dragFactory && this.props.addDocTab(dragFactory, "add:right");
@@ -54,20 +39,16 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         }
     }
 
-    componentWillUnmount() {
-        this._backgroundReaction?.();
-    }
-
     render() {
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
-        const color = StrCast(this.layoutDoc.color, this._foregroundColor);
-        const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, "backgroundColor", this.props.layerProvider);
+        const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);
+        const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.ItemBackgroundColor);
         const shape = StrCast(this.layoutDoc.iconShape, label ? "round" : "circle");
         const icon = StrCast(this.dataDoc.icon, "user") as any;
         const presSize = shape === 'round' ? 25 : 30;
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
-        const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
+        const button = <button className={`menuButton-${shape}`} onContextMenu={this.specificContextMenu}
             style={{
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,
                 backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "",

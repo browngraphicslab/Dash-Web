@@ -1,7 +1,6 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
-import { Doc, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
+import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -16,8 +15,8 @@ import { InkingStroke } from "../InkingStroke";
 import "./CollectionFreeFormDocumentView.scss";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { PresBox, PresEffect } from "./PresBox";
 import React = require("react");
+import { StyleProp } from "../StyleProvider";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -46,19 +45,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
-    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : Cast(this.layoutDoc.opacity, "number", null); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
+    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : undefined; }
     get Highlight() { return this.dataProvider?.highlight; }
     get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
     get height() {
         const hgt = this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
-    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
+
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
+        return this.props.styleProvider?.(doc, props, property);
+    }
 
     static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];
     public static getValues(doc: Doc, time: number) {
@@ -79,23 +83,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             d.appearFrame === timecode + 1 ? "red" :
                 d.appearFrame < timecode + 1 ? "grey" : "black");
     }
-
-    // public static updateScrollframe(doc: Doc, time: number) {
-    //     console.log('update scroll frame');
-    //     const timecode = Math.round(time);
-    //     const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
-    //     scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
-    //     setTimeout(() => doc.dataTransition = "inherit", 1010);
-    // }
-
-    // public static setupScroll(doc: Doc, timecode: number) {
-    //     const scrollList = new List<number>();
-    //     scrollList[timecode] = NumCast(doc._scrollTop);
-    //     doc["scroll-indexed"] = scrollList;
-    //     doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
-    //     doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
-    // }
-
 
     public static updateKeyframe(docs: Doc[], time: number, targetDoc?: Doc) {
         const timecode = Math.round(time);
@@ -151,72 +138,38 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
     }
-
-    @computed get freeformNodeDiv() {
-        const divProps = {
+    contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
+    panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
+    panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
+    focusDoc = (doc: Doc) => this.props.focus(doc, false);
+    NativeWidth = () => this.nativeWidth;
+    NativeHeight = () => this.nativeHeight;
+    returnThis = () => this;
+    @computed get pointerEvents() {
+        if (this.props.pointerEvents === "none") return "none";
+        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : ""));
+    }
+    render() {
+        TraceMobx();
+        const backgroundColor = this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
+        const borderRadius = this.props.styleProvider?.(this.Document, this.props, StyleProp.BorderRounding);
+        const boxShadow = this.props.styleProvider?.(this.Document, this.props, StyleProp.BoxShadow);
+        const divProps: DocumentViewProps = {
             ...this.props,
-            nudge: this.nudge,
+            CollectionFreeFormDocumentView: this.returnThis,
             dragDivName: "collectionFreeFormDocumentView-container",
-            opacity: this.opacity,
+            styleProvider: this.styleProvider,
             ScreenToLocalTransform: this.getTransform,
             NativeHeight: this.NativeHeight,
             NativeWidth: this.NativeWidth,
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight
         };
-        return this.props.fitToBox ?
-            <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
-            <DocumentView {...divProps} ContentScaling={this.contentScaling} />;
-    }
-    @computed get effectsNodeDiv() {
-        const effectProps = {
-            left: this.layoutDoc.presEffectDirection === PresEffect.Left,
-            right: this.layoutDoc.presEffectDirection === PresEffect.Right,
-            top: this.layoutDoc.presEffectDirection === PresEffect.Top,
-            bottom: this.layoutDoc.presEffectDirection === PresEffect.Bottom,
-            opposite: true,
-            delay: this.layoutDoc.presTransition,
-            // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
-        };
-        switch (this.layoutDoc.presEffect) {
-            case "Zoom": return (<Zoom {...effectProps}>{this.freeformNodeDiv}</Zoom>);
-            case PresEffect.Fade: return (<Fade {...effectProps}>{this.freeformNodeDiv}</Fade>);
-            case PresEffect.Flip: return (<Flip {...effectProps}>{this.freeformNodeDiv}</Flip>);
-            case PresEffect.Rotate: return (<Rotate {...effectProps}>{this.freeformNodeDiv}</Rotate>);
-            case PresEffect.Bounce: return (<Bounce {...effectProps}>{this.freeformNodeDiv}</Bounce>);
-            case PresEffect.Roll: return (<Roll {...effectProps}>{this.freeformNodeDiv}</Roll>);
-            case "LightSpeed": return (<LightSpeed {...effectProps}>{this.freeformNodeDiv}</LightSpeed>);
-            case PresEffect.None:
-            default: return this.freeformNodeDiv;
-        }
-    }
-
-    contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
-    panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
-    panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
-    focusDoc = (doc: Doc) => this.props.focus(doc, false);
-    opacity = () => this.Opacity;
-    NativeWidth = () => this.nativeWidth;
-    NativeHeight = () => this.nativeHeight;
-    @computed get pointerEvents() {
-        if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, !this._contentView?.docView?.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
-    }
-    render() {
-        TraceMobx();
-        const backgroundColor = this.props.styleProvider?.(this.Document, this.props, "backgroundColor", this.props.layerProvider);
-        const borderRounding = StrCast(Doc.Layout(this.layoutDoc).borderRounding) || StrCast(this.layoutDoc.borderRounding) || StrCast(this.Document.borderRounding) || undefined;
-
         return <div className="collectionFreeFormDocumentView-container"
             style={{
-                boxShadow:
-                    this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
-                        this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.(this.props.Document) && this.props.Document.type !== DocumentType.INK ? (`${this.props.styleProvider?.(this.props.Document, this.props, "backgroundColor", this.props.layerProvider)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(Cast(this.layoutDoc.layers, listSpec("string"), []).includes("background") ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                                Cast(this.layoutDoc.layers, listSpec("string"), []).includes('background') ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
-                                    StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: borderRounding,
+                boxShadow,
+                borderRadius,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
@@ -225,7 +178,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                // @ts-ignore
                 pointerEvents: this.pointerEvents
             }} >
 
@@ -237,11 +189,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     </svg>
                 </div>}
 
-            {PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc ?
-                this.effectsNodeDiv
-                :
-                this.freeformNodeDiv
-            }
+            {this.props.fitToBox ?
+                <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
+                <DocumentView {...divProps} ContentScaling={this.contentScaling} />}
         </div>;
     }
 }

@@ -10,7 +10,7 @@ import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
 import { BoolCast, Cast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail, denormalizeEmail } from '../../../fields/util';
+import { denormalizeEmail, distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { returnFalse, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -38,10 +38,8 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { listSpec } from '../../../fields/Schema';
-const higflyout = require("@hig/flyout");
-export const { anchorPoints } = higflyout;
-export const Flyout = higflyout.default;
+import { ScriptField } from '../../../fields/ScriptField';
+import { StyleProp } from '../StyleProvider';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 
@@ -64,28 +62,26 @@ export enum CollectionViewType {
     Grid = "grid",
     Pile = "pileup"
 }
-export interface CollectionViewCustomProps {
-    filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
-    childOpacity?: () => number;
-    hideFilter?: true;
-    childIgnoreNativeSize?: boolean;
-}
-
-export interface CollectionRenderProps {
-    addDocument: (document: Doc | Doc[]) => boolean;
-    removeDocument: (document: Doc | Doc[]) => boolean;
-    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    active: () => boolean;
+export interface CollectionViewProps extends FieldViewProps {
+    isAnnotationOverlay?: boolean;  // is the collection an annotation overlay (eg an overlay on an image/video/etc)
+    layoutEngine?: () => string;
     parentActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    ChildLayoutTemplate?: () => Doc;// specify a layout Doc template to use for children of the collection
-    ChildLayoutString?: string;// specify a layout string to use for children of the collection
-}
+    filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 
+    // property overrides for child documents
+    children?: never | (() => JSX.Element[]) | React.ReactNode;
+    childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
+    childOpacity?: () => number;
+    childLayoutTemplate?: () => (Doc | undefined);// specify a layout Doc template to use for children of the collection
+    childLayoutString?: string;
+    childFreezeDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
+    childIgnoreNativeSize?: boolean;
+    childClickScript?: ScriptField;
+    childDoubleClickScript?: ScriptField;
+}
 @observer
-export class CollectionView extends Touchable<FieldViewProps & CollectionViewCustomProps> {
+export class CollectionView extends Touchable<CollectionViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     _isChildActive = false;   //TODO should this be observable?
@@ -97,22 +93,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-    private AclMap = new Map<symbol, string>([
-        [AclPrivate, SharingPermissions.None],
-        [AclReadonly, SharingPermissions.View],
-        [AclAddonly, SharingPermissions.Add],
-        [AclEdit, SharingPermissions.Edit],
-        [AclAdmin, SharingPermissions.Admin]
-    ]);
-
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
-            if (viewField === CollectionViewType.Freeform || viewField === CollectionViewType.Schema) {
-                return CollectionViewType.Tree;
-            }
-            if (viewField === CollectionViewType.Invalid) {
-                return CollectionViewType.Freeform;
+            switch (viewField) {
+                case CollectionViewType.Freeform:
+                case CollectionViewType.Schema: return CollectionViewType.Tree;
+                case CollectionViewType.Invalid: return CollectionViewType.Freeform;
             }
         }
         return viewField as any as CollectionViewType;
@@ -135,7 +122,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
 
         const docs = doc instanceof Doc ? [doc] : doc;
-
 
         if (docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) return false;
         const targetDataDoc = this.props.Document[DataSym];
@@ -253,32 +239,30 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     screenToLocalTransform = () => this.props.renderDepth ? this.props.ScreenToLocalTransform() : this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
-    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+    private SubView = (type: CollectionViewType, props: SubCollectionViewProps) => {
         TraceMobx();
-        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
-            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
-            case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
-            case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
-            case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
-            case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
-            case CollectionViewType.Carousel3D: { return (<CollectionCarousel3DView key="collview" {...props} />); }
-            case CollectionViewType.Stacking: { this.props.Document._columnsStack = true; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Masonry: { this.props.Document._columnsStack = false; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
-            case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
-            case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
-            case CollectionViewType.Freeform:
-            default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} ChildLayoutString={props.ChildLayoutString} />); }
+            default:
+            case CollectionViewType.Freeform: return <CollectionFreeFormView key="collview" {...props} />;
+            case CollectionViewType.Schema: return <CollectionSchemaView key="collview" {...props} />;
+            case CollectionViewType.Docking: return <CollectionDockingView key="collview" {...props} />;
+            case CollectionViewType.Tree: return <CollectionTreeView key="collview" {...props} />;
+            case CollectionViewType.Multicolumn: return <CollectionMulticolumnView key="collview" {...props} />;
+            case CollectionViewType.Multirow: return <CollectionMultirowView key="collview" {...props} />;
+            case CollectionViewType.Linear: return <CollectionLinearView key="collview" {...props} />;
+            case CollectionViewType.Pile: return <CollectionPileView key="collview" {...props} />;
+            case CollectionViewType.Carousel: return <CollectionCarouselView key="collview" {...props} />;
+            case CollectionViewType.Carousel3D: return <CollectionCarousel3DView key="collview" {...props} />;
+            case CollectionViewType.Stacking: return <CollectionStackingView key="collview" {...props} />;
+            case CollectionViewType.Masonry: return <CollectionStackingView key="collview" {...props} />;
+            case CollectionViewType.Time: return <CollectionTimeView key="collview" {...props} />;
+            case CollectionViewType.Map: return <CollectionMapView key="collview" {...props} />;
+            case CollectionViewType.Grid: return <CollectionGridView key="collview" {...props} />;
+            //case CollectionViewType.Staff: return <CollectionStaffView key="collview" {...props} />;
         }
     }
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-
         const subItems: ContextMenuProps[] = [];
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {
@@ -386,7 +370,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     render() {
         TraceMobx();
-        const props: CollectionRenderProps = {
+        const props: SubCollectionViewProps = {
+            ...this.props,
             addDocument: this.addDocument,
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,
@@ -395,11 +380,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             parentActive: this.props.parentActive,
             PanelWidth: this.bodyPanelWidth,
             PanelHeight: this.props.PanelHeight,
-            ChildLayoutTemplate: this.childLayoutTemplate,
-            ChildLayoutString: this.childLayoutString,
+            childLayoutTemplate: this.childLayoutTemplate,
+            childLayoutString: this.childLayoutString,
+            ScreenToLocalTransform: this.screenToLocalTransform,
+            CollectionView: this,
         };
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            this.props.styleProvider?.(this.props.Document, this.props, "boxShadow", this.props.layerProvider);
+            this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BoxShadow);
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}

@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../../fields/Doc";
+import { Doc, DataSym, Opt } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
@@ -21,6 +21,8 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentViewProps } from "../nodes/DocumentView";
+import { StyleProp } from "../StyleProvider";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -76,6 +78,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
+    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+        if (property === StyleProp.Opacity) return 1;
+        return this.props.styleProvider?.(doc, props, property);
+    }
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -87,7 +93,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     fitToBox={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.styleProvider}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -102,7 +108,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
                     bringToFront={returnFalse}
-                    opacity={returnOne}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
@@ -322,7 +327,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
                     style={{
-                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, "color", this.props.layerProvider),
+                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
                     }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>

@@ -69,7 +69,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
-            const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.LocalScaling)).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
@@ -339,7 +339,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
             this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.(e.ctrlKey || e.shiftKey);
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;
@@ -603,7 +602,11 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
             </div>;
 
-        const leftBounds = this.props.boundsLeft;
+        let inMainMenuPanel = false;
+        for (let node = seldoc.ContentDiv; node && !inMainMenuPanel; node = node?.parentNode as any) {
+            if (node.className === "mainView-mainContent") inMainMenuPanel = true;
+        }
+        const leftBounds = inMainMenuPanel ? 0 : this.props.boundsLeft;
         const topBounds = this.props.boundsTop;
         bounds.x = Math.max(leftBounds, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(topBounds, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -630,12 +633,13 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {closeIcon}
-                    {Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) : titleArea}
-                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK || Object.keys(SelectionManager.SelectedDocuments()[0].props).includes("treeViewDoc") ? (null) :
+                    {bounds.r - bounds.x < 100 ? null : titleArea}
+                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
-                            </div></Tooltip>}
+                            </div>
+                        </Tooltip>}
                     {openIcon}
                     <div className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
                     <div className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />

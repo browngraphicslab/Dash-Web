@@ -1,5 +1,8 @@
 @import "../globalCssVariables";
 
+.documentView-effectsWrapper {
+    border-radius: inherit;
+}
 .documentView-node,
 .documentView-node-topmost {
     position: inherit;
@@ -68,25 +71,6 @@
         height: 100%; 
         display: inline-block;
         pointer-events: none;
-    }
-
-    .documentView-lock {
-        width: 20; 
-        height: 20; 
-        position: absolute; 
-        right: -5; 
-        top: -5;
-        background: transparent;
-        pointer-events: all;
-        opacity: 0.3;
-        display: flex;
-        color: gold;
-        border-radius: 3px;
-        justify-content: center;
-        cursor: default;
-    }
-    .documentView-lock:hover {
-        opacity:1;
     }
 
     .documentView-contentBlocker {

@@ -11,14 +11,14 @@ import { ContextMenu } from '../ContextMenu';
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import React = require("react");
-import { DocumentViewProps } from './DocumentView';
+import { StyleProviderFunc } from './DocumentView';
 import { Id } from '../../../fields/FieldSymbols';
 
 interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: StyleProviderFunc;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }

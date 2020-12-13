@@ -417,7 +417,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 forceScaling={true}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationKey}
+                fieldKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

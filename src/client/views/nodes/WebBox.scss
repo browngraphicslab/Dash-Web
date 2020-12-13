@@ -40,7 +40,6 @@
         .webBox-cont {
             pointer-events: none;
         }
-
         .webBox-cont,
         .webBox-cont-interactive {
             padding: 0vw;
@@ -73,6 +72,9 @@
             top: 0;
             left: 0;
             overflow: auto;
+            .webBox-innerContent {
+                position: relative;
+            }
         }
 
         div.webBox-outerContent::-webkit-scrollbar-thumb {

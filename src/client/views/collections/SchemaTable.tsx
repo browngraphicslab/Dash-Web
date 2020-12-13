@@ -62,9 +62,9 @@ export interface SchemaTableProps {
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
-    deleteDocument: (document: Doc | Doc[]) => boolean;
-    addDocument: (document: Doc | Doc[]) => boolean;
-    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
+    deleteDocument?: (document: Doc | Doc[]) => boolean;
+    addDocument?: (document: Doc | Doc[]) => boolean;
+    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction: boolean | undefined) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
@@ -376,7 +376,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = action(() => {
-        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
+        this.props.addDocument?.(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
         this._focusedCell = { row: this.childDocs.length, col: this._focusedCell.col };
     });
 
@@ -571,7 +571,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
                         fitToBox={true}
-                        FreezeDimensions={true}
+                        freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}
                         rootSelected={() => false}

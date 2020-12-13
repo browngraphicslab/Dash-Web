@@ -28,7 +28,8 @@ import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { CollectionViewType } from "./collections/CollectionView";
-import { DocumentViewProps } from "./nodes/DocumentView";
+import { DocumentViewProps, StyleProviderFunc } from "./nodes/DocumentView";
+import { DefaultStyleProvider } from "./StyleProvider";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -37,7 +38,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 interface PropertiesViewProps {
     width: number;
     height: number;
-    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
+    styleProvider?: StyleProviderFunc;
 }
 
 @observer
@@ -269,10 +270,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     DataDoc={this.dataDoc}
                     renderDepth={1}
                     rootSelected={returnFalse}
-                    treeViewDoc={undefined}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     fitToBox={true}
-                    FreezeDimensions={true}
+                    freezeDimensions={true}
                     dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}

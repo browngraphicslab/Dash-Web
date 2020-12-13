@@ -1,5 +1,13 @@
 @import "../globalCssVariables";
 
+.treeView-label {
+    max-height: 1.5em;
+    text-overflow: ellipsis;
+    display: inline-block;
+    white-space: pre;
+    width: 100%;
+    overflow: hidden;
+}
 .treeView-container,
 .treeView-container-active {
     .bullet-outline {
@@ -14,6 +22,10 @@
         width: 15px;
         .treeView-expandIcon {
             display: none;
+            left: -10px;
+            position: absolute;
+        }
+        .treeView-checkIcon {
             left: -10px;
             position: absolute;
         }
@@ -53,7 +65,7 @@
     cursor: pointer;
 }
 
-.treeView-border-outline,
+.treeView-borderoutline,
 .treeView-border {
     display: flex;
     overflow: hidden;
@@ -71,7 +83,7 @@
             display: none;
     }
     .formattedTextBox-cont {
-        .formattedTextbox-sidebar {
+        .formattedTextbox-sidebar, .formattedTextbox-sidebar-inking {
             overflow: visible !important;
             border-left: unset;
         }

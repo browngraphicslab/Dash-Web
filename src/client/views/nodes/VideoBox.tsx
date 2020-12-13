@@ -183,7 +183,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
-        if (this.props.setVideoBox) this.props.setVideoBox(this);
         this._disposers.videoStart = reaction(
             () => this.Document._videoStart,
             (videoStart) => {
@@ -428,11 +427,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     forceScaling={true}
-                    PanelHeight={this.props.PanelHeight}
-                    PanelWidth={this.props.PanelWidth}
-                    annotationsKey={this.annotationKey}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
+                    fieldKey={this.annotationKey}
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
@@ -442,12 +437,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     moveDocument={this.moveDocument}
                     addDocument={this.addDocumentWithTimestamp}
                     CollectionView={undefined}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    renderDepth={this.props.renderDepth + 1}
-                    docFilters={this.props.docFilters}
-                    docRangeFilters={this.props.docRangeFilters}
-                    searchFilterDocs={this.props.searchFilterDocs}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                    renderDepth={this.props.renderDepth + 1}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>

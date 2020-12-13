@@ -152,7 +152,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 PanelWidth={this.return100}
                 PanelHeight={this.return100}
                 treeViewHideHeaderFields={true}
-                annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
                 moveDocument={returnFalse}

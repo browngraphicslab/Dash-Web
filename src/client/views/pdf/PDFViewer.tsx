@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym, Field } from "../../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -13,29 +13,28 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils, OmitKeys } from "../../../Utils";
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, OmitKeys, smoothScroll, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
+import { SharingManager } from "../../util/SharingManager";
 import { SnappingManager } from "../../util/SnappingManager";
-import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { CollectionView } from "../collections/CollectionView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { FieldViewProps } from "../nodes/FieldView";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
+import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { Annotation } from "./Annotation";
 import { PDFMenu } from "./PDFMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
-import { LinkDocPreview } from "../nodes/LinkDocPreview";
-import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { SharingManager } from "../../util/SharingManager";
-import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -54,34 +53,13 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@2.4.456/b
 type PdfDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, pageSchema);
 
-interface IViewerProps {
+interface IViewerProps extends FieldViewProps {
     pdf: Pdfjs.PDFDocumentProxy;
     url: string;
-    fieldKey: string;
-    Document: Doc;
-    DataDoc?: Doc;
-    searchFilterDocs: () => Doc[];
-    ContainingCollectionView: Opt<CollectionView>;
-    docFilters: () => string[];
-    docRangeFilters: () => string[];
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    ContentScaling: () => number;
-    select: (isCtrlPressed: boolean) => void;
-    rootSelected: (outsideReaction?: boolean) => boolean;
     startupLive: boolean;
-    renderDepth: number;
-    focus: (doc: Doc) => void;
-    isSelected: (outsideReaction?: boolean) => boolean;
     loaded?: (nw: number, nh: number, np: number) => void;
-    active: (outsideReaction?: boolean) => boolean;
     isChildActive: (outsideReaction?: boolean) => boolean;
-    addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc, unpin?: boolean) => void;
-    addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
-    ScreenToLocalTransform: () => Transform;
-    whenActiveChanged: (isActive: boolean) => void;
 }
 
 /**
@@ -392,12 +370,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = this.visibleHeight() / 2;
+            const offset = (this.props.PanelHeight() / this.props.ContentScaling()) / 2;
             this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
     }
-
 
     pageDelay: any;
     @action
@@ -736,15 +713,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 transform: `scale(${this._zoomed})`
             }}>
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                annotationsKey={this.annotationKey}
+                isAnnotationOverlay={true}
+                fieldKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
                 dropAction={"alias"}
-                VisibleHeight={this.visibleHeight}
-                focus={this.props.focus}
-                isSelected={this.props.isSelected}
-                isAnnotationOverlay={true}
                 select={emptyFunction}
                 active={this.annotationsActive}
                 ContentScaling={this.contentZoom}
@@ -754,12 +728,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionView?.props.Document}>
+                renderDepth={this.props.renderDepth + 1}>
             </CollectionFreeFormView>
         </div>;
     }
@@ -778,7 +749,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling();
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();

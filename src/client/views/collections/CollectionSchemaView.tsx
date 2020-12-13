@@ -401,7 +401,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     Document={this.previewDocument}
                     DataDoc={undefined}
                     fitToBox={true}
-                    FreezeDimensions={true}
+                    freezeDimensions={true}
                     dontCenter={"y"}
                     focus={emptyFunction}
                     renderDepth={this.props.renderDepth}
@@ -484,7 +484,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             const cm = ContextMenu.Instance;
             const options = cm.findByDescription("Options...");
             const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-            optionItems.push({ description: "remove", event: () => this._previewDoc && this.props.removeDocument(this._previewDoc), icon: "trash" });
+            optionItems.push({ description: "remove", event: () => this._previewDoc && this.props.removeDocument?.(this._previewDoc), icon: "trash" });
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
             cm.displayMenu(e.clientX, e.clientY);
             (e.nativeEvent as any).SchemaHandled = true; // not sure why this is needed, but if you right-click quickly on a cell, the Document/Collection contextMenu handlers still fire without this.

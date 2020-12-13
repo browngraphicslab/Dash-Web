@@ -1,7 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, StrListCast } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -12,7 +11,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, returnVal, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, returnOne, returnTrue, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -38,74 +37,73 @@ import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
+import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
-import { List } from '../../../fields/List';
+import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
+import { StyleProp, StyleLayers } from "../StyleProvider";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
-
-export interface DocumentViewProps {
-    ContainingCollectionView: Opt<CollectionView>;
-    ContainingCollectionDoc: Opt<Doc>;
-    docFilters: () => string[];
-    contentsActive?: (setActive: () => boolean) => void;
-    docRangeFilters: () => string[];
-    searchFilterDocs: () => Doc[];
-    FreezeDimensions?: boolean;
-    NativeWidth?: () => number;
-    NativeHeight?: () => number;
+export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
+export interface DocumentViewSharedProps {
+    renderDepth: number;
     Document: Doc;
     DataDoc?: Doc;
+    ContainingCollectionView: Opt<CollectionView>;
+    ContainingCollectionDoc: Opt<Doc>;
+    CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
+    ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
-    getView?: (view: DocumentView) => any;
-    LayoutTemplateString?: string;
-    LayoutTemplate?: () => Opt<Doc>;
-    fitToBox?: boolean;
-    ignoreAutoHeight?: boolean;
-    contextMenuItems?: () => { script: ScriptField, label: string }[];
+    styleProvider?: StyleProviderFunc;
+    focus: DocFocusFunc;
+    docFilters: () => string[];
+    docRangeFilters: () => string[];
+    searchFilterDocs: () => Doc[];
+    contentsActive?: (setActive: () => boolean) => void;
+    parentActive: (outsideReaction: boolean) => boolean;
+    whenActiveChanged: (isActive: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
-    onClick?: () => ScriptField;
-    onDoubleClick?: () => ScriptField;
-    onPointerDown?: () => ScriptField;
-    onPointerUp?: () => ScriptField;
-    treeViewDoc?: Doc;
-    dropAction?: dropActionType;
-    dragDivName?: string;
-    nudge?: (x: number, y: number) => void;
+    addDocTab: (doc: Doc, where: string) => boolean;
     addDocument?: (doc: Doc | Doc[]) => boolean;
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    ScreenToLocalTransform: () => Transform;
-    setupDragLines?: (snapToDraggedDoc: boolean) => void;
-    renderDepth: number;
-    ContentScaling: () => number;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    pointerEvents?: string;
-    contentsPointerEvents?: string;
-    focus: DocFocusFunc;
-    parentActive: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    backgroundHalo?: (doc: Doc) => boolean;
-    styleProvider?: (doc: Opt<Doc>, props: DocumentViewProps, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => any;
-    forceHideLinkButton?: () => boolean;
-    opacity?: () => number | undefined;
-    ChromeHeight?: () => number;
+    ScreenToLocalTransform: () => Transform;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
+    onClick?: () => ScriptField;
+    dropAction?: dropActionType;
+    LayoutTemplateString?: string;
     dontRegisterView?: boolean;
-    layoutKey?: string;
+    ignoreAutoHeight?: boolean;
+    pointerEvents?: string;
+    scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
+}
+export interface DocumentViewProps extends DocumentViewSharedProps {
+    // properties specific to DocumentViews but not to FieldView
+    freezeDimensions?: boolean;
+    hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
+    fitToBox?: boolean;
+    treeViewDoc?: Doc;
+    dragDivName?: string;
+    contentPointerEvents?: string;
     radialMenu?: String[];
-    display?: string;
-    relative?: boolean;
-    scriptContext?: any;
+    contentFittingScaling?: () => number;// scaling done outside the document view (eg in ContentFittingDocumentView) to fit contents into panel (needed for ScreenToLocal but not needed by DocumentView to scale its content)
+    LayoutTemplate?: () => Opt<Doc>;
+    contextMenuItems?: () => { script: ScriptField, label: string }[];
+    onDoubleClick?: () => ScriptField;
+    onPointerDown?: () => ScriptField;
+    onPointerUp?: () => ScriptField;
 }
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
+    public static ROOT_DIV = "documentView-effectsWrapper";
     @observable _animateScalingTo = 0;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -115,6 +113,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _titleRef = React.createRef<EditableView>();
+    private _timeout: NodeJS.Timeout | undefined;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -123,15 +122,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private get active() { return this.isSelected(true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    public get LayoutFieldKey() { return this.props.layoutKey || Doc.LayoutFieldKey(this.layoutDoc); }
+    public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() {
         return StrCast(this.layoutDoc._showTitle,
-            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.props.treeViewDoc && !this.rootDoc.presentationTargetDoc ?
+            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.rootDoc.presentationTargetDoc ?
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
+    @computed get LocalScaling() { return this.props.ContentScaling() * (this.props.contentFittingScaling?.() || 1); }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
@@ -307,14 +307,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    _timeout: NodeJS.Timeout | undefined;
-
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !Cast(this.props.Document.layers, listSpec("string"), []).includes("background") && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
+            !StrListCast(this.props.Document.layers).includes(StyleLayers.Background) && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
             if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -655,7 +653,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
 
-
     @undoBatch
     noOnClick = (): void => {
         this.Document.ignoreClick = false;
@@ -811,7 +808,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
                 onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
@@ -889,74 +886,71 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
-    @computed get showOverlappingTitle() {
-        const excluded = ["PresBox", /* "FormattedTextBox", */ "FontIconBox"]; // bcz: shifting the title for texst causes problems with collaborative use when some people see titles, and others don't
-        return !excluded.includes(StrCast(this.layoutDoc.layout));
+    @computed get headerMargin() {
+        return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0;
     }
-    chromeHeight = () => this.showOverlappingTitle ? 0 : 25;
 
     @computed get finalLayoutKey() {
-        if (typeof this.props.layoutKey === "string") {
-            return this.props.layoutKey;
-        }
-        const fallback = Cast(this.props.Document.layoutKey, "string");
-        return typeof fallback === "string" ? fallback : "layout";
+        return StrCast(this.props.Document.layoutKey, "layout");
     }
     rootSelected = (outsideReaction?: boolean) => {
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
+    panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
+    screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     @computed get contents() {
         TraceMobx();
-        return (<div className="documentView-contentsView" style={{ pointerEvents: this.props.contentsPointerEvents as any }}>
+        return (<div className="documentView-contentsView"
+            style={{
+                pointerEvents: this.props.contentPointerEvents as any,
+                height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
+            }}>
             <DocumentContentsView key={1}
-                docFilters={this.props.docFilters}
-                contentsActive={this.setContentsActive}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
+                renderDepth={this.props.renderDepth}
+                Document={this.props.Document}
+                DataDoc={this.props.DataDoc}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}
                 NativeHeight={this.NativeHeight}
-                Document={this.props.Document}
-                DataDoc={this.props.DataDoc}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
                 layerProvider={this.props.layerProvider}
+                styleProvider={this.props.styleProvider}
                 LayoutTemplateString={this.props.LayoutTemplateString}
                 LayoutTemplate={this.props.LayoutTemplate}
+                docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
+                searchFilterDocs={this.props.searchFilterDocs}
+                contentsActive={this.setContentsActive}
+                parentActive={this.parentActive}
+                whenActiveChanged={this.props.whenActiveChanged}
                 makeLink={this.makeLink}
-                rootSelected={this.rootSelected}
-                backgroundHalo={this.props.backgroundHalo}
+                focus={this.props.focus}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                renderDepth={this.props.renderDepth}
-                PanelWidth={this.props.PanelWidth}
-                PanelHeight={this.props.PanelHeight}
-                ignoreAutoHeight={this.props.ignoreAutoHeight}
-                focus={this.props.focus}
-                parentActive={this.parentActive}
-                whenActiveChanged={this.props.whenActiveChanged}
-                bringToFront={this.props.bringToFront}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
-                styleProvider={this.props.styleProvider}
+                ScreenToLocalTransform={this.screenToLocal}
+                ignoreAutoHeight={this.props.ignoreAutoHeight}
+                bringToFront={this.props.bringToFront}
                 ContentScaling={this.childScaling}
-                ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
+                rootSelected={this.rootSelected}
                 scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
-            {/* {this.allAnchors} */}
-            {this.props.forceHideLinkButton?.() || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
+            {this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
                 <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
@@ -978,14 +972,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string): any => {
+        switch (property.split(":")[0]) {
+            case StyleProp.BackgroundColor: return "transparent";
+            case StyleProp.HideLinkButton: return true;
+            case StyleProp.PointerEvents: return "none";
+            case StyleProp.LinkSource: return this.props.Document;
+        }
+        return this.props.styleProvider?.(doc, props, property);
+    }
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
     @computed get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
-        if ((this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
-            this.layoutDoc.presBox ||  // presentationbox nodes
+        if (this.layoutDoc.presBox ||  // presentationbox nodes
             this.rootDoc.type === DocumentType.LINK ||
             this.props.dontRegisterView) {// view that are not registered
             return (null);
@@ -995,33 +997,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className="documentView-anchorCont" key={i + 1}>
                 <DocumentView {...this.props}
                     Document={d}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     ContentScaling={returnOne}
                     dontRegisterView={false}
-                    forceHideLinkButton={returnTrue}
-                    styleProvider={(doc: Opt<Doc>, props: DocumentViewProps, property: string) => property === "backgroundColor" ? "transparent" : undefined}
+                    styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
-                    pointerEvents={"none"}
                     LayoutTemplate={undefined}
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
     }
+    captionStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+        if (property === StyleProp.Color) return "white";
+        if (property === StyleProp.BackgroundColor) return "rgba(0,0,0 ,0.4)";
+        return this.props?.styleProvider?.(doc, props, property);
+    }
     @computed get innards() {
         TraceMobx();
-        const pos = this.props.relative ? "relative" : undefined;
-        if (this.props.treeViewDoc && !this.props.LayoutTemplateString?.includes("LinkAnchorBox")) {  // this happens when the document is a tree view label (but not an anchor dot)
-            return <div className="documentView-treeView" style={{
-                maxWidth: this.props.PanelWidth() || undefined,
-                position: pos
-            }}>
-                {StrCast(this.props.Document.title)}
-                {this.allAnchors}
-            </div>;
-        }
-
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const captionView = (!showCaption ? (null) :
@@ -1030,10 +1022,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     yMargin={10}
                     xMargin={10}
                     hideOnLeave={true}
+                    styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={returnOne}
-                    ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
                     select={this.select}
                     onClick={this.onClickFunc}
@@ -1041,7 +1033,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const titleView = (!this.ShowTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
-                position: this.showOverlappingTitle ? "absolute" : "relative",
+                position: this.headerMargin ? "relative" : "absolute",
+                height: this.headerMargin || undefined,
                 background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
@@ -1055,16 +1048,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     })}
                 />
             </div>);
-        return !this.ShowTitle && !showCaption ?
+        return this.props.hideTitle || (!this.ShowTitle && !showCaption) ?
             this.contents :
             <div className="documentView-styleWrapper" >
-                {this.showOverlappingTitle ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
+                {!this.headerMargin ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
                 {captionView}
             </div>;
     }
     @computed get pointerEvents() {
         if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, this.isSelected() ? "pointerEvents:selected" : "pointerEvents", this.props.layerProvider);
+        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.isSelected() ? ":selected" : ""));
     }
     @undoBatch
     @action
@@ -1084,68 +1077,64 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
-
-    render() {
+    @computed get renderDoc() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.styleProvider?.(this.layoutDoc, this.props, "hidden", this.props.layerProvider)) return null;
-        const backgroundColor = this.props.styleProvider?.(this.layoutDoc, this.props, "backgroundColor", this.props.layerProvider);
-        const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
-        const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
-        const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
-        const fullDegree = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
-        const borderRounding = this.layoutDoc.borderRounding;
-        const localScale = fullDegree;
-        const highlightColors = CurrentUserUtils.ActiveDashboard?.darkScheme ?
+        if (this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden)) return null;
+        return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents) ??
+            <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
+                id={this.props.Document[Id]}
+                style={{
+                    background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                    opacity: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity),
+                    color: StrCast(this.layoutDoc.color, "inherit"),
+                    fontFamily: StrCast(this.Document._fontFamily, "inherit"),
+                    fontSize: Cast(this.Document._fontSize, "string", null),
+                    transformOrigin: this._animateScalingTo ? "center center" : undefined,
+                    transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
+                    transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
+                }}>
+                {this.innards}
+                {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <div className="documentView-contentBlocker" /> : (null)}
+                {this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.isSelected() ? ":selected" : "")) || (null)}
+            </div>;
+    }
+    render() {
+        const borderRounding = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow);
+        const highlightIndex = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
+        const highlightColor = (CurrentUserUtils.ActiveDashboard?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
-            ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
-        const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
+            ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
+        const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];
+        let highlighting = highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        const topmost = this.topMost ? "-topmost" : "";
-        return this.props.styleProvider?.(this.rootDoc, this.props, "docContents", this.props.layerProvider) ?? <div className={`documentView-node${topmost}`}
-            id={this.props.Document[Id]}
-            ref={this._mainCont} onKeyDown={this.onKeyDown}
-            onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+
+        return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
+            onContextMenu={this.onContextMenu}
+            onKeyDown={this.onKeyDown}
+            onPointerDown={this.onPointerDown}
+            onClick={this.onClick}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;
-                const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
-                for (let child: any = target; child; child = child?.parentElement) {
-                    if (child === this.ContentDiv) {
-                        entered = true;
-                    }
+                for (let child = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y); !entered && child; child = child.parentElement) {
+                    entered = entered || child === this.ContentDiv;
                 }
-                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
-                //}
-
             })}
             style={{
-                transformOrigin: this._animateScalingTo ? "center center" : undefined,
-                transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
-                transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : `transform 0.5s ease-${this._animateScalingTo < 1 ? "in" : "out"}`,
                 pointerEvents: this.pointerEvents,
-                color: StrCast(this.layoutDoc.color, "inherit"),
-                outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
-                border: highlighting && borderRounding && highlightStyles[fullDegree] === "dashed" ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: highlighting && borderRounding && highlightStyles[fullDegree] !== "dashed" ? `0 0 0 ${localScale}px ${highlightColors[fullDegree]}` :
-                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.forceHideLinkButton?.() ?
+                outline: highlighting && !borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
+                border: highlighting && borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
+                boxShadow: highlighting && borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
+                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) ?
                         StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,
-                background: finalColor,
-                opacity: finalOpacity,
-                fontFamily: StrCast(this.Document._fontFamily, "inherit"),
-                fontSize: !this.props.treeViewDoc ? Cast(this.Document._fontSize, "string", null) : undefined,
-            }}>
-            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
-                {this.innards}
-                <div className="documentView-conentBlocker" />
-            </> :
-                this.innards}
-            {!this.props.treeViewDoc && this.props.styleProvider?.(this.rootDoc, this.props, this.isSelected() ? "decorations:selected" : "decorations", this.props.layerProvider) || (null)}
+            }}
+        >
+            {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
         </div>;
     }
 }

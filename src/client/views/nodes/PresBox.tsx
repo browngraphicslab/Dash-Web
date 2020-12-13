@@ -1,10 +1,11 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable, runInAction, ObservableMap, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { Doc, DocCastAsync, DocListCast, DocListCastAsync } from "../../../fields/Doc";
+import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
+import { Doc, DocListCast, DocListCastAsync } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
@@ -12,7 +13,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne, returnZero } from "../../../Utils";
+import { returnFalse, returnOne } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -28,7 +29,6 @@ import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import Color = require("color");
-import { clear } from "console";
 
 export enum PresMovement {
     Zoom = "zoom",
@@ -38,6 +38,8 @@ export enum PresMovement {
 }
 
 export enum PresEffect {
+    Zoom = "Zoom",
+    Lightspeed = "Lightspeed",
     Fade = "Fade in",
     Flip = "Flip",
     Rotate = "Rotate",
@@ -70,6 +72,35 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+
+    static renderEffectsDoc(renderDoc: any, layoutDoc: Doc) {
+        const effectProps = {
+            left: layoutDoc.presEffectDirection === PresEffect.Left,
+            right: layoutDoc.presEffectDirection === PresEffect.Right,
+            top: layoutDoc.presEffectDirection === PresEffect.Top,
+            bottom: layoutDoc.presEffectDirection === PresEffect.Bottom,
+            opposite: true,
+            delay: layoutDoc.presTransition,
+            // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
+        };
+        switch (layoutDoc.presEffect) {
+            case PresEffect.Zoom: return (<Zoom {...effectProps}>{renderDoc}</Zoom>);
+            case PresEffect.Fade: return (<Fade {...effectProps}>{renderDoc}</Fade>);
+            case PresEffect.Flip: return (<Flip {...effectProps}>{renderDoc}</Flip>);
+            case PresEffect.Rotate: return (<Rotate {...effectProps}>{renderDoc}</Rotate>);
+            case PresEffect.Bounce: return (<Bounce {...effectProps}>{renderDoc}</Bounce>);
+            case PresEffect.Roll: return (<Roll {...effectProps}>{renderDoc}</Roll>);
+            case PresEffect.Lightspeed: return (<LightSpeed {...effectProps}>{renderDoc}</LightSpeed>);
+            case PresEffect.None:
+            default: return renderDoc;
+        }
+    }
+    public static EffectsProvider(layoutDoc: Doc, renderDoc: any) {
+        return PresBox.Instance && layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc ?
+            PresBox.renderEffectsDoc(renderDoc, layoutDoc)
+            :
+            renderDoc;
+    }
 
     @observable public static Instance: PresBox;
 
@@ -2396,7 +2427,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             removeDocument={returnFalse}
                             dontRegisterView={true}
                             focus={this.selectElement}
-                            ScreenToLocalTransform={this.getTransform} />
+                            ScreenToLocalTransform={this.getTransform}
+                        />
                         : (null)
                     }
                 </div>

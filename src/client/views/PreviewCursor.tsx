@@ -11,6 +11,7 @@ import { Transform } from "../util/Transform";
 import { undoBatch, UndoManager } from '../util/UndoManager';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import "./PreviewCursor.scss";
+import { returnFalse } from '../../Utils';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -145,13 +146,13 @@ export class PreviewCursor extends React.Component<{}> {
         onKeyPress: (e: KeyboardEvent) => void,
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
-        addDocument: (doc: Doc | Doc[]) => boolean,
+        addDocument: undefined | ((doc: Doc | Doc[]) => boolean),
         nudge: undefined | ((nudgeX: number, nudgeY: number) => boolean)) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;
         this._getTransform = getTransform;
-        this._addDocument = addDocument;
+        this._addDocument = addDocument || returnFalse;
         this._nudge = nudge;
         this.Visible = true;
     }

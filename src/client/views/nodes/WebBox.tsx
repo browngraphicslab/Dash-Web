@@ -646,14 +646,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeight = () => {
-        if (this._mainCont.current) {
-            const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const scaling = (Doc.NativeWidth(this.Document) || 0) / boundingRect.width;
-            return Math.min(boundingRect.height * scaling, this.props.PanelHeight() * scaling);
-        }
-        return this.props.PanelHeight();
-    }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
         const scaling = Number.isFinite(this.props.ContentScaling()) ? this.props.ContentScaling() || 1 : 1;
@@ -697,13 +689,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                            PanelHeight={this.props.PanelHeight}
-                            PanelWidth={this.props.PanelWidth}
-                            annotationsKey={this.annotationKey}
-                            VisibleHeight={this.visibleHeight}
-                            focus={this.props.focus}
+                            fieldKey={this.annotationKey}
                             setPreviewCursor={this.setPreviewCursor}
-                            isSelected={this.props.isSelected}
                             isAnnotationOverlay={true}
                             select={emptyFunction}
                             active={this.active}
@@ -714,11 +701,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             addDocument={this.addDocument}
                             CollectionView={undefined}
                             ScreenToLocalTransform={this.scrollXf}
-                            renderDepth={this.props.renderDepth + 1}
-                            docFilters={this.props.docFilters}
-                            docRangeFilters={this.props.docRangeFilters}
-                            searchFilterDocs={this.props.searchFilterDocs}
-                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                            renderDepth={this.props.renderDepth + 1}>
                         </CollectionFreeFormView>
                     </div>
                 </div>

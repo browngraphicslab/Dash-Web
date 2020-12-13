@@ -15,6 +15,7 @@ import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
 import { returnFalse, returnZero, OmitKeys } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
+import { StyleProp } from '../StyleProvider';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const CarouselDocument = makeInterface(documentSchema, collectionSchema);
@@ -53,8 +54,8 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
-                        LayoutTemplate={this.props.ChildLayoutTemplate}
-                        LayoutTemplateString={this.props.ChildLayoutString}
+                        LayoutTemplate={this.props.childLayoutTemplate}
+                        LayoutTemplateString={this.props.childLayoutString}
                         Document={curDoc.layout}
                         DataDoc={curDoc.data}
                         PanelHeight={this.panelHeight}
@@ -65,7 +66,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
-                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.styleProvider?.(this.props.Document, this.props, "backgroundColor", this.props.layerProvider)),
+                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor)),
                         color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
                         borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
                     }}>

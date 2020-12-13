@@ -23,6 +23,10 @@
         list-style: none;
         padding-left: 20px;
         margin-bottom: 1px; // otherwise vertical scrollbars may pop up for no apparent reason....
+        .contentFittingDocumentView  {
+            width: unset;
+            height: unset;
+        }
     }
 
 

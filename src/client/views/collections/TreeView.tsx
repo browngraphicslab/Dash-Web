@@ -21,7 +21,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
-import { DocumentView, DocumentViewProps } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
@@ -29,6 +29,7 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { StyleProp } from '../StyleProvider';
 
 export interface TreeViewProps {
     document: Doc;
@@ -43,13 +44,12 @@ export interface TreeViewProps {
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
-    ChromeHeight: undefined | (() => number);
     addDocument: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     dontRegisterView?: boolean;
-    backgroundColor?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined;
+    styleProvider?: StyleProviderFunc | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeView: CollectionTreeView;
     parentKey: string;
@@ -59,7 +59,7 @@ export interface TreeViewProps {
     renderedIds: string[]; // list of document ids rendered used to avoid unending expansion of items in a cycle
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
-    ignoreFields?: string[];
+    skipFields?: string[];
     firstLevel: boolean;
     whenActiveChanged: (isActive: boolean) => void;
 }
@@ -311,7 +311,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
         for (const key of Object.keys(ids).slice().sort()) {
-            if (this.props.ignoreFields?.includes(key) || key === "title" || key === "treeViewOpen") continue;
+            if (this.props.skipFields?.includes(key) || key === "title" || key === "treeViewOpen") continue;
             const contents = doc[key];
             let contentElement: (JSX.Element | null)[] | JSX.Element = [];
 
@@ -325,9 +325,9 @@ export class TreeView extends React.Component<TreeViewProps> {
                 const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] : DocListCast(contents),
                     this.props.treeView, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
-                    this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
+                    this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
+                    this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
+                    [...this.props.renderedIds, doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView);
             } else {
                 contentElement = <EditableView key="editableView"
                     contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
@@ -404,17 +404,18 @@ export class TreeView extends React.Component<TreeViewProps> {
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeView, this.layoutDoc,
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                        StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
-                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
-                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
+                        StrCast(this.doc.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.titleStyleProvider, this.props.ScreenToLocalTransform,
+                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
+                        [...this.props.renderedIds, this.doc[Id]], this.props.onCheckedClick, this.props.onChildClick, this.props.skipFields, false, this.props.whenActiveChanged, this.props.dontRegisterView)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul key={this.doc[Id] + this.doc.title}><div style={{ display: "inline-block" }} >
-                {this.expandedField}
-            </div></ul>;
-        } else {
-            return this.renderDocument(false);
+            return <ul key={this.doc[Id] + this.doc.title}>
+                <div style={{ display: "inline-block" }} >
+                    {this.expandedField}
+                </div>
+            </ul>;
         }
+        return <ul>{this.renderEmbeddedDocument(false)}</ul>;
     }
 
     get onCheckedClick() { return this.doc.type === DocumentType.COL ? undefined : this.props.onCheckedClick?.() ?? ScriptCast(this.doc.onCheckedClick); }
@@ -441,7 +442,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
-            style={this.outlineMode ? { opacity: NumCast(this.doc.opacity, 1) } : {
+            style={this.outlineMode ? { opacity: this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.Opacity) } : {
                 color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"),
                 opacity: checked === "unchecked" ? undefined : 0.4
             }}>
@@ -449,14 +450,14 @@ export class TreeView extends React.Component<TreeViewProps> {
                 !(this.doc.text as RichTextField)?.Text ? (null) :
                     <FontAwesomeIcon size="sm" icon={[this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"]} /> :
                 <div className="treeView-bulletIcons" >
-                    <div className="treeView-expandIcon">
-                        <FontAwesomeIcon size="sm" icon={this.outlineMode ? [this.childDocs?.length && !this.treeViewOpen ? "fas" : "far", "circle"] :
+                    <div className={`treeView-${this.onCheckedClick ? "checkIcon" : "expandIcon"}`}>
+                        <FontAwesomeIcon size="sm" icon={
                             checked === "check" ? "check" :
                                 (checked === "x" ? "times" : checked === "unchecked" ? "square" :
                                     !this.treeViewOpen ? "caret-right" :
                                         "caret-down")} />
                     </div>
-                    <FontAwesomeIcon icon={iconType} />
+                    {this.onCheckedClick ? (null) : <FontAwesomeIcon icon={iconType} />}
                 </div>
             }
         </div>;
@@ -496,6 +497,26 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
+    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+        if (!doc || doc !== this.doc) return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
+
+        switch (property.split(":")[0]) {
+            case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
+            case StyleProp.BackgroundColor: return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
+            case StyleProp.DocContents: return !props?.treeViewDoc ? (null) :
+                <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
+                    maxWidth: props?.PanelWidth() || undefined,
+                    background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
+                }}>
+                    {StrCast(doc?.title)}
+                </div>;
+            case StyleProp.Decorations: return (null);
+        }
+    }
+    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+        if (property.startsWith(StyleProp.Decorations)) return (null);
+        return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
+    }
     onKeyDown = (e: React.KeyboardEvent) => {
         if (this.doc.treeViewHideHeader || this.outlineMode) {
             e.stopPropagation();
@@ -520,6 +541,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 ref={this._docRef}
                 Document={this.doc}
                 DataDoc={undefined}
+                styleProvider={this.titleStyleProvider}
                 treeViewDoc={this.props.treeView.props.Document}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
@@ -535,7 +557,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
                 contextMenuItems={this.contextMenuItems}
-                opacity={this.outlineMode ? undefined : returnOne}
                 renderDepth={1}
                 focus={returnTrue}
                 parentActive={returnTrue}
@@ -546,7 +567,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
-                ContainingCollectionDoc={this.props.containingCollection}
+                ContainingCollectionDoc={this.props.treeView.props.Document}
             />;
         return <>
             <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
@@ -563,15 +584,18 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderBulletHeader = (contents: JSX.Element) => {
-        return <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
-            ref={this._header}
-            style={{ maxWidth: this._editMaxWidth }}
-            onClick={this.ignoreEvent}
-            onPointerDown={this.ignoreEvent}
-            onPointerEnter={this.onPointerEnter}
-            onPointerLeave={this.onPointerLeave}>
-            {contents}
-        </div>;
+        return <>
+            <div className={`treeView-header` + (this._editMaxWidth ? "-editing" : "")} key="titleheader"
+                ref={this._header}
+                style={{ maxWidth: this._editMaxWidth }}
+                onClick={this.ignoreEvent}
+                onPointerDown={this.ignoreEvent}
+                onPointerEnter={this.onPointerEnter}
+                onPointerLeave={this.onPointerLeave}>
+                {contents}
+            </div>
+            {this.renderBorder}
+        </>;
     }
 
     // renders the text version of a document as the header (e.g., useful for Slide views where the "")
@@ -582,7 +606,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         </>;
     }
 
-    renderDocument = (asText: boolean) => {
+    renderEmbeddedDocument = (asText: boolean) => {
         const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
         const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
         return <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
@@ -593,14 +617,14 @@ export class TreeView extends React.Component<TreeViewProps> {
             NativeWidth={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
             NativeHeight={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
             fitToBox={!asText && this.isCollectionDoc !== undefined}
+            hideTitle={asText}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
             focus={asText ? this.refocus : returnFalse}
             dontRegisterView={asText ? undefined : this.props.dontRegisterView}
             ScreenToLocalTransform={this.docTransform}
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
-            treeViewDoc={undefined}
-            styleProvider={this.props.backgroundColor}
+            styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
             docFilters={returnEmptyFilter}
             docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}
@@ -621,7 +645,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get renderDocumentAsHeader() {
         return <>
             {this.renderBullet}
-            {this.renderDocument(true)}
+            {this.renderEmbeddedDocument(true)}
         </>;
     }
 
@@ -648,24 +672,16 @@ export class TreeView extends React.Component<TreeViewProps> {
         else this._editMaxWidth = "";
 
         const hideTitle = this.doc.treeViewHideHeader || this.outlineMode;
-        return hideTitle && !StrCast(Doc.LayoutField(this.doc)).includes("CollectionView") ?
-            this.renderContent
-            :
-            <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
-                ref={this.createTreeDropTarget}
-                onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
-                onKeyDown={this.onKeyDown}>
-                {hideTitle ?
-                    <li className="collection-child">
-                        {this.renderBulletHeader(this.renderDocumentAsHeader)}
-                        {this.renderBorder}
-                    </li> :
-                    <li className="collection-child">
-                        {this.renderBulletHeader(this.renderTitleAsHeader)}
-                        {this.renderBorder}
-                    </li>
-                }
-            </div>;
+        return <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
+            ref={this.createTreeDropTarget}
+            onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
+            onKeyDown={this.onKeyDown}>
+            <li className="collection-child">
+                {hideTitle && this.doc.type !== DocumentType.RTF ?
+                    this.renderEmbeddedDocument(false) :
+                    this.renderBulletHeader(hideTitle ? this.renderDocumentAsHeader : this.renderTitleAsHeader)}
+            </li>
+        </div>;
     }
 
     public static sortDocs(childDocs: Doc[], criterion: string | undefined) {
@@ -710,19 +726,18 @@ export class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Opt<Doc>, props: Opt<DocumentViewProps>, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean) => string | undefined),
+        styleProvider: undefined | StyleProviderFunc,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
         panelWidth: () => number,
-        ChromeHeight: undefined | (() => number),
         renderDepth: number,
         treeViewHideHeaderFields: () => boolean,
         treeViewPreventOpen: boolean,
         renderedIds: string[],
         onCheckedClick: undefined | (() => ScriptField),
         onChildClick: undefined | (() => ScriptField),
-        ignoreFields: string[] | undefined,
+        skipFields: string[] | undefined,
         firstLevel: boolean,
         whenActiveChanged: (isActive: boolean) => void,
         dontRegisterView: boolean | undefined) {
@@ -783,10 +798,9 @@ export class TreeView extends React.Component<TreeViewProps> {
                 renderDepth={renderDepth}
                 removeDoc={StrCast(containingCollection.freezeChildren).includes("remove") ? undefined : remove}
                 addDocument={addDocument}
-                backgroundColor={backgroundColor}
+                styleProvider={styleProvider}
                 panelWidth={rowWidth}
                 panelHeight={rowHeight}
-                ChromeHeight={ChromeHeight}
                 dontRegisterView={dontRegisterView}
                 moveDocument={move}
                 dropAction={dropAction}
@@ -799,7 +813,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 treeViewHideHeaderFields={treeViewHideHeaderFields}
                 treeViewPreventOpen={treeViewPreventOpen}
                 renderedIds={renderedIds}
-                ignoreFields={ignoreFields}
+                skipFields={skipFields}
                 firstLevel={firstLevel}
                 whenActiveChanged={whenActiveChanged} />;
         });

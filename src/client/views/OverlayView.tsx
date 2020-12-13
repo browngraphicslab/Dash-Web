@@ -16,6 +16,7 @@ import { DragManager } from "../util/DragManager";
 import { List } from "../../fields/List";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { TabDocView } from "./collections/TabDocView";
+import { DefaultStyleProvider } from "./StyleProvider";
 
 export type OverlayDisposer = () => void;
 
@@ -182,7 +183,6 @@ export class OverlayView extends React.Component {
             return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ top: d.type === 'presentation' ? 0 : undefined, width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
-                    ChromeHeight={returnZero}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
@@ -195,7 +195,7 @@ export class OverlayView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    styleProvider={TabDocView.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

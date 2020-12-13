@@ -158,7 +158,6 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                 importContainer = Docs.Create.SchemaDocument(headers, docs, options);
             }
             runInAction(() => this.phase = 'External: uploading files to Google Photos...');
-            importContainer._columnsStack = false;
             await GooglePhotos.Export.CollectionToAlbum({ collection: importContainer });
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
