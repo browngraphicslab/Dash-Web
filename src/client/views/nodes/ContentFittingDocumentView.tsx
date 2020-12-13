@@ -17,9 +17,11 @@ interface ContentFittingDocumentViewProps {
 export class ContentFittingDocumentView extends React.Component<DocumentViewProps & ContentFittingDocumentViewProps> {
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     public ContentRef = React.createRef<HTMLDivElement>();
+
     @observable public docView: DocumentView | undefined | null;
+
     @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return !this.layoutDoc._fitWidth && returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
+    @computed get nativeWidth() { return this.layoutDoc._fitWidth ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
     @computed get nativeScaling() {
         if (!this.nativeWidth || !this.nativeHeight) return 1;
@@ -40,31 +42,26 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
         return this.props.PanelHeight();
     }
 
-    contentFittingScaling = () => {
-        if (this.props.DataDoc) return 1; // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
-        const layoutStr = (this.props.LayoutTemplateString || StrCast(this.layoutDoc.layout));
-        if (this.nativeWidth || layoutStr.includes("FormattedTextBox")) return this.nativeScaling;
-        return 1;
-    }
-
-    private getTransform = () => this.props.ScreenToLocalTransform().
-        translate(this.props.dontCenter?.includes("x") ? 0 : -this.centeringOffset, this.props.dontCenter?.includes("y") ? 0 : -this.centeringYOffset).scale(1 / this.contentFittingScaling())
-    private get centeringOffset() { return this.nativeWidth && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
-    private get centeringYOffset() { return this.nativeWidth && Math.abs(this.centeringOffset) < 0.001 && this.nativeHeight ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
+    @computed get Xshift() { return this.nativeWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
+    @computed get YShift() { return this.nativeWidth && this.nativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
+    @computed get centeringX() { return this.props.dontCenter?.includes("x") ? 0 : this.Xshift; }
+    @computed get centeringY() { return this.props.dontCenter?.includes("y") ? 0 : this.YShift; }
 
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
+    NativeScaling = () => this.nativeScaling;
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
 
     render() {
         TraceMobx();
         return (<div className="contentFittingDocumentView">
-            {!this.props.Document || !this.props.PanelWidth ? (null) : (
+            {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
-                        transform: `translate(${this.props.dontCenter?.includes("x") ? 0 : this.centeringOffset}px, ${this.props.dontCenter?.includes("y") ? 0 : this.centeringYOffset}px)`,
+                        transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
                         borderRadius: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.PointerEvents),
-                        height: Math.abs(this.centeringYOffset) > 0.001 && this.nativeWidth ? `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
-                        width: Math.abs(this.centeringOffset) > 0.001 ? `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
+                        height: Math.abs(this.YShift) > 0.001 ? `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
                     }}>
                     <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         ref={action((r: DocumentView | null) => this.docView = r)}
@@ -72,8 +69,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         ContentScaling={returnOne}
-                        contentFittingScaling={this.contentFittingScaling}
-                        ScreenToLocalTransform={this.getTransform}
+                        contentFittingScaling={this.NativeScaling}
+                        ScreenToLocalTransform={this.screenToLocalTransform}
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}
                     />

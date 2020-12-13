@@ -58,7 +58,7 @@ export interface DocumentViewSharedProps {
     PanelHeight: () => number;
     NativeWidth?: () => number;
     NativeHeight?: () => number;
-    ContentScaling: () => number;
+    ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     styleProvider?: StyleProviderFunc;
     focus: DocFocusFunc;
@@ -93,7 +93,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     dragDivName?: string;
     contentPointerEvents?: string;
     radialMenu?: String[];
-    contentFittingScaling?: () => number;
+    contentFittingScaling?: () => number;// scaling done outside the document view (eg in ContentFittingDocumentView) to fit contents into panel (needed for ScreenToLocal but not needed by DocumentView to scale its content)
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
