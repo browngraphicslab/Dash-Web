@@ -52,6 +52,7 @@ export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
     DataDoc?: Doc;
+    DocumentView?: DocumentView;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
@@ -913,6 +914,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }}>
             <DocumentContentsView key={1}
                 renderDepth={this.props.renderDepth}
+                DocumentView={this}
                 Document={this.props.Document}
                 DataDoc={this.props.DataDoc}
                 ContainingCollectionView={this.props.ContainingCollectionView}
