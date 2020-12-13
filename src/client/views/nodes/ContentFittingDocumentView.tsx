@@ -44,10 +44,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
         if (this.props.DataDoc) return 1; // this is intended to detect when a document is being rendered inside itself as part of a template, but not as a leaf node where nativeWidth & height would apply.
         const layoutStr = (this.props.LayoutTemplateString || StrCast(this.layoutDoc.layout));
         if (this.nativeWidth || layoutStr.includes("FormattedTextBox")) return this.nativeScaling;
-
-        const wscale = this.layoutDoc[WidthSym]() / this.props.PanelWidth();
-        const hscale = this.layoutDoc[HeightSym]() / this.props.PanelHeight();
-        return this.nativeScaling * Math.max(wscale, hscale);
+        return 1;
     }
 
     private getTransform = () => this.props.ScreenToLocalTransform().
