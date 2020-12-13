@@ -142,8 +142,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     parentActive={this.isActive}
                     dontRegisterView={true}
                     whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={returnFalse}
-                    ContentScaling={returnOne} /> :
+                    bringToFront={returnFalse} /> :
                 <ContentFittingDocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
@@ -172,7 +171,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     dontRegisterView={true}
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={returnFalse}
-                    ContentScaling={returnOne}
                 />;
         return contents;
     }

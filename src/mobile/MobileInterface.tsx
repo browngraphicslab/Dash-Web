@@ -209,7 +209,6 @@ export class MobileInterface extends React.Component {
                     removeDocument={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}
                     renderDepth={0}

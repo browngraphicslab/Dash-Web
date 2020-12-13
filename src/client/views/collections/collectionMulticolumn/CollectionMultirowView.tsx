@@ -243,7 +243,6 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
         />;
     }
     /**

@@ -113,7 +113,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    ContentScaling={returnOne}
                 />
                 <div className="presItem-embeddedMask" />
             </div>;

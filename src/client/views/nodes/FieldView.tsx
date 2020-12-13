@@ -21,6 +21,7 @@ export interface FieldViewProps extends DocumentViewSharedProps {
     active: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
+    scaling?: () => number;
 
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
     pointerEvents?: string;

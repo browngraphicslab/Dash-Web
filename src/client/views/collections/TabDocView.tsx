@@ -392,7 +392,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 removeDocument={undefined}
                 addDocTab={this.addDocTab}
                 ScreenToLocalTransform={this.ScreenToLocalTransform}
-                ContentScaling={returnOne}
                 dontCenter={"y"}
                 rootSelected={returnTrue}
                 parentActive={this.active}

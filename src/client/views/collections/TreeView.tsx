@@ -554,7 +554,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 moveDocument={this.move}
                 removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
-                ContentScaling={returnOne}
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
                 contextMenuItems={this.contextMenuItems}
@@ -640,7 +639,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
         />;
     }
 

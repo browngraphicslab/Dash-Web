@@ -108,6 +108,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
 export class DocumentContentsView extends React.Component<DocumentViewProps & FormattedTextBoxProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
+    scaling?: () => number,
     layoutKey: string,
     hideOnLeave?: boolean,
     makeLink?: () => Opt<Doc>,  // function to call when a link is made

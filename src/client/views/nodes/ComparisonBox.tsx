@@ -85,7 +85,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
             const whichDoc = Cast(this.dataDoc[`compareBox-${which}`], Doc, null);
             return whichDoc ? <>
                 <ContentFittingDocumentView {...this.props}
-                    ContentScaling={returnOne}
                     pointerEvents={"none"}
                     parentActive={this.props.active}
                     Document={whichDoc} />

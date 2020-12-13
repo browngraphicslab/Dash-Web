@@ -425,7 +425,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
                     bringToFront={returnFalse}
-                    ContentScaling={returnOne}
                 />}
         </div>;
     }

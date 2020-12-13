@@ -9,7 +9,7 @@ import { Field } from "../../../fields/Doc";
 export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
     render() {
         const view = this.props.view;
-        const transform = view.props.ScreenToLocalTransform().scale(view.props.ContentScaling()).inverse();
+        const transform = view.props.ScreenToLocalTransform().scale(view.LocalScaling).inverse();
         const { x, y, width, height } = transform.transformBounds(0, 0, view.props.PanelWidth(), view.props.PanelHeight());
 
         return (

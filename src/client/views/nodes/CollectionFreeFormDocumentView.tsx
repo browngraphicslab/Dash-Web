@@ -43,7 +43,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
     get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
-    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
+    get transform() { return `translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
@@ -54,11 +54,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const hgt = this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
-    @computed get freezeDimensions() { return this.props.freezeDimensions; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.freezeDimensions)); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.props.freezeDimensions)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.props.freezeDimensions)); }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
@@ -139,10 +138,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
     }
-    contentScaling = () => this.nativeWidth > 0 && !this.props.fitDocToPanel && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y);
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
@@ -192,7 +190,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
             {this.props.fitDocToPanel ?
                 <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} /> :
-                <DocumentView {...divProps} ContentScaling={this.contentScaling} />}
+                <DocumentView {...divProps} />}
         </div>;
     }
 }

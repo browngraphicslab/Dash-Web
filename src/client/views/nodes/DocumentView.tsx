@@ -52,7 +52,6 @@ export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
     DataDoc?: Doc;
-    DocumentView?: DocumentView;
     ContainingCollectionView: Opt<CollectionView>;
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionDoc: Opt<Doc>;
@@ -96,7 +95,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     radialMenu?: String[];
     LayoutTemplateString?: string;
     LayoutTemplate?: () => Opt<Doc>;
-    ContentScaling: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
+    ContentScaling?: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
@@ -131,11 +130,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
     }
-    @computed get LocalScaling() { return this.props.ContentScaling(); }
+    @computed get LocalScaling() { return this.props.ContentScaling?.() || 1; }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get freezeDimensions() { return this.props.freezeDimensions; }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.freezeDimensions)); }
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
@@ -247,8 +245,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
-            const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            dragData.offset = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
+            const [left, top] = this.props.ScreenToLocalTransform().scale(this.LocalScaling).inverse().transformPoint(0, 0);
+            dragData.offset = this.props.ScreenToLocalTransform().scale(this.LocalScaling).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;
@@ -497,7 +495,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let nheight = Doc.NativeHeight(layoutDoc);
                 const width = (layoutDoc._width || 0);
                 const height = (layoutDoc._height || (nheight / nwidth * width));
-                const scale = this.props.ScreenToLocalTransform().Scale * this.props.ContentScaling();
+                const scale = this.props.ScreenToLocalTransform().Scale * this.LocalScaling;
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
@@ -721,7 +719,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.PanelWidth(), this.props.PanelHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.LocalScaling, this.props.PanelWidth(), this.props.PanelHeight());
     }
 
     @undoBatch
@@ -899,7 +897,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
-    childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -914,7 +911,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }}>
             <DocumentContentsView key={1}
                 renderDepth={this.props.renderDepth}
-                DocumentView={this}
                 Document={this.props.Document}
                 DataDoc={this.props.DataDoc}
                 fitContentsToDoc={this.props.fitContentsToDoc}
@@ -924,6 +920,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 NativeHeight={this.NativeHeight}
                 PanelWidth={this.props.PanelWidth}
                 PanelHeight={this.props.PanelHeight}
+                scaling={this.props.ContentScaling || returnOne}
                 layerProvider={this.props.layerProvider}
                 styleProvider={this.props.styleProvider}
                 LayoutTemplateString={this.props.LayoutTemplateString}
@@ -946,7 +943,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ScreenToLocalTransform={this.screenToLocal}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 bringToFront={this.props.bringToFront}
-                ContentScaling={this.childScaling}
                 isSelected={this.isSelected}
                 select={this.select}
                 rootSelected={this.rootSelected}
@@ -1008,7 +1004,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     Document={d}
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
-                    ContentScaling={returnOne}
                     dontRegisterView={false}
                     styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
@@ -1034,7 +1029,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
-                    ContentScaling={returnOne}
                     isSelected={this.isSelected}
                     select={this.select}
                     onClick={this.onClickFunc}

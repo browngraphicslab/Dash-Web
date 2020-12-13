@@ -115,7 +115,6 @@ export class LinkDocPreview extends React.Component<Props> {
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
-                ContentScaling={returnOne}
                 styleProvider={this.props.styleProvider} />;
     }
 

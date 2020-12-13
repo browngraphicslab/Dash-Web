@@ -148,7 +148,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 removeDocument={this.props.removeDocument}
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
-                                ContentScaling={returnOne}
                                 PanelWidth={nested ? pair.layout[WidthSym] : this.dimension}
                                 PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}
                                 renderDepth={this.props.renderDepth + 1}

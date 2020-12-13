@@ -136,8 +136,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
         const dragDocView = SelectionManager.SelectedDocuments()[0];
         const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
-        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
+        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.LocalScaling).inverse().transformPoint(0, 0);
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.LocalScaling).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
         dragData.canEmbed = dragTitle;
@@ -445,7 +445,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;
-                const scale = docView.props.ScreenToLocalTransform().Scale * docView.props.ContentScaling();
+                const scale = docView.props.ScreenToLocalTransform().Scale * docView.LocalScaling;
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
@@ -504,7 +504,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.SelectedDocuments().map(dv => {
             if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.props.PanelWidth(), dv.props.PanelHeight());
+                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.LocalScaling, dv.props.PanelWidth(), dv.props.PanelHeight());
                 dv.layoutDoc._autoHeight = true;
             }
             dv.layoutDoc._delayAutoHeight = undefined;

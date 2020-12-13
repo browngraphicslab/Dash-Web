@@ -167,7 +167,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             DataDoc={layout.resolvedDataDoc as Doc}
             PanelWidth={width}
             PanelHeight={height}
-            ContentScaling={returnOne}
             freezeDimensions={true}
             fitDocToPanel={true}
             ScreenToLocalTransform={dxf}

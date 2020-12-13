@@ -896,7 +896,6 @@ export class GestureOverlay extends Touchable {
                 onClick={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
-                ContentScaling={returnOne}
                 PanelWidth={this.return300}
                 PanelHeight={this.return300}
                 renderDepth={0}

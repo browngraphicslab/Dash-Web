@@ -322,7 +322,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
                 const de = new DragManager.DocumentDragData(eles);
                 de.moveDocument = this.props.moveDocument;
-                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
+                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].LocalScaling).inverse().transformPoint(0, 0);
                 de.offset = this.getTransform().transformDirection(ptsParent.clientX - left, ptsParent.clientY - top);
                 de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
                 DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, ptsParent.clientX, ptsParent.clientY, { hideSource: !de.dropAction });
@@ -1011,7 +1011,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
-            ContentScaling: returnOne,
             docFilters: this.docFilters,
             docRangeFilters: this.docRangeFilters,
             searchFilterDocs: this.searchFilterDocs,

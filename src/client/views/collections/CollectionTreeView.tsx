@@ -182,7 +182,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 bringToFront={returnFalse}
-                ContentScaling={returnOne}
             />
         </div>;
     }

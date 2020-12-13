@@ -243,7 +243,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
         />;
     }
     /**

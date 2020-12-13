@@ -235,7 +235,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
             scriptContext={this.props.scriptContext}
             pinToPres={this.props.pinToPres}
         />;

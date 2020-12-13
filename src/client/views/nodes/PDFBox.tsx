@@ -192,7 +192,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         </div>;
     }
 
-    contentScaling = () => this.props.DocumentView?.props.ContentScaling() || 1;
+    contentScaling = () => this.props.scaling?.() || 1;
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         TraceMobx();

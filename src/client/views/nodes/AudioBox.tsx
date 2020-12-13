@@ -554,7 +554,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
                 ContainingCollectionDoc={this.props.Document}
-                ContentScaling={returnOne}
                 removeDocument={this.removeDocument}
                 parentActive={returnTrue}
                 onClick={this.layoutDoc.playOnClick ? script : undefined}
@@ -641,7 +640,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             ContainingCollectionDoc={this.props.Document}
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
-                                            ContentScaling={returnOne}
                                             styleProvider={AudioBox.audioStyleProvider}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}

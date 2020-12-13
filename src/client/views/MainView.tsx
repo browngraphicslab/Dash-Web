@@ -250,7 +250,6 @@ export class MainView extends React.Component {
             onClick={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={emptyFunction}
@@ -313,7 +312,6 @@ export class MainView extends React.Component {
                         removeDocument={returnFalse}
                         onClick={undefined}
                         ScreenToLocalTransform={this.mainContainerXf}
-                        ContentScaling={returnOne}
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
@@ -345,7 +343,6 @@ export class MainView extends React.Component {
                 removeDocument={returnFalse}
                 onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
-                ContentScaling={returnOne}
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}

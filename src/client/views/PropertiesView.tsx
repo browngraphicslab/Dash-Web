@@ -293,7 +293,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     bringToFront={returnFalse}
-                    ContentScaling={returnOne}
                     dontRegisterView={true}
                     dropAction={undefined}
                 />

@@ -318,7 +318,6 @@ export class FormattedTextBoxComment {
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
-                                            ContentScaling={returnOne}
                                             NativeWidth={Doc.NativeWidth(target) ? (() => Doc.NativeWidth(target)) : undefined}
                                             NativeHeight={Doc.NativeHeight(target) ? (() => Doc.NativeHeight(target)) : undefined}
                                         />

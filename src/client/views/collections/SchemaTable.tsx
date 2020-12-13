@@ -588,8 +588,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         whenActiveChanged={emptyFunction}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
-                        bringToFront={returnFalse}
-                        ContentScaling={returnOne}>
+                        bringToFront={returnFalse}>
                     </ContentFittingDocumentView>
                 </div>}
         </div>;
