@@ -657,8 +657,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
                 <Tooltip key={icon} title={<div className="dash-tooltip">{this._title[i]}</div>} placement="bottom">
-                    <button className="antimodeMenu-button" onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
-                        style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                    <button className="antimodeMenu-button"
+                        onPointerDown={() => func(i, false)}
+                        onDoubleClick={() => func(i, true)}
+                        style={{ backgroundColor: i === this._selected ? "525252" : "", fontSize: "20" }}>
                         <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
                     </button>
                 </Tooltip>)}
