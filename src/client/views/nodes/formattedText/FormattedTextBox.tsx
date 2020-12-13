@@ -1530,24 +1530,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (state.selection.empty || !this._rules!.EnteringStyle) {
             this._rules!.EnteringStyle = false;
         }
+        e.stopPropagation();
         if (e.key === "Escape") {
             this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
             (document.activeElement as any).blur?.();
             SelectionManager.DeselectAll();
-        }
-        e.stopPropagation();
-        if (e.key === "Tab" || e.key === "Enter") {
-            if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
-                this.insertTime();
+            RichTextMenu.Instance.updateMenu(undefined, undefined, undefined);
+        } else {
+            if (e.key === "Tab" || e.key === "Enter") {
+                if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
+                    this.insertTime();
+                }
+                e.preventDefault();
             }
-            e.preventDefault();
+            if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
+                const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
+                this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+            }
+            this.startUndoTypingBatch();
         }
-        if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
-            const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
-            this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
-        }
-
-        this.startUndoTypingBatch();
     }
 
     ondrop = (eve: React.DragEvent) => {
