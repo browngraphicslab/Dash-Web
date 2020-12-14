@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc } from '../../../fields/Doc';
+import { Doc, WidthSym, HeightSym } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { NumCast, Cast, StrCast } from '../../../fields/Types';
@@ -12,7 +12,7 @@ import "./ComparisonBox.scss";
 import React = require("react");
 import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 import { undoBatch } from '../../util/UndoManager';
-import { setupMoveUpEvents, emptyFunction, returnOne } from '../../../Utils';
+import { setupMoveUpEvents, emptyFunction, returnOne, OmitKeys } from '../../../Utils';
 import { SnappingManager } from '../../util/SnappingManager';
 import { DocumentViewProps } from './DocumentView';
 
@@ -84,10 +84,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const displayDoc = (which: string) => {
             const whichDoc = Cast(this.dataDoc[`compareBox-${which}`], Doc, null);
             return whichDoc ? <>
-                <ContentFittingDocumentView {...this.props}
+                <ContentFittingDocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    Document={whichDoc}
+                    DataDoc={undefined}
                     pointerEvents={"none"}
-                    parentActive={this.props.active}
-                    Document={whichDoc} />
+                    parentActive={this.props.active} />
                 {clearButton(which)}
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">

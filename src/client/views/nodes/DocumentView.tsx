@@ -906,9 +906,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get contents() {
         TraceMobx();
-        if (this.props.Document.type === DocumentType.PDF) {
-            console.log("Scaling = " + this.contentScaling());
-        }
         return (<div className="documentView-contentsView"
             style={{
                 pointerEvents: this.props.contentPointerEvents as any,

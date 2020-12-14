@@ -2,13 +2,12 @@ import React = require("react");
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
+import { NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, returnOne, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnVal } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { StyleProp } from "../StyleProvider";
 import "./ContentFittingDocumentView.scss";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { NumCast } from "../../../fields/Types";
 interface ContentFittingDocumentViewProps {
     dontCenter?: "x" | "y" | "xy";
 }
@@ -56,13 +55,10 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     NativeScaling = () => this.nativeScaling;
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(1 / this.nativeScaling);
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
 
     render() {
         TraceMobx();
-        if (this.props.Document.type === DocumentType.PDF) {
-            console.log("PanelHeight = " + this.panelHeight);
-        }
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
