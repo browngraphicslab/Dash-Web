@@ -31,6 +31,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
+    static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
     @observable _contentView: ContentFittingDocumentView | undefined | null;
     random(min: number, max: number) { // min should not be equal to max
@@ -47,15 +48,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
     get Opacity() { return this.dataProvider ? this.dataProvider.opacity : undefined; }
     get Highlight() { return this.dataProvider?.highlight; }
-    get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
-    get height() {
-        const hgt = this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
-        return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
-    }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.props.freezeDimensions)); }
     @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : "")); }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
@@ -63,7 +57,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return this.props.styleProvider?.(doc, props, property);
     }
 
-    static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];
     public static getValues(doc: Doc, time: number) {
         return CollectionFreeFormDocumentView.animFields.reduce((p, val) => {
             p[val] = Cast(`${val}-indexed`, listSpec("number"), [NumCast(doc[val])]).reduce((p, v, i) => (i <= Math.round(time) && v !== undefined) || p === undefined ? v : p, undefined as any as number);
@@ -141,8 +134,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     screenToLocalTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y);
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
-    NativeWidth = () => this.nativeWidth;
-    NativeHeight = () => this.nativeHeight;
     returnThis = () => this;
     render() {
         TraceMobx();
@@ -152,24 +143,20 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const divProps: DocumentViewProps = {
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,
-            dragDivName: "collectionFreeFormDocumentView-container",
             styleProvider: this.styleProvider,
             ScreenToLocalTransform: this.screenToLocalTransform,
             ContentScaling: returnOne,
-            NativeHeight: this.NativeHeight,
-            NativeWidth: this.NativeWidth,
             PanelWidth: this.panelWidth,
-            PanelHeight: this.panelHeight
+            PanelHeight: this.panelHeight,
+            dragDivName: "collectionFreeFormDocumentView-container",
         };
-        return <div className="collectionFreeFormDocumentView-container"
+        return <div className={divProps.dragDivName}
             style={{
                 boxShadow,
                 borderRadius,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
-                width: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.width,
-                height: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.height,
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
