@@ -457,7 +457,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
         return (<>
             <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
-                style={{ width: "100%" }}
+                style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || (Number.isFinite(this.contentScaling) ? `${Math.max(100, 100 / this.contentScaling)}% ` : "100%") }}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>
@@ -647,16 +647,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
     @computed get contentScaling() { return this.props.scaling?.() || 1; }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop)).scale(1 / this.contentScaling);
+    scrollXf = () => this.props.ScreenToLocalTransform().scale(1 / this.contentScaling).translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     scaling = () => this.contentScaling;
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(1 / this.scaling())
     render() {
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{
                     position: undefined,
-                    width: `${100}% `,
-                    height: `${100}% `,
+                    transform: `scale(${this.contentScaling})`,
+                    width: `${100 / this.contentScaling}% `,
+                    height: `${100 / this.contentScaling}% `,
                     pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
@@ -664,7 +664,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: `${100}% `,
+                        width: `${Math.max(100, 100 / this.contentScaling)}% `,
                         pointerEvents: this.layoutDoc.isAnnotating && this.props.layerProvider?.(this.layoutDoc) !== false ? "all" : "none"
                     }}
                     onWheel={e => {
