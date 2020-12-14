@@ -11,6 +11,7 @@ import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -33,7 +34,6 @@ import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
-import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {

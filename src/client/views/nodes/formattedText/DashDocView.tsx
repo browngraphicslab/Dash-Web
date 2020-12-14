@@ -2,17 +2,15 @@ import { IReactionDisposer, reaction } from "mobx";
 import { NodeSelection } from "prosemirror-state";
 import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
-import { ObjectField } from "../../../../fields/ObjectField";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter, returnEmptyDoclist } from "../../../../Utils";
+import { Cast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import { Transform } from "../../../util/Transform";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
-import { Transform } from "../../../util/Transform";
 import React = require("react");
-import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 interface IDashDocView {
     node: any;

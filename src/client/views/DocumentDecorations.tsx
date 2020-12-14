@@ -3,29 +3,29 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, DataSym, Doc, Field, WidthSym, HeightSym } from "../../fields/Doc";
+import { AclAdmin, AclEdit, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
 import { Document } from '../../fields/documentSchemas';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { emptyFunction, returnFalse, setupMoveUpEvents, simulateMouseClick, returnVal } from "../../Utils";
-import { DocUtils, Docs } from "../documents/Documents";
+import { emptyFunction, returnFalse, returnVal, setupMoveUpEvents } from "../../Utils";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
-import { DragManager, dropActionType } from "../util/DragManager";
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { SnappingManager } from '../util/SnappingManager';
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
+import { KeyManager } from './GlobalKeyHandler';
+import { InkStrokeProperties } from './InkStrokeProperties';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
-import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { InkStrokeProperties } from './InkStrokeProperties';
-import { KeyManager } from './GlobalKeyHandler';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -62,31 +62,15 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.renderDepth === 0 ||
-                documentView.props.treeViewDoc ||
-                !documentView.ContentDiv ||
-                Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
-                return bounds;
-            }
-            const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.LocalScaling)).inverse();
-            var [sptX, sptY] = transform.transformPoint(0, 0);
-            let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
-            if (documentView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
-                const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-                if (docuBox.length) {
-                    const rect = docuBox[0].getBoundingClientRect();
-                    sptX = rect.left;
-                    sptY = rect.top;
-                    bptX = rect.right;
-                    bptY = rect.bottom;
-                }
-            }
-            return {
-                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-            };
-        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return SelectionManager.SelectedDocuments().map(dv => dv.getBounds()).reduce((bounds, rect) =>
+            !rect ? bounds :
+                {
+                    x: Math.min(rect.left, bounds.x),
+                    y: Math.min(rect.top, bounds.y),
+                    r: Math.max(rect.right, bounds.r),
+                    b: Math.max(rect.bottom, bounds.b)
+                },
+            { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
 
     titleBlur = action((commit: boolean) => {
@@ -136,8 +120,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
         const dragDocView = SelectionManager.SelectedDocuments()[0];
         const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
-        const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.LocalScaling).inverse().transformPoint(0, 0);
-        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.LocalScaling).transformDirection(e.x - left, e.y - top);
+        const { left, top } = dragDocView.getBounds() || { left: 0, top: 0 };
+        dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.ContentScale()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
         dragData.isSelectionMove = true;
         dragData.canEmbed = dragTitle;
@@ -440,12 +424,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (e.ctrlKey && !Doc.NativeHeight(docView.props.Document)) docView.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(docView.rootDoc);
-                let nwidth = returnVal(docView.NativeWidth?.(), Doc.NativeWidth(doc));
-                let nheight = returnVal(docView.NativeHeight?.(), Doc.NativeHeight(doc));
+                let nwidth = docView.nativeWidth;
+                let nheight = docView.nativeHeight;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;
-                const scale = docView.props.ScreenToLocalTransform().Scale * docView.LocalScaling;
+                const scale = docView.props.ScreenToLocalTransform().Scale * docView.ContentScale();
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
@@ -504,7 +488,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.SelectedDocuments().map(dv => {
             if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.LocalScaling, dv.props.PanelWidth(), dv.props.PanelHeight());
+                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
                 dv.layoutDoc._autoHeight = true;
             }
             dv.layoutDoc._delayAutoHeight = undefined;

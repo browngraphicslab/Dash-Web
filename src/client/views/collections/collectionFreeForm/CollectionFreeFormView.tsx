@@ -119,8 +119,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get fitToContent() { return (this.props.fitContentsToDoc || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
-    @computed get nativeWidth() { return this.fitToContent ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document)); }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.Document)); }
+    @computed get nativeWidth() { return this.fitToContent ? 0 : Doc.NativeWidth(this.Document); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : Doc.NativeHeight(this.Document); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get scaleFieldKey() { return this.props.scaleField || "_viewScale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
@@ -322,7 +322,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const clusterDocs = eles.map(ele => DocumentManager.Instance.getDocumentView(ele, this.props.CollectionView)!);
                 const de = new DragManager.DocumentDragData(eles);
                 de.moveDocument = this.props.moveDocument;
-                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].LocalScaling).inverse().transformPoint(0, 0);
+                const { left, top } = clusterDocs[0].getBounds() || { left: 0, top: 0 };
                 de.offset = this.getTransform().transformDirection(ptsParent.clientX - left, ptsParent.clientY - top);
                 de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
                 DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, ptsParent.clientX, ptsParent.clientY, { hideSource: !de.dropAction });
@@ -1275,7 +1275,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, 1, this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
+        Doc.toggleNativeDimensions(this.layoutDoc, 1, this.nativeWidth, this.nativeHeight);
     }
 
     @undoBatch
@@ -1499,8 +1499,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get contentScaling() {
         if (this.props.isAnnotationOverlay && !this.props.forceScaling) return 0;
-        const nw = returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.Document));
-        const nh = returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.Document));
+        const nw = this.nativeWidth;
+        const nh = this.nativeHeight;
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;

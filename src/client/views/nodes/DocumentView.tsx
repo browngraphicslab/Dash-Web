@@ -10,7 +10,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, Utils, returnVal } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -57,8 +57,6 @@ export interface DocumentViewSharedProps {
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    NativeWidth?: () => number;
-    NativeHeight?: () => number;
     layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     styleProvider?: StyleProviderFunc;
     focus: DocFocusFunc;
@@ -88,10 +86,12 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     freezeDimensions?: boolean;
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
-    dragDivName?: string;
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
     LayoutTemplateString?: string;
+    dontCenter?: "x" | "y" | "xy";
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
     LayoutTemplate?: () => Opt<Doc>;
     ContentScaling?: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -100,9 +100,16 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     onPointerUp?: () => ScriptField;
 }
 
+export interface DocumentViewInternalProps {
+    NativeWidth: () => number;
+    NativeHeight: () => number;
+    isSelected: (outsideReaction?: boolean) => boolean;
+    select: (ctrlPressed: boolean) => void;
+    DocumentView: any;
+}
+
 @observer
-export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
-    public static ROOT_DIV = "documentView-effectsWrapper";
+export class DocumentViewInternal extends DocComponent<DocumentViewProps & DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -118,37 +125,32 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-    private get active() { return this.isSelected(true) || this.props.parentActive(true); }
+    private get topMost() { return this.props.renderDepth === 0; }
+    private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
     @computed get ShowTitle() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.ShowTitle) as (Opt<string>); }
-    @computed get LocalScaling() { return this.props.ContentScaling?.() || 1; }
-    @computed get topMost() { return this.props.renderDepth === 0; }
+    @computed get ContentScale() { return this.props.ContentScaling?.() || 1; }
     @computed get hidden() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden); }
     @computed get opacity() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity); }
     @computed get borderRounding() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow); }
-    @computed get hideLinkButton() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton + (this.isSelected() ? ":selected" : "")); }
-    @computed get widgetDecorations() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.isSelected() ? ":selected" : "")); }
+    @computed get hideLinkButton() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton + (this.props.isSelected() ? ":selected" : "")); }
+    @computed get widgetDecorations() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.props.isSelected() ? ":selected" : "")); }
     @computed get backgroundColor() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor); }
     @computed get docContents() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents); }
     @computed get headerMargin() { return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
-    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.isSelected() ? ":selected" : "")); }
+    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.props.isSelected() ? ":selected" : "")); }
     @computed get finalLayoutKey() { return StrCast(this.props.Document.layoutKey, "layout"); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
+    @computed get nativeWidth() { return this.props.NativeWidth(); }
+    @computed get nativeHeight() { return this.props.NativeHeight(); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
     @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
-    NativeWidth = () => this.nativeWidth;
-    NativeHeight = () => this.nativeHeight;
-    onClickFunc = () => this.onClickHandler;
-    onDoubleClickFunc = () => this.onDoubleClickHandler;
 
     constructor(props: any) {
         super(props);
-        props.getView?.(this);
     }
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
@@ -210,9 +212,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentDidMount() {
         this.componentDidUpdate();
-        if (!BoolCast(this.rootDoc.dontRegisterView, this.props.dontRegisterView)) {
-            DocumentManager.Instance.AddView(this);
-        }
     }
 
     @action
@@ -236,47 +235,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._multiTouchDisposer?.();
         this._holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
-        !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
     }
 
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
-            const [left, top] = this.props.ScreenToLocalTransform().scale(this.LocalScaling).inverse().transformPoint(0, 0);
-            dragData.offset = this.props.ScreenToLocalTransform().scale(this.LocalScaling).transformDirection(x - left, y - top);
+            const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
+            dragData.offset = this.props.ScreenToLocalTransform().scale(this.ContentScale).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;
-            dragData.dragDivName = this.props.dragDivName;
             dragData.treeViewDoc = this.props.treeViewDoc;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart });
         }
     }
-
-    @undoBatch @action
-    public static FloatDoc(topDocView: DocumentView) {
-        const { Document: topDoc, ContainingCollectionView: container } = topDocView.props;
-        const screenXf = container?.screenToLocalTransform();
-        if (screenXf) {
-            SelectionManager.DeselectAll();
-            if (topDoc.z) {
-                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
-                topDoc.z = 0;
-                topDoc.x = spt[0];
-                topDoc.y = spt[1];
-                topDocView.props.removeDocument?.(topDoc);
-                topDocView.props.addDocTab(topDoc, "inParent");
-            } else {
-                const spt = topDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                const fpt = screenXf.transformPoint(spt[0], spt[1]);
-                topDoc.z = 1;
-                topDoc.x = fpt[0];
-                topDoc.y = fpt[1];
-            }
-            setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
-        }
-    }
-
     onKeyDown = (e: React.KeyboardEvent) => {
         if (e.altKey && !e.nativeEvent.cancelBubble) {
             e.stopPropagation();
@@ -355,48 +327,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    this.select(e.ctrlKey || e.shiftKey);
+                    this.props.select(e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
             }
             stopPropagate && e.stopPropagation();
             preventDefault && e.preventDefault();
         }
-    });
-
-    // follows a link - if the target is on screen, it highlights/pans to it.
-    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
-    // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
-        focus: DocFocusFunc,
-        addDocTab: (doc: Doc, where: string) => boolean,
-        ContainingCollectionDoc?: Doc
-    }, altKey: boolean) => {
-        const batch = UndoManager.StartBatch("follow link click");
-        // open up target if it's not already in view ...
-        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = () => {
-                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
-                const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
-                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                };
-                const addTab = docView.addDocTab(doc, where);
-                addTab && setTimeout(() => {
-                    const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
-                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
-                }); //  add the target and focus on it.
-                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
-            };
-            if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus();
-            } else {
-                // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                docView.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
-            }
-        };
-        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
-    }
+    }).bind(this);
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         SelectionManager.DeselectAll();
@@ -421,7 +359,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
 
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
@@ -436,7 +374,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        if (!e.nativeEvent.cancelBubble && !this.isSelected()) {
+        if (!e.nativeEvent.cancelBubble && !this.props.isSelected()) {
             e.stopPropagation();
             e.preventDefault();
 
@@ -447,17 +385,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    public iconify() {
-        const layoutKey = Cast(this.props.Document.layoutKey, "string", null);
-        if (layoutKey !== "layout_icon") {
-            this.switchViews(true, "icon");
-            if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") this.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
-        } else {
-            const deiconifyLayout = Cast(this.props.Document.deiconifyLayout, "string", null);
-            this.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
-            this.props.Document.deiconifyLayout = undefined;
-        }
-    }
 
     @action
     handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
@@ -480,7 +407,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let nheight = Doc.NativeHeight(layoutDoc);
                 const width = (layoutDoc._width || 0);
                 const height = (layoutDoc._height || (nheight / nwidth * width));
-                const scale = this.props.ScreenToLocalTransform().Scale * this.LocalScaling;
+                const scale = this.props.ScreenToLocalTransform().Scale * this.ContentScale;
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
@@ -523,7 +450,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                if (SelectionManager.IsSelected(this.props.DocumentView, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
                 // TODO: check here for panning/inking
             }
             return;
@@ -538,7 +465,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this, true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                if (SelectionManager.IsSelected(this.props.DocumentView, true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -555,7 +482,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this.props.DocumentView, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -702,7 +629,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, this.LocalScaling, this.props.PanelWidth(), this.props.PanelHeight());
+        Doc.toggleNativeDimensions(this.layoutDoc, this.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     }
 
     @undoBatch
@@ -736,7 +663,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e && this.rootDoc._hideContextMenu && Doc.UserDoc().noviceMode) {
             e.preventDefault();
             e.stopPropagation();
-            !this.isSelected(true) && SelectionManager.SelectDoc(this, false);
+            !this.props.isSelected(true) && SelectionManager.SelectDoc(this.props.DocumentView, false);
         }
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (e) {
@@ -818,7 +745,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         if (!Doc.IsSystem(this.rootDoc)) {
-            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
+            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView), icon: "users" });
             //moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
@@ -853,26 +780,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-            !this.isSelected(true) && setTimeout(() => SelectionManager.SelectDoc(this, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+            !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectDoc(this.props.DocumentView, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
         });
     }
 
-    isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
-    select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
     rootSelected = (outsideReaction?: boolean) => {
-        return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
+        return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
 
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
-    contentScaling = () => this.LocalScaling;
+    contentScaling = () => this.ContentScale;
+    onClickFunc = () => this.onClickHandler;
+    onDoubleClickFunc = () => this.onDoubleClickHandler;
 
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
 
     @computed get contents() {
-        console.log(this.props.Document.title + " " + this.LocalScaling + " " + this.contentScaling())
         TraceMobx();
         return (<div className="documentView-contentsView"
             style={{
@@ -886,8 +812,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 fitContentsToDoc={this.props.fitContentsToDoc}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                NativeWidth={this.NativeWidth}
-                NativeHeight={this.NativeHeight}
                 PanelWidth={this.props.PanelWidth}
                 PanelHeight={this.props.PanelHeight}
                 scaling={this.contentScaling}
@@ -912,14 +836,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ScreenToLocalTransform={this.screenToLocal}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 bringToFront={this.props.bringToFront}
-                isSelected={this.isSelected}
-                select={this.select}
+                isSelected={this.props.isSelected}
+                select={this.props.select}
                 rootSelected={this.rootSelected}
                 scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
-            {this.hideLinkButton ? (null) : <DocumentLinksButton View={this} links={this.allLinks} Offset={this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]} />}
+            {this.hideLinkButton ?
+                (null) :
+                <DocumentLinksButton View={this.props.DocumentView} links={this.allLinks} Offset={this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]} />}
         </div>
         );
     }
@@ -933,8 +859,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
-    @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
-    makeLink = () => this._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
 
     @undoBatch
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
@@ -998,8 +923,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     styleProvider={this.captionStyleProvider}
                     dontRegisterView={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
-                    isSelected={this.isSelected}
-                    select={this.select}
                     onClick={this.onClickFunc}
                     layoutKey={this.finalLayoutKey} />
             </div>);
@@ -1027,21 +950,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {captionView}
             </div>;
     }
-    @undoBatch
-    @action
-    setCustomView = (custom: boolean, layout: string): void => {
-        Doc.setNativeView(this.props.Document);
-        custom && DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
-    }
 
-    switchViews = action((custom: boolean, view: string) => {
-        this._animateScalingTo = 0.1;  // shrink doc
-        setTimeout(action(() => {
-            this.setCustomView(custom, view);
-            this._animateScalingTo = 1; // expand it
-            setTimeout(action(() => this._animateScalingTo = 0), 400);
-        }), 400);
-    });
 
     @computed get renderDoc() {
         TraceMobx();
@@ -1077,7 +986,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             onContextMenu={this.onContextMenu}
             onKeyDown={this.onKeyDown}
             onPointerDown={this.onPointerDown}
-            onClick={this.onClick}
+            onClick={this.onClick.bind(this)}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;
@@ -1106,3 +1015,210 @@ Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey:
     if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
     else dv?.switchViews(true, layoutKey.replace("layout_", ""));
 });
+
+@observer
+export class DocumentView extends React.Component<DocumentViewProps> {
+    public static ROOT_DIV = "documentView-effectsWrapper";
+    public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
+    public ContentRef = React.createRef<HTMLDivElement>();
+
+    @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
+    @observable public docView: DocumentViewInternal | undefined | null;
+
+    get rootDoc() { return this.docView?.rootDoc || this.Document; }
+    get dataDoc() { return this.docView?.dataDoc || this.Document; }
+    get finalLayoutKey() { return this.docView?.finalLayoutKey || "layout"; }
+    get ContentDiv() { return this.docView?.ContentDiv; }
+    get allLinks() { return this.docView?.allLinks || []; }
+    get LayoutFieldKey() { return this.docView?.LayoutFieldKey || "layout"; }
+    toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean) => this.docView?.toggleFollowLink(location, zoom, setPushpin);
+    toggleNativeDimensions = () => this.docView?.toggleNativeDimensions();
+    contentsActive = () => this.docView?.contentsActive();
+
+
+    // follows a link - if the target is on screen, it highlights/pans to it.
+    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
+    // depending on the followLinkLocation property of the source (or the link itself as a fallback);
+    public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
+        focus: DocFocusFunc,
+        addDocTab: (doc: Doc, where: string) => boolean,
+        ContainingCollectionDoc?: Doc
+    }, altKey: boolean) => {
+        const batch = UndoManager.StartBatch("follow link click");
+        // open up target if it's not already in view ...
+        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
+            const targetFocusAfterDocFocus = () => {
+                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
+                const hackToCallFinishAfterFocus = () => {
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
+                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
+                };
+                const addTab = docView.addDocTab(doc, where);
+                addTab && setTimeout(() => {
+                    const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
+                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
+                }); //  add the target and focus on it.
+                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+            };
+            if (!sourceDoc.followLinkZoom) {
+                targetFocusAfterDocFocus();
+            } else {
+                // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
+                docView.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
+            }
+        };
+        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
+    }
+
+    @undoBatch @action
+    public static FloatDoc(topDocView: DocumentView) {
+        const { Document: topDoc, ContainingCollectionView: container } = topDocView.props;
+        const screenXf = container?.screenToLocalTransform();
+        if (screenXf) {
+            SelectionManager.DeselectAll();
+            if (topDoc.z) {
+                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
+                topDoc.z = 0;
+                topDoc.x = spt[0];
+                topDoc.y = spt[1];
+                topDocView.props.removeDocument?.(topDoc);
+                topDocView.props.addDocTab(topDoc, "inParent");
+            } else {
+                const spt = topDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const fpt = screenXf.transformPoint(spt[0], spt[1]);
+                topDoc.z = 1;
+                topDoc.x = fpt[0];
+                topDoc.y = fpt[1];
+            }
+            setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
+        }
+    }
+
+    get Document() { return this.props.Document; }
+    get topMost() { return this.props.renderDepth === 0; }
+    @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
+
+    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
+    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
+    @computed get nativeScaling() {
+        const nativeW = this.nativeWidth;
+        const nativeH = this.nativeHeight;
+        let scaling = 1;
+        if (nativeW && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / nativeH > this.props.PanelWidth() / nativeW)) {
+            scaling = this.props.PanelWidth() / nativeW;  // width-limited or fitWidth
+        } else if (nativeW && nativeH) {
+            scaling = this.props.PanelHeight() / nativeH; // height-limited
+        }
+        return scaling;
+    }
+
+    @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
+    @computed get panelHeight() {
+        if (this.nativeHeight) {
+            if (this.props.Document._fitWidth) {
+                return Math.min(this.props.PanelHeight(), NumCast(this.props.Document.scrollHeight, this.props.PanelHeight()));
+            }
+            else return Math.min(this.props.PanelHeight(), this.nativeHeight * this.nativeScaling);
+        }
+        return this.props.PanelHeight();
+    }
+
+    @computed get Xshift() { return this.nativeWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
+    @computed get YShift() { return this.nativeWidth && this.nativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
+    @computed get centeringX() { return this.props.dontCenter?.includes("x") ? 0 : this.Xshift; }
+    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.YShift; }
+
+    getBounds = () => {
+        if (!this.docView ||
+            !this.docView.ContentDiv ||
+            this.docView.props.renderDepth === 0 ||
+            this.docView.props.treeViewDoc ||
+            Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
+            return undefined;
+        }
+        const xf = this.docView?.props.ScreenToLocalTransform();
+        const transform = (xf.scale(this.nativeScaling)).inverse();
+        var [left, top] = transform.transformPoint(0, 0);
+        let [right, bottom] = transform.transformPoint(this.PanelWidth(), this.PanelHeight());
+        if (this.docView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
+            const docuBox = this.docView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+            if (docuBox.length) {
+                return docuBox[0].getBoundingClientRect();
+            }
+        }
+        return { left, top, right, bottom };
+    }
+
+    public iconify() {
+        const layoutKey = Cast(this.Document.layoutKey, "string", null);
+        if (layoutKey !== "layout_icon") {
+            this.switchViews(true, "icon");
+            if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") this.Document.deiconifyLayout = layoutKey.replace("layout_", "");
+        } else {
+            const deiconifyLayout = Cast(this.Document.deiconifyLayout, "string", null);
+            this.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
+            this.Document.deiconifyLayout = undefined;
+        }
+    }
+    @undoBatch
+    @action
+    setCustomView = (custom: boolean, layout: string): void => {
+        Doc.setNativeView(this.props.Document);
+        custom && DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
+    }
+    switchViews = action((custom: boolean, view: string) => {
+        this.docView && (this.docView._animateScalingTo = 0.1);  // shrink doc
+        setTimeout(action(() => {
+            this.setCustomView(custom, view);
+            this.docView && (this.docView._animateScalingTo = 1); // expand it
+            setTimeout(action(() => this.docView && (this.docView._animateScalingTo = 0)), 400);
+        }), 400);
+    });
+
+    isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
+    select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
+    NativeWidth = () => this.nativeWidth;
+    NativeHeight = () => this.nativeHeight;
+    PanelWidth = () => this.panelWidth;
+    PanelHeight = () => this.panelHeight;
+    ContentScale = () => this.nativeScaling;
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
+
+    componentDidMount() {
+        if (!BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView)) {
+            DocumentManager.Instance.AddView(this);
+        }
+    }
+    componentWillUnmount() {
+        !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
+    }
+
+    render() {
+        TraceMobx();
+        return (<div className="contentFittingDocumentView">
+            {!this.props.Document || !this.props.PanelWidth() ? (null) : (
+                <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
+                    style={{
+                        transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
+                        borderRadius: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.PointerEvents),
+                        width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
+                        height: Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                    }}>
+                    <DocumentViewInternal {...this.props}
+                        DocumentView={this}
+                        ref={action((r: DocumentViewInternal | null) => this.docView = r)}
+                        PanelWidth={this.PanelWidth}
+                        PanelHeight={this.PanelHeight}
+                        NativeWidth={this.NativeWidth}
+                        NativeHeight={this.NativeHeight}
+                        isSelected={this.isSelected}
+                        select={this.select}
+                        ContentScaling={this.ContentScale}
+                        ScreenToLocalTransform={this.screenToLocalTransform}
+                        focus={this.props.focus || emptyFunction}
+                        bringToFront={emptyFunction}
+                    />
+                </div>)}
+        </div>);
+    }
+}

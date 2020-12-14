@@ -1,22 +1,21 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { numberRange, returnVal, returnOne } from "../../../Utils";
+import { numberRange, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { InkingStroke } from "../InkingStroke";
-import "./CollectionFreeFormDocumentView.scss";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import React = require("react");
 import { StyleProp } from "../StyleProvider";
+import "./CollectionFreeFormDocumentView.scss";
+import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldViewProps } from "./FieldView";
+import React = require("react");
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -33,7 +32,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
     static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
-    @observable _contentView: ContentFittingDocumentView | undefined | null;
+    @observable _contentView: DocumentView | undefined | null;
     random(min: number, max: number) { // min should not be equal to max
         const mseed = Math.abs(this.X * this.Y);
         const seed = (mseed * 9301 + 49297) % 233280;
@@ -50,7 +49,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get Highlight() { return this.dataProvider?.highlight; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : "")); }
+    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.isSelected() ? ":selected" : "")); }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
@@ -148,9 +147,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             ContentScaling: returnOne,
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight,
-            dragDivName: "collectionFreeFormDocumentView-container",
         };
-        return <div className={divProps.dragDivName}
+        return <div className={"collectionFreeFormDocumentView-container"}
             style={{
                 boxShadow,
                 borderRadius,
@@ -171,7 +169,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     </svg>
                 </div>}
 
-            <ContentFittingDocumentView {...divProps} ref={action((r: ContentFittingDocumentView | null) => this._contentView = r)} />
+            <DocumentView {...divProps} ref={action((r: DocumentView | null) => this._contentView = r)} />
         </div>;
     }
 }

@@ -1,13 +1,14 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { intersection } from "lodash";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Cast, StrCast } from "../../fields/Types";
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
+import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
@@ -15,13 +16,12 @@ import { DictationOverlay } from "../views/DictationOverlay";
 import { MainViewModal } from "../views/MainViewModal";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { DocumentManager } from "./DocumentManager";
 import { GroupManager, UserOptions } from "./GroupManager";
 import { GroupMemberView } from "./GroupMemberView";
-import "./SharingManager.scss";
 import { SelectionManager } from "./SelectionManager";
-import { intersection } from "lodash";
-import { SearchBox } from "../views/search/SearchBox";
+import "./SharingManager.scss";
 
 export interface User {
     email: string;

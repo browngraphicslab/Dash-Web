@@ -13,7 +13,7 @@ import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -46,7 +46,7 @@ import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
+import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -58,7 +58,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer

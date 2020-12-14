@@ -9,13 +9,12 @@ import { Field } from "../../../fields/Doc";
 export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
     render() {
         const view = this.props.view;
-        const transform = view.props.ScreenToLocalTransform().scale(view.LocalScaling).inverse();
-        const { x, y, width, height } = transform.transformBounds(0, 0, view.props.PanelWidth(), view.props.PanelHeight());
+        const { left, top, right, bottom } = view.getBounds() || { left: 0, top: 0, right: 0, bottom: 0 };
 
         return (
             <div className="documentIcon-outerDiv" style={{
                 position: "absolute",
-                transform: `translate(${x + width / 2}px, ${y}px)`,
+                transform: `translate(${(left + right) / 2}px, ${top}px)`,
             }}>
                 <p>d{this.props.index}</p>
             </div>

@@ -6,14 +6,15 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt, DocListCastAsync, StrListCast, WidthSym, HeightSym } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
-import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
+import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -22,19 +23,16 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { FieldViewProps } from '../nodes/FieldView';
 import { PresBox, PresMovement } from '../nodes/PresBox';
+import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } from '../StyleProvider';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
-import { List } from '../../../fields/List';
-import { DocumentType } from '../../documents/DocumentTypes';
 import Color = require('color');
-import { StyleProp, DefaultStyleProvider, DefaultLayerProvider, StyleLayers } from '../StyleProvider';
-import { FieldViewProps } from '../nodes/FieldView';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -51,7 +49,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @observable private _panelHeight = 0;
     @observable private _isActive: boolean = false;
     @observable private _document: Doc | undefined;
-    @observable private _view: ContentFittingDocumentView | undefined;
+    @observable private _view: DocumentView | undefined;
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
     @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
@@ -119,7 +117,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
             titleEle.onpointerdown = action((e: any) => {
                 if (e.target.className !== "lm_close_tab") {
-                    if (this.view?.docView) SelectionManager.SelectDoc(this.view.docView, false);
+                    if (this.view) SelectionManager.SelectDoc(this.view, false);
                     else this._activated = true;
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
                     titleEle.lastClick = Date.now();
@@ -140,7 +138,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const stack = tab.contentItem.parent;
             const dragHdl = document.createElement("div");
             dragHdl.className = "lm_drag_tab";
-            tab._disposers.buttonDisposer = reaction(() => this.view?.docView, view =>
+            tab._disposers.buttonDisposer = reaction(() => this.view, view =>
                 view && [ReactDOM.render(<span className="tabDocView-drag" onPointerDown={dragBtnDown}><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, dragHdl), tab._disposers.buttonDisposer?.()],
                 { fireImmediately: true });
             tab.reactComponents = [dragHdl];
@@ -374,7 +372,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @computed get docView() {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
-            <><ContentFittingDocumentView key={this._document[Id]} ref={action((r: ContentFittingDocumentView) => this._view = r)}
+            <><DocumentView key={this._document[Id]} ref={action((r: DocumentView) => this._view = r)}
                 renderDepth={0}
                 Document={this._document}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}

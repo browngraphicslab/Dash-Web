@@ -654,7 +654,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     render() {
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
-        console.log("Scale = " + scale);
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{ pointerEvents: inactiveLayer ? "none" : undefined }}

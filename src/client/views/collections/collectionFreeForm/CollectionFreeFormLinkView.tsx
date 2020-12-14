@@ -1,14 +1,14 @@
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
-import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from '../../../../Utils';
+import { Id } from "../../../../fields/FieldSymbols";
+import { NumCast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, setupMoveUpEvents, Utils } from '../../../../Utils';
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { SnappingManager } from "../../../util/SnappingManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer, trace, computed } from "mobx";
-import { StrCast, Cast, NumCast } from "../../../../fields/Types";
-import { Id } from "../../../../fields/FieldSymbols";
-import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;

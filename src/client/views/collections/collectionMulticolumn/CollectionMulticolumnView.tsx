@@ -3,18 +3,18 @@ import { observer } from 'mobx-react';
 import * as React from "react";
 import { Doc } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
+import { List } from '../../../../fields/List';
 import { makeInterface } from '../../../../fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
+import { returnFalse } from '../../../../Utils';
 import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../../nodes/DocumentView';
 import { CollectionSubView } from '../CollectionSubView';
 import "./CollectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
-import { List } from '../../../../fields/List';
-import { returnZero, returnFalse, returnOne } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -213,7 +213,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return this.props.addDocTab(doc, where);
     }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        return <ContentFittingDocumentView
+        return <DocumentView
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             styleProvider={this.props.styleProvider}

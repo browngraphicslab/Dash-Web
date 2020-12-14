@@ -13,7 +13,7 @@ import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, DateCast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { emptyFunction, formatTime, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils, numberRange } from "../../../Utils";
+import { emptyFunction, formatTime, numberRange, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -23,13 +23,13 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { StyleProp } from "../StyleProvider";
 import "./AudioBox.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { StyleProp } from "../StyleProvider";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has

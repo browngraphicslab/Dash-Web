@@ -22,11 +22,11 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { DocumentView } from "./nodes/DocumentView";
 import { PDFMenu } from "./pdf/PDFMenu";
 import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
+import { DocumentView } from "./nodes/DocumentView";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;

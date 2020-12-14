@@ -6,16 +6,15 @@ import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import wiki from "wikijs";
-import { Doc, DocCastAsync, Opt, DocListCast } from "../../../../fields/Doc";
+import { Doc, DocCastAsync, DocListCast, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, Utils } from "../../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { LinkManager } from "../../../util/LinkManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
 import { DocumentLinksButton } from "../DocumentLinksButton";
 import { DocumentView } from "../DocumentView";
 import { LinkDocPreview } from "../LinkDocPreview";
@@ -295,7 +294,7 @@ export class FormattedTextBoxComment {
                                         </div>
                                     </div>
                                     <div className="FormattedTextBoxComment-preview-wrapper">
-                                        <ContentFittingDocumentView
+                                        <DocumentView
                                             Document={target}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}

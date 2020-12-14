@@ -581,7 +581,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @undoBatch
     @action
     toggleNativeDimensions = () => {
-        Doc.toggleNativeDimensions(this.layoutDoc, 1, this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
+        alert("need to fix");
+        // Doc.toggleNativeDimensions(this.layoutDoc, 1, this.props.NativeWidth?.() || 0, this.props.NativeHeight?.() || 0);
     }
 
     public static get DefaultLayout(): Doc | string | undefined {

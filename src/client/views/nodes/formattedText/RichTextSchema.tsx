@@ -3,18 +3,16 @@ import { NodeSelection } from "prosemirror-state";
 import * as ReactDOM from 'react-dom';
 import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
-import { ObjectField } from "../../../../fields/ObjectField";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnZero, Utils } from "../../../../Utils";
+import { Cast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { Transform } from "../../../util/Transform";
+import { DefaultStyleProvider } from "../../StyleProvider";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
-import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
-import { DefaultStyleProvider } from "../../StyleProvider";
 
 
 export class DashDocView {

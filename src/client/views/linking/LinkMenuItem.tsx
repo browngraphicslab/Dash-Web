@@ -1,4 +1,5 @@
-import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Tooltip } from '@material-ui/core';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
@@ -18,7 +19,6 @@ import { DocumentView } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 
 interface LinkMenuItemProps {

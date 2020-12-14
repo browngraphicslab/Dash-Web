@@ -5,13 +5,13 @@ import { intersection } from "lodash";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym, Opt } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
-import { GetEffectiveAcl, SharingPermissions, denormalizeEmail } from "../../fields/util";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne } from "../../Utils";
+import { denormalizeEmail, GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../Utils";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -19,16 +19,15 @@ import { SharingManager } from "../util/SharingManager";
 import { Transform } from "../util/Transform";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
+import { CollectionViewType } from "./collections/CollectionView";
 import { EditableView } from "./EditableView";
 import { InkStrokeProperties } from "./InkStrokeProperties";
-import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { DocumentView, StyleProviderFunc } from "./nodes/DocumentView";
 import { KeyValueBox } from "./nodes/KeyValueBox";
 import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
-import { CollectionViewType } from "./collections/CollectionView";
-import { DocumentViewProps, StyleProviderFunc } from "./nodes/DocumentView";
 import { DefaultStyleProvider } from "./StyleProvider";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -265,7 +264,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
             return <div ref={this.propertiesDocViewRef} style={{ pointerEvents: "none", display: "inline-block", height: panelHeight() }} key={this.selectedDoc[Id]}>
-                <ContentFittingDocumentView
+                <DocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
                     renderDepth={1}

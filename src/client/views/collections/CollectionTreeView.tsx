@@ -8,7 +8,7 @@ import { Document } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
-import { returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, Utils } from '../../../Utils';
+import { returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, Utils } from '../../../Utils';
 import { DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -20,11 +20,11 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { DocumentView } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
+import { StyleProp } from '../StyleProvider';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { TreeView } from "./TreeView";
 import React = require("react");
-import { StyleProp } from '../StyleProvider';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;

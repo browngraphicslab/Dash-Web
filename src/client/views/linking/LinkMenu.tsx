@@ -74,11 +74,8 @@ export class LinkMenu extends React.Component<Props> {
 
     @computed
     get position() {
-        const docView = this.props.docView;
-        const transform = (docView.props.ScreenToLocalTransform().scale(docView.LocalScaling)).inverse();
-        const [sptX, sptY] = transform.transformPoint(0, 0);
-        const [bptX, bptY] = transform.transformPoint(docView.props.PanelWidth(), docView.props.PanelHeight());
-        return { x: sptX, y: sptY, r: bptX, b: bptY };
+        const docView = this.props.docView.getBounds();
+        return { x: docView?.left || 0, y: docView?.top || 0, r: docView?.right || 0, b: docView?.bottom || 0 };
     }
 
     render() {

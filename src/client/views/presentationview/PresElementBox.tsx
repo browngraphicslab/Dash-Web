@@ -1,28 +1,27 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
+import { Tooltip } from "@material-ui/core";
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, Opt } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
 import { ViewBoxBaseComponent } from '../DocComponent';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { EditableView } from "../EditableView";
+import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
+import { StyleProp } from "../StyleProvider";
 import "./PresElementBox.scss";
 import React = require("react");
-import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Tooltip } from "@material-ui/core";
-import { DragManager } from "../../util/DragManager";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { undoBatch } from "../../util/UndoManager";
-import { EditableView } from "../EditableView";
-import { DocumentManager } from "../../util/DocumentManager";
-import { DocumentViewProps } from "../nodes/DocumentView";
-import { StyleProp } from "../StyleProvider";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -89,7 +88,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get renderEmbeddedInline() {
         return !this.rootDoc.presExpandInlineButton || !this.targetDoc ? (null) :
             <div className="presItem-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
-                <ContentFittingDocumentView
+                <DocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     styleProvider={this.styleProvider}

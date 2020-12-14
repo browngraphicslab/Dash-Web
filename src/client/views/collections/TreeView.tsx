@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, DocListCastOrNull, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
@@ -9,7 +9,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -20,17 +20,16 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
+import { FieldViewProps } from '../nodes/FieldView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { StyleProp, testDocProps } from '../StyleProvider';
 import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
-import { StyleProp, testDocProps } from '../StyleProvider';
-import { FieldViewProps } from '../nodes/FieldView';
 
 export interface TreeViewProps {
     document: Doc;
@@ -84,7 +83,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _uniqueId = Utils.GenerateGuid();
     private _editMaxWidth: number | string = 0;
 
-    @observable _dref: ContentFittingDocumentView | undefined | null;
+    @observable _dref: DocumentView | undefined | null;
     @computed get doc() { TraceMobx(); return this.props.document; }
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
@@ -609,7 +608,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     renderEmbeddedDocument = (asText: boolean) => {
         const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
         const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
-        return <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
+        return <DocumentView key={this.doc[Id]} ref={action((r: DocumentView | null) => this._dref = r)}
             Document={this.doc}
             DataDoc={undefined}
             PanelWidth={panelWidth}
@@ -671,7 +670,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         else this._editMaxWidth = "";
 
         const hideTitle = this.doc.treeViewHideHeader || this.outlineMode;
-        return <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
+        return <div className={`treeView-container${this._dref?.contentsActive() ? "-active" : ""}`}
             ref={this.createTreeDropTarget}
             onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
             onKeyDown={this.onKeyDown}>

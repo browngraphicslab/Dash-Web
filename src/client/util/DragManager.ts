@@ -125,7 +125,6 @@ export namespace DragManager {
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
-        dragDivName?: string;
         treeViewDoc?: Doc;
         offset: number[];
         canEmbed?: boolean;
@@ -418,17 +417,7 @@ export namespace DragManager {
         const hideDragShowOriginalElements = (hide: boolean) => {
             dragLabel.style.display = hide ? "" : "none";
             !hide && dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.forEach(ele => {
-                if (ele.parentElement?.className === dragData.dragDivName) {
-                    ele.parentElement!.hidden = hide;
-                } else if (ele.parentElement?.parentElement?.className === dragData.dragDivName) {
-                    ele.parentElement!.parentElement!.hidden = hide;
-                } else if (ele.parentElement?.parentElement?.parentElement?.className === dragData.dragDivName) {
-                    ele.parentElement!.parentElement!.parentElement!.hidden = hide;
-                } else {
-                    ele.hidden = hide;
-                }
-            });
+            eles.forEach(ele => ele.hidden = hide);
         };
         hideDragShowOriginalElements(hideSource);
 

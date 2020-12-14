@@ -2,17 +2,16 @@ import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
 import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Id } from '../../../fields/FieldSymbols';
 import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Transform } from "../../util/Transform";
 import { ContextMenu } from '../ContextMenu';
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentLinksButton } from './DocumentLinksButton';
+import { DocumentView, StyleProviderFunc } from "./DocumentView";
 import React = require("react");
-import { StyleProviderFunc } from './DocumentView';
-import { Id } from '../../../fields/FieldSymbols';
 
 interface Props {
     linkDoc?: Doc;
@@ -92,7 +91,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 </div>
             </div>
             :
-            <ContentFittingDocumentView
+            <DocumentView
                 Document={this._targetDoc}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}

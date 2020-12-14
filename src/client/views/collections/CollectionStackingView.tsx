@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -11,7 +11,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnVal, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
@@ -21,15 +21,14 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { FieldViewProps } from "../nodes/FieldView";
+import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { StyleProp } from "../StyleProvider";
-import { FieldViewProps } from "../nodes/FieldView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -201,7 +200,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             }
             return this.props.styleProvider?.(doc, props, property);
         };
-        return <ContentFittingDocumentView
+        return <DocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             renderDepth={this.props.renderDepth + 1}
@@ -480,8 +479,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     }
 
 
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc)); }
+    @computed get nativeWidth() { return Doc.NativeWidth(this.layoutDoc); }
+    @computed get nativeHeight() { return Doc.NativeHeight(this.layoutDoc); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 
