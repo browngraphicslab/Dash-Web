@@ -570,7 +570,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     ref="overlay"><ContentFittingDocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
-                        fitDocToPanel={true}
                         freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}

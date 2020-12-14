@@ -142,7 +142,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
         const docOnlyProps = [  // these are the properties in  DocumentViewProps that need to be removed to pass on only DocumentSharedViewProps to the FieldViews
             "freezeDimensions",
             "hideTitle",
-            "fitDocToPanel",
             "treeViewDoc",
             "dragDivName",
             "contentPointerEvents",

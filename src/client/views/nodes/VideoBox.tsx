@@ -414,18 +414,15 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
-    @computed get contentScaling() { return this.props.contentFittingXf?.() ? 1 : this.props.scaling?.() || 1; }
-    scaling = () => this.contentScaling;
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(1 / this.scaling());
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                width: "100%",
+                height: "100%",
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", ""))}px`
             }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
@@ -434,7 +431,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    scaling={this.scaling}
+                    scaling={returnOne}
                     ScreenToLocalTransform={this.screenToLocalTransform}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}

@@ -452,12 +452,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @computed
     get content() {
         const view = this.urlContent;
-
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance?.Interacting;
+        const scale = this.props.scaling?.() || 1;
 
         return (<>
             <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
-                style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || (Number.isFinite(this.contentScaling) ? `${Math.max(100, 100 / this.contentScaling)}% ` : "100%") }}
+                style={{
+                    width: `${100 / scale}%`,
+                    height: `${100 / scale}%`,
+                    transform: `scale(${scale})`
+                }}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>
@@ -646,26 +650,23 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    @computed get contentScaling() { return this.props.scaling?.() || 1; }
-    scrollXf = () => this.props.ScreenToLocalTransform().scale(this.props.contentFittingXf?.() ? 1 : 1 / this.contentScaling).translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
-    scaling = () => this.contentScaling;
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
+        const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
+        const scale = this.props.scaling?.() || 1;
+        console.log("Scale = " + scale);
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
-                style={{
-                    position: undefined,
-                    transform: `scale(${this.contentScaling})`,
-                    width: `${100 / this.contentScaling}% `,
-                    height: `${100 / this.contentScaling}% `,
-                    pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
-                }}
+                style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: `${Math.max(100, 100 / this.contentScaling)}% `,
-                        pointerEvents: this.layoutDoc.isAnnotating && this.props.layerProvider?.(this.layoutDoc) !== false ? "all" : "none"
+                        width: `${100 / scale}%`,
+                        height: `${100 / scale}%`,
+                        transform: `scale(${scale})`,
+                        pointerEvents: this.layoutDoc.isAnnotating && !inactiveLayer ? "all" : "none"
                     }}
                     onWheel={e => {
                         const target = this._outerRef.current;
@@ -687,22 +688,22 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 >
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.scrollHeight, 50),
-                        pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
+                        pointerEvents: inactiveLayer ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                            renderDepth={this.props.renderDepth + 1}
+                            CollectionView={undefined}
                             fieldKey={this.annotationKey}
-                            setPreviewCursor={this.setPreviewCursor}
                             isAnnotationOverlay={true}
-                            select={emptyFunction}
-                            active={this.active}
-                            whenActiveChanged={this.whenActiveChanged}
+                            scaling={returnOne}
+                            ScreenToLocalTransform={this.scrollXf}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
                             addDocument={this.addDocument}
-                            CollectionView={undefined}
-                            scaling={this.scaling}
-                            ScreenToLocalTransform={this.scrollXf}
-                            renderDepth={this.props.renderDepth + 1}>
+                            setPreviewCursor={this.setPreviewCursor}
+                            select={emptyFunction}
+                            active={this.active}
+                            whenActiveChanged={this.whenActiveChanged}>
                         </CollectionFreeFormView>
                     </div>
                 </div>

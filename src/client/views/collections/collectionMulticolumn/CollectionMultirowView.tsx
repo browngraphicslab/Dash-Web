@@ -223,7 +223,6 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            fitDocToPanel={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}

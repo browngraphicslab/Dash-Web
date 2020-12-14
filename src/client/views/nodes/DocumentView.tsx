@@ -75,7 +75,6 @@ export interface DocumentViewSharedProps {
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     pinToPres: (document: Doc) => void;
     ScreenToLocalTransform: () => Transform;
-    contentFittingXf?: () => boolean;  // bcz: need to figure out why this is needed in VideoBox/ImageBox/WebBox to turn off scaling... 
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     onClick?: () => ScriptField;
     dropAction?: dropActionType;
@@ -88,7 +87,6 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView
     freezeDimensions?: boolean;
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
-    fitDocToPanel?: boolean; // makes the document view fit the panel available to it (if it has native dimensions, then only one dimension will be fit)
     treeViewDoc?: Doc;
     dragDivName?: string;
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
@@ -868,12 +866,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
-    contentScaling = () => !this.props.Document._fitWidth ? this.props.PanelWidth() / (this.props.NativeWidth?.() || this.props.PanelWidth()) : this.LocalScaling;
+    contentScaling = () => this.LocalScaling;
 
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
 
     @computed get contents() {
+        console.log(this.props.Document.title + " " + this.LocalScaling + " " + this.contentScaling())
         TraceMobx();
         return (<div className="documentView-contentsView"
             style={{
@@ -891,7 +890,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 NativeHeight={this.NativeHeight}
                 PanelWidth={this.props.PanelWidth}
                 PanelHeight={this.props.PanelHeight}
-                contentFittingXf={this.props.contentFittingXf}
                 scaling={this.contentScaling}
                 layerProvider={this.props.layerProvider}
                 styleProvider={this.props.styleProvider}
@@ -906,7 +904,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 makeLink={this.makeLink}
                 focus={this.props.focus}
                 dontRegisterView={this.props.dontRegisterView}
-                fitDocToPanel={this.props.fitDocToPanel}
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}

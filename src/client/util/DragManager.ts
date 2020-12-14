@@ -342,12 +342,11 @@ export namespace DragManager {
             dragLabel.style.zIndex = "100001";
             dragLabel.style.fontSize = "10px";
             dragLabel.style.position = "absolute";
-            // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
+            dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
         dragDiv.hidden = false;
-        dragLabel.style.display = "";
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -416,13 +415,22 @@ export namespace DragManager {
         });
 
         const hideSource = options?.hideSource ? true : false;
-        eles.forEach(ele => {
-            if (ele.parentElement && ele.parentElement?.className === dragData.dragDivName) {
-                ele.parentElement.hidden = hideSource;
-            } else {
-                ele.hidden = hideSource;
-            }
-        });
+        const hideDragShowOriginalElements = (hide: boolean) => {
+            dragLabel.style.display = hide ? "" : "none";
+            !hide && dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
+            eles.forEach(ele => {
+                if (ele.parentElement?.className === dragData.dragDivName) {
+                    ele.parentElement!.hidden = hide;
+                } else if (ele.parentElement?.parentElement?.className === dragData.dragDivName) {
+                    ele.parentElement!.parentElement!.hidden = hide;
+                } else if (ele.parentElement?.parentElement?.parentElement?.className === dragData.dragDivName) {
+                    ele.parentElement!.parentElement!.parentElement!.hidden = hide;
+                } else {
+                    ele.hidden = hide;
+                }
+            });
+        };
+        hideDragShowOriginalElements(hideSource);
 
         SnappingManager.SetIsDragging(true);
         let lastX = downX;
@@ -517,13 +525,8 @@ export namespace DragManager {
             );
         };
 
-        const hideDragShowOriginalElements = () => {
-            dragLabel.style.display = "none";
-            dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.hidden = ele.parentElement.hidden = false) : (ele.hidden = false));
-        };
         const endDrag = action(() => {
-            hideDragShowOriginalElements();
+            hideDragShowOriginalElements(false);
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             SnappingManager.SetIsDragging(false);

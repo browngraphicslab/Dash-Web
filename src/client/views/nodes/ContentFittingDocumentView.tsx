@@ -31,6 +31,7 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
         } else if (nativeW && nativeH) {
             scaling = this.props.PanelHeight() / nativeH; // height-limited
         }
+        console.log(this.props.Document.title + " " + scaling)
         return scaling;
     }
 
@@ -75,7 +76,6 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                         NativeWidth={this.NativeWidth}
                         NativeHeight={this.NativeHeight}
                         ContentScaling={this.NativeScaling}
-                        contentFittingXf={returnTrue}
                         ScreenToLocalTransform={this.screenToLocalTransform}
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}
