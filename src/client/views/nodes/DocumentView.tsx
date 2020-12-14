@@ -902,8 +902,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
+    contentScaling = () => !this.props.Document._fitWidth ? this.props.PanelWidth() / (this.props.NativeWidth?.() || this.props.PanelWidth()) : this.LocalScaling;
+
     @computed get contents() {
         TraceMobx();
+        if (this.props.Document.type === DocumentType.PDF) {
+            console.log("Scaling = " + this.contentScaling());
+        }
         return (<div className="documentView-contentsView"
             style={{
                 pointerEvents: this.props.contentPointerEvents as any,
@@ -920,7 +925,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 NativeHeight={this.NativeHeight}
                 PanelWidth={this.props.PanelWidth}
                 PanelHeight={this.props.PanelHeight}
-                scaling={this.props.ContentScaling || returnOne}
+                scaling={this.contentScaling}
                 layerProvider={this.props.layerProvider}
                 styleProvider={this.props.styleProvider}
                 LayoutTemplateString={this.props.LayoutTemplateString}

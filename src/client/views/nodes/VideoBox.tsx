@@ -23,6 +23,7 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
+import { Transform } from "../../util/Transform";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -413,7 +414,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
-    @computed get contentScaling() { return 1; }
+    @computed get contentScaling() { return this.props.scaling?.() || 1 }
+    scaling = () => this.contentScaling;
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
@@ -431,7 +433,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    ContentScaling={returnOne}
+                    ContentScaling={this.scaling}
+                    ScreenToLocalTransform={Transform.Identity}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}

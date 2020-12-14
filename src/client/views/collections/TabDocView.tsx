@@ -373,7 +373,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @computed get layerProvider() { return this._document && DefaultLayerProvider(this._document); }
     @computed get docView() {
         TraceMobx();
-        console.log("" + this._document?.title + " " + (!this._activated || !this._document || this._document._viewType === CollectionViewType.Docking))
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
             <><ContentFittingDocumentView key={this._document[Id]} ref={action((r: ContentFittingDocumentView) => console.log(this._view = r))}
                 renderDepth={0}
@@ -411,7 +410,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     render() {
-        console.log("tab", this._document)
         return (
             <div className="collectionDockingView-content" style={{ height: "100%", width: "100%" }} ref={ref => {
                 if (this._mainCont = ref) {

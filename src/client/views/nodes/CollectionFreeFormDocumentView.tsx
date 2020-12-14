@@ -58,6 +58,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, undefined, this.props.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, undefined, this.props.freezeDimensions)); }
+    @computed get pointerEvents() {
+        if (this.props.pointerEvents === "none") return "none";
+        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : ""));
+    }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
@@ -140,15 +144,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y);
+    screenToLocalTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.Scaling());
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     returnThis = () => this;
-    @computed get pointerEvents() {
-        if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.docView?.isSelected() ? ":selected" : ""));
-    }
+    Scaling = () => this.Document._fitWidth ? this.props.PanelWidth() / this.NativeWidth() : 1;
     render() {
         TraceMobx();
         const backgroundColor = this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
@@ -159,12 +160,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             CollectionFreeFormDocumentView: this.returnThis,
             dragDivName: "collectionFreeFormDocumentView-container",
             styleProvider: this.styleProvider,
-            ScreenToLocalTransform: this.getTransform,
+            ScreenToLocalTransform: this.screenToLocalTransform,
+            ContentScaling: this.Scaling,
             NativeHeight: this.NativeHeight,
             NativeWidth: this.NativeWidth,
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight
         };
+        if (this.props.Document.type === DocumentType.PDF) {
+            console.log(divProps.NativeWidth?.());
+        }
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow,
