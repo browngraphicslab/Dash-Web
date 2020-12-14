@@ -414,8 +414,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
-    @computed get contentScaling() { return this.props.scaling?.() || 1 }
+    @computed get contentScaling() { return this.props.scaling?.() || 1; }
     scaling = () => this.contentScaling;
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(1 / this.scaling());
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
@@ -434,7 +435,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     select={emptyFunction}
                     active={this.annotationsActive}
                     ContentScaling={this.scaling}
-                    ScreenToLocalTransform={Transform.Identity}
+                    ScreenToLocalTransform={this.screenToLocalTransform}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}
