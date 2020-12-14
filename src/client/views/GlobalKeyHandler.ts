@@ -177,17 +177,10 @@ export class KeyManager {
         const preventDefault = true;
 
         switch (keyname) {
+            case "ƒ":
             case "f":
                 const dv = SelectionManager.SelectedDocuments()?.[0];
-                if (dv) {
-                    const ex = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];
-                    const ey = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];
-                    DocumentView.FloatDoc(dv, ex, ey);
-                }
-            // case "n":
-            //     let toggle = MainView.Instance.addMenuToggle.current!;
-            //     toggle.checked = !toggle.checked;
-            //     break;
+                dv && DocumentView.FloatDoc(dv);
         }
 
         return {

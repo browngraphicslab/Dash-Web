@@ -647,7 +647,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
     @computed get contentScaling() { return this.props.scaling?.() || 1; }
-    scrollXf = () => this.props.ScreenToLocalTransform().scale(1 / this.contentScaling).translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
+    scrollXf = () => this.props.ScreenToLocalTransform().scale(this.props.contentFittingXf?.() ? 1 : 1 / this.contentScaling).translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     scaling = () => this.contentScaling;
     render() {
         return (<div className="webBox" ref={this._mainCont} >
@@ -700,7 +700,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             moveDocument={this.moveDocument}
                             addDocument={this.addDocument}
                             CollectionView={undefined}
-                            ContentScaling={this.scaling}
+                            scaling={this.scaling}
                             ScreenToLocalTransform={this.scrollXf}
                             renderDepth={this.props.renderDepth + 1}>
                         </CollectionFreeFormView>

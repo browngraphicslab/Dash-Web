@@ -374,7 +374,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @computed get docView() {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
-            <><ContentFittingDocumentView key={this._document[Id]} ref={action((r: ContentFittingDocumentView) => console.log(this._view = r))}
+            <><ContentFittingDocumentView key={this._document[Id]} ref={action((r: ContentFittingDocumentView) => this._view = r)}
                 renderDepth={0}
                 Document={this._document}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}

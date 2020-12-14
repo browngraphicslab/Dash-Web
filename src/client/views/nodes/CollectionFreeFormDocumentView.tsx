@@ -167,9 +167,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight
         };
-        if (this.props.Document.type === DocumentType.PDF) {
-            console.log(divProps.NativeWidth?.());
-        }
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow,

@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnVal, returnTrue } from "../../../Utils";
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { StyleProp } from "../StyleProvider";
 import "./ContentFittingDocumentView.scss";
@@ -70,12 +70,12 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                     }}>
                     <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         ref={action((r: DocumentView | null) => this.docView = r)}
-                        LayoutTemplate={this.props.LayoutTemplate}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         NativeWidth={this.NativeWidth}
                         NativeHeight={this.NativeHeight}
                         ContentScaling={this.NativeScaling}
+                        contentFittingXf={returnTrue}
                         ScreenToLocalTransform={this.screenToLocalTransform}
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}

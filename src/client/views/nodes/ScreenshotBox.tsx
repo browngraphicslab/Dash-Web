@@ -177,7 +177,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={returnFalse}
-                    ContentScaling={returnOne}
+                    scaling={returnOne}
                     whenActiveChanged={emptyFunction}
                     removeDocument={returnFalse}
                     moveDocument={returnFalse}

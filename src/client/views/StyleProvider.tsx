@@ -36,6 +36,7 @@ export enum StyleProp {
     PointerEvents = "pointerEvents",      // pointer events for DocumentView -- inherits pointer events if not specified
     Decorations = "decorations",          // additional decoration to display above a DocumentView -- currently only used to display a Lock for making things background
     HeaderMargin = "headerMargin",        // margin at top of documentview, typically for displaying a title -- doc contents will start below that
+    ShowTitle = "showTitle",              // whether to display a title on a Document
 }
 
 function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -68,10 +69,16 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props);
+    const selected = property.includes(":selected");
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
+        case StyleProp.HideLinkButton: return props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
+            !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
+                (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
+                undefined);
         case StyleProp.Color:
             const backColor = props?.styleProvider?.(doc, props, StyleProp.BackgroundColor) || "black";
             const col = Color(backColor).rgb();
@@ -132,15 +139,16 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             }
         }
         case StyleProp.PointerEvents:
+            if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
             if (props?.styleProvider?.(doc, props, StyleProp.Opacity) === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
-            if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
+            if (layer === false && !selected && !SnappingManager.GetIsDragging()) return "none";
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;
         case StyleProp.Decorations:
             if (props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
                 const isBackground = StrListCast(doc?.layers).includes(StyleLayers.Background);
-                return doc && (isBackground || property.includes(":selected")) && (props?.renderDepth || 0) > 0 &&
+                return doc && (isBackground || selected) && (props?.renderDepth || 0) > 0 &&
                     ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
                     <div className="styleProvider-lock" onClick={() => toggleBackground(doc)}>
                         <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />

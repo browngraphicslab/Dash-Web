@@ -1627,7 +1627,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             fitContentsToDoc: fitToBox,
             select: emptyFunction,
             active: this.annotationsActive,
-            ContentScaling: this.sidebarContentScaling,
+            scaling: this.sidebarContentScaling,
             whenActiveChanged: this.whenActiveChanged,
             removeDocument: this.removeDocument,
             moveDocument: this.moveDocument,

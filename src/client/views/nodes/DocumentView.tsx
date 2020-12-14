@@ -4,14 +4,13 @@ import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, S
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
-import { RichTextField } from '../../../fields/RichTextField';
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnFalse, returnOne, returnTrue, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -32,18 +31,18 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { InkStrokeProperties } from '../InkStrokeProperties';
+import { StyleLayers, StyleProp, testDocProps } from "../StyleProvider";
+import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
+import { FieldViewProps } from "./FieldView";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
-import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
-import { StyleProp, StyleLayers, testDocProps } from "../StyleProvider";
-import { FieldViewProps } from "./FieldView";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -52,8 +51,8 @@ export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
     DataDoc?: Doc;
-    ContainingCollectionView: Opt<CollectionView>;
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
+    ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
@@ -76,6 +75,7 @@ export interface DocumentViewSharedProps {
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     pinToPres: (document: Doc) => void;
     ScreenToLocalTransform: () => Transform;
+    contentFittingXf?: () => boolean;  // bcz: need to figure out why this is needed in VideoBox/ImageBox/WebBox to turn off scaling... 
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     onClick?: () => ScriptField;
     dropAction?: dropActionType;
@@ -124,14 +124,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     public get LayoutFieldKey() { return Doc.LayoutFieldKey(this.layoutDoc); }
-    @computed get ShowTitle() {
-        return StrCast(this.layoutDoc._showTitle,
-            !Doc.IsSystem(this.layoutDoc) && this.rootDoc.type === DocumentType.RTF && !this.rootDoc.presentationTargetDoc ?
-                (this.dataDoc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
-                undefined);
-    }
+    @computed get ShowTitle() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.ShowTitle) as (Opt<string>); }
     @computed get LocalScaling() { return this.props.ContentScaling?.() || 1; }
     @computed get topMost() { return this.props.renderDepth === 0; }
+    @computed get hidden() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden); }
+    @computed get opacity() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity); }
+    @computed get borderRounding() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow); }
+    @computed get hideLinkButton() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton + (this.isSelected() ? ":selected" : "")); }
+    @computed get widgetDecorations() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.isSelected() ? ":selected" : "")); }
+    @computed get backgroundColor() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor); }
+    @computed get docContents() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents); }
+    @computed get headerMargin() { return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
+    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.isSelected() ? ":selected" : "")); }
+    @computed get finalLayoutKey() { return StrCast(this.props.Document.layoutKey, "layout"); }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.dataDoc, this.props.freezeDimensions)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
@@ -206,11 +211,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     componentDidMount() {
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document));
-        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
-        this._mainCont.current && (this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
-        // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
-
+        this.componentDidUpdate();
         if (!BoolCast(this.rootDoc.dontRegisterView, this.props.dontRegisterView)) {
             DocumentManager.Instance.AddView(this);
         }
@@ -237,9 +238,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._multiTouchDisposer?.();
         this._holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
-        if (!this.props.dontRegisterView) {
-            DocumentManager.Instance.RemoveView(this);
-        }
+        !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
     }
 
     startDragging(x: number, y: number, dropAction: dropActionType) {
@@ -257,13 +256,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch @action
-    public static FloatDoc(topDocView: DocumentView, x?: number, y?: number) {
-        const topDoc = topDocView.props.Document;
-        const container = topDocView.props.ContainingCollectionView;
-        if (container) {
+    public static FloatDoc(topDocView: DocumentView) {
+        const { Document: topDoc, ContainingCollectionView: container } = topDocView.props;
+        const screenXf = container?.screenToLocalTransform();
+        if (screenXf) {
             SelectionManager.DeselectAll();
-            if (topDoc.z && (x === undefined && y === undefined)) {
-                const spt = container.screenToLocalTransform().inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
+            if (topDoc.z) {
+                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
                 topDoc.z = 0;
                 topDoc.x = spt[0];
                 topDoc.y = spt[1];
@@ -271,7 +270,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 topDocView.props.addDocTab(topDoc, "inParent");
             } else {
                 const spt = topDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                const fpt = container.screenToLocalTransform().transformPoint(x !== undefined ? x : spt[0], y !== undefined ? y : spt[1]);
+                const fpt = screenXf.transformPoint(spt[0], spt[1]);
                 topDoc.z = 1;
                 topDoc.x = fpt[0];
                 topDoc.y = fpt[1];
@@ -281,28 +280,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
-        if (this.rootDoc._singleLine && ((e.key === "Backspace" && this.dataDoc.text && !(this.dataDoc.text as RichTextField)?.Text) || ["Tab", "Enter"].includes(e.key))) {
-            return;
-        }
-        if (e.altKey && !(e.nativeEvent as any).StopPropagationForReal) {
-            (e.nativeEvent as any).StopPropagationForReal = true; // e.stopPropagation() doesn't seem to work...
+        if (e.altKey && !e.nativeEvent.cancelBubble) {
             e.stopPropagation();
             e.preventDefault();
             if (e.key === "†" || e.key === "t") {
                 if (!StrCast(this.layoutDoc._showTitle)) this.layoutDoc._showTitle = "title";
                 if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
                 else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
-                    {
-                        this._titleRef.current?.setIsFocused(false);
-                        const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
-                        any.keeplocation = true;
-                        any?.focus();
-                    }
+                    this._titleRef.current?.setIsFocused(false);
+                    const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                    any.keeplocation = true;
+                    any?.focus();
                 }
-            } else if (e.key === "f") {
-                const ex = (e.nativeEvent.target! as any).getBoundingClientRect().left;
-                const ey = (e.nativeEvent.target! as any).getBoundingClientRect().top;
-                DocumentView.FloatDoc(this, ex, ey);
             }
         }
     }
@@ -363,13 +352,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
-                this.allLinks.length && DocumentView.followLinkClick(undefined, this.props.Document, this.props, e.shiftKey, e.altKey);
+                this.allLinks.length && DocumentView.followLinkClick(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     this.select(e.ctrlKey || e.shiftKey);
-                    //SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
             }
@@ -385,7 +373,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         focus: DocFocusFunc,
         addDocTab: (doc: Doc, where: string) => boolean,
         ContainingCollectionDoc?: Doc
-    }, shiftKey: boolean, altKey: boolean) => {
+    }, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
@@ -463,9 +451,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     public iconify() {
         const layoutKey = Cast(this.props.Document.layoutKey, "string", null);
-        const collapse = layoutKey !== "layout_icon";
-        if (collapse) {
-            this.switchViews(collapse, "icon");
+        if (layoutKey !== "layout_icon") {
+            this.switchViews(true, "icon");
             if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") this.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
         } else {
             const deiconifyLayout = Cast(this.props.Document.deiconifyLayout, "string", null);
@@ -668,10 +655,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (this.props.LayoutTemplateString) return;
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
-            if ((e.target as any)?.closest?.("*.lm_content")) {
-                alert("You can't perform this move most likely because you don't have permission to modify the destination.");
-            }
-            else alert("linking to document tabs not yet supported.  Drop link on document content.");
+            alert((e.target as any)?.closest?.("*.lm_content") ?
+                "You can't perform this move most likely because you don't have permission to modify the destination." :
+                "linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
         const makeLink = action((linkDoc: Doc) => {
@@ -717,13 +703,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    @action
     toggleNativeDimensions = () => {
         Doc.toggleNativeDimensions(this.layoutDoc, this.LocalScaling, this.props.PanelWidth(), this.props.PanelHeight());
     }
 
     @undoBatch
-    @action
     toggleLockPosition = (): void => {
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
@@ -740,7 +724,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.followLinkZoom = true;
         this.Document.isLinkButton = true;
     }
-
 
     @action
     onCopy = () => {
@@ -876,33 +859,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    // does Document set a layout prop
-    // does Document set a layout prop
-    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
-    // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
-    getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
-    getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
-
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
-
-    @computed get headerMargin() {
-        return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0;
-    }
-
-    @computed get finalLayoutKey() {
-        return StrCast(this.props.Document.layoutKey, "layout");
-    }
     rootSelected = (outsideReaction?: boolean) => {
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
+
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
-    @computed.struct get linkOffset() { return this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]; }
-    @observable contentsActive: () => boolean = returnFalse;
-    @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => !this.props.Document._fitWidth ? this.props.PanelWidth() / (this.props.NativeWidth?.() || this.props.PanelWidth()) : this.LocalScaling;
+
+    @observable contentsActive: () => boolean = returnFalse;
+    @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
 
     @computed get contents() {
         TraceMobx();
@@ -922,6 +891,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 NativeHeight={this.NativeHeight}
                 PanelWidth={this.props.PanelWidth}
                 PanelHeight={this.props.PanelHeight}
+                contentFittingXf={this.props.contentFittingXf}
                 scaling={this.contentScaling}
                 layerProvider={this.props.layerProvider}
                 styleProvider={this.props.styleProvider}
@@ -952,8 +922,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
-            {this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) || (!this.isSelected() && (this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton)) || this.props.dontRegisterView ? (null) :
-                <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
+            {this.hideLinkButton ? (null) : <DocumentLinksButton View={this} links={this.allLinks} Offset={this.topMost ? [0, undefined, undefined, 10] : [-15, undefined, undefined, -20]} />}
         </div>
         );
     }
@@ -971,7 +940,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeLink = () => this._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
 
     @undoBatch
-    hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
+    hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
@@ -993,7 +962,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
     @computed get allAnchors() {
         TraceMobx();
-        if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
+        if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox ||  // presentationbox nodes
             this.rootDoc.type === DocumentType.LINK ||
             this.props.dontRegisterView) {// view that are not registered
@@ -1020,6 +989,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get innards() {
         TraceMobx();
+        const showTitle = this.ShowTitle;
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const captionView = (!showCaption ? (null) :
@@ -1036,7 +1006,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     onClick={this.onClickFunc}
                     layoutKey={this.finalLayoutKey} />
             </div>);
-        const titleView = (!this.ShowTitle ? (null) :
+        const titleView = (!showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: this.headerMargin ? "relative" : "absolute",
                 height: this.headerMargin || undefined,
@@ -1044,33 +1014,27 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
-                    contents={this.ShowTitle === "title" ? StrCast((this.dataDoc || this.props.Document).title) : this.ShowTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
+                    contents={showTitle === "title" ? StrCast((this.dataDoc || this.props.Document).title) : showTitle.split(";").map(field => field + ":" + (this.dataDoc || this.props.Document)[field]?.toString()).join(" ")}
                     display={"block"}
                     fontSize={10}
-                    GetValue={() => Field.toString((this.dataDoc || this.props.Document)[this.ShowTitle.split(";")[0]] as any as Field)}
+                    GetValue={() => Field.toString((this.dataDoc || this.props.Document)[showTitle.split(";")[0]] as any as Field)}
                     SetValue={undoBatch((value: string) => {
-                        this.ShowTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[this.ShowTitle] = value) ? true : true;
+                        showTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[showTitle] = value) ? true : true;
                     })}
                 />
             </div>);
-        return this.props.hideTitle || (!this.ShowTitle && !showCaption) ?
+        return this.props.hideTitle || (!showTitle && !showCaption) ?
             this.contents :
             <div className="documentView-styleWrapper" >
                 {!this.headerMargin ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
                 {captionView}
             </div>;
     }
-    @computed get pointerEvents() {
-        if (this.props.pointerEvents === "none") return "none";
-        return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.isSelected() ? ":selected" : ""));
-    }
     @undoBatch
     @action
     setCustomView = (custom: boolean, layout: string): void => {
         Doc.setNativeView(this.props.Document);
-        if (custom) {
-            DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
-        }
+        custom && DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
     }
 
     switchViews = action((custom: boolean, view: string) => {
@@ -1084,15 +1048,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get renderDoc() {
         TraceMobx();
-        if (!(this.props.Document instanceof Doc)) return (null);
-        if (GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate) return (null);
-        if (this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden)) return null;
-        return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents) ??
+        if (!(this.props.Document instanceof Doc) || GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate || this.hidden) return null;
+        return this.docContents ??
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 id={this.props.Document[Id]}
                 style={{
-                    background: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
-                    opacity: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity),
+                    background: this.backgroundColor,
+                    opacity: this.opacity,
                     color: StrCast(this.layoutDoc.color, "inherit"),
                     fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                     fontSize: Cast(this.Document._fontSize, "string", null),
@@ -1102,11 +1064,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }}>
                 {this.innards}
                 {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <div className="documentView-contentBlocker" /> : (null)}
-                {this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.isSelected() ? ":selected" : "")) || (null)}
+                {this.widgetDecorations ?? null}
             </div>;
     }
     render() {
-        const borderRounding = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow);
         const highlightIndex = this.props.LayoutTemplateString ? (Doc.IsHighlighted(this.props.Document) ? 6 : 0) : Doc.isBrushedHighlightedDegree(this.props.Document); // bcz: Argh!! need to identify a tree view doc better than a LayoutTemlatString
         const highlightColor = (CurrentUserUtils.ActiveDashboard?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
@@ -1130,11 +1091,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             })}
             style={{
                 pointerEvents: this.pointerEvents,
-                outline: highlighting && !borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
-                border: highlighting && borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
-                boxShadow: highlighting && borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
-                    this.Document.isLinkButton && !this.props.dontRegisterView && !this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton) ?
-                        StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
+                outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
+                border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
+                boxShadow: highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
+                    this.Document.isLinkButton && !this.hideLinkButton ? StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
                         this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
                             undefined,
             }}

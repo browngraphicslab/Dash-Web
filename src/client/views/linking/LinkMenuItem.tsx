@@ -110,7 +110,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
-        DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false);
+        DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
 
         e.stopPropagation();
     }
