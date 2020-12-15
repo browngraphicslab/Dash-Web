@@ -26,6 +26,7 @@ import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { StyleProp } from '../StyleProvider';
 const path = require('path');
 const { Howl } = require('howler');
 
@@ -403,12 +404,14 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     render() {
         TraceMobx();
+        const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
+        const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
         return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
                 width: this.props.PanelWidth() ? undefined : `100%`,
                 height: this.props.PanelWidth() ? undefined : `100%`,
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", ""))}px`
+                borderRadius
             }} >
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 renderDepth={this.props.renderDepth + 1}

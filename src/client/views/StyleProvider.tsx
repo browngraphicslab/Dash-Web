@@ -90,7 +90,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (colsum / col.alpha() > 600 || col.alpha() < 0.25) return "black";
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
-        case StyleProp.BorderRounding: return !doc ? undefined : StrCast(doc._borderRounding, StrCast(doc.borderRounding));
+        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";

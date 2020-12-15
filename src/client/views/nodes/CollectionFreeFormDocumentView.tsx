@@ -136,9 +136,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     returnThis = () => this;
     render() {
         TraceMobx();
-        const backgroundColor = this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
-        const borderRadius = this.props.styleProvider?.(this.Document, this.props, StyleProp.BorderRounding);
-        const boxShadow = this.props.styleProvider?.(this.Document, this.props, StyleProp.BoxShadow);
+        const backgroundColor = () => this.props.styleProvider?.(this.Document, this.props, StyleProp.BackgroundColor);
         const divProps: DocumentViewProps = {
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,
@@ -149,8 +147,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         };
         return <div className={"collectionFreeFormDocumentView-container"}
             style={{
-                boxShadow,
-                borderRadius,
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
@@ -164,7 +160,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 <div style={{ width: "100%", height: "100%", position: "absolute" }}>
                     <svg style={{ transform: `scale(1,${this.props.PanelHeight() / this.props.PanelWidth()})`, transformOrigin: "top left", overflow: "visible" }} viewBox="0 0 12 14">
                         <path d="M 7 0 C 9 -1 13 1 12 4 C 11 10 13 12 10 12 C 6 12 7 13 2 12 Q -1 11 0 8 C 1 4 0 4 0 2 C 0 0 1 0 1 0 C 3 0 3 1 7 0"
-                            style={{ stroke: "black", fill: backgroundColor, strokeWidth: 0.2 }} />
+                            style={{ stroke: "black", fill: backgroundColor(), strokeWidth: 0.2 }} />
                     </svg>
                 </div>}
 
