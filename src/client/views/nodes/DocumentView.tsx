@@ -981,6 +981,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         let highlighting = highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
+        const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
+            this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) ||
+            (this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined);
         return <div className={DocumentView.ROOT_DIV} ref={this._mainCont}
             onContextMenu={this.onContextMenu}
             onKeyDown={this.onKeyDown}
@@ -999,10 +1002,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 pointerEvents: this.pointerEvents,
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
-                boxShadow: highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
-                    this.Document.isLinkButton && !this.hideLinkButton ? StrCast(this.layoutDoc._linkButtonShadow, "lightblue 0em 0em 1em") :
-                        this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
-                            undefined,
+                boxShadow,
             }}
         >
             {PresBox.EffectsProvider(this.layoutDoc, this.renderDoc) || this.renderDoc}
