@@ -478,11 +478,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             de.complete.annoDragData.linkDropCallback = this.linkDrop;
         }
     }
-    linkDrop = (data: { linkDocument?: Doc }) => {
-        const linkDoc = data.linkDocument!;
-        const anchor1Title = linkDoc.anchor1 instanceof Doc ? StrCast(linkDoc.anchor1.title) : "-untitled-";
-        const anchor1Id = linkDoc.anchor1 instanceof Doc ? linkDoc.anchor1[Id] : "";
-        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "add:right", anchor1Id);
+    linkDrop = (data: { linkDocument: Doc }) => {
+        const anchor1Title = data.linkDocument.anchor1 instanceof Doc ? StrCast(data.linkDocument.anchor1.title) : "-untitled-";
+        const anchor1Id = data.linkDocument.anchor1 instanceof Doc ? data.linkDocument.anchor1[Id] : "";
+        this.makeLinkToSelection(data.linkDocument[Id], anchor1Title, "add:right", anchor1Id);
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {

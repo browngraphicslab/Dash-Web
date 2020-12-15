@@ -70,20 +70,24 @@ export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentVie
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
     const docProps = testDocProps(props) ? props : undefined;
     const selected = property.includes(":selected");
+    const isCaption = property.includes(":caption");
+    const isAnchor = property.includes(":anchor");
     const isBackground = () => StrListCast(doc?.layers).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
+        case StyleProp.LinkSource: return isAnchor && docProps?.Document; // pass the LinkSource to the LinkAnchorBox
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
-        case StyleProp.HideLinkButton: return props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
+        case StyleProp.HideLinkButton: return isAnchor || props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
             !Doc.IsSystem(doc) && doc.type === DocumentType.RTF ?
                 (doc.author === Doc.CurrentUserEmail ? StrCast(Doc.UserDoc().showTitle) : "author;creationDate") :
                 undefined);
         case StyleProp.Color:
+            if (isCaption) return "white";
             const backColor = backgroundCol() || "black";
             const col = Color(backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
@@ -93,6 +97,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
         case StyleProp.BackgroundColor: {
+            if (isAnchor && docProps) return "transparent";
+            if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
             if (!docProps) {
@@ -144,6 +150,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             }
         }
         case StyleProp.PointerEvents:
+            if (isAnchor && docProps) return "none";
             if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
             if (opacity() === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";

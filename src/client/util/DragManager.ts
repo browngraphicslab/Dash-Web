@@ -109,6 +109,7 @@ export namespace DragManager {
             this.linkDragData = dragData instanceof LinkDragData ? dragData : undefined;
             this.columnDragData = dragData instanceof ColumnDragData ? dragData : undefined;
         }
+        linkDocument?: Doc;
         aborted: boolean;
         docDragData?: DocumentDragData;
         annoDragData?: PdfAnnoDragData;
@@ -143,8 +144,7 @@ export namespace DragManager {
         droppedDocuments: Doc[] = [];
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
-        linkDocument?: Doc;
-        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
+        linkDropCallback?: (data: { linkDocument: Doc }) => void;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -161,7 +161,6 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.offset = [0, 0];
         }
-        linkDocument?: Doc;
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
@@ -169,7 +168,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
-        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
+        linkDropCallback?: (data: { linkDocument: Doc }) => void;
     }
 
     export function MakeDropTarget(

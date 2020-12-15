@@ -153,6 +153,25 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         super(props);
     }
 
+    componentDidMount() { this.componentDidUpdate(); }
+    componentDidUpdate() {
+        this.componentWillUnmount();
+        if (this._mainCont.current) {
+            this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document);
+            this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
+            this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
+            this._holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
+        }
+    }
+    componentWillUnmount() {
+        this._dropDisposer?.();
+        this._gestureEventDisposer?.();
+        this._multiTouchDisposer?.();
+        this._holdDisposer?.();
+        Doc.UnBrushDoc(this.props.Document);
+    }
+
+
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
         this.removeEndListeners();
@@ -194,6 +213,113 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
+    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        if (!e.nativeEvent.cancelBubble && !this.props.isSelected()) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            this.removeMoveListeners();
+            this.addMoveListeners();
+            this.removeEndListeners();
+            this.addEndListeners();
+        }
+    }
+
+    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        SelectionManager.DeselectAll();
+        if (this.Document.onPointerDown) return;
+        const touch = me.touchEvent.changedTouches.item(0);
+        if (touch) {
+            this._downX = touch.clientX;
+            this._downY = touch.clientY;
+            if (!e.nativeEvent.cancelBubble) {
+                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
+                this.removeMoveListeners();
+                this.addMoveListeners();
+                this.removeEndListeners();
+                this.addEndListeners();
+                e.stopPropagation();
+            }
+        }
+    }
+
+    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
+        if ((e as any).formattedHandled) { e.stopPropagation; return; }
+        if (e.cancelBubble && this.active) {
+            this.removeMoveListeners();
+        }
+        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+            const touch = me.touchEvent.changedTouches.item(0);
+            if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
+                    this.cleanUpInteractions();
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
+                }
+            }
+            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+            e.preventDefault();
+        }
+    }
+
+    @action
+    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
+        const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
+        const pt1 = myTouches[0];
+        const pt2 = myTouches[1];
+        const oldPoint1 = this.prevPoints.get(pt1.identifier);
+        const oldPoint2 = this.prevPoints.get(pt2.identifier);
+        const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
+        if (pinching !== 0 && oldPoint1 && oldPoint2) {
+            const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
+            const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
+            const dX = -1 * Math.sign(dW);
+            const dY = -1 * Math.sign(dH);
+
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
+                const doc = Document(this.props.Document);
+                const layoutDoc = Document(Doc.Layout(this.props.Document));
+                let nwidth = Doc.NativeWidth(layoutDoc);
+                let nheight = Doc.NativeHeight(layoutDoc);
+                const width = (layoutDoc._width || 0);
+                const height = (layoutDoc._height || (nheight / nwidth * width));
+                const scale = this.props.ScreenToLocalTransform().Scale * this.ContentScale;
+                const actualdW = Math.max(width + (dW * scale), 20);
+                const actualdH = Math.max(height + (dH * scale), 20);
+                doc.x = (doc.x || 0) + dX * (actualdW - width);
+                doc.y = (doc.y || 0) + dY * (actualdH - height);
+                const fixedAspect = e.ctrlKey || (nwidth && nheight);
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    Doc.SetNativeWidth(layoutDoc, nwidth = layoutDoc._width || 0);
+                    Doc.SetNativeHeight(layoutDoc, nheight = layoutDoc._height || 0);
+                }
+                if (nwidth > 0 && nheight > 0) {
+                    if (Math.abs(dW) > Math.abs(dH)) {
+                        if (!fixedAspect) {
+                            Doc.SetNativeWidth(layoutDoc, actualdW / (layoutDoc._width || 1) * Doc.NativeWidth(layoutDoc));
+                        }
+                        layoutDoc._width = actualdW;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
+                        else layoutDoc._height = actualdH;
+                    }
+                    else {
+                        if (!fixedAspect) {
+                            Doc.SetNativeHeight(layoutDoc, actualdH / (layoutDoc._height || 1) * Doc.NativeHeight(doc));
+                        }
+                        layoutDoc._height = actualdH;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
+                        else layoutDoc._width = actualdW;
+                    }
+                } else {
+                    dW && (layoutDoc._width = actualdW);
+                    dH && (layoutDoc._height = actualdH);
+                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
+                }
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
     @action
     onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
@@ -209,43 +335,15 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         SelectionManager.DeselectAll();
     }
 
-    @action
-    componentDidMount() {
-        this.componentDidUpdate();
-    }
-
-    @action
-    componentDidUpdate() {
-        this._dropDisposer?.();
-        this._gestureEventDisposer?.();
-        this._multiTouchDisposer?.();
-        this._holdDisposer?.();
-        if (this._mainCont.current) {
-            this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document);
-            this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
-            this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
-            this._holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
-        }
-    }
-
-    @action
-    componentWillUnmount() {
-        this._dropDisposer?.();
-        this._gestureEventDisposer?.();
-        this._multiTouchDisposer?.();
-        this._holdDisposer?.();
-        Doc.UnBrushDoc(this.props.Document);
-    }
-
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.ContentScale).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
+            dragData.treeViewDoc = this.props.treeViewDoc;
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;
-            dragData.treeViewDoc = this.props.treeViewDoc;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart });
         }
     }
@@ -334,116 +432,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             stopPropagate && e.stopPropagation();
             preventDefault && e.preventDefault();
         }
-    }).bind(this);
-
-    handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        SelectionManager.DeselectAll();
-        if (this.Document.onPointerDown) return;
-        const touch = me.touchEvent.changedTouches.item(0);
-        if (touch) {
-            this._downX = touch.clientX;
-            this._downY = touch.clientY;
-            if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
-                this.removeMoveListeners();
-                this.addMoveListeners();
-                this.removeEndListeners();
-                this.addEndListeners();
-                e.stopPropagation();
-            }
-        }
-    }
-
-    handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        if ((e as any).formattedHandled) { e.stopPropagation; return; }
-        if (e.cancelBubble && this.active) {
-            this.removeMoveListeners();
-        }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
-
-            const touch = me.touchEvent.changedTouches.item(0);
-            if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
-                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
-                    this.cleanUpInteractions();
-                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
-                }
-            }
-            e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
-            e.preventDefault();
-        }
-    }
-
-    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        if (!e.nativeEvent.cancelBubble && !this.props.isSelected()) {
-            e.stopPropagation();
-            e.preventDefault();
-
-            this.removeMoveListeners();
-            this.addMoveListeners();
-            this.removeEndListeners();
-            this.addEndListeners();
-        }
-    }
-
-
-    @action
-    handle2PointersMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
-        const pt1 = myTouches[0];
-        const pt2 = myTouches[1];
-        const oldPoint1 = this.prevPoints.get(pt1.identifier);
-        const oldPoint2 = this.prevPoints.get(pt2.identifier);
-        const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
-        if (pinching !== 0 && oldPoint1 && oldPoint2) {
-            const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
-            const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
-            const dX = -1 * Math.sign(dW);
-            const dY = -1 * Math.sign(dH);
-
-            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = Document(this.props.Document);
-                const layoutDoc = Document(Doc.Layout(this.props.Document));
-                let nwidth = Doc.NativeWidth(layoutDoc);
-                let nheight = Doc.NativeHeight(layoutDoc);
-                const width = (layoutDoc._width || 0);
-                const height = (layoutDoc._height || (nheight / nwidth * width));
-                const scale = this.props.ScreenToLocalTransform().Scale * this.ContentScale;
-                const actualdW = Math.max(width + (dW * scale), 20);
-                const actualdH = Math.max(height + (dH * scale), 20);
-                doc.x = (doc.x || 0) + dX * (actualdW - width);
-                doc.y = (doc.y || 0) + dY * (actualdH - height);
-                const fixedAspect = e.ctrlKey || (nwidth && nheight);
-                if (fixedAspect && (!nwidth || !nheight)) {
-                    Doc.SetNativeWidth(layoutDoc, nwidth = layoutDoc._width || 0);
-                    Doc.SetNativeHeight(layoutDoc, nheight = layoutDoc._height || 0);
-                }
-                if (nwidth > 0 && nheight > 0) {
-                    if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
-                            Doc.SetNativeWidth(layoutDoc, actualdW / (layoutDoc._width || 1) * Doc.NativeWidth(layoutDoc));
-                        }
-                        layoutDoc._width = actualdW;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
-                        else layoutDoc._height = actualdH;
-                    }
-                    else {
-                        if (!fixedAspect) {
-                            Doc.SetNativeHeight(layoutDoc, actualdH / (layoutDoc._height || 1) * Doc.NativeHeight(doc));
-                        }
-                        layoutDoc._height = actualdH;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
-                        else layoutDoc._width = actualdW;
-                    }
-                } else {
-                    dW && (layoutDoc._width = actualdW);
-                    dH && (layoutDoc._height = actualdH);
-                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
-                }
-            }
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
+    })
 
     onPointerDown = (e: React.PointerEvent): void => {
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
@@ -527,11 +516,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     @undoBatch @action
-    toggleRaiseWhenDragged = () => {
-        this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined;
-    }
-
-    @undoBatch @action
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean): void => {
         this.Document.ignoreClick = false;
         this.Document.isLinkButton = !this.Document.isLinkButton;
@@ -564,7 +548,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         this.Document.isPushpin = false;
         this.Document.onClick = this.layoutDoc.onClick = undefined;
     }
-
     @undoBatch
     noOnClick = (): void => {
         this.Document.ignoreClick = false;
@@ -585,45 +568,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 "linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
-        const makeLink = action((linkDoc: Doc) => {
-            LinkManager.currentLink = linkDoc;
-
-            TaskCompletionBox.textDisplayed = "Link Created";
-            TaskCompletionBox.popupX = de.x;
-            TaskCompletionBox.popupY = de.y - 33;
-            TaskCompletionBox.taskCompleted = true;
-
-            LinkDescriptionPopup.popupX = de.x;
-            LinkDescriptionPopup.popupY = de.y;
-            LinkDescriptionPopup.descriptionPopup = true;
-
-            const rect = document.body.getBoundingClientRect();
-            if (LinkDescriptionPopup.popupX + 200 > rect.width) {
-                LinkDescriptionPopup.popupX -= 190;
-                TaskCompletionBox.popupX -= 40;
-            }
-            if (LinkDescriptionPopup.popupY + 100 > rect.height) {
-                LinkDescriptionPopup.popupY -= 40;
-                TaskCompletionBox.popupY -= 40;
-            }
-
-            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
-        });
-        if (de.complete.annoDragData) {
-            /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
+        const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
+        if (linkSource && linkSource !== this.props.Document) {
             e.stopPropagation();
-            de.complete.annoDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-            de.complete.annoDragData.linkDocument && makeLink(de.complete.annoDragData.linkDocument);
-        }
-        if (de.complete.linkDragData) {
-            e.stopPropagation();
-            const linkSource = de.complete.linkDragData.linkSourceDocument;
-            if (linkSource !== this.props.Document) {
-                const linkDoc = DocUtils.MakeLink({ doc: linkSource }, { doc: this.props.Document }, `link`);
-                linkSource !== this.props.Document && (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
-                linkDoc && makeLink(linkDoc);
-            }
-
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this.props.Document }, "link", undefined, undefined, undefined, [de.x, de.y]);
         }
     }
 
@@ -707,7 +655,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
             zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
             zorderItems.push({ description: "Send to Back", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: this.toggleRaiseWhenDragged, icon: "expand-arrows-alt" });
+            zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: undoBatch(action(() => this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined)), icon: "expand-arrows-alt" });
             !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
             onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
@@ -784,17 +732,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         });
     }
 
-    rootSelected = (outsideReaction?: boolean) => {
-        return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
-    }
-
+    rootSelected = (outsideReaction?: boolean) => { return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false; }
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    onDoubleClickFunc = () => this.onDoubleClickHandler;
-
+    makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
 
@@ -805,41 +749,14 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 pointerEvents: this.props.contentPointerEvents as any,
                 height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
             }}>
-            <DocumentContentsView key={1}
-                renderDepth={this.props.renderDepth}
-                Document={this.props.Document}
-                DataDoc={this.props.DataDoc}
-                fitContentsToDoc={this.props.fitContentsToDoc}
-                ContainingCollectionView={this.props.ContainingCollectionView}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                PanelWidth={this.props.PanelWidth}
-                PanelHeight={this.props.PanelHeight}
+            <DocumentContentsView key={1} {...this.props}
                 scaling={this.contentScaling}
-                layerProvider={this.props.layerProvider}
-                styleProvider={this.props.styleProvider}
-                LayoutTemplateString={this.props.LayoutTemplateString}
-                LayoutTemplate={this.props.LayoutTemplate}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
+                PanelHeight={this.panelHeight}
                 contentsActive={this.setContentsActive}
                 parentActive={this.parentActive}
-                whenActiveChanged={this.props.whenActiveChanged}
-                makeLink={this.makeLink}
-                focus={this.props.focus}
-                dontRegisterView={this.props.dontRegisterView}
-                addDocument={this.props.addDocument}
-                removeDocument={this.props.removeDocument}
-                moveDocument={this.props.moveDocument}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
                 ScreenToLocalTransform={this.screenToLocal}
-                ignoreAutoHeight={this.props.ignoreAutoHeight}
-                bringToFront={this.props.bringToFront}
-                isSelected={this.props.isSelected}
-                select={this.props.select}
+                makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
-                scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
@@ -859,26 +776,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
-    makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
-
     @undoBatch
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
-        if (testDocProps(props)) {
-            switch (property.split(":")[0]) {
-                case StyleProp.BackgroundColor: return "transparent"; // background of linkanchor documentView is transparent since it covers the whole document
-                case StyleProp.HideLinkButton: return true; // don't want linkAnchor documentview to show its own link button
-                case StyleProp.PointerEvents: return "none"; // don't want linkAnchor documentView to handle events (since it covers the whole document).  However, the linkAnchorBox itself is set to pointerEvent all
-            }
-        } else {
-            switch (property.split(":")[0]) {
-                case StyleProp.LinkSource: return this.props.Document; // pass the LinkSource to the LinkAnchorBox
-            }
-        }
-        return this.props.styleProvider?.(doc, props, property);
-    }
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => this.props.styleProvider?.(doc, props, property + ":anchor");
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
@@ -904,11 +806,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
     }
-    captionStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewInternalProps>, property: string) => {
-        if (property === StyleProp.Color) return "white";
-        if (property === StyleProp.BackgroundColor) return "rgba(0,0,0 ,0.4)";
-        return this.props?.styleProvider?.(doc, props, property);
-    }
+    captionStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewInternalProps>, property: string) => this.props?.styleProvider?.(doc, props, property + ":caption");
     @computed get innards() {
         TraceMobx();
         const showTitle = this.ShowTitle;
@@ -938,9 +836,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     display={"block"}
                     fontSize={10}
                     GetValue={() => Field.toString((this.dataDoc || this.props.Document)[showTitle.split(";")[0]] as any as Field)}
-                    SetValue={undoBatch((value: string) => {
-                        showTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[showTitle] = value) ? true : true;
-                    })}
+                    SetValue={undoBatch((value) => showTitle.includes("Date") ? true : (Doc.GetProto(this.dataDoc || this.props.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);
         return this.props.hideTitle || (!showTitle && !showCaption) ?
@@ -988,7 +884,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             onContextMenu={this.onContextMenu}
             onKeyDown={this.onKeyDown}
             onPointerDown={this.onPointerDown}
-            onClick={this.onClick.bind(this)}
+            onClick={this.onClick}
             onPointerEnter={action(e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action(e => {
                 let entered = false;

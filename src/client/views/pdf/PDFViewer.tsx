@@ -633,12 +633,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
-                        e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                    if (!e.aborted && e.annoDragData && !e.linkDocument) {
+                        e.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                     }
                     annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
-                    e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
+                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument above
                 }
             });
         }
