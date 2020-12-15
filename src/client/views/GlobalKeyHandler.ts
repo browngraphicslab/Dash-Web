@@ -180,7 +180,7 @@ export class KeyManager {
             case "ƒ":
             case "f":
                 const dv = SelectionManager.SelectedDocuments()?.[0];
-                dv && DocumentView.FloatDoc(dv);
+                UndoManager.RunInBatch(() => dv?.float(), "float");
         }
 
         return {

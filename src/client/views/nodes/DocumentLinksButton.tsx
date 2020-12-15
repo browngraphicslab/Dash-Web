@@ -59,8 +59,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                             // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
                             // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
                             dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
-                            runInAction(() => this.props.View._link = linkDoc);
-                            setTimeout(action(() => this.props.View._link = undefined), 0);
+                            runInAction(() => this.props.View.LinkBeingCreated = linkDoc);
+                            setTimeout(action(() => this.props.View.LinkBeingCreated = undefined), 0);
                         }
                         linkDrag?.end();
                     },
@@ -164,11 +164,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag", undefined, undefined, true);
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
             if (endLinkView) {
-                endLinkView._link = linkDoc;
-                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = linkDoc);
+                endLinkView.LinkBeingCreated = linkDoc;
+                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = linkDoc);
                 setTimeout(action(() => {
-                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = undefined);
-                    endLinkView._link = undefined;
+                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = undefined);
+                    endLinkView.LinkBeingCreated = undefined;
                 }), 0);
             }
             LinkManager.currentLink = linkDoc;

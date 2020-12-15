@@ -26,11 +26,9 @@ export class DashDocView {
     //moved
     getDocTransform = () => {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
-        return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
+        return new Transform(-translateX, -translateY, 1).scale(1 / scale);
     }
 
-    //moved
-    contentScaling = () => Doc.NativeWidth(this._dashDoc) > 0 ? this._dashDoc![WidthSym]() / Doc.NativeWidth(this._dashDoc) : 1;
 
     //moved
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
@@ -155,7 +153,6 @@ export class DashDocView {
                     searchFilterDocs={this._textBox.props.searchFilterDocs}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
-                    ContentScaling={this.contentScaling}
                 />, this._dashSpan);
 
                 if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {

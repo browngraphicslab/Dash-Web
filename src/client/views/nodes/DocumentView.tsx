@@ -90,17 +90,17 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     radialMenu?: String[];
     LayoutTemplateString?: string;
     dontCenter?: "x" | "y" | "xy";
+    ContentScaling?: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     NativeWidth?: () => number;
     NativeHeight?: () => number;
     LayoutTemplate?: () => Opt<Doc>;
-    ContentScaling?: () => number; // scaling the DocumentView does to transform its contents into its panel & needed by ScreenToLocal
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
     onPointerUp?: () => ScriptField;
 }
 
-export interface DocumentViewInternalProps {
+export interface DocumentViewInternalProps extends DocumentViewProps {
     NativeWidth: () => number;
     NativeHeight: () => number;
     isSelected: (outsideReaction?: boolean) => boolean;
@@ -109,7 +109,7 @@ export interface DocumentViewInternalProps {
 }
 
 @observer
-export class DocumentViewInternal extends DocComponent<DocumentViewProps & DocumentViewInternalProps, Document>(Document) {
+export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
     private _downX: number = 0;
     private _downY: number = 0;
@@ -134,7 +134,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewProps & Docum
     @computed get ContentScale() { return this.props.ContentScaling?.() || 1; }
     @computed get hidden() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Hidden); }
     @computed get opacity() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Opacity); }
-    @computed get borderRounding() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow); }
+    @computed get borderRounding() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding); }
     @computed get hideLinkButton() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HideLinkButton + (this.props.isSelected() ? ":selected" : "")); }
     @computed get widgetDecorations() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Decorations + (this.props.isSelected() ? ":selected" : "")); }
     @computed get backgroundColor() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor); }
@@ -904,7 +904,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewProps & Docum
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
     }
-    captionStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps>, property: string) => {
+    captionStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewInternalProps>, property: string) => {
         if (property === StyleProp.Color) return "white";
         if (property === StyleProp.BackgroundColor) return "rgba(0,0,0 ,0.4)";
         return this.props?.styleProvider?.(doc, props, property);
@@ -951,7 +951,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewProps & Docum
             </div>;
     }
 
-
     @computed get renderDoc() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc) || GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate || this.hidden) return null;
@@ -996,6 +995,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewProps & Docum
                 !entered && Doc.UnBrushDoc(this.props.Document);
             })}
             style={{
+                borderRadius: this.borderRounding,
                 pointerEvents: this.pointerEvents,
                 outline: highlighting && !this.borderRounding ? `${highlightColor} ${highlightStyle} ${highlightIndex}px` : "solid 0px",
                 border: highlighting && this.borderRounding && highlightStyle === "dashed" ? `${highlightStyle} ${highlightColor} ${highlightIndex}px` : undefined,
@@ -1010,19 +1010,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewProps & Docum
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string = "layout") {
-    const dv = DocumentManager.Instance.getDocumentView(doc);
-    if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
-    else dv?.switchViews(true, layoutKey.replace("layout_", ""));
-});
-
 @observer
 export class DocumentView extends React.Component<DocumentViewProps> {
     public static ROOT_DIV = "documentView-effectsWrapper";
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     public ContentRef = React.createRef<HTMLDivElement>();
 
-    @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
+    @observable LinkBeingCreated: Opt<Doc>;  // see DocumentLinksButton for explanation of how this works
     @observable public docView: DocumentViewInternal | undefined | null;
 
     get rootDoc() { return this.docView?.rootDoc || this.Document; }
@@ -1034,7 +1028,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean) => this.docView?.toggleFollowLink(location, zoom, setPushpin);
     toggleNativeDimensions = () => this.docView?.toggleNativeDimensions();
     contentsActive = () => this.docView?.contentsActive();
-
 
     // follows a link - if the target is on screen, it highlights/pans to it.
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
@@ -1070,9 +1063,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
-    @undoBatch @action
-    public static FloatDoc(topDocView: DocumentView) {
-        const { Document: topDoc, ContainingCollectionView: container } = topDocView.props;
+    @action public float = () => {
+        const { Document: topDoc, ContainingCollectionView: container } = this.props;
         const screenXf = container?.screenToLocalTransform();
         if (screenXf) {
             SelectionManager.DeselectAll();
@@ -1081,10 +1073,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 topDoc.z = 0;
                 topDoc.x = spt[0];
                 topDoc.y = spt[1];
-                topDocView.props.removeDocument?.(topDoc);
-                topDocView.props.addDocTab(topDoc, "inParent");
+                this.props.removeDocument?.(topDoc);
+                this.props.addDocTab(topDoc, "inParent");
             } else {
-                const spt = topDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                 const fpt = screenXf.transformPoint(spt[0], spt[1]);
                 topDoc.z = 1;
                 topDoc.x = fpt[0];
@@ -1129,22 +1121,14 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.YShift; }
 
     getBounds = () => {
-        if (!this.docView ||
-            !this.docView.ContentDiv ||
-            this.docView.props.renderDepth === 0 ||
-            this.docView.props.treeViewDoc ||
-            Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
+        if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
             return undefined;
         }
-        const xf = this.docView?.props.ScreenToLocalTransform();
-        const transform = (xf.scale(this.nativeScaling)).inverse();
-        var [left, top] = transform.transformPoint(0, 0);
-        let [right, bottom] = transform.transformPoint(this.PanelWidth(), this.PanelHeight());
+        const xf = (this.docView?.props.ScreenToLocalTransform().scale(this.nativeScaling)).inverse();
+        const [[left, top], [right, bottom]] = [xf.transformPoint(0, 0), xf.transformPoint(this.panelWidth, this.panelHeight)];
         if (this.docView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
             const docuBox = this.docView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
-            if (docuBox.length) {
-                return docuBox[0].getBoundingClientRect();
-            }
+            if (docuBox.length) return docuBox[0].getBoundingClientRect();
         }
         return { left, top, right, bottom };
     }
@@ -1185,9 +1169,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
 
     componentDidMount() {
-        if (!BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView)) {
-            DocumentManager.Instance.AddView(this);
-        }
+        !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);
     }
     componentWillUnmount() {
         !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
@@ -1195,30 +1177,37 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         TraceMobx();
+        const internalProps = {
+            ...this.props,
+            DocumentView: this,
+            PanelWidth: this.PanelWidth,
+            PanelHeight: this.PanelHeight,
+            NativeWidth: this.NativeWidth,
+            NativeHeight: this.NativeHeight,
+            isSelected: this.isSelected,
+            select: this.select,
+            ContentScaling: this.ContentScale,
+            ScreenToLocalTransform: this.screenToLocalTransform,
+            focus: this.props.focus || emptyFunction,
+            bringToFront: emptyFunction,
+        }
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        borderRadius: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.PointerEvents),
                         width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
                         height: Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                     }}>
-                    <DocumentViewInternal {...this.props}
-                        DocumentView={this}
-                        ref={action((r: DocumentViewInternal | null) => this.docView = r)}
-                        PanelWidth={this.PanelWidth}
-                        PanelHeight={this.PanelHeight}
-                        NativeWidth={this.NativeWidth}
-                        NativeHeight={this.NativeHeight}
-                        isSelected={this.isSelected}
-                        select={this.select}
-                        ContentScaling={this.ContentScale}
-                        ScreenToLocalTransform={this.screenToLocalTransform}
-                        focus={this.props.focus || emptyFunction}
-                        bringToFront={emptyFunction}
-                    />
+                    <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}
         </div>);
     }
 }
+
+
+Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string = "layout") {
+    const dv = DocumentManager.Instance.getDocumentView(doc);
+    if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
+    else dv?.switchViews(true, layoutKey.replace("layout_", ""));
+});

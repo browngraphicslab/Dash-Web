@@ -61,14 +61,14 @@ function toggleBackground(doc: Doc) {
 }
 
 export function testDocProps(toBeDetermined: any): toBeDetermined is DocumentViewProps {
-    return (toBeDetermined?.select) ? false : true;
+    return (toBeDetermined?.active) ? undefined : toBeDetermined;
 }
 
 //
 // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
 // 
 export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any {
-    const docProps = testDocProps(props);
+    const docProps = testDocProps(props) ? props : undefined;
     const selected = property.includes(":selected");
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
@@ -133,7 +133,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                     `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / ((docProps && (props as DocumentViewProps).ContentScaling?.()) || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${props?.styleProvider?.(doc, props, StyleProp.BackgroundColor)} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                             isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                 StrCast(doc.boxShadow, "");
             }

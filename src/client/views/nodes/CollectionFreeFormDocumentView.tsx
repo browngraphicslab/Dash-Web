@@ -144,7 +144,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             CollectionFreeFormDocumentView: this.returnThis,
             styleProvider: this.styleProvider,
             ScreenToLocalTransform: this.screenToLocalTransform,
-            ContentScaling: returnOne,
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight,
         };

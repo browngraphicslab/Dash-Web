@@ -246,7 +246,6 @@ export class DashDocView extends React.Component<IDashDocView> {
                             searchFilterDocs={this.props.tbox?.props.searchFilterDocs || returnEmptyDoclist}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
-                            ContentScaling={this.contentScaling}
                         />
 
                     </div>
