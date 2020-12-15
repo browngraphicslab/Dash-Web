@@ -45,7 +45,6 @@ export default class Palette extends React.Component<PaletteProps> {
                             rootSelected={returnTrue}
                             pinToPres={emptyFunction}
                             removeDocument={undefined}
-                            onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             PanelWidth={() => window.screen.width}
                             PanelHeight={() => window.screen.height}

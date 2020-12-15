@@ -146,7 +146,6 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 pinToPres={emptyFunction}
                                 rootSelected={this.props.isSelected}
                                 removeDocument={this.props.removeDocument}
-                                onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 PanelWidth={nested ? pair.layout[WidthSym] : this.dimension}
                                 PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}

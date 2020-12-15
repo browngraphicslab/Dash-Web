@@ -89,7 +89,6 @@ export class AudioUpload extends React.Component {
                         docFilters={returnEmptyFilter}
                         docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}
-                        onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         PanelWidth={() => 600}
                         PanelHeight={() => 400}

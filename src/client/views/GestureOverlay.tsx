@@ -893,7 +893,6 @@ export class GestureOverlay extends Touchable {
                 addDocTab={returnFalse}
                 rootSelected={returnTrue}
                 pinToPres={emptyFunction}
-                onClick={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 PanelWidth={this.return300}

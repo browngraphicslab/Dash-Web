@@ -247,7 +247,6 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
-            onClick={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             PanelWidth={this.getPWidth}
@@ -310,7 +309,6 @@ export class MainView extends React.Component {
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
-                        onClick={undefined}
                         ScreenToLocalTransform={this.mainContainerXf}
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
@@ -341,7 +339,6 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
-                onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
@@ -460,7 +457,6 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
@@ -521,7 +517,6 @@ export class MainView extends React.Component {
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
-                onClick={undefined}
                 styleProvider={DefaultStyleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}

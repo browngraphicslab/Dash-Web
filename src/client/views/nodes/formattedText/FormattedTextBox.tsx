@@ -1287,9 +1287,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.doLinkOnDeselect();
         this._downEvent = true;
         FormattedTextBoxComment.textBox = this;
-        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
-            e.preventDefault();
-        }
         if (e.button === 0 && (this.props.rootSelected(true) || this.props.isSelected(true)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
                 e.stopPropagation();  // if the text box is selected, then it consumes all down events
@@ -1320,12 +1317,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @action
     onDoubleClick = (e: React.MouseEvent): void => {
-
         this.doLinkOnDeselect();
         FormattedTextBoxComment.textBox = this;
-        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
-            e.preventDefault();
-        }
         if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
                 e.stopPropagation();  // if the text box is selected, then it consumes all down events
@@ -1715,7 +1708,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         <div className={minimal ? "formattedTextBox-minimal" : `formattedTextBox-inner${rounded}${selPaddingClass}`} ref={this.createDropTarget}
                             style={{
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${padding}px`,
-                                pointerEvents: !active && !SnappingManager.GetIsDragging() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
+                                pointerEvents: !active && !SnappingManager.GetIsDragging() ? (this.layoutDoc.isLinkButton ? "none" : undefined) : undefined
                             }}
                         />
                     </div>

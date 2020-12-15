@@ -206,7 +206,6 @@ export class MobileInterface extends React.Component {
                     pinToPres={emptyFunction}
                     rootSelected={returnFalse}
                     removeDocument={undefined}
-                    onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}

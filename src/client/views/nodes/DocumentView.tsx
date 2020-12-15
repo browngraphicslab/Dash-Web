@@ -74,7 +74,6 @@ export interface DocumentViewSharedProps {
     pinToPres: (document: Doc) => void;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    onClick?: () => ScriptField;
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
     ignoreAutoHeight?: boolean;
@@ -95,6 +94,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     NativeHeight?: () => number;
     LayoutTemplate?: () => Opt<Doc>;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
+    onClick?: () => ScriptField;
     onDoubleClick?: () => ScriptField;
     onPointerDown?: () => ScriptField;
     onPointerUp?: () => ScriptField;
@@ -1190,7 +1190,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             ScreenToLocalTransform: this.screenToLocalTransform,
             focus: this.props.focus || emptyFunction,
             bringToFront: emptyFunction,
-        }
+        };
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
