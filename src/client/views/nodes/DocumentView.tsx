@@ -153,9 +153,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         super(props);
     }
 
+    componentWillUnmount() { this.cleanupHandlers(true); }
     componentDidMount() { this.componentDidUpdate(); }
     componentDidUpdate() {
-        this.componentWillUnmount();
+        this.cleanupHandlers(false);
         if (this._mainCont.current) {
             this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document);
             this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
@@ -163,12 +164,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this._holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
         }
     }
-    componentWillUnmount() {
+    cleanupHandlers(unbrush: boolean) {
         this._dropDisposer?.();
         this._gestureEventDisposer?.();
         this._multiTouchDisposer?.();
         this._holdDisposer?.();
-        Doc.UnBrushDoc(this.props.Document);
+        unbrush && Doc.UnBrushDoc(this.props.Document);
     }
 
 
@@ -432,7 +433,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             stopPropagate && e.stopPropagation();
             preventDefault && e.preventDefault();
         }
-    })
+    });
 
     onPointerDown = (e: React.PointerEvent): void => {
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
@@ -732,7 +733,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         });
     }
 
-    rootSelected = (outsideReaction?: boolean) => { return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false; }
+    rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     panelHeight = () => this.props.PanelHeight() - this.headerMargin;
     parentActive = (outsideReaction: boolean) => this.props.layerProvider?.(this.layoutDoc) === false ? this.props.parentActive(outsideReaction) : false;
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);

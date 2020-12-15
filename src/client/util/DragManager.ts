@@ -412,13 +412,12 @@ export namespace DragManager {
             return dragElement;
         });
 
-        const hideSource = options?.hideSource ? true : false;
         const hideDragShowOriginalElements = (hide: boolean) => {
             dragLabel.style.display = hide ? "" : "none";
             !hide && dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.forEach(ele => ele.hidden = hide);
         };
-        hideDragShowOriginalElements(hideSource);
+        options?.hideSource && hideDragShowOriginalElements(true);
 
         SnappingManager.SetIsDragging(true);
         let lastX = downX;
