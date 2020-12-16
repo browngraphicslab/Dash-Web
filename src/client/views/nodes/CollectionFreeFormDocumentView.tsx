@@ -17,6 +17,7 @@ import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldViewProps } from "./FieldView";
 import React = require("react");
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { SelectionManager } from "../../util/SelectionManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -125,6 +126,30 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             doc.dataTransition = "inherit";
         });
     }
+
+    @action public float = () => {
+        const { Document: topDoc, ContainingCollectionView: container } = this.props;
+        const screenXf = container?.screenToLocalTransform();
+        if (screenXf) {
+            SelectionManager.DeselectAll();
+            if (topDoc.z) {
+                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
+                topDoc.z = 0;
+                topDoc.x = spt[0];
+                topDoc.y = spt[1];
+                this.props.removeDocument?.(topDoc);
+                this.props.addDocTab(topDoc, "inParent");
+            } else {
+                const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const fpt = screenXf.transformPoint(spt[0], spt[1]);
+                topDoc.z = 1;
+                topDoc.x = fpt[0];
+                topDoc.y = fpt[1];
+            }
+            setTimeout(() => SelectionManager.SelectView(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
+        }
+    }
+
 
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;

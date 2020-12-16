@@ -10,7 +10,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Ty
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnFalse, Utils, returnVal } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -31,17 +31,15 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { InkStrokeProperties } from '../InkStrokeProperties';
-import { StyleLayers, StyleProp, testDocProps } from "../StyleProvider";
+import { StyleLayers, StyleProp } from "../StyleProvider";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { FieldViewProps } from "./FieldView";
 import { LinkAnchorBox } from './LinkAnchorBox';
-import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
-import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
@@ -149,10 +147,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
     @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
 
-    constructor(props: any) {
-        super(props);
-    }
-
     componentWillUnmount() { this.cleanupHandlers(true); }
     componentDidMount() { this.setupHandlers(); }
     componentDidUpdate() { this.setupHandlers(); }
@@ -172,7 +166,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         this._holdDisposer?.();
         unbrush && Doc.UnBrushDoc(this.props.Document);
     }
-
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
@@ -352,6 +345,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 () => setTimeout(action(() => ffview && (ffview().props.CollectionFreeFormView.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
         }
     }
+
     onKeyDown = (e: React.KeyboardEvent) => {
         if (e.altKey && !e.nativeEvent.cancelBubble) {
             e.stopPropagation();
@@ -791,17 +785,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
         return this.props.styleProvider?.(doc, props, property + ":anchor");
     }
-
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
     @computed get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
-        if (this.layoutDoc.presBox ||  // presentationbox nodes
-            this.rootDoc.type === DocumentType.LINK ||
-            this.props.dontRegisterView) {// view that are not registered
-            return (null);
-        }
+        if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
+
         const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink(d));
         return filtered.map((d, i) =>
             <div className="documentView-anchorCont" key={i + 1}>
@@ -816,6 +806,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
             </div >);
     }
+
     captionStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewInternalProps>, property: string) => this.props?.styleProvider?.(doc, props, property + ":caption");
     @computed get innards() {
         TraceMobx();
@@ -856,7 +847,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 {captionView}
             </div>;
     }
-
     @computed get renderDoc() {
         TraceMobx();
         if (!(this.props.Document instanceof Doc) || GetEffectiveAcl(this.props.Document[DataSym]) === AclPrivate || this.hidden) return null;
@@ -934,29 +924,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean) => this.docView?.toggleFollowLink(location, zoom, setPushpin);
     toggleNativeDimensions = () => this.docView?.toggleNativeDimensions();
     contentsActive = () => this.docView?.contentsActive();
-
-    @action public float = () => {
-        const { Document: topDoc, ContainingCollectionView: container } = this.props;
-        const screenXf = container?.screenToLocalTransform();
-        if (screenXf) {
-            SelectionManager.DeselectAll();
-            if (topDoc.z) {
-                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
-                topDoc.z = 0;
-                topDoc.x = spt[0];
-                topDoc.y = spt[1];
-                this.props.removeDocument?.(topDoc);
-                this.props.addDocTab(topDoc, "inParent");
-            } else {
-                const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-                const fpt = screenXf.transformPoint(spt[0], spt[1]);
-                topDoc.z = 1;
-                topDoc.x = fpt[0];
-                topDoc.y = fpt[1];
-            }
-            setTimeout(() => SelectionManager.SelectView(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
-        }
-    }
 
     get Document() { return this.props.Document; }
     get topMost() { return this.props.renderDepth === 0; }
