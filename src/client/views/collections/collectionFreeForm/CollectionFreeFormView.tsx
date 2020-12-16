@@ -1406,7 +1406,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     onPointerOver = (e: React.PointerEvent) => {
-        (DocumentDecorations.Instance.Interacting || (this.props.layerProvider?.(this.props.Document) === false && SnappingManager.GetIsDragging())) && this.setupDragLines(e.ctrlKey || e.shiftKey);
+        (DocumentDecorations.Instance.Interacting || (this.props.layerProvider?.(this.props.Document) !== false && SnappingManager.GetIsDragging())) && this.setupDragLines(e.ctrlKey || e.shiftKey);
         e.stopPropagation();
     }
 
@@ -1506,7 +1506,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
             <div ref={this._marqueeRef}>
-                {this.layoutDoc["_backgroundGrid-show"] ? this.backgroundGrid : (null)}
+                {this.layoutDoc["_backgroundGrid-show"] && (!SnappingManager.GetIsDragging() || !Doc.UserDoc().showSnapLines) ? this.backgroundGrid : (null)}
                 <CollectionFreeFormViewPannableContents
                     isAnnotationOverlay={this.isAnnotationOverlay}
                     centeringShiftX={this.centeringShiftX}
