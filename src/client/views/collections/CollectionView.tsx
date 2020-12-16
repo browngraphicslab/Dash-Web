@@ -147,7 +147,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
 
                 if (effectiveAcl === AclAddonly) {
                     added.map(doc => {
-                        this.props.layerProvider?.(doc, true);
+                        this.props.layerProvider?.(doc, true);// assigns layer values to the newly added document... testing the utility of this
                         Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
                         doc.context = this.props.Document;
                     });
@@ -172,7 +172,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
-                    added.map(doc => this.props.layerProvider?.(doc, true));
+                    added.map(doc => this.props.layerProvider?.(doc, true));// assigns layer values to the newly added document... testing the utility of this
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 }

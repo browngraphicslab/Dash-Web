@@ -1575,7 +1575,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     </svg>
                 </div>}
 
-            {(this.ChildDrag || this.props.layerProvider?.(this.props.Document) === false) && SnappingManager.GetIsDragging() && this.props.Document._isGroup ?
+            {this.props.Document._isGroup && SnappingManager.GetIsDragging() && (this.ChildDrag || this.props.layerProvider?.(this.props.Document) === false) ?
                 <div className="collectionFreeForm-groupDropper" ref={this.createDashEventsTarget} style={{
                     width: this.ChildDrag ? "10000" : "100%",
                     height: this.ChildDrag ? "10000" : "100%",
