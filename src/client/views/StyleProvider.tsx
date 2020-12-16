@@ -4,19 +4,20 @@ import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
 import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
-import { BoolCast, Cast, StrCast, NumCast } from "../../fields/Types";
+import { listSpec } from '../../fields/Schema';
+import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
+import { returnFalse } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { SnappingManager } from '../util/SnappingManager';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionViewType } from './collections/CollectionView';
+import { MainView } from './MainView';
 import { DocumentViewProps } from "./nodes/DocumentView";
+import { FieldViewProps } from './nodes/FieldView';
 import "./StyleProvider.scss";
 import React = require("react");
 import Color = require('color');
-import { listSpec } from '../../fields/Schema';
-import { MainView } from './MainView';
-import { FieldViewProps } from './nodes/FieldView';
 
 export enum StyleLayers {
     Background = "background"
@@ -43,19 +44,12 @@ function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkSc
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {
-        let layers = StrListCast(doc.layers);
+        const layers = StrListCast(doc.layers);
         if (!layers.includes(StyleLayers.Background)) {
-            if (!layers.length) doc.layers = layers = new List<string>([StyleLayers.Background]);
+            if (!layers.length) doc.layers = new List<string>([StyleLayers.Background]);
             else layers.push(StyleLayers.Background);
         }
         else layers.splice(layers.indexOf(StyleLayers.Background), 1);
-        if (!layers.includes(StyleLayers.Background)) {
-            //this.props.bringToFront(doc, true);
-            // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
-            // const hgt = this.Document[HeightSym]();
-            // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
-            // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
-        }
     }), "toggleBackground");
 }
 
@@ -190,7 +184,7 @@ export function DefaultLayerProvider(thisDoc: Doc) {
             return true;
         } else {
             if (Doc.AreProtosEqual(doc, thisDoc)) return true;
-            const layers = Cast(doc.layers, listSpec("string"), []);
+            const layers = StrListCast(doc.layers);
             if (!layers.length && !thisDoc?.activeLayer) return true;
             if (layers.includes(StrCast(thisDoc?.activeLayer))) return true;
             return false;
