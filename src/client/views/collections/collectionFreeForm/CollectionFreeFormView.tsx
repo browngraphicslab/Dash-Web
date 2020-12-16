@@ -1318,6 +1318,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
         !Doc.UserDoc().noviceMode && Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        this.props.ContainingCollectionView &&
+            appearanceItems.push({ description: "Ungroup collection", event: this.promoteCollection, icon: "table" });
         !Doc.UserDoc().noviceMode ? appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" }) : null;
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
@@ -1332,8 +1334,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this._showAnimTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this._showAnimTimeline = !this._showAnimTimeline), icon: "eye" });
-        this.props.ContainingCollectionView &&
-            optionItems.push({ description: "Ungroup collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         this.props.renderDepth && optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
