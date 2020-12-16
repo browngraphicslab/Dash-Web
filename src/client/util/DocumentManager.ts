@@ -7,10 +7,10 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
+import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
+import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
-import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
-import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -46,12 +46,12 @@ export class DocumentManager {
         });
         this.DocumentViews.push(view);
     }
-    public RemoveView = (view: DocumentView) => {
+    public RemoveView = action((view: DocumentView) => {
         const index = this.DocumentViews.indexOf(view);
         index !== -1 && this.DocumentViews.splice(index, 1);
 
         this.LinkedDocumentViews.slice().forEach(action((pair, i) => pair.a === view || pair.b === view ? this.LinkedDocumentViews.splice(i, 1) : null));
-    }
+    })
 
     //gets all views
     public getDocumentViewsById(id: string) {

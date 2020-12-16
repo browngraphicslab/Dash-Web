@@ -2,20 +2,19 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import ReactLoading from 'react-loading';
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
-import { NumCast, Cast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
+import { Cast, NumCast } from "../../fields/Types";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../Utils";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { DragManager } from "../util/DragManager";
+import { Scripting } from "../util/Scripting";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
 import './OverlayView.scss';
-import { Scripting } from "../util/Scripting";
 import { ScriptingRepl } from './ScriptingRepl';
-import { DragManager } from "../util/DragManager";
-import { List } from "../../fields/List";
-import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import { TabDocView } from "./collections/TabDocView";
+import { DefaultStyleProvider } from "./StyleProvider";
 
 export type OverlayDisposer = () => void;
 
@@ -182,13 +181,10 @@ export class OverlayView extends React.Component {
             return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ top: d.type === 'presentation' ? 0 : undefined, width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
-                    LibraryPath={emptyPath}
-                    ChromeHeight={returnZero}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}
-                    ContentScaling={returnOne}
                     PanelWidth={returnOne}
                     PanelHeight={returnOne}
                     ScreenToLocalTransform={Transform.Identity}
@@ -196,7 +192,7 @@ export class OverlayView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
-                    styleProvider={TabDocView.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

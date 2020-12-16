@@ -25,7 +25,7 @@ export class InkStrokeProperties {
     }
 
     @computed get selectedInk() {
-        const inks = SelectionManager.SelectedDocuments().filter(i => Document(i.rootDoc).type === DocumentType.INK);
+        const inks = SelectionManager.Views().filter(i => Document(i.rootDoc).type === DocumentType.INK);
         return inks.length ? inks : undefined;
     }
     @computed get unFilled() { return this.selectedInk?.reduce((p, i) => p && !i.rootDoc.fillColor ? true : false, true) || false; }
@@ -150,7 +150,7 @@ export class InkStrokeProperties {
     @action
     rotate = (angle: number) => {
         const _centerPoints: { X: number, Y: number }[] = [];
-        SelectionManager.SelectedDocuments().forEach(action(inkView => {
+        SelectionManager.Views().forEach(action(inkView => {
             const doc = Document(inkView.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 const ink = Cast(doc.data, InkField)?.inkData;
@@ -167,7 +167,7 @@ export class InkStrokeProperties {
         }));
 
         var index = 0;
-        SelectionManager.SelectedDocuments().forEach(action(inkView => {
+        SelectionManager.Views().forEach(action(inkView => {
             const doc = Document(inkView.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 doc.rotation = Number(doc.rotation) + Number(angle);

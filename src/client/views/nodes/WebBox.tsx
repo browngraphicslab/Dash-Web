@@ -452,12 +452,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @computed
     get content() {
         const view = this.urlContent;
-
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance?.Interacting;
+        const scale = this.props.scaling?.() || 1;
 
         return (<>
             <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
-                style={{ width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || (Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%") }}
+                style={{
+                    width: `${100 / scale}%`,
+                    height: `${100 / scale}%`,
+                    transform: `scale(${scale})`
+                }}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>
@@ -542,8 +546,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
-                        e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                    if (!e.aborted && e.annoDragData && !e.linkDocument) {
+                        e.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         annotationDoc.isLinkButton = true;
                         annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
                     }
@@ -646,33 +650,22 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeight = () => {
-        if (this._mainCont.current) {
-            const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const scaling = (Doc.NativeWidth(this.Document) || 0) / boundingRect.width;
-            return Math.min(boundingRect.height * scaling, this.props.PanelHeight() * scaling);
-        }
-        return this.props.PanelHeight();
-    }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
-        const scaling = Number.isFinite(this.props.ContentScaling()) ? this.props.ContentScaling() || 1 : 1;
+        const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
+        const scale = this.props.scaling?.() || 1;
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
-                style={{
-                    position: undefined,
-                    transform: `scale(${scaling})`,
-                    width: `${100 / scaling}% `,
-                    height: `${100 / scaling}% `,
-                    pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
-                }}
+                style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: `${Math.max(100, 100 / scaling)}% `,
-                        pointerEvents: this.layoutDoc.isAnnotating && this.props.layerProvider?.(this.layoutDoc) !== false ? "all" : "none"
+                        width: `${100 / scale}%`,
+                        height: `${100 / scale}%`,
+                        transform: `scale(${scale})`,
+                        pointerEvents: this.layoutDoc.isAnnotating && !inactiveLayer ? "all" : "none"
                     }}
                     onWheel={e => {
                         const target = this._outerRef.current;
@@ -694,31 +687,22 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 >
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.scrollHeight, 50),
-                        pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined
+                        pointerEvents: inactiveLayer ? "none" : undefined
                     }}>
                         <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                            PanelHeight={this.props.PanelHeight}
-                            PanelWidth={this.props.PanelWidth}
-                            annotationsKey={this.annotationKey}
-                            VisibleHeight={this.visibleHeight}
-                            focus={this.props.focus}
-                            setPreviewCursor={this.setPreviewCursor}
-                            isSelected={this.props.isSelected}
+                            renderDepth={this.props.renderDepth + 1}
+                            CollectionView={undefined}
+                            fieldKey={this.annotationKey}
                             isAnnotationOverlay={true}
-                            select={emptyFunction}
-                            active={this.active}
-                            ContentScaling={returnOne}
-                            whenActiveChanged={this.whenActiveChanged}
+                            scaling={returnOne}
+                            ScreenToLocalTransform={this.scrollXf}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
                             addDocument={this.addDocument}
-                            CollectionView={undefined}
-                            ScreenToLocalTransform={this.scrollXf}
-                            renderDepth={this.props.renderDepth + 1}
-                            docFilters={this.props.docFilters}
-                            docRangeFilters={this.props.docRangeFilters}
-                            searchFilterDocs={this.props.searchFilterDocs}
-                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                            setPreviewCursor={this.setPreviewCursor}
+                            select={emptyFunction}
+                            active={this.active}
+                            whenActiveChanged={this.whenActiveChanged}>
                         </CollectionFreeFormView>
                     </div>
                 </div>

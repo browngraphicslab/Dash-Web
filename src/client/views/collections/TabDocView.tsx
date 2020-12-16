@@ -6,14 +6,15 @@ import { clamp } from 'lodash';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import { DataSym, Doc, DocListCast, Opt, DocListCastAsync, StrListCast, WidthSym, HeightSym } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
-import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
+import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -21,18 +22,17 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocumentView, DocAfterFocusFunc } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { FieldViewProps } from '../nodes/FieldView';
 import { PresBox, PresMovement } from '../nodes/PresBox';
+import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } from '../StyleProvider';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
-import { List } from '../../../fields/List';
-import { DocumentType } from '../../documents/DocumentTypes';
 import Color = require('color');
-import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -50,6 +50,16 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @observable private _isActive: boolean = false;
     @observable private _document: Doc | undefined;
     @observable private _view: DocumentView | undefined;
+
+    @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
+    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
+    @computed get renderBounds() {
+        const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
+        const xbounds = bounds[2] - bounds[0];
+        const ybounds = bounds[3] - bounds[1];
+        const dim = Math.max(xbounds, ybounds);
+        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
+    }
 
     get stack() { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
@@ -85,7 +95,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 toggle.style.borderLeft = "solid 1px black";
                 toggle.onclick = (e: MouseEvent) => {
                     if (tab.contentItem === tab.header.parent.getActiveContentItem()) {
-                        tab.DashDoc.activeLayer = tab.DashDoc.activeLayer ? undefined : "background";
+                        tab.DashDoc.activeLayer = tab.DashDoc.activeLayer ? undefined : StyleLayers.Background;
                     }
                 };
                 tab.element[0].style.borderTopRightRadius = "8px";
@@ -105,15 +115,16 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             };
 
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
-            titleEle.onpointerdown = (e: any) => {
-                if (e.target.className !== "lm_close_tab" && this.view) {
-                    SelectionManager.SelectDoc(this.view, false);
+            titleEle.onpointerdown = action((e: any) => {
+                if (e.target.className !== "lm_close_tab") {
+                    if (this.view) SelectionManager.SelectView(this.view, false);
+                    else this._activated = true;
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
                     titleEle.lastClick = Date.now();
                     (document.activeElement !== titleEle) && titleEle.focus();
                 }
-            };
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => (v.topMost || v.props.treeViewDoc) && v.props.Document === doc),
+            });
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.Views().some(v => v.topMost && v.props.Document === doc),
                 action((selected) => {
                     if (selected) this._activated = true;
                     const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;
@@ -211,7 +222,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     componentDidMount() {
-        const selected = () => SelectionManager.SelectedDocuments().some(v => v.props.Document === this._document);
+        const selected = () => SelectionManager.Views().some(v => v.props.Document === this._document);
         new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
@@ -239,49 +250,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    NativeAspect = () => this.nativeAspect;
-    PanelWidth = () => this.panelWidth;
-    PanelHeight = () => this.panelHeight;
-    nativeWidth = () => this._nativeWidth;
-    nativeHeight = () => this._nativeHeight;
-    ContentScaling = () => this.contentScaling;
-
-    ScreenToLocalTransform = () => {
-        if (this._mainCont?.children) {
-            const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0]?.firstChild as HTMLElement);
-            const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.ContentScaling() / scale);
-        }
-        return Transform.Identity();
-    }
-    @computed get nativeAspect() {
-        return this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
-    }
-    @computed get panelHeight() {
-        return this.NativeAspect() && this.NativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.NativeAspect() : this._panelHeight;
-    }
-    @computed get panelWidth() {
-        return this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), Doc.NativeWidth(this.layoutDoc)), this._panelWidth) :
-            (this.NativeAspect() && this.NativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.NativeAspect() : this._panelWidth);
-    }
-    @computed get _nativeWidth() { return !this.layoutDoc?._fitWidth ? Doc.NativeWidth(this.layoutDoc) || this._panelWidth : 0; }
-    @computed get _nativeHeight() { return !this.layoutDoc?._fitWidth ? Doc.NativeHeight(this.layoutDoc) || this._panelHeight : 0; }
-    @computed get contentScaling() {
-        const nativeW = Doc.NativeWidth(this.layoutDoc);
-        const nativeH = Doc.NativeHeight(this.layoutDoc);
-        let scaling = 1;
-        if (nativeW && (this.layoutDoc?._fitWidth || this._panelHeight / nativeH > this._panelWidth / nativeW)) {
-            scaling = this._panelWidth / nativeW;  // width-limited or fitWidth
-        } else if (nativeW && nativeH) {
-            scaling = this._panelHeight / nativeH; // height-limited
-        }
-        return scaling;
-    }
-    @computed get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.ContentScaling()) / 2 : 0; }
-    @computed get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.ContentScaling()) / this._panelWidth * 100}% ` : undefined; }
-    @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    @computed static get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
-
     // adds a tab to the layout based on the locaiton parameter which can be:
     //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
     //  add[:{left,right,top,bottom}] - e.g., "add" will add a tab to the current stack, "add:right" will add a tab on the right
@@ -289,7 +257,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name, 
     //                                   "replace:monkeys" - will replace any tab that has the label 'monkeys', or a tab with that label will be created by default on the right
     //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
-    addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
+    addDocTab = (doc: Doc, location: string) => {
         SelectionManager.DeselectAll();
         const locationFields = doc._viewType === CollectionViewType.Docking ? ["dashboard"] : location.split(":");
         const locationParams = locationFields.length > 1 ? locationFields[1] : "";
@@ -304,14 +272,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, TabDocView.styleProvider(this._document, 0, "backgroundColor"))); }
-    @computed get renderBounds() {
-        const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
-        const xbounds = bounds[2] - bounds[0];
-        const ybounds = bounds[3] - bounds[1];
-        const dim = Math.max(xbounds, ybounds);
-        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
-    }
     childLayoutTemplate = () => Cast(this._document?.childLayoutTemplate, Doc, null);
     returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
     miniDown = (e: React.PointerEvent) => {
@@ -336,29 +296,26 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
                 <CollectionFreeFormView
                     Document={this._document!}
-                    LibraryPath={emptyPath}
                     CollectionView={undefined}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     parentActive={returnFalse}
-                    ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
+                    childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
                     select={emptyFunction}
                     dropAction={undefined}
                     isSelected={returnFalse}
                     dontRegisterView={true}
-                    annotationsKey={""}
                     fieldKey={Doc.LayoutFieldKey(this._document!)}
                     bringToFront={emptyFunction}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ContentScaling={returnOne}
                     PanelWidth={this.returnMiniSize}
                     PanelHeight={this.returnMiniSize}
-                    ScreenToLocalTransform={this.ScreenToLocalTransform}
+                    ScreenToLocalTransform={Transform.Identity}
                     renderDepth={0}
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
@@ -368,7 +325,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     docFilters={CollectionDockingView.Instance.docFilters}
                     docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                     searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                    fitToBox={true}
+                    fitContentsToDoc={true}
                 />
                 <div className="miniOverlay" onPointerDown={this.miniDown} >
                     <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
@@ -377,7 +334,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                 <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
-                    style={{ background: TabDocView.styleProvider(this._document, 0, "backgroundColor") }} >
+                    style={{ background: DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor) }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
             </Tooltip>
@@ -389,153 +346,56 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
         afterFocus?.(false);
     }
-    setView = action((view: DocumentView) => this._view = view);
     active = () => this._isActive;
+    ScreenToLocalTransform = () => {
+        const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont?.children?.[0]?.firstChild as HTMLElement);
+        return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY);
+    }
+    PanelWidth = () => this._panelWidth;
+    PanelHeight = () => this._panelHeight;
 
-    //
-    // a preliminary semantic-"layering/grouping" mechanism for determining interactive properties of documents
-    //  currently, the provider tests whether the docuemnt's layer field matches the activeLayer field of the tab.
-    //     if it matches, then the document gets pointer events, otherwise it does not.
-    //
-    layerProvider = (doc: Doc, assign?: boolean) => {
-        if (doc.z) return true;
-        if (assign) {
-            const activeLayer = StrCast(this._document?.activeLayer);
-            if (activeLayer) {
-                const layers = Cast(doc.layers, listSpec("string"), []);
-                if (layers.length && !layers.includes(activeLayer)) layers.push(activeLayer);
-                else if (!layers.length) doc.layers = new List<string>([activeLayer]);
-                if (activeLayer === "red" || activeLayer === "green" || activeLayer === "blue") doc._backgroundColor = activeLayer;
-            }
-            return true;
-        } else {
-            if (Doc.AreProtosEqual(doc, this._document)) return true;
-            const layers = Cast(doc.layers, listSpec("string"), []);
-            if (!layers.length && !this._document?.activeLayer) return true;
-            if (layers.includes(StrCast(this._document?.activeLayer))) return true;
-            return false;
-        }
-    }
-
-    @undoBatch
-    @action
-    static toggleBackground = (doc: Doc) => {
-        const layers = StrListCast(doc.layers);
-        if (!layers.includes("background")) {
-            if (!layers.length) doc.layers = new List<string>(["background"]);
-            else layers.push("background");
-        }
-        else layers.splice(layers.indexOf("background"), 1);
-        doc._overflow = !layers.includes("background") ? "visible" : undefined;
-        if (!layers.includes("background")) {
-            //this.props.bringToFront(doc, true);
-            // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
-            // const hgt = this.Document[HeightSym]();
-            // Doc.SetNativeWidth(this.props.Document[DataSym], wid);
-            // Doc.SetNativeHeight(this.props.Document[DataSym], hgt);
-        }
-    }
-    //
-    // a preliminary implementation of a dash style sheet for setting rendering properties of documents nested within a Tab
-    // 
-    public static styleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
-        switch (property) {
-            case "backgroundColor": {
-                if (Doc.UserDoc().renderStyle === "comic") return undefined;
-                let docColor = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
-                if (!docColor) {
-                    switch (doc?.type) {
-                        case DocumentType.PRESELEMENT: docColor = TabDocView.darkScheme ? "" : ""; break;
-                        case DocumentType.PRES: docColor = TabDocView.darkScheme ? "#3e3e3e" : "white"; break;
-                        case DocumentType.FONTICON: docColor = "black"; break;
-                        case DocumentType.RTF: docColor = TabDocView.darkScheme ? "#2d2d2d" : "#f1efeb";
-                        case DocumentType.LABEL:
-                        case DocumentType.BUTTON: docColor = TabDocView.darkScheme ? "#2d2d2d" : "lightgray"; break;
-                        case DocumentType.LINK:
-                        case DocumentType.COL:
-                            docColor = Doc.IsSystem(doc) ? (TabDocView.darkScheme ? "rgb(62,62,62)" : "lightgrey") :
-                                StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                            break;
-                        //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                        default: docColor = TabDocView.darkScheme ? "black" : "white"; break;
-                    }
-                }
-                if (docColor && (!doc || layerProvider?.(doc) === false)) docColor = Color(docColor).fade(0.5).toString();
-                return docColor;
-            }
-            case "hidden": return (BoolCast(doc?.hidden) /* || layerProvider?.(doc) === false*/);
-            case "boxShadow": {
-                switch (doc?.type) {
-                    case DocumentType.COL: return StrListCast(doc.layers).includes("background") ? undefined :
-                        `${TabDocView.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
-                    default: return undefined;
-                }
-            }
-            case "docContents": return undefined;
-            default:
-                if (property.startsWith("pointerEvents")) {
-                    const layer = doc && layerProvider?.(doc);
-                    if (doc?.Opacity === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
-                    if (layer === false && !property.includes(":selected") && !SnappingManager.GetIsDragging()) return "none";
-                    if (doc?.type !== DocumentType.INK && layer === true) return "all";
-                    return undefined;
-                }
-                if (property.startsWith("decorations")) {
-                    const isBackground = StrListCast(doc?.layers).includes("background");
-                    return doc && (isBackground || property.includes(":selected")) && renderDepth > 0 &&
-                        ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?
-                        <div className="documentView-lock" onClick={() => TabDocView.toggleBackground(doc)}>
-                            <FontAwesomeIcon icon={isBackground ? "unlock" : "lock"} style={{ color: isBackground ? "red" : undefined }} size="lg" />
-                        </div>
-                        : (null);
-                }
-        }
-    }
-    public static miniStyleProvider = (doc: Opt<Doc>, renderDepth: number, property: string, layerProvider?: (doc: Doc, assign?: boolean) => boolean): any => {
+    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (doc) {
-            switch (property) {
-                case "docContents":
-                    if (doc.type === DocumentType.COL) return null;
+            switch (property.split(":")[0]) {
+                default: return DefaultStyleProvider(doc, props, property);
+                case StyleProp.PointerEvents: return "none";
+                case StyleProp.DocContents:
                     const background = doc.type === DocumentType.PDF ? "red" : doc.type === DocumentType.IMG ? "blue" : doc.type === DocumentType.RTF ? "orange" :
                         doc.type === DocumentType.VID ? "purple" : doc.type === DocumentType.WEB ? "yellow" : "gray";
-                    return <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
-                default:
-                    if (property.startsWith("pointerEvents")) return "none";
-                    return TabDocView.styleProvider(doc, renderDepth, property, layerProvider);
+                    return doc.type === DocumentType.COL ?
+                        undefined :
+                        <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
             }
         }
     }
+    @computed get layerProvider() { return this._document && DefaultLayerProvider(this._document); }
     @computed get docView() {
         TraceMobx();
         return !this._activated || !this._document || this._document._viewType === CollectionViewType.Docking ? (null) :
-            <><DocumentView key={this._document[Id]}
-                LibraryPath={emptyPath}
+            <><DocumentView key={this._document[Id]} ref={action((r: DocumentView) => this._view = r)}
+                renderDepth={0}
                 Document={this._document}
-                getView={this.setView}
                 DataDoc={!Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined}
-                bringToFront={emptyFunction}
-                rootSelected={returnTrue}
-                layerProvider={this.layerProvider}
-                addDocument={undefined}
-                removeDocument={undefined}
-                ContentScaling={this.ContentScaling}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
                 PanelWidth={this.PanelWidth}
                 PanelHeight={this.PanelHeight}
-                NativeHeight={this.nativeHeight() ? this.nativeHeight : undefined}
-                NativeWidth={this.nativeWidth() ? this.nativeWidth : undefined}
-                ScreenToLocalTransform={this.ScreenToLocalTransform}
-                renderDepth={0}
-                parentActive={this.active}
-                whenActiveChanged={emptyFunction}
-                focus={this.focusFunc}
-                styleProvider={TabDocView.styleProvider}
-                addDocTab={this.addDocTab}
-                pinToPres={TabDocView.PinDoc}
+                layerProvider={this.layerProvider}
+                styleProvider={DefaultStyleProvider}
                 docFilters={CollectionDockingView.Instance.docFilters}
                 docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                 searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
+                addDocument={undefined}
+                removeDocument={undefined}
+                addDocTab={this.addDocTab}
+                ScreenToLocalTransform={this.ScreenToLocalTransform}
+                dontCenter={"y"}
+                rootSelected={returnTrue}
+                parentActive={this.active}
+                whenActiveChanged={emptyFunction}
+                focus={this.focusFunc}
+                bringToFront={emptyFunction}
+                pinToPres={TabDocView.PinDoc} />
                 {this._document._viewType !== CollectionViewType.Freeform ? (null) :
                     <>{this._document.hideMinimap ? (null) : this.renderMiniMap()}
                         <Tooltip key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
@@ -548,18 +408,15 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     render() {
-        return (<div className="collectionDockingView-content" ref={ref => {
-            if (this._mainCont = ref) {
-                (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
-                DocServer.GetRefField(this.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.tab && this.init(this.tab, this._document)));
-            }
-        }}
-            style={{
-                transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                height: this.layoutDoc?._fitWidth ? undefined : "100%",
-                width: this.widthpercent
-            }}>
-            {this.docView}
-        </div >);
+        return (
+            <div className="collectionDockingView-content" style={{ height: "100%", width: "100%" }} ref={ref => {
+                if (this._mainCont = ref) {
+                    (this._mainCont as any).InitTab = (tab: any) => this.init(tab, this._document);
+                    DocServer.GetRefField(this.props.documentId).then(action(doc => doc instanceof Doc && (this._document = doc) && this.tab && this.init(this.tab, this._document)));
+                }
+            }} >
+                {this.docView}
+            </div >
+        );
     }
 }

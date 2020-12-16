@@ -11,6 +11,7 @@ import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -33,7 +34,6 @@ import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
-import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -52,7 +52,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     componentDidMount() {
-        reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
+        reaction(() => SelectionManager.Views().length && SelectionManager.Views()[0],
             (doc) => doc && this.SetSelection(doc));
     }
 
@@ -177,7 +177,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _viewCommand = {
         params: ["target"], title: "bookmark view",
         script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale']; gotoFrame(self.target, self['target-currentFrame']);",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target._currentFrame = 0; }),
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target._currentFrame = (this.target._currentFrame === undefined ? undefined : 0); }),
         initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target._currentFrame; },
     };
     _clusterCommand = {
@@ -372,7 +372,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get notACollection() {
@@ -514,7 +514,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
                                 <button className={"antimodeMenu-button"} key="float"
                                     style={{ backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray" }}
-                                    onClick={() => DocumentView.FloatDoc(this.props.docView)}>
+                                    onClick={undoBatch(() => this.props.docView.float())}>
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}
@@ -554,7 +554,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
@@ -621,7 +621,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
     @action
     editProperties = (value: any, field: string) => {
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK) {
                 switch (field) {
@@ -657,8 +657,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
                 <Tooltip key={icon} title={<div className="dash-tooltip">{this._title[i]}</div>} placement="bottom">
-                    <button className="antimodeMenu-button" onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
-                        style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                    <button className="antimodeMenu-button"
+                        onPointerDown={() => func(i, false)}
+                        onDoubleClick={() => func(i, true)}
+                        style={{ backgroundColor: i === this._selected ? "525252" : "", fontSize: "20" }}>
                         <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
                     </button>
                 </Tooltip>)}

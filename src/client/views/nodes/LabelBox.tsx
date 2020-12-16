@@ -13,6 +13,7 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
 import './LabelBox.scss';
+import { StyleProp } from '../StyleProvider';
 
 const LabelSchema = createSchema({});
 
@@ -72,7 +73,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 onMouseLeave={action(() => this._mouseOver = false)}
                 onMouseOver={action(() => this._mouseOver = true)}
                 ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
-                style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
+                style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) }}>
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     backgroundColor: this.backColor,

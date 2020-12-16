@@ -26,6 +26,7 @@ import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { StyleProp } from '../StyleProvider';
 const path = require('path');
 const { Howl } = require('howler');
 
@@ -66,8 +67,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
-
-    @computed get contentScaling() { return this.props.ContentScaling(); }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer?.();
@@ -264,7 +263,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     considerGooglePhotosLink = () => {
         const remoteUrl = this.dataDoc.googlePhotosUrl;
         return !remoteUrl ? (null) : (<img draggable={false}
-            style={{ transform: `scale(${this.contentScaling})`, transformOrigin: "bottom right" }}
+            style={{ transformOrigin: "bottom right" }}
             id={"google-photos"}
             src={"/assets/google_photos.png"}
             onClick={() => window.open(remoteUrl)}
@@ -289,7 +288,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         return (
             <img
                 id={"upload-icon"} draggable={false}
-                style={{ transform: `scale(${1 / this.contentScaling})`, transformOrigin: "bottom right" }}
+                style={{ transformOrigin: "bottom right" }}
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
@@ -400,41 +399,42 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             (this.props.PanelHeight() - this.props.PanelWidth() * aspect) / 2 : 0;
     }
 
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.contentScaling);
-
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter);
     contentFunc = () => [this.content];
+
     render() {
         TraceMobx();
+        const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
+        const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
         return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                width: this.props.PanelWidth() ? undefined : `100%`,
+                height: this.props.PanelWidth() ? undefined : `100%`,
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+                borderRadius
             }} >
             <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
-                forceScaling={true}
+                renderDepth={this.props.renderDepth + 1}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                CollectionView={undefined}
                 PanelHeight={this.props.PanelHeight}
+                scaling={returnOne}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationKey}
+                fieldKey={this.annotationKey}
                 isAnnotationOverlay={true}
+                docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
+                searchFilterDocs={this.props.searchFilterDocs}
+                removeDocument={this.removeDocument}
+                moveDocument={this.moveDocument}
+                addDocument={this.addDocument}
+                forceScaling={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}
                 active={this.annotationsActive}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={this.addDocument}
-                CollectionView={undefined}
-                ScreenToLocalTransform={this.screenToLocalTransform}
-                renderDepth={this.props.renderDepth + 1}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                whenActiveChanged={this.whenActiveChanged}>
                 {this.contentFunc}
             </CollectionFreeFormView>
         </div >);

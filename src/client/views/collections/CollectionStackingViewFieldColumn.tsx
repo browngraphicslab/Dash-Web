@@ -10,7 +10,7 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
@@ -146,7 +146,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         newDoc.heading = heading;
         FormattedTextBox.SelectOnLoad = newDoc[Id];
         FormattedTextBox.SelectOnLoadChar = forceEmptyNote ? "" : " ";
-        return this.props.parent.props.addDocument(newDoc);
+        return this.props.parent.props.addDocument?.(newDoc) || false;
     }
 
     @action
@@ -238,8 +238,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
         DocUtils.addDocumentCreatorMenuItems((doc) => {
             FormattedTextBox.SelectOnLoad = doc[Id];
-            return this.props.parent.props.addDocument(doc);
-        }, this.props.parent.props.addDocument, x, y, true);
+            return this.props.parent.props.addDocument?.(doc) || false;
+        }, this.props.parent.props.addDocument || returnFalse, x, y, true);
 
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
@@ -249,7 +249,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         if (this.props.parent.Document.isTemplateDoc) {
                             Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
                         }
-                        return this.props.parent.props.addDocument(created);
+                        return this.props.parent.props.addDocument?.(created) || false;
                     }
                 }, icon: "compress-arrows-alt"
             }));
@@ -263,7 +263,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             Doc.MakeMetadataFieldTemplate(created, container);
                             return Doc.AddDocToList(container, Doc.LayoutFieldKey(container), created);
                         }
-                        return this.props.parent.props.addDocument(created);
+                        return this.props.parent.props.addDocument?.(created) || false;
                     }
                 }, icon: "compress-arrows-alt"
             }));
@@ -276,7 +276,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 if (this.props.parent.Document.isTemplateDoc) {
                     Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
                 }
-                this.props.parent.props.addDocument(created);
+                this.props.parent.props.addDocument?.(created);
             }
         });
         const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);

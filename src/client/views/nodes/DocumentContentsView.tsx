@@ -108,6 +108,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
 export class DocumentContentsView extends React.Component<DocumentViewProps & FormattedTextBoxProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
+    scaling?: () => number,
     layoutKey: string,
     hideOnLeave?: boolean,
     makeLink?: () => Opt<Doc>,  // function to call when a link is made
@@ -138,8 +139,24 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
     }
 
     CreateBindings(onClick: Opt<ScriptField>, onInput: Opt<ScriptField>): JsxBindings {
+        const docOnlyProps = [  // these are the properties in  DocumentViewProps that need to be removed to pass on only DocumentSharedViewProps to the FieldViews
+            "freezeDimensions",
+            "hideTitle",
+            "treeViewDoc",
+            "dragDivName",
+            "contentPointerEvents",
+            "radialMenu",
+            "LayoutTemplateString",
+            "LayoutTemplate",
+            "ContentScaling",
+            "contentFittingScaling",
+            "contextMenuItems",
+            "onDoubleClick",
+            "onPointerDown",
+            "onPointerUp",
+        ];
         const list = {
-            ...OmitKeys(this.props, ['NativeWidth', 'NativeHeight'], "", (obj: any) => obj.active = this.props.parentActive).omit,
+            ...OmitKeys(this.props, [...docOnlyProps], "", (obj: any) => obj.active = this.props.parentActive).omit,
             RootDoc: Cast(this.layoutDoc?.rootDocument, Doc, null) || this.layoutDoc,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,

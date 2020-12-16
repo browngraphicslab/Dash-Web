@@ -44,7 +44,7 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined,
+    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined,
         addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;

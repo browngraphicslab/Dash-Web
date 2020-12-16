@@ -55,8 +55,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) {
-            return SelectionManager.SelectedDocuments()[0];
+        if (SelectionManager.Views().length) {
+            return SelectionManager.Views()[0];
         } else return undefined;
     }
 
@@ -187,7 +187,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @action @undoBatch
     onLock = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.toggleLockPosition());
+        SelectionManager.Views().forEach(dv => dv.docView?.toggleLockPosition());
     }
 
     @computed
@@ -224,7 +224,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setDictation = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showAudio = dv.rootDoc._showAudio === !dv.rootDoc._showAudio);
+        SelectionManager.Views().forEach(dv => dv.rootDoc._showAudio = dv.rootDoc._showAudio === !dv.rootDoc._showAudio);
     }
 
     @computed
@@ -244,7 +244,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setTitle = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showTitle = dv.rootDoc._showTitle === undefined ? "title" : undefined);
+        SelectionManager.Views().forEach(dv => dv.rootDoc._showTitle = dv.rootDoc._showTitle === undefined ? "title" : undefined);
     }
 
     @computed
@@ -263,7 +263,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setCaption = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined);
+        SelectionManager.Views().forEach(dv => dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined);
     }
 
     @computed
@@ -282,7 +282,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setChrome = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._chromeStatus = dv.rootDoc._chromeStatus === "disabled" ? "enabled" : "disabled");
+        SelectionManager.Views().forEach(dv => dv.rootDoc._chromeStatus = dv.rootDoc._chromeStatus === "disabled" ? "enabled" : "disabled");
     }
 
     @computed
@@ -325,20 +325,20 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const value = e.target.value;
         this.selectedDoc && (this.selectedDoc.onClickBehavior = e.target.value);
 
-        SelectionManager.SelectedDocuments().forEach(dv => {
+        SelectionManager.Views().forEach(dv => {
             if (value === "nothing") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
             } else if (value === "enterPortal") {
-                dv.noOnClick();
-                dv.makeIntoPortal();
+                dv.docView?.noOnClick();
+                dv.docView?.makeIntoPortal();
             } else if (value === "toggleDetail") {
-                dv.noOnClick();
-                dv.toggleDetail();
+                dv.docView?.noOnClick();
+                dv.docView?.toggleDetail();
             } else if (value === "linkInPlace") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
                 dv.toggleFollowLink("inPlace", true, false);
             } else if (value === "linkOnRight") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
                 dv.toggleFollowLink("add:right", false, false);
             }
         });
@@ -347,7 +347,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch @action
     editOnClickScript = () => {
         if (this.selectedDoc) {
-            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => DocUtils.makeCustomViewClicked(dv.rootDoc, undefined, "onClick"));
+            if (SelectionManager.Views().length) SelectionManager.Views().forEach(dv => DocUtils.makeCustomViewClicked(dv.rootDoc, undefined, "onClick"));
             else DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
         }
     }
@@ -432,7 +432,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @action @undoBatch
     changeFitToBox = () => {
         if (this.selectedDoc) {
-            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._fitToBox = !dv.rootDoc._fitToBox);
+            if (SelectionManager.Views().length) SelectionManager.Views().forEach(dv => dv.rootDoc._fitToBox = !dv.rootDoc._fitToBox);
             else this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox;
         }
     }
@@ -440,7 +440,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @action @undoBatch
     changeClusters = () => {
         if (this.selectedDoc) {
-            if (SelectionManager.SelectedDocuments().length) SelectionManager.SelectedDocuments().forEach(dv => dv.rootDoc._useClusters = !dv.rootDoc._useClusters);
+            if (SelectionManager.Views().length) SelectionManager.Views().forEach(dv => dv.rootDoc._useClusters = !dv.rootDoc._useClusters);
             else this.selectedDoc._useClusters = !this.selectedDoc._useClusters;
         }
     }
