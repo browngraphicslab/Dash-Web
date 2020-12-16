@@ -51,7 +51,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get Highlight() { return this.dataProvider?.highlight; }
     @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
-    @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (!this._contentView?.isSelected() ? ":selected" : "")); }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
         if (property === StyleProp.Opacity && doc === this.layoutDoc) return this.Opacity; // only change the opacity for this specific document, not its children
@@ -155,7 +154,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.pointerEvents
+                pointerEvents: "none"
             }} >
 
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
