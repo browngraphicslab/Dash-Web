@@ -91,7 +91,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             const backColor = backgroundCol() || "black";
             const col = Color(backColor).rgb();
             const colsum = (col.red() + col.green() + col.blue());
-            if (colsum / col.alpha() > 600 || col.alpha() < 0.25) return "black";
+            if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
@@ -119,13 +119,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:
-                    docColor = docColor ||
-                        (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
-                            isBackground() ? "cyan" :
-                                doc.annotationOn ? "#00000015" :
-                                    StrCast((props?.renderDepth || 0) > 0 ?
-                                        Doc.UserDoc().activeCollectionNestedBackground :
-                                        Doc.UserDoc().activeCollectionBackground));
+                    docColor = docColor ? docColor :
+                        doc?._isGroup ? "#00000004" :
+                            (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
+                                isBackground() ? "cyan" :
+                                    doc.annotationOn ? "#00000015" :
+                                        StrCast((props?.renderDepth || 0) > 0 ?
+                                            Doc.UserDoc().activeCollectionNestedBackground :
+                                            Doc.UserDoc().activeCollectionBackground));
                     break;
                 //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
                 default: docColor = darkScheme() ? "black" : "white"; break;
@@ -135,18 +136,18 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
         }
         case StyleProp.BoxShadow: {
             if (!doc || opacity() === 0) return undefined;  // if it's not visible, then no shadow)
-            const backgroundHalo = (doc: Doc) => props?.ContainingCollectionDoc?._useClusters || NumCast(doc.group, -1) !== -1;
 
             if (doc?.isLinkButton && doc.type !== DocumentType.LINK) return StrCast(doc?._linkButtonShadow, "lightblue 0em 0em 1em");
 
             switch (doc?.type) {
-                case DocumentType.COL: return isBackground() ? undefined :
-                    `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+                case DocumentType.COL: return StrCast(doc?.boxShadow, isBackground() || (doc?._isGroup && !SnappingManager.GetIsDragging()) ? undefined :
+                    `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`);
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                        backgroundHalo(doc) && doc.type !== DocumentType.INK ? (`${backgroundCol()} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
-                            isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
-                                StrCast(doc.boxShadow, "");
+                        props?.ContainingCollectionDoc?._useClusters && doc.type !== DocumentType.INK ? (`${backgroundCol()} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            NumCast(doc.group, -1) !== -1 && doc.type !== DocumentType.INK ? (`gray ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                                isBackground() ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
+                                    StrCast(doc.boxShadow, "");
             }
         }
         case StyleProp.PointerEvents:

@@ -16,6 +16,7 @@ import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldViewProps } from "./FieldView";
 import React = require("react");
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -26,6 +27,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     jitterRotation: number;
     dataTransition?: string;
     replica: string;
+    CollectionFreeFormView: CollectionFreeFormView;
 }
 
 @observer

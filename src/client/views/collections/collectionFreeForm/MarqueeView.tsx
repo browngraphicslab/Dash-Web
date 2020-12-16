@@ -38,6 +38,7 @@ interface MarqueeViewProps {
     isSelected: () => boolean;
     trySelectCluster: (addToSel: boolean) => boolean;
     nudge?: (x: number, y: number) => boolean;
+    ungroup?: () => void;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 @observer
@@ -93,7 +94,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
         } else
-            if (e.key === ":") {
+            if (e.key === "u" && this.props.ungroup) {
+                e.stopPropagation();
+                this.props.ungroup();
+            }
+            else if (e.key === ":") {
                 DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument || returnFalse, x, y);
 
                 cm.displayMenu(this._downX, this._downY);
@@ -341,8 +346,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[]) => {
-        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) => {
+        const newCollection = creator ? creator(selected, { title: makeGroup ? "grouping" : "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
             Doc.GetProto(doc).title = "nested freeform";
             doc._panX = doc._panY = 0;
@@ -352,6 +357,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         newCollection.layers = new List<string>(layers);
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
+        newCollection._isGroup = makeGroup;
         newCollection.x = this.Bounds.left;
         newCollection.y = this.Bounds.top;
         selected.forEach(d => d.context = newCollection);
@@ -410,9 +416,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @undoBatch
     @action
-    collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+    collection = (e: KeyboardEvent | React.PointerEvent | undefined, group?: boolean) => {
         const selected = this.marqueeSelect(false);
-        if (e instanceof KeyboardEvent ? e.key === "c" : true) {
+        if (e instanceof KeyboardEvent ? "cg".includes(e.key) : true) {
             selected.map(action(d => {
                 const dx = NumCast(d.x);
                 const dy = NumCast(d.y);
@@ -426,7 +432,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }));
             this.props.removeDocument?.(selected);
         }
-        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined, []);
+        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined, [], group);
         this.props.addDocument?.(newCollection);
         this.props.selectDocuments([newCollection]);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -523,7 +529,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], undefined, [StyleLayers.Background]);
+        const newCollection = this.getCollection([], undefined, [StyleLayers.Background], undefined);
         this.props.addDocument?.(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
@@ -542,11 +548,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if ("cbtsSp".indexOf(e.key) !== -1) {
+        if ("cbtsSpg".indexOf(e.key) !== -1) {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
             (e as any).propagationIsStopped = true;
+            if (e.key === "g") this.collection(e, true);
             if (e.key === "c" || e.key === "t") this.collection(e);
             if (e.key === "s" || e.key === "S") this.summary(e);
             if (e.key === "b") this.background(e);
@@ -634,7 +641,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: !this.props.ContainingCollectionView && this.props.isAnnotationOverlay ? "visible" : StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
+            style={{ overflow: this.props.Document._isGroup || (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" : StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
             onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}

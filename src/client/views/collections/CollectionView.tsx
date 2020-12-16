@@ -40,6 +40,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { ScriptField } from '../../../fields/ScriptField';
 import { StyleProp } from '../StyleProvider';
+import { SnappingManager } from '../../util/SnappingManager';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 
@@ -108,6 +109,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
     active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
         this.props.rootSelected(outsideReaction) ||
         this.props.Document.forceActive ||
+        this.props.Document._isGroup ||
         this._isChildActive ||
         this.props.renderDepth === 0) ?
         true :
@@ -385,10 +387,8 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             ScreenToLocalTransform: this.screenToLocalTransform,
             CollectionView: this,
         };
-        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.treeViewOutlineMode || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BoxShadow);
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
-            style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined, boxShadow }}>
+            style={{ pointerEvents: (this.props.Document._isGroup && !SnappingManager.GetIsDragging()) ? "all" : this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => Cast(d.data, ImageField, null)).map(d =>

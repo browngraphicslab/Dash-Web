@@ -213,7 +213,7 @@ export namespace DragManager {
         };
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
-            if (dropEvent) dropEvent(); // glr: optional additional function to be called - in this case with presentation trails
+            dropEvent?.(); // glr: optional additional function to be called - in this case with presentation trails
             if (docDragData && !docDragData.droppedDocuments.length) {
                 docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
                 docDragData.droppedDocuments =
@@ -344,6 +344,9 @@ export namespace DragManager {
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
+        dragDiv.style.width = "";
+        dragDiv.style.height = "";
+        dragDiv.style.overflow = "";
         dragDiv.hidden = false;
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
@@ -544,6 +547,9 @@ export namespace DragManager {
             return ret;
         });
         dragDiv.hidden = true;
+        dragDiv.style.width = "0";
+        dragDiv.style.height = "0";
+        dragDiv.style.overflow = "hidden";
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
             r.ele.style.width = r.w;
