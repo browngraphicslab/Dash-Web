@@ -425,7 +425,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
-                this.allLinks.length && DocumentView.followLinkClick(undefined, this.props.Document, this.props, e.altKey);
+                this.allLinks.length && LinkManager.FollowLink(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
@@ -785,7 +785,12 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => this.props.styleProvider?.(doc, props, property + ":anchor");
+    anchorStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+        switch (property.split(":")[0]) {
+            case StyleProp.LinkSource: return this.props.Document; // pass the LinkSource to the LinkAnchorBox
+        }
+        return this.props.styleProvider?.(doc, props, property + ":anchor");
+    }
 
     @computed get directLinks() { TraceMobx(); return LinkManager.Instance.getAllDirectLinks(this.rootDoc); }
     @computed get allLinks() { TraceMobx(); return LinkManager.Instance.getAllRelatedLinks(this.rootDoc); }
@@ -930,40 +935,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     toggleNativeDimensions = () => this.docView?.toggleNativeDimensions();
     contentsActive = () => this.docView?.contentsActive();
 
-    // follows a link - if the target is on screen, it highlights/pans to it.
-    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
-    // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    public static followLinkClick = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docView: {
-        focus: DocFocusFunc,
-        addDocTab: (doc: Doc, where: string) => boolean,
-        ContainingCollectionDoc?: Doc
-    }, altKey: boolean) => {
-        const batch = UndoManager.StartBatch("follow link click");
-        // open up target if it's not already in view ...
-        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = () => {
-                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
-                const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
-                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                };
-                const addTab = docView.addDocTab(doc, where);
-                addTab && setTimeout(() => {
-                    const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
-                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
-                }); //  add the target and focus on it.
-                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
-            };
-            if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus();
-            } else {
-                // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                docView.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
-            }
-        };
-        await DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docView.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
-    }
-
     @action public float = () => {
         const { Document: topDoc, ContainingCollectionView: container } = this.props;
         const screenXf = container?.screenToLocalTransform();
@@ -1105,7 +1076,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         </div>);
     }
 }
-
 
 Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string = "layout") {
     const dv = DocumentManager.Instance.getDocumentView(doc);

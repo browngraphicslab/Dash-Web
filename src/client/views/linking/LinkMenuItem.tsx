@@ -13,9 +13,8 @@ import { DragManager } from '../../util/DragManager';
 import { Hypothesis } from '../../util/HypothesisUtils';
 import { LinkManager } from '../../util/LinkManager';
 import { undoBatch } from '../../util/UndoManager';
-import { ContextMenu } from '../ContextMenu';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewSharedProps } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
@@ -28,7 +27,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, where: string) => boolean;
+    docprops: DocumentViewSharedProps,
     menuRef: React.Ref<HTMLDivElement>;
 }
 
@@ -110,7 +109,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
-        DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
+        LinkManager.FollowLink(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
 
         e.stopPropagation();
     }
@@ -124,41 +123,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
         }
         e.stopPropagation();
-    }
-
-    @action
-    onContextMenu = (e: React.MouseEvent) => {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => LinkMenuItem.followDefault(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab), icon: "arrow-right" });
-        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
-    }
-
-
-    @action
-    public static followDefault(linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-
-        if (linkDoc.followLinkLocation === "openExternal" && destinationDoc.type === DocumentType.WEB) {
-            window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
-        }
-
-        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
-            const annotationOn = destinationDoc.annotationOn as Doc;
-            addDocTab(annotationOn instanceof Doc ? annotationOn : destinationDoc, StrCast(linkDoc.followLinkLocation));
-            if (annotationOn) {
-                setTimeout(() => {
-                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
-                    dv?.props.focus(destinationDoc, false);
-                });
-            }
-        } else {
-            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, addDocTab, false);
-        }
-
-        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
     }
 
     @undoBatch
@@ -215,7 +179,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
                         onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
-                            addDocTab: this.props.addDocTab,
+                            docprops: this.props.docprops,
                             linkSrc: this.props.sourceDoc,
                             linkDoc: this.props.linkDoc,
                             Location: [e.clientX, e.clientY + 20]
@@ -260,8 +224,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>
-                            {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
-                                <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
                 </div>

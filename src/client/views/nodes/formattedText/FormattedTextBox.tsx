@@ -57,7 +57,7 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
-import { DocumentManager } from '../../../util/DocumentManager';
+import { LinkManager } from '../../../util/LinkManager';
 import { CollectionStackingView } from '../../collections/CollectionStackingView';
 import { CollectionViewType, CollectionViewProps } from '../../collections/CollectionView';
 import { SnappingManager } from '../../../util/SnappingManager';
@@ -1331,8 +1331,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
                 this.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
             } else {
-                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, this.props.Document,
-                    (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
+                LinkManager.FollowLink(FormattedTextBoxComment.linkDoc, this.props.Document, this.props, false);
             }
         }
 

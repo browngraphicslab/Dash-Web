@@ -71,7 +71,6 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
-        case StyleProp.LinkSource: return isAnchor && docProps?.Document; // pass the LinkSource to the LinkAnchorBox
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.HideLinkButton: return isAnchor || props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
