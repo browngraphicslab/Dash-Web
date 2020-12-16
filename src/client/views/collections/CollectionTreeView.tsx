@@ -219,12 +219,12 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const background = this.props.styleProvider?.(this.doc, this.props.renderDepth, "backgroundColor", this.props.layerProvider);
         const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
-        const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
+        //const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
 
         return !this.treeChildren ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget"
-                    style={{ background, paddingLeft: paddingX, paddingRight: paddingX, paddingTop, pointerEvents }}
+                    style={{ background, paddingLeft: paddingX, paddingRight: paddingX, paddingTop }}
                     onWheel={(e) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                     onDrop={this.onTreeDrop}
                     ref={this.createTreeDropTarget}>
