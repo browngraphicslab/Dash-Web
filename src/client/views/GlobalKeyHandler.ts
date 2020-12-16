@@ -93,7 +93,7 @@ export class KeyManager {
                     return { stopPropagation: false, preventDefault: false };
                 }
 
-                const ungroupings = SelectionManager.SelectedDocuments().slice();
+                const ungroupings = SelectionManager.Views().slice();
                 UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
                 SelectionManager.DeselectAll();
                 break;
@@ -102,7 +102,7 @@ export class KeyManager {
                     return { stopPropagation: false, preventDefault: false };
                 }
 
-                const groupings = SelectionManager.SelectedDocuments().slice();
+                const groupings = SelectionManager.Views().slice();
                 const randomGroup = random(0, 1000);
                 UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
                 SelectionManager.DeselectAll();
@@ -139,14 +139,14 @@ export class KeyManager {
                     return { stopPropagation: false, preventDefault: false };
                 }
 
-                const selected = SelectionManager.SelectedDocuments().slice();
+                const selected = SelectionManager.Views().slice();
                 UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
-            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left"); break;
-            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right"); break;
-            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -1)), "nudge up"); break;
-            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 1)), "nudge down"); break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -1)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 1)), "nudge down"); break;
         }
 
         return {
@@ -160,10 +160,10 @@ export class KeyManager {
         const preventDefault = false;
 
         switch (keyname) {
-            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(-10, 0)), "nudge left"); break;
-            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(10, 0)), "nudge right"); break;
-            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -10)), "nudge up"); break;
-            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 10)), "nudge down"); break;
+            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(-10, 0)), "nudge left"); break;
+            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(10, 0)), "nudge right"); break;
+            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -10)), "nudge up"); break;
+            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 10)), "nudge down"); break;
         }
 
         return {
@@ -179,7 +179,7 @@ export class KeyManager {
         switch (keyname) {
             case "ƒ":
             case "f":
-                const dv = SelectionManager.SelectedDocuments()?.[0];
+                const dv = SelectionManager.Views()?.[0];
                 UndoManager.RunInBatch(() => dv?.float(), "float");
         }
 
@@ -219,7 +219,7 @@ export class KeyManager {
                 SearchBox.Instance.enter(undefined);
                 break;
             case "o":
-                const target = SelectionManager.SelectedDocuments()[0];
+                const target = SelectionManager.Views()[0];
                 target && CollectionDockingView.OpenFullScreen(target.props.Document);
                 break;
             case "r":
@@ -246,11 +246,11 @@ export class KeyManager {
                 preventDefault = false;
                 break;
             case "x":
-                if (SelectionManager.SelectedDocuments().length) {
+                if (SelectionManager.Views().length) {
                     const bds = DocumentDecorations.Instance.Bounds;
-                    const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
-                    const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
-                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
+                    const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
+                    const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.Views().map(dv => dv.Document[Id]).join(":");
+                    SelectionManager.Views().length && navigator.clipboard.writeText(text);
                     DocumentDecorations.Instance.onCloseClick(undefined);
                     stopPropagation = false;
                     preventDefault = false;
@@ -259,9 +259,9 @@ export class KeyManager {
             case "c":
                 if (!PDFMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
-                    const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
-                    const text = `__DashCloneId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
-                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
+                    const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
+                    const text = `__DashCloneId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.Views().map(dv => dv.Document[Id]).join(":");
+                    SelectionManager.Views().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
                 }
                 preventDefault = false;
@@ -278,7 +278,7 @@ export class KeyManager {
         const plain = e.clipboardData?.getData("text/plain");
         const clone = plain?.startsWith("__DashCloneId(");
         if (plain && (plain.startsWith("__DashDocId(") || clone)) {
-            const first = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+            const first = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
             if (first?.props.Document.type === DocumentType.COL) {
                 const docids = plain.split(":");
                 let count = 1;

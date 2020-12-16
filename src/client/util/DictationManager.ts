@@ -235,7 +235,7 @@ export namespace DictationManager {
 
         export const execute = async (phrase: string) => {
             return UndoManager.RunInBatch(async () => {
-                const targets = SelectionManager.SelectedDocuments();
+                const targets = SelectionManager.Views();
                 if (!targets || !targets.length) {
                     return;
                 }

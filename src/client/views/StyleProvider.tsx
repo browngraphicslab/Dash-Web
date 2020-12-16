@@ -135,7 +135,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             switch (doc?.type) {
                 case DocumentType.COL:
                     return StrCast(doc?.boxShadow,
-                        isBackground() || doc?._isGroup ? undefined : // groups have no drop shadow -- they're supposed to be "invisible"
+                        isBackground() || doc?._isGroup || docProps?.LayoutTemplateString ? undefined : // groups have no drop shadow -- they're supposed to be "invisible".  LayoutString's imply collection is being rendered as something else (e.g., title of a Slide)
                             `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`);
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow

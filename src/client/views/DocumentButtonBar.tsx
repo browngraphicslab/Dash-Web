@@ -187,7 +187,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{SelectionManager.SelectedDocuments().length > 1 ? "Pin multiple documents to presentation" : "Pin to presentation"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{SelectionManager.Views().length > 1 ? "Pin multiple documents to presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
                 onClick={undoBatch(e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false)))}>
@@ -336,7 +336,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     }
 
     openContextMenu = (e: React.MouseEvent) => {
-        let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
+        let child = SelectionManager.Views()[0].ContentDiv!.children[0];
         while (child.children.length) {
             const next = Array.from(child.children).find(c => typeof (c.className) === "string");
             if (next?.className.includes(DocumentView.ROOT_DIV)) break;

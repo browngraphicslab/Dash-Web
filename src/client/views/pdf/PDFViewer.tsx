@@ -150,7 +150,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
                     PDFMenu.Instance.fadeOut(true);
                 }
-                (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer();
+                (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
             { fireImmediately: true });
         this._disposers.scrollY = reaction(

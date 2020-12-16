@@ -1203,7 +1203,7 @@ Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
     if (copy) {
         CollectionDockingView.AddSplit(copy, "right");
         const view = DocumentManager.Instance.getFirstDocumentView(copy);
-        view && SelectionManager.SelectDoc(view, false);
+        view && SelectionManager.SelectView(view, false);
     }
 });
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },

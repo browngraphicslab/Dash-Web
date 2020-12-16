@@ -57,12 +57,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     constructor(props: any) {
         super(props);
         DocumentDecorations.Instance = this;
-        reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
+        reaction(() => SelectionManager.Views().slice(), docs => this.titleBlur(false));
     }
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().map(dv => dv.getBounds()).reduce((bounds, rect) =>
+        return SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
             !rect ? bounds :
                 {
                     x: Math.min(rect.left, bounds.x),
@@ -80,8 +80,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 this._titleControlString = this._accumulatedTitle;
             } else if (this._titleControlString.startsWith("#")) {
                 const selectionTitleFieldKey = this._titleControlString.substring(1);
-                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
-                UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d => {
+                selectionTitleFieldKey === "title" && (SelectionManager.Views()[0].dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
+                UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.Views().forEach(d => {
                     const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
                     Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
                 }), "title blur");
@@ -96,7 +96,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             const text = e.target.value;
             if (text.startsWith("::")) {
                 this._accumulatedTitle = text.slice(2, text.length);
-                const promoteDoc = SelectionManager.SelectedDocuments()[0];
+                const promoteDoc = SelectionManager.Views()[0];
                 Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
                 DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             }
@@ -118,8 +118,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @action
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
-        const dragDocView = SelectionManager.SelectedDocuments()[0];
-        const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        const dragDocView = SelectionManager.Views()[0];
+        const dragData = new DragManager.DocumentDragData(SelectionManager.Views().map(dv => dv.props.Document));
         const { left, top } = dragDocView.getBounds() || { left: 0, top: 0 };
         dragData.offset = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.ContentScale()).transformDirection(e.x - left, e.y - top);
         dragData.moveDocument = dragDocView.props.moveDocument;
@@ -128,7 +128,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         dragData.dropAction = dragDocView.props.dropAction;
         this.Interacting = true;
         this._hidden = true;
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.Views().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => {
                 dragData.canEmbed && SelectionManager.DeselectAll();
                 this._hidden = this.Interacting = false;
@@ -145,7 +145,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onCloseClick = async (e: React.MouseEvent | undefined) => {
         if (!e?.button) {
-            const selected = SelectionManager.SelectedDocuments().slice();
+            const selected = SelectionManager.Views().slice();
             SelectionManager.DeselectAll();
             selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
         }
@@ -158,7 +158,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onMaximizeClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            const selectedDocs = SelectionManager.SelectedDocuments();
+            const selectedDocs = SelectionManager.Views();
             if (selectedDocs.length) {
                 if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
                     selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
@@ -181,7 +181,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onIconifyClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().forEach(dv => dv?.iconify());
+            SelectionManager.Views().forEach(dv => dv?.iconify());
         }
         SelectionManager.DeselectAll();
     }
@@ -189,7 +189,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onSelectorUp = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) => {
-            const selDoc = SelectionManager.SelectedDocuments()?.[0];
+            const selDoc = SelectionManager.Views()?.[0];
             if (selDoc) {
                 selDoc.props.ContainingCollectionView?.props.select(false);
             }
@@ -207,7 +207,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onRadiusMove = (e: PointerEvent, down: number[]): boolean => {
         let dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
         dist = dist < 3 ? 0 : dist;
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
+        SelectionManager.Views().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
             map(d => d.borderRounding = `${Math.max(0, dist)}px`);
         return false;
     }
@@ -220,7 +220,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         setupMoveUpEvents(this, e, this.onRotateMove, this.onRotateUp, (e) => { });
         this._prevX = e.clientX;
         this._prevY = e.clientY;
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 const ink = Cast(doc.data, InkField)?.inkData;
@@ -257,7 +257,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._prevX = e.clientX;
         this._prevY = e.clientY;
         var index = 0;
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 doc.rotation = Number(doc.rotation) + Number(angle);
@@ -304,7 +304,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onPointerDown = (e: React.PointerEvent): void => {
 
         this._inkDocs = [];
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
                 this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
@@ -327,18 +327,18 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._snapX = e.pageX;
         this._snapY = e.pageY;
         this._initialAutoHeight = true;
-        DragManager.docsBeingDragged = SelectionManager.SelectedDocuments().map(dv => dv.rootDoc);
-        SelectionManager.SelectedDocuments().map(dv => {
+        DragManager.docsBeingDragged = SelectionManager.Views().map(dv => dv.rootDoc);
+        SelectionManager.Views().map(dv => {
             this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
             dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
         });
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
-        const first = SelectionManager.SelectedDocuments()[0];
+        const first = SelectionManager.Views()[0];
         let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
         var fixedAspect = Doc.NativeAspect(first.layoutDoc);
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc._width && doc._height && InkStrokeProperties.Instance?._lock) {
                 fixedAspect = Doc.NativeHeight(doc);
@@ -371,7 +371,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         let dragRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
-            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
+            SelectionManager.Views().forEach(action((element: DocumentView) =>
                 ((element.rootDoc.type === DocumentType.RTF ||
                     element.rootDoc.type === DocumentType.COMPARISON ||
                     (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
@@ -420,7 +420,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 break;
         }
 
-        SelectionManager.SelectedDocuments().forEach(action((docView: DocumentView) => {
+        SelectionManager.Views().forEach(action((docView: DocumentView) => {
             if (e.ctrlKey && !Doc.NativeHeight(docView.props.Document)) docView.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(docView.rootDoc);
@@ -486,7 +486,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        SelectionManager.SelectedDocuments().map(dv => {
+        SelectionManager.Views().map(dv => {
             if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
                 dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
                 dv.layoutDoc._autoHeight = true;
@@ -501,7 +501,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
 
         //need to change points for resize, or else rotation/control points will fail.
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView, index) => {
+        SelectionManager.Views().forEach(action((element: DocumentView, index) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
                 const ink = Cast(doc.data, InkField)?.inkData;
@@ -524,8 +524,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @computed
     get selectionTitle(): string {
-        if (SelectionManager.SelectedDocuments().length === 1) {
-            const selected = SelectionManager.SelectedDocuments()[0];
+        if (SelectionManager.Views().length === 1) {
+            const selected = SelectionManager.Views()[0];
             if (this._titleControlString.startsWith("=")) {
                 return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
@@ -533,7 +533,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 return Field.toString(selected.props.Document[this._titleControlString.substring(1)] as Field) || "-unset-";
             }
             return this._accumulatedTitle;
-        } else if (SelectionManager.SelectedDocuments().length > 1) {
+        } else if (SelectionManager.Views().length > 1) {
             return "-multiple-";
         }
         return "-unset-";
@@ -558,16 +558,16 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     render() {
         const darkScheme = CurrentUserUtils.ActiveDashboard?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
-        const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        const seldoc = SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 1 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
-        const canDelete = SelectionManager.SelectedDocuments().some(docView => {
+        const canDelete = SelectionManager.Views().some(docView => {
             const collectionAcl = docView.props.ContainingCollectionView ? GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]) : AclEdit;
             const docAcl = GetEffectiveAcl(docView.props.Document);
             return !docView.props.Document._stayInCollection && (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
-        const canOpen = SelectionManager.SelectedDocuments().some(docView => !docView.props.Document._stayInCollection);
+        const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
         const closeIcon = !canDelete ? (null) : (
             <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
                 <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
@@ -575,7 +575,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 </div></Tooltip>);
 
         const openIcon = !canOpen ? (null) : <Tooltip title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
-            {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
+            {SelectionManager.Views().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
         </div>
         </Tooltip>;
 
@@ -606,7 +606,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: KeyManager.Instance.ShiftPressed || this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
+                zIndex: SelectionManager.Views().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
@@ -618,7 +618,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 }}>
                     {closeIcon}
                     {bounds.r - bounds.x < 100 ? null : titleArea}
-                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
+                    {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                         <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
@@ -645,7 +645,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
                 </div >
                 {seldoc?.Document.type === DocumentType.FONTICON ? (null) : <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
-                    <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
+                    <DocumentButtonBar views={SelectionManager.Views} />
                 </div>}
             </>}
         </div >

@@ -135,7 +135,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             }, { fireImmediately: true });
 
         // for play when link is selected
-        this._disposers.reaction = reaction(() => SelectionManager.SelectedDocuments(),
+        this._disposers.reaction = reaction(() => SelectionManager.Views(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
                 let link;

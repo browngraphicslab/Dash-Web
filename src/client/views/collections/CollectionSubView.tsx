@@ -305,8 +305,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         } else {
                             let srcUrl: string | undefined;
                             let srcWeb: Doc | undefined;
-                            if (SelectionManager.SelectedDocuments().length) {
-                                srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
+                            if (SelectionManager.Views().length) {
+                                srcWeb = SelectionManager.Views()[0].props.Document;
                                 srcUrl = (srcWeb.data as WebField).url?.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
                             const reg = new RegExp(Utils.prepend(""), "g");
@@ -315,7 +315,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const iframe = SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0];
+                                const iframe = SelectionManager.Views()[0].ContentDiv?.getElementsByTagName("iframe")?.[0];
                                 const focusNode = (iframe?.contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rects = iframe?.contentWindow?.getSelection()?.getRangeAt(0).getClientRects();

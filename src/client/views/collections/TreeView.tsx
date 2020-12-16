@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
+import { TREE_BULLET_WIDTH } from '../globalCssVariables.scss';
 import { DataSym, Doc, DocListCast, DocListCastOrNull, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -64,6 +65,8 @@ export interface TreeViewProps {
     whenActiveChanged: (isActive: boolean) => void;
 }
 
+let treeBulletWidth = function () { return Number(TREE_BULLET_WIDTH.replace("px", "")); }
+
 @observer
 /**
  * Renders a treeView of a collection of documents
@@ -82,6 +85,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _docRef = React.createRef<DocumentView>();
     private _uniqueId = Utils.GenerateGuid();
     private _editMaxWidth: number | string = 0;
+
 
     @observable _dref: DocumentView | undefined | null;
     @computed get doc() { TraceMobx(); return this.props.document; }
@@ -284,9 +288,9 @@ export class TreeView extends React.Component<TreeViewProps> {
     docWidth = () => {
         const layoutDoc = this.layoutDoc;
         const aspect = Doc.NativeAspect(layoutDoc);
-        if (layoutDoc._fitWidth) return Math.min(this.props.panelWidth() - 20, layoutDoc[WidthSym]());
-        if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.panelWidth() - 20));
-        return Doc.NativeWidth(layoutDoc) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : Math.min(this.layoutDoc[WidthSym](), this.props.panelWidth() - 20);
+        if (layoutDoc._fitWidth) return Math.min(this.props.panelWidth() - treeBulletWidth(), layoutDoc[WidthSym]());
+        if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT * aspect, this.props.panelWidth() - treeBulletWidth()));
+        return Math.min(this.props.panelWidth() - treeBulletWidth(), Doc.NativeWidth(layoutDoc) ? layoutDoc[WidthSym]() : this.layoutDoc[WidthSym]());
     }
     docHeight = () => {
         const layoutDoc = this.layoutDoc;
@@ -354,9 +358,9 @@ export class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
-    rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
+    rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - treeBulletWidth());
     rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
-    rtfOutlineHeight = () => Math.max(this.layoutDoc?.[HeightSym](), 20);
+    rtfOutlineHeight = () => Math.max(this.layoutDoc?.[HeightSym](), treeBulletWidth());
     expandPanelHeight = () => {
         if (this.layoutDoc._fitWidth) return this.docHeight();
         const aspect = this.layoutDoc[WidthSym]() / this.layoutDoc[HeightSym]();
@@ -486,7 +490,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef.current?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
     contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
-    truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, 0);
+    truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, this.props.panelWidth());
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
 
@@ -553,8 +557,10 @@ export class TreeView extends React.Component<TreeViewProps> {
                 moveDocument={this.move}
                 removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 PanelWidth={this.truncateTitleWidth}
-                PanelHeight={returnZero}
+                PanelHeight={() => 18}
                 contextMenuItems={this.contextMenuItems}
                 renderDepth={1}
                 focus={returnTrue}
@@ -746,7 +752,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
         const docs = TreeView.sortDocs(childDocs, StrCast(containingCollection?.[key + "-sortCriteria"]));
 
-        const rowWidth = () => panelWidth() - 20;
+        const rowWidth = () => panelWidth() - treeBulletWidth();
         return docs.filter(child => child instanceof Doc).map((child, i) => {
             const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
             if (!pair.layout || pair.data instanceof Promise) {

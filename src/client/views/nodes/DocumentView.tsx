@@ -409,7 +409,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
-                    documentView: this,
+                    documentView: this.props.DocumentView,
                     shiftKey
                 }, console.log);
                 const clickFunc = () => {
@@ -616,7 +616,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e && this.rootDoc._hideContextMenu && Doc.UserDoc().noviceMode) {
             e.preventDefault();
             e.stopPropagation();
-            !this.props.isSelected(true) && SelectionManager.SelectDoc(this.props.DocumentView, false);
+            !this.props.isSelected(true) && SelectionManager.SelectView(this.props.DocumentView, false);
         }
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (e) {
@@ -658,8 +658,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
             const zorders = cm.findByDescription("ZOrder...");
             const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
-            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.SelectedDocuments().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
             zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: undoBatch(action(() => this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined)), icon: "expand-arrows-alt" });
             !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
@@ -733,7 +733,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 e?.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-            !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectDoc(this.props.DocumentView, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+            !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
         });
     }
 
@@ -983,7 +983,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                 topDoc.x = fpt[0];
                 topDoc.y = fpt[1];
             }
-            setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
+            setTimeout(() => SelectionManager.SelectView(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
         }
     }
 
@@ -1061,7 +1061,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     });
 
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
-    select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
+    select = (ctrlPressed: boolean) => SelectionManager.SelectView(this, ctrlPressed);
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     PanelWidth = () => this.panelWidth;

@@ -117,14 +117,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
             titleEle.onpointerdown = action((e: any) => {
                 if (e.target.className !== "lm_close_tab") {
-                    if (this.view) SelectionManager.SelectDoc(this.view, false);
+                    if (this.view) SelectionManager.SelectView(this.view, false);
                     else this._activated = true;
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
                     titleEle.lastClick = Date.now();
                     (document.activeElement !== titleEle) && titleEle.focus();
                 }
             });
-            tab._disposers.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments().some(v => v.topMost && v.props.Document === doc),
+            tab._disposers.selectionDisposer = reaction(() => SelectionManager.Views().some(v => v.topMost && v.props.Document === doc),
                 action((selected) => {
                     if (selected) this._activated = true;
                     const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;
@@ -222,7 +222,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     componentDidMount() {
-        const selected = () => SelectionManager.SelectedDocuments().some(v => v.props.Document === this._document);
+        const selected = () => SelectionManager.Views().some(v => v.props.Document === this._document);
         new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;

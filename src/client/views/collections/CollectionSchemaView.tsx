@@ -352,7 +352,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
     @action setPreviewDoc = (doc: Opt<Doc>) => {
-        SelectionManager.SelectSchemaDoc(this, doc);
+        SelectionManager.SelectSchemaView(this, doc);
         this._previewDoc = doc;
     }
 

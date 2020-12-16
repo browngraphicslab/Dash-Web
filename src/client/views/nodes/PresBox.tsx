@@ -160,7 +160,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (SelectionManager.Views().length) return SelectionManager.Views()[0];
         if (this._selectedArray.size) return DocumentManager.Instance.getDocumentView(this.rootDoc);
     }
     @computed get isPres(): boolean {
@@ -195,7 +195,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.turnOffEdit(true);
         DocListCastAsync((Doc.UserDoc().myPresentations as Doc).data).then(pres =>
             !pres?.includes(this.rootDoc) && Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc));
-        this._disposers.selection = reaction(() => SelectionManager.SelectedDocuments(),
+        this._disposers.selection = reaction(() => SelectionManager.Views(),
             views => views.some(view => view.props.Document === this.rootDoc) && this.updateCurrentPresentation());
     }
 
@@ -404,7 +404,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const self = this;
         const resetSelection = action(() => {
             const presDocView = DocumentManager.Instance.getDocumentView(self.rootDoc);
-            if (presDocView) SelectionManager.SelectDoc(presDocView, false);
+            if (presDocView) SelectionManager.SelectView(presDocView, false);
             self.rootDoc.presStatus = presStatus;
             self._selectedArray.clear();
             selViewCache.forEach(doc => self._selectedArray.set(doc, undefined));
@@ -761,7 +761,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     selectPres = () => {
         const presDocView = DocumentManager.Instance.getDocumentView(this.rootDoc);
-        presDocView && SelectionManager.SelectDoc(presDocView, false);
+        presDocView && SelectionManager.SelectView(presDocView, false);
     }
 
     //Regular click

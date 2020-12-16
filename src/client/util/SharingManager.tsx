@@ -166,7 +166,7 @@ export class SharingManager extends React.Component<{}> {
         const key = normalizeEmail(StrCast(group.title));
         const acl = `acl-${key}`;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
@@ -271,7 +271,7 @@ export class SharingManager extends React.Component<{}> {
         const acl = `acl-${normalizeEmail(user.email)}`;
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         docs.forEach(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
             distributeAcls(acl, permission as SharingPermissions, doc);
@@ -323,7 +323,7 @@ export class SharingManager extends React.Component<{}> {
 
     private focusOn = (contents: string) => {
         const title = this.targetDoc ? StrCast(this.targetDoc.title) : "";
-        const docs = SelectionManager.SelectedDocuments().length > 1 ? SelectionManager.SelectedDocuments().map(docView => docView.props.Document) : [this.targetDoc];
+        const docs = SelectionManager.Views().length > 1 ? SelectionManager.Views().map(docView => docView.props.Document) : [this.targetDoc];
         return (
             <span
                 className={"focus-span"}
@@ -407,7 +407,7 @@ export class SharingManager extends React.Component<{}> {
 
         const target = targetDoc || this.targetDoc!;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         docs.forEach(doc => {
             for (const [key, value] of Object.entries(doc[AclSym])) {
                 distributeAcls(key, AclMap.get(value)! as SharingPermissions, target);
@@ -458,9 +458,9 @@ export class SharingManager extends React.Component<{}> {
         const groups = this.groupSort === "ascending" ? groupList.slice().sort(this.sortGroups) : this.groupSort === "descending" ? groupList.slice().sort(this.sortGroups).reverse() : groupList;
 
         // handles the case where multiple documents are selected
-        let docs = SelectionManager.SelectedDocuments().length < 2 ?
+        let docs = SelectionManager.Views().length < 2 ?
             [this.layoutDocAcls ? this.targetDoc : this.targetDoc?.[DataSym]]
-            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document?.[DataSym]);
+            : SelectionManager.Views().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document?.[DataSym]);
 
         if (this.myDocAcls) {
             const newDocs: Doc[] = [];

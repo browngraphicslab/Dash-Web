@@ -46,12 +46,12 @@ export class DocumentManager {
         });
         this.DocumentViews.push(view);
     }
-    public RemoveView = (view: DocumentView) => {
+    public RemoveView = action((view: DocumentView) => {
         const index = this.DocumentViews.indexOf(view);
         index !== -1 && this.DocumentViews.splice(index, 1);
 
         this.LinkedDocumentViews.slice().forEach(action((pair, i) => pair.a === view || pair.b === view ? this.LinkedDocumentViews.splice(i, 1) : null));
-    }
+    })
 
     //gets all views
     public getDocumentViewsById(id: string) {

@@ -189,6 +189,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
+    panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
     @computed get treeChildren() {
         TraceMobx();
         return this.props.childDocuments || this.childDocs;
@@ -200,7 +201,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument?.(d, target, addDoc) || false;
         return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, this.props.ScreenToLocalTransform,
-            this.outerXf, this.active, this.props.PanelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
+            this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
             this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null));
     }

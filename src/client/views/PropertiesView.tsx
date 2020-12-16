@@ -48,7 +48,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedDocuments().length) return SelectionManager.SelectedDocuments()[0];
+        if (SelectionManager.Views().length) return SelectionManager.Views()[0];
         if (PresBox.Instance?._selectedArray.size) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         return undefined;
     }
@@ -118,8 +118,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expandedField() {
         if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
-            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
-                SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? Doc.Layout(dv.layoutDoc) : dv.dataDoc);
+            const docs = SelectionManager.Views().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
+                SelectionManager.Views().map(dv => this.layoutFields ? Doc.Layout(dv.layoutDoc) : dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
@@ -162,7 +162,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get noviceFields() {
         if (this.dataDoc) {
             const ids: { [key: string]: string } = {};
-            const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => dv.dataDoc);
+            const docs = SelectionManager.Views().length < 2 ? [this.dataDoc] : SelectionManager.Views().map(dv => dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate", "tags"];
@@ -217,7 +217,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch
     setKeyValue = (value: string) => {
-        const docs = SelectionManager.SelectedDocuments().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        const docs = SelectionManager.Views().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
         docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
@@ -256,7 +256,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get layoutPreview() {
-        if (SelectionManager.SelectedDocuments().length > 1) {
+        if (SelectionManager.Views().length > 1) {
             return "-- multiple selected --";
         }
         if (this.selectedDoc) {
@@ -305,7 +305,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     @undoBatch
     changePermissions = (e: any, user: string) => {
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [this.selectedDoc!] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [this.selectedDoc!] : SelectionManager.Views().map(docView => docView.props.Document);
         SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, docs);
     }
 
@@ -385,9 +385,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         ]);
 
         // all selected docs
-        const docs = SelectionManager.SelectedDocuments().length < 2 ?
+        const docs = SelectionManager.Views().length < 2 ?
             [this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym]]
-            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
+            : SelectionManager.Views().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document[DataSym]);
 
         const target = docs[0];
 
@@ -438,7 +438,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get editableTitle() {
         const titles = new Set<string>();
-        SelectionManager.SelectedDocuments().forEach(dv => titles.add(StrCast(dv.rootDoc.title)));
+        SelectionManager.Views().forEach(dv => titles.add(StrCast(dv.rootDoc.title)));
         const title = Array.from(titles.keys()).length > 1 ? "--multiple selected--" : StrCast(this.selectedDoc?.title);
         return <div className="editable-title"><EditableView
             key="editableView"
@@ -452,8 +452,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @undoBatch
     @action
     setTitle = (value: string) => {
-        if (SelectionManager.SelectedDocuments().length > 1) {
-            SelectionManager.SelectedDocuments().map(dv => Doc.SetInPlace(dv.rootDoc, "title", value, true));
+        if (SelectionManager.Views().length > 1) {
+            SelectionManager.Views().map(dv => Doc.SetInPlace(dv.rootDoc, "title", value, true));
             return true;
         } else if (this.dataDoc) {
             if (this.selectedDoc) Doc.SetInPlace(this.selectedDoc, "title", value, true);

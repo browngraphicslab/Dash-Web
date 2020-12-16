@@ -52,7 +52,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     componentDidMount() {
-        reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
+        reaction(() => SelectionManager.Views().length && SelectionManager.Views()[0],
             (doc) => doc && this.SetSelection(doc));
     }
 
@@ -372,7 +372,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get notACollection() {
@@ -554,7 +554,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
@@ -621,7 +621,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
     @action
     editProperties = (value: any, field: string) => {
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK) {
                 switch (field) {
