@@ -108,8 +108,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
 
     active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
         this.props.rootSelected(outsideReaction) ||
-        this.props.Document.forceActive ||
-        this.props.Document._isGroup ||
+        (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
         this._isChildActive ||
         this.props.renderDepth === 0) ?
         true :
@@ -388,7 +387,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             CollectionView: this,
         };
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
-            style={{ pointerEvents: (this.props.Document._isGroup && !SnappingManager.GetIsDragging()) ? "all" : this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined }}>
+            style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => Cast(d.data, ImageField, null)).map(d =>

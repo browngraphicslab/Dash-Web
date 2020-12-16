@@ -347,9 +347,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) => {
-        const newCollection = creator ? creator(selected, { title: makeGroup ? "grouping" : "nested stack", }) : ((doc: Doc) => {
+        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
-            Doc.GetProto(doc).title = "nested freeform";
+            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
             doc._panX = doc._panY = 0;
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
@@ -641,7 +641,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: this.props.Document._isGroup || (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" : StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
+            style={{ overflow: (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" : StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
             onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}

@@ -43,13 +43,12 @@ function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkSc
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {
-        const layers = StrListCast(doc.layers);
+        let layers = StrListCast(doc.layers);
         if (!layers.includes(StyleLayers.Background)) {
-            if (!layers.length) doc.layers = new List<string>([StyleLayers.Background]);
+            if (!layers.length) doc.layers = layers = new List<string>([StyleLayers.Background]);
             else layers.push(StyleLayers.Background);
         }
         else layers.splice(layers.indexOf(StyleLayers.Background), 1);
-        doc._overflow = !layers.includes(StyleLayers.Background) ? "visible" : undefined;
         if (!layers.includes(StyleLayers.Background)) {
             //this.props.bringToFront(doc, true);
             // const wid = this.Document[WidthSym]();    // change the nativewidth and height if the background is to be a collection that aggregates stuff that is added to it.
@@ -120,10 +119,10 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:
                     docColor = docColor ? docColor :
-                        doc?._isGroup ? "#00000004" :
-                            (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") :
-                                isBackground() ? "cyan" :
-                                    doc.annotationOn ? "#00000015" :
+                        doc?._isGroup ? "#00000004" : // very faint highlight to show bounds of group
+                            (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") : // system docs (seen in treeView) get a grayish background
+                                isBackground() ? "cyan" : // ?? is there a good default for a background collection
+                                    doc.annotationOn ? "#00000015" : // faint interior for collections on PDFs, images, etc
                                         StrCast((props?.renderDepth || 0) > 0 ?
                                             Doc.UserDoc().activeCollectionNestedBackground :
                                             Doc.UserDoc().activeCollectionBackground));
@@ -140,8 +139,10 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (doc?.isLinkButton && doc.type !== DocumentType.LINK) return StrCast(doc?._linkButtonShadow, "lightblue 0em 0em 1em");
 
             switch (doc?.type) {
-                case DocumentType.COL: return StrCast(doc?.boxShadow, isBackground() || (doc?._isGroup && !SnappingManager.GetIsDragging()) ? undefined :
-                    `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`);
+                case DocumentType.COL:
+                    return StrCast(doc?.boxShadow,
+                        isBackground() || doc?._isGroup ? undefined : // groups have no drop shadow -- they're supposed to be "invisible"
+                            `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`);
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
                         props?.ContainingCollectionDoc?._useClusters && doc.type !== DocumentType.INK ? (`${backgroundCol()} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent

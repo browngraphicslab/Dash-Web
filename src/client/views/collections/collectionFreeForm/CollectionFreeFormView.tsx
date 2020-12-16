@@ -241,7 +241,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
-        if (!this.ChildDrag && this.props.Document._isGroup) return false;
+        if (!this.ChildDrag && this.props.layerProvider?.(this.props.Document) !== false && this.props.Document._isGroup) return false;
         if (!super.onInternalDrop(e, de)) return false;
         const refDoc = docDragData.droppedDocuments[0];
         const [xpo, ypo] = this.getTransformOverlay().transformPoint(de.x, de.y);
@@ -676,7 +676,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return;
         }
         if (!e.cancelBubble) {
-            if (this.props.Document._isGroup) return;
+            if (this.props.Document._isGroup) return; // groups don't pan when dragged -- instead let the event go through to allow the group itself to drag
             if (Doc.GetSelectedTool() === InkTool.None) {
                 if (this.tryDragCluster(e, this._hitCluster)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -1406,7 +1406,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     onPointerOver = (e: React.PointerEvent) => {
-        (DocumentDecorations.Instance.Interacting || SnappingManager.GetIsDragging()) && this.setupDragLines(e.ctrlKey || e.shiftKey);
+        (DocumentDecorations.Instance.Interacting || (this.props.layerProvider?.(this.props.Document) === false && SnappingManager.GetIsDragging())) && this.setupDragLines(e.ctrlKey || e.shiftKey);
         e.stopPropagation();
     }
 
@@ -1575,12 +1575,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     </svg>
                 </div>}
 
-            {this.ChildDrag && this.props.Document._isGroup ?
+            {(this.ChildDrag || this.props.layerProvider?.(this.props.Document) === false) && SnappingManager.GetIsDragging() && this.props.Document._isGroup ?
                 <div className="collectionFreeForm-groupDropper" ref={this.createDashEventsTarget} style={{
-                    width: "10000",
-                    height: "10000",
-                    left: "-5000",
-                    top: "-5000",
+                    width: this.ChildDrag ? "10000" : "100%",
+                    height: this.ChildDrag ? "10000" : "100%",
+                    left: this.ChildDrag ? "-5000" : 0,
+                    top: this.ChildDrag ? "-5000" : 0,
                     position: "absolute",
                     background: "#0009930",
                     pointerEvents: "all"
