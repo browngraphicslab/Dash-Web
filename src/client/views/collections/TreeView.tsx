@@ -503,7 +503,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         switch (property.split(":")[0]) {
             case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
             case StyleProp.BackgroundColor: return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
-            case StyleProp.DocContents: return testDocProps(props) && props?.treeViewDoc ? (null) :
+            case StyleProp.DocContents: return testDocProps(props) && !props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
                     background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
