@@ -1,9 +1,9 @@
-import { observable, action, runInAction, ObservableMap } from "mobx";
-import { Doc, Opt } from "../../fields/Doc";
-import { DocumentView } from "../views/nodes/DocumentView";
+import { action, observable, ObservableMap } from "mobx";
 import { computedFn } from "mobx-utils";
+import { Doc, Opt } from "../../fields/Doc";
 import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 import { CollectionViewType } from "../views/collections/CollectionView";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export namespace SelectionManager {
 

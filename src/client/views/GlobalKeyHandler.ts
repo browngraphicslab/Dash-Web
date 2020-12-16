@@ -22,11 +22,11 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { DocumentView } from "./nodes/DocumentView";
 import { PDFMenu } from "./pdf/PDFMenu";
 import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
+import { DocumentView } from "./nodes/DocumentView";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -177,17 +177,10 @@ export class KeyManager {
         const preventDefault = true;
 
         switch (keyname) {
+            case "ƒ":
             case "f":
                 const dv = SelectionManager.SelectedDocuments()?.[0];
-                if (dv) {
-                    const ex = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];
-                    const ey = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];
-                    DocumentView.FloatDoc(dv, ex, ey);
-                }
-            // case "n":
-            //     let toggle = MainView.Instance.addMenuToggle.current!;
-            //     toggle.checked = !toggle.checked;
-            //     break;
+                UndoManager.RunInBatch(() => dv?.float(), "float");
         }
 
         return {

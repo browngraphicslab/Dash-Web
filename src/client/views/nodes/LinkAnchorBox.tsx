@@ -119,7 +119,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
         const linkSource = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkSource);
-        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.ItemBackgroundColor);
+        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.BackgroundColor);
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
@@ -142,11 +142,12 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 Location: [e.clientX, e.clientY + 20]
             })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
-            ref={this._ref} style={{
+            ref={this._ref}
+            style={{
                 background,
                 left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
                 top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
-                transform: `scale(${anchorScale / this.props.ContentScaling()})`
+                transform: `scale(${anchorScale})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} open={this._forceOpen ? true : undefined} onOpen={() => this._isOpen = true} onClose={action(() => this._isOpen = this._forceOpen = this._editing = false)}>

@@ -60,6 +60,7 @@ interface IViewerProps extends FieldViewProps {
     loaded?: (nw: number, nh: number, np: number) => void;
     isChildActive: (outsideReaction?: boolean) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
+    ContentScaling?: () => number;
 }
 
 /**
@@ -370,7 +371,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = (this.props.PanelHeight() / this.props.ContentScaling()) / 2;
+            const offset = (this.props.PanelHeight() / this.contentScaling) / 2;
             this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
@@ -632,12 +633,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkDocument) {
-                        e.annoDragData.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                    if (!e.aborted && e.annoDragData && !e.linkDocument) {
+                        e.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                     }
                     annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
                     annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
-                    e.annoDragData && e.annoDragData.linkDocument && e.annoDragData?.linkDropCallback?.({ linkDocument: e.annoDragData.linkDocument });
+                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument above
                 }
             });
         }
@@ -737,7 +738,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get pdfViewerDiv() {
         return <div className={"pdfViewerDash-text" + ((this.props.isSelected() || this.props.isChildActive()) ? "-selected" : "")} ref={this._viewer} />;
     }
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    @computed get contentScaling() { return this.props.ContentScaling?.() || 1; }
     @computed get standinViews() {
         return <>
             {this._showCover ? this.getCoverImage() : (null)}
@@ -758,7 +759,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
                 width: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeWidth(this.props.Document) : `${100 / this.contentScaling}%`,
                 height: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeHeight(this.props.Document) : `${100 / this.contentScaling}%`,
-                transform: `scale(${this.props.ContentScaling()})`
+                transform: `scale(${this.contentScaling})`
             }}  >
             {this.pdfViewerDiv}
             {this.annotationLayer}

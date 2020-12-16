@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
@@ -20,7 +20,8 @@ import { COLLECTION_BORDER_WIDTH, SCHEMA_DIVIDER_WIDTH } from '../../views/globa
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import '../DocumentDecorations.scss';
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { DocumentView } from "../nodes/DocumentView";
+import { DefaultStyleProvider } from "../StyleProvider";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
@@ -397,10 +398,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         return <div ref={this.createTarget} style={{ width: `${this.previewWidth()}px` }}>
             {!this.previewDocument ? (null) :
-                <ContentFittingDocumentView
+                <DocumentView
                     Document={this.previewDocument}
                     DataDoc={undefined}
-                    fitToBox={true}
+                    fitContentsToDoc={true}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     focus={emptyFunction}
@@ -412,6 +413,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     docFilters={this.docFilters}
                     docRangeFilters={this.docRangeFilters}
                     searchFilterDocs={this.searchFilterDocs}
+                    styleProvider={DefaultStyleProvider}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
@@ -422,7 +424,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
                     bringToFront={returnFalse}
-                    ContentScaling={returnOne}
                 />}
         </div>;
     }

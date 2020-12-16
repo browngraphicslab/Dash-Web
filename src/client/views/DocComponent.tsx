@@ -14,6 +14,7 @@ import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail }
 interface DocComponentProps {
     Document: Doc;
     LayoutTemplate?: () => Opt<Doc>;
+    LayoutTemplateString?: string;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -22,7 +23,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
+        @computed get layoutDoc() { return this.props.LayoutTemplateString ? this.props.Document : Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 

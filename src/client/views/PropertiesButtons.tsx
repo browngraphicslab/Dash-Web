@@ -187,7 +187,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @action @undoBatch
     onLock = () => {
-        SelectionManager.SelectedDocuments().forEach(dv => dv.toggleLockPosition());
+        SelectionManager.SelectedDocuments().forEach(dv => dv.docView?.toggleLockPosition());
     }
 
     @computed
@@ -327,18 +327,18 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
         SelectionManager.SelectedDocuments().forEach(dv => {
             if (value === "nothing") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
             } else if (value === "enterPortal") {
-                dv.noOnClick();
-                dv.makeIntoPortal();
+                dv.docView?.noOnClick();
+                dv.docView?.makeIntoPortal();
             } else if (value === "toggleDetail") {
-                dv.noOnClick();
-                dv.toggleDetail();
+                dv.docView?.noOnClick();
+                dv.docView?.toggleDetail();
             } else if (value === "linkInPlace") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
                 dv.toggleFollowLink("inPlace", true, false);
             } else if (value === "linkOnRight") {
-                dv.noOnClick();
+                dv.docView?.noOnClick();
                 dv.toggleFollowLink("add:right", false, false);
             }
         });

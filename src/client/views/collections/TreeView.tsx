@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, DocListCastOrNull, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
@@ -9,7 +9,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -20,16 +20,16 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
+import { FieldViewProps } from '../nodes/FieldView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { StyleProp, testDocProps } from '../StyleProvider';
 import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
-import { StyleProp } from '../StyleProvider';
 
 export interface TreeViewProps {
     document: Doc;
@@ -83,7 +83,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _uniqueId = Utils.GenerateGuid();
     private _editMaxWidth: number | string = 0;
 
-    @observable _dref: ContentFittingDocumentView | undefined | null;
+    @observable _dref: DocumentView | undefined | null;
     @computed get doc() { TraceMobx(); return this.props.document; }
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
@@ -497,13 +497,13 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.preventDefault();
         }
     }
-    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+    titleStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (!doc || doc !== this.doc) return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
 
         switch (property.split(":")[0]) {
             case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
             case StyleProp.BackgroundColor: return StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
-            case StyleProp.DocContents: return !props?.treeViewDoc ? (null) :
+            case StyleProp.DocContents: return testDocProps(props) && props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
                     background: props?.styleProvider?.(doc, props, StyleProp.BackgroundColor),
@@ -513,7 +513,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             case StyleProp.Decorations: return (null);
         }
     }
-    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps>, property: string): any => {
+    embeddedStyleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
         if (property.startsWith(StyleProp.Decorations)) return (null);
         return this.props?.treeView?.props.styleProvider?.(doc, props, property); // properties are inherited from the CollectionTreeView, not the hierarchical parent in the treeView
     }
@@ -553,7 +553,6 @@ export class TreeView extends React.Component<TreeViewProps> {
                 moveDocument={this.move}
                 removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
-                ContentScaling={returnOne}
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={returnZero}
                 contextMenuItems={this.contextMenuItems}
@@ -609,14 +608,14 @@ export class TreeView extends React.Component<TreeViewProps> {
     renderEmbeddedDocument = (asText: boolean) => {
         const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
         const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
-        return <ContentFittingDocumentView key={this.doc[Id]} ref={action((r: ContentFittingDocumentView | null) => this._dref = r)}
+        return <DocumentView key={this.doc[Id]} ref={action((r: DocumentView | null) => this._dref = r)}
             Document={this.doc}
             DataDoc={undefined}
             PanelWidth={panelWidth}
             PanelHeight={panelHeight}
             NativeWidth={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
             NativeHeight={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
-            fitToBox={!asText && this.isCollectionDoc !== undefined}
+            fitContentsToDoc={true}
             hideTitle={asText}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
             focus={asText ? this.refocus : returnFalse}
@@ -638,7 +637,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
         />;
     }
 
@@ -672,7 +670,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         else this._editMaxWidth = "";
 
         const hideTitle = this.doc.treeViewHideHeader || this.outlineMode;
-        return <div className={`treeView-container${this._dref?.docView?.contentsActive() ? "-active" : ""}`}
+        return <div className={`treeView-container${this._dref?.contentsActive() ? "-active" : ""}`}
             ref={this.createTreeDropTarget}
             onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}
             onKeyDown={this.onKeyDown}>

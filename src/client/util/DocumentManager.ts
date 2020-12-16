@@ -7,10 +7,10 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
+import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
+import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
-import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
-import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 

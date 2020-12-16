@@ -1,17 +1,17 @@
-import { SelectionManager } from "./SelectionManager";
-import { DocumentView } from "../views/nodes/DocumentView";
-import { UndoManager } from "./UndoManager";
 import * as interpreter from "words-to-numbers";
-import { DocumentType } from "../documents/DocumentTypes";
 import { Doc, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Docs } from "../documents/Documents";
-import { Cast, CastCtor } from "../../fields/Types";
+import { RichTextField } from "../../fields/RichTextField";
 import { listSpec } from "../../fields/Schema";
+import { Cast, CastCtor } from "../../fields/Types";
 import { AudioField, ImageField } from "../../fields/URLField";
 import { Utils } from "../../Utils";
-import { RichTextField } from "../../fields/RichTextField";
+import { Docs } from "../documents/Documents";
+import { DocumentType } from "../documents/DocumentTypes";
 import { DictationOverlay } from "../views/DictationOverlay";
+import { DocumentView } from "../views/nodes/DocumentView";
+import { SelectionManager } from "./SelectionManager";
+import { UndoManager } from "./UndoManager";
 
 /**
  * This namespace provides a singleton instance of a manager that

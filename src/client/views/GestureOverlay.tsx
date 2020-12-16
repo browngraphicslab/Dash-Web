@@ -1,4 +1,5 @@
 import React = require("react");
+import * as fitCurve from 'fit-curve';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
@@ -7,7 +8,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents, returnEmptyDoclist } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -15,15 +16,14 @@ import { InteractionUtils } from "../util/InteractionUtils";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { Transform } from "../util/Transform";
+import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 import "./GestureOverlay.scss";
-import { ActiveInkBezierApprox, ActiveArrowStart, ActiveArrowEnd, ActiveFillColor, ActiveInkColor, ActiveInkWidth, InkingStroke, SetActiveInkColor, SetActiveInkWidth, SetActiveFillColor, SetActiveArrowStart, SetActiveArrowEnd, ActiveDash, SetActiveDash } from "./InkingStroke";
+import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, SetActiveArrowEnd, SetActiveArrowStart, SetActiveDash, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "./InkingStroke";
 import { DocumentView } from "./nodes/DocumentView";
 import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import * as fitCurve from 'fit-curve';
-import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
 export class GestureOverlay extends Touchable {
@@ -893,10 +893,8 @@ export class GestureOverlay extends Touchable {
                 addDocTab={returnFalse}
                 rootSelected={returnTrue}
                 pinToPres={emptyFunction}
-                onClick={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
-                ContentScaling={returnOne}
                 PanelWidth={this.return300}
                 PanelHeight={this.return300}
                 renderDepth={0}
