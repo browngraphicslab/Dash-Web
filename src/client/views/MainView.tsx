@@ -237,7 +237,7 @@ export class MainView extends React.Component {
 
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
-    getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
+    getContentsHeight = () => this._panelHeight;
 
     @computed get mainDocView() {
         return <DocumentView
