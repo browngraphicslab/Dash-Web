@@ -1,13 +1,14 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { intersection } from "lodash";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import Select from "react-select";
 import * as RequestPromise from "request-promise";
-import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt, AclSym, AclAddonly, AclEdit, AclReadonly, DocListCastAsync } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Cast, NumCast, StrCast } from "../../fields/Types";
-import { distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx, normalizeEmail } from "../../fields/util";
+import { Cast, StrCast } from "../../fields/Types";
+import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
@@ -15,13 +16,12 @@ import { DictationOverlay } from "../views/DictationOverlay";
 import { MainViewModal } from "../views/MainViewModal";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { DocumentManager } from "./DocumentManager";
 import { GroupManager, UserOptions } from "./GroupManager";
 import { GroupMemberView } from "./GroupMemberView";
-import "./SharingManager.scss";
 import { SelectionManager } from "./SelectionManager";
-import { intersection } from "lodash";
-import { SearchBox } from "../views/search/SearchBox";
+import "./SharingManager.scss";
 
 export interface User {
     email: string;
@@ -202,7 +202,7 @@ export class SharingManager extends React.Component<{}> {
         const key = normalizeEmail(StrCast(group.title));
         const acl = `acl-${key}`;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
 
         docs.forEach(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[`acl-${Doc.CurrentUserEmailNormalized}`] && distributeAcls(`acl-${Doc.CurrentUserEmailNormalized}`, SharingPermissions.Admin, doc);
@@ -306,6 +306,25 @@ export class SharingManager extends React.Component<{}> {
         }
     }
 
+    /**
+     * Shares the document with a user.
+     */
+    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
+        const { user, sharingDoc } = recipient;
+        const target = targetDoc || this.targetDoc!;
+        const acl = `acl-${normalizeEmail(user.email)}`;
+        const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
+
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
+        docs.forEach(doc => {
+            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+            distributeAcls(acl, permission as SharingPermissions, doc);
+
+            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
+            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+        });
+    }
+
 
     // private setExternalSharing = (permission: string) => {
     //     const sharingDoc = this.sharingDoc;
@@ -348,7 +367,7 @@ export class SharingManager extends React.Component<{}> {
 
     private focusOn = (contents: string) => {
         const title = this.targetDoc ? StrCast(this.targetDoc.title) : "";
-        const docs = SelectionManager.SelectedDocuments().length > 1 ? SelectionManager.SelectedDocuments().map(docView => docView.props.Document) : [this.targetDoc];
+        const docs = SelectionManager.Views().length > 1 ? SelectionManager.Views().map(docView => docView.props.Document) : [this.targetDoc];
         return (
             <span
                 className={"focus-span"}
@@ -424,7 +443,7 @@ export class SharingManager extends React.Component<{}> {
     distributeOverCollection = (targetDoc?: Doc) => {
         const target = targetDoc || this.targetDoc!;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         docs.forEach(doc => {
             for (const [key, value] of Object.entries(doc[AclSym])) {
                 distributeAcls(key, this.AclMap.get(value)! as SharingPermissions, target);
@@ -475,9 +494,9 @@ export class SharingManager extends React.Component<{}> {
         const groups = this.groupSort === "ascending" ? groupList.slice().sort(this.sortGroups) : this.groupSort === "descending" ? groupList.slice().sort(this.sortGroups).reverse() : groupList;
 
         // handles the case where multiple documents are selected
-        let docs = SelectionManager.SelectedDocuments().length < 2 ?
+        let docs = SelectionManager.Views().length < 2 ?
             [this.layoutDocAcls ? this.targetDoc : this.targetDoc?.[DataSym]]
-            : SelectionManager.SelectedDocuments().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document?.[DataSym]);
+            : SelectionManager.Views().map(docView => this.layoutDocAcls ? docView.props.Document : docView.props.Document?.[DataSym]);
 
         if (this.myDocAcls) {
             const newDocs: Doc[] = [];

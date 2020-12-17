@@ -1,16 +1,16 @@
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import * as mobxUtils from 'mobx-utils';
 import CursorField from "../../../../fields/CursorField";
+import { FieldResult } from "../../../../fields/Doc";
+import { List } from "../../../../fields/List";
 import { listSpec } from "../../../../fields/Schema";
 import { Cast } from "../../../../fields/Types";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
-import { CollectionViewProps } from "../CollectionSubView";
+import { CollectionViewProps } from "../CollectionView";
 import "./CollectionFreeFormView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { computed } from "mobx";
-import { FieldResult } from "../../../../fields/Doc";
-import { List } from "../../../../fields/List";
 
 @observer
 export class CollectionFreeFormRemoteCursors extends React.Component<CollectionViewProps> {

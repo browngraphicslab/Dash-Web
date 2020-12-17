@@ -2,30 +2,28 @@ import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
 import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Id } from '../../../fields/FieldSymbols';
 import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
+import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
 import { ContextMenu } from '../ContextMenu';
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { DocumentLinksButton } from './DocumentLinksButton';
+import { DocumentView, StyleProviderFunc, DocumentViewSharedProps } from "./DocumentView";
 import React = require("react");
-import { DocumentViewProps } from './DocumentView';
-import { Id } from '../../../fields/FieldSymbols';
 
 interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    styleProvider?: (doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => any;
-    addDocTab: (document: Doc, where: string) => boolean;
+    docprops: DocumentViewSharedProps;
     location: number[];
 }
 @observer
 export class LinkDocPreview extends React.Component<Props> {
     static TargetDoc: Doc | undefined;
-    @observable public static LinkInfo: Opt<{ linkDoc?: Doc; addDocTab: (document: Doc, where: string) => boolean, linkSrc: Doc; href?: string; Location: number[] }>;
+    @observable public static LinkInfo: Opt<{ linkDoc?: Doc; linkSrc: Doc; href?: string; Location: number[], docprops: DocumentViewSharedProps }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
     _editRef = React.createRef<HTMLDivElement>();
@@ -43,7 +41,7 @@ export class LinkDocPreview extends React.Component<Props> {
     async followDefault() {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, (doc, where) => this.props.addDocTab(doc, where), false) : null;
+        this._targetDoc && LinkManager.FollowLink(this.props.linkDoc, this._targetDoc, this.props.docprops, false);
     }
     componentWillUnmount() { LinkDocPreview.TargetDoc = undefined; }
 
@@ -76,10 +74,9 @@ export class LinkDocPreview extends React.Component<Props> {
     }
     pointerDown = (e: React.PointerEvent) => {
         if (this.props.linkDoc && this.props.linkSrc) {
-            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.linkSrc,
-                (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation));
+            LinkManager.FollowLink(this.props.linkDoc, this.props.linkSrc, this.props.docprops, false);
         } else if (this.props.href) {
-            this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { _fitWidth: true, title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
+            this.props.docprops?.addDocTab(Docs.Create.WebDocument(this.props.href, { _fitWidth: true, title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
@@ -92,9 +89,8 @@ export class LinkDocPreview extends React.Component<Props> {
                 </div>
             </div>
             :
-            <ContentFittingDocumentView
+            <DocumentView
                 Document={this._targetDoc}
-                fitToBox={true}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
@@ -115,8 +111,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
-                ContentScaling={returnOne}
-                styleProvider={this.props.styleProvider} />;
+                styleProvider={this.props.docprops?.styleProvider} />;
     }
 
     render() {
@@ -125,6 +120,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width() + 16, height: this.height() + 16,
                 zIndex: 1000,
+                backgroundColor: "lightblue",
                 border: "8px solid white", borderRadius: "7px",
                 boxShadow: "3px 3px 1.5px grey",
                 borderBottom: "8px solid white", borderRight: "8px solid white"

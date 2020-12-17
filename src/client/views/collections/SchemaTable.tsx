@@ -5,31 +5,31 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocListCast, Field, Opt, AclPrivate, AclReadonly, DataSym } from "../../../fields/Doc";
+import { DateField } from "../../../fields/DateField";
+import { AclPrivate, AclReadonly, DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
+import { ImageField } from "../../../fields/URLField";
+import { GetEffectiveAcl } from "../../../fields/util";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH, SCHEMA_DIVIDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell } from "./CollectionSchemaCells";
+import { DocumentView } from "../nodes/DocumentView";
+import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { GetEffectiveAcl } from "../../../fields/util";
-import { DateField } from "../../../fields/DateField";
-import { ImageField } from "../../../fields/URLField";
 
 
 enum ColumnType {
@@ -62,9 +62,9 @@ export interface SchemaTableProps {
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
-    deleteDocument: (document: Doc | Doc[]) => boolean;
-    addDocument: (document: Doc | Doc[]) => boolean;
-    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
+    deleteDocument?: (document: Doc | Doc[]) => boolean;
+    addDocument?: (document: Doc | Doc[]) => boolean;
+    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction: boolean | undefined) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
@@ -376,7 +376,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = action(() => {
-        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
+        this.props.addDocument?.(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
         this._focusedCell = { row: this.childDocs.length, col: this._focusedCell.col };
     });
 
@@ -567,11 +567,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: "dimGray", display: "block", top: 0, left: 0,
                         transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1] - 180}px)`
                     }}
-                    ref="overlay"><ContentFittingDocumentView
+                    ref="overlay"><DocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
-                        fitToBox={true}
-                        FreezeDimensions={true}
+                        freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}
                         rootSelected={() => false}
@@ -588,9 +587,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         whenActiveChanged={emptyFunction}
                         addDocTab={this.props.addDocTab}
                         pinToPres={this.props.pinToPres}
-                        bringToFront={returnFalse}
-                        ContentScaling={returnOne}>
-                    </ContentFittingDocumentView>
+                        bringToFront={returnFalse}>
+                    </DocumentView>
                 </div>}
         </div>;
     }

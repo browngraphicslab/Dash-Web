@@ -9,7 +9,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -153,7 +153,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         }
     }
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
-    get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(this?.target, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
@@ -181,7 +180,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </div>
             <div className="filterBox-tree" key="tree">
                 <CollectionTreeView
-                    PanelPosition={""}
                     Document={facetCollection}
                     DataDoc={Doc.GetProto(facetCollection)}
                     fieldKey={`${this.props.fieldKey}`}
@@ -202,16 +200,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     isSelected={returnFalse}
                     select={returnFalse}
                     bringToFront={emptyFunction}
-                    active={this.props.active}
+                    active={returnTrue}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     treeViewHideTitle={true}
-                    ContentScaling={returnOne}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
-                    ignoreFields={this.ignoreFields}
-                    annotationsKey={""}
                     dontRegisterView={true}
                     styleProvider={this.filterBackground}
                     moveDocument={returnFalse}

@@ -3,17 +3,16 @@ import { NodeSelection } from "prosemirror-state";
 import * as ReactDOM from 'react-dom';
 import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
-import { ObjectField } from "../../../../fields/ObjectField";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnZero, Utils } from "../../../../Utils";
+import { Cast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { Transform } from "../../../util/Transform";
+import { DefaultStyleProvider } from "../../StyleProvider";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
-import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 
 
 export class DashDocView {
@@ -27,11 +26,9 @@ export class DashDocView {
     //moved
     getDocTransform = () => {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
-        return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
+        return new Transform(-translateX, -translateY, 1).scale(1 / scale);
     }
 
-    //moved
-    contentScaling = () => Doc.NativeWidth(this._dashDoc) > 0 ? this._dashDoc![WidthSym]() / Doc.NativeWidth(this._dashDoc) : 1;
 
     //moved
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
@@ -136,7 +133,6 @@ export class DashDocView {
                 ReactDOM.render(<DocumentView
                     Document={finalLayout}
                     DataDoc={resolvedDataDoc}
-                    fitToBox={BoolCast(dashDoc._fitToBox)}
                     addDocument={returnFalse}
                     rootSelected={this._textBox.props.isSelected}
                     removeDocument={removeDoc}
@@ -147,7 +143,7 @@ export class DashDocView {
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}
-                    styleProvider={returnEmptyString}
+                    styleProvider={DefaultStyleProvider}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
@@ -157,7 +153,6 @@ export class DashDocView {
                     searchFilterDocs={this._textBox.props.searchFilterDocs}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
-                    ContentScaling={this.contentScaling}
                 />, this._dashSpan);
 
                 if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {

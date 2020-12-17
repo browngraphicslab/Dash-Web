@@ -3,8 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -12,23 +11,24 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll, returnVal } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
+import { DocUtils } from "../../documents/Documents";
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { FieldViewProps } from "../nodes/FieldView";
+import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { SnappingManager } from "../../util/SnappingManager";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocUtils } from "../../documents/Documents";
-import { DocAfterFocusFunc } from "../nodes/DocumentView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -53,14 +53,15 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
+    @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
-    @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5)); } // 2 * this.gridGap)); }
+    @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
-    @computed get isStackingView() { return BoolCast(this.layoutDoc._columnsStack, true); }
+    @computed get isStackingView() { return this.layoutDoc._viewType === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
-        return Math.min(this.props.PanelWidth() / this.props.ContentScaling() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
+        return Math.min(this.props.PanelWidth() /* / NumCast(this.layoutDoc._viewScale, 1)*/ - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : this.layoutDoc._columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.layoutDoc._columnWidth, 250));
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
@@ -152,7 +153,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     @action
     moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean): boolean => {
-        return this.props.removeDocument(doc) && addDocument(doc);
+        return this.props.removeDocument?.(doc) && addDocument?.(doc) ? true : false;
     }
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
@@ -188,28 +189,36 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const opacity = () => this.Document._currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
-        return <ContentFittingDocumentView
+        const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+            if (property === StyleProp.Opacity && doc) {
+                if (this.props.childOpacity) {
+                    return this.props.childOpacity();
+                }
+                if (this.Document._currentFrame !== undefined) {
+                    return CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
+                }
+            }
+            return this.props.styleProvider?.(doc, props, property);
+        };
+        return <DocumentView
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
-            styleProvider={this.props.styleProvider}
-            LayoutTemplate={this.props.ChildLayoutTemplate}
-            LayoutTemplateString={this.props.ChildLayoutString}
-            FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
+            styleProvider={styleProvider}
+            LayoutTemplate={this.props.childLayoutTemplate}
+            LayoutTemplateString={this.props.childLayoutString}
+            freezeDimensions={this.props.childFreezeDimensions}
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
-            dontCenter={this.props.childIgnoreNativeSize ? "xy" : ""}
-            fitToBox={false}
+            dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
-            opacity={opacity}
             focus={this.focusDocument}
             docFilters={this.docFilters}
             docRangeFilters={this.docRangeFilters}
@@ -219,12 +228,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            contentsPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
+            contentPointerEvents={StrCast(this.layoutDoc.contentPointerEvents)}
             parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
             scriptContext={this.props.scriptContext}
             pinToPres={this.props.pinToPres}
         />;
@@ -232,14 +240,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     getDocWidth(d?: Doc) {
         if (!d) return 0;
-        const layoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
+        const layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = Doc.NativeWidth(layoutDoc);
         return Math.min(nw && !this.layoutDoc._columnsFill ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
         const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
-        const childLayoutDoc = Doc.Layout(d, this.props.ChildLayoutTemplate?.());
+        const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc);
         const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
@@ -351,9 +359,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            const height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
-                            if (this.props.annotationsKey) {
-                                doc[this.props.annotationsKey + "-height"] = height;
+                            const height = this.headerMargin +
+                                Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER),
+                                    Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
+                            if (this.props.isAnnotationOverlay) {
+                                doc[this.props.fieldKey + "-height"] = height;
                             } else {
                                 Doc.Layout(doc)._height = height * NumCast(Doc.Layout(doc)._viewScale, 1);
                             }
@@ -381,13 +391,13 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         const outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const offsety = (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0);
+        const offsety = 0;
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
     }
 
     forceAutoHeight = () => {
         const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-        Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
+        Doc.Layout(doc)._height = this.headerMargin + this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
     }
 
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
@@ -409,7 +419,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
+                            Doc.Layout(doc)._height = this.headerMargin + Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
                         }
                     }));
                     this.observer.observe(ref);
@@ -469,8 +479,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     }
 
 
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc)); }
+    @computed get nativeWidth() { return Doc.NativeWidth(this.layoutDoc); }
+    @computed get nativeHeight() { return Doc.NativeHeight(this.layoutDoc); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 

@@ -364,12 +364,9 @@ export namespace InteractionUtils {
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
-            case PENTYPE:
-                return e.pointerType === PENTYPE && (e.button === -1 || e.button === 0);
-            case ERASERTYPE:
-                return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? ERASER_BUTTON : ERASER_BUTTON);
-            default:
-                return e.pointerType === type;
+            case PENTYPE: return e.pointerType === PENTYPE && (e.button === -1 || e.button === 0);
+            case ERASERTYPE: return e.pointerType === PENTYPE && e.button === (e instanceof PointerEvent ? ERASER_BUTTON : ERASER_BUTTON);
+            default: return e.pointerType === type;
         }
     }
 

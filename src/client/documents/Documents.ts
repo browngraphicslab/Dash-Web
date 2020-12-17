@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { runInAction, action } from "mobx";
 import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
@@ -53,6 +53,8 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
+import { LinkDescriptionPopup } from "../views/nodes/LinkDescriptionPopup";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -113,7 +115,7 @@ export interface DocumentOptions {
     _viewScale?: number;
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
-    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" sidebar views that are intended to document "menus"
+    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
@@ -711,7 +713,7 @@ export namespace Docs {
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
-                isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
+                isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
                 treeViewExpandedView: "fields", removeDropProperties: new List(["_layers", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
@@ -1011,10 +1013,36 @@ export namespace DocUtils {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
 
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean) {
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (!allowParCollectionLink && sv?.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
+
+
+        const makeLink = action((linkDoc: Doc, showPopup: number[]) => {
+            LinkManager.currentLink = linkDoc;
+
+            TaskCompletionBox.textDisplayed = "Link Created";
+            TaskCompletionBox.popupX = showPopup[0];
+            TaskCompletionBox.popupY = showPopup[1] - 33;
+            TaskCompletionBox.taskCompleted = true;
+
+            LinkDescriptionPopup.popupX = showPopup[0];
+            LinkDescriptionPopup.popupY = showPopup[1];
+            LinkDescriptionPopup.descriptionPopup = true;
+
+            const rect = document.body.getBoundingClientRect();
+            if (LinkDescriptionPopup.popupX + 200 > rect.width) {
+                LinkDescriptionPopup.popupX -= 190;
+                TaskCompletionBox.popupX -= 40;
+            }
+            if (LinkDescriptionPopup.popupY + 100 > rect.height) {
+                LinkDescriptionPopup.popupY -= 40;
+                TaskCompletionBox.popupY -= 40;
+            }
+
+            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
+        });
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
         Doc.GetProto(linkDoc)["anchor1-useLinkSmallAnchor"] = source.doc.useLinkSmallAnchor;
@@ -1024,7 +1052,7 @@ export namespace DocUtils {
         Doc.GetProto(linkDoc)["acl-Public"] = linkDoc["acl-Public"] = SharingPermissions.Add;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
-
+        showPopup && makeLink(linkDoc, showPopup);
         return linkDoc;
     }
 
@@ -1136,7 +1164,7 @@ export namespace DocUtils {
                         newDoc.x = x;
                         newDoc.y = y;
                         if (newDoc.type === DocumentType.RTF) FormattedTextBox.SelectOnLoad = newDoc[Id];
-                        docAdder(newDoc);
+                        docAdder?.(newDoc);
                     }
                 }),
                 icon: "eye"

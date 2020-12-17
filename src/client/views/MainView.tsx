@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
-import * as fa from '@fortawesome/free-solid-svg-icons';
 import * as far from '@fortawesome/free-regular-svg-icons';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,7 +12,8 @@ import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { TraceMobx } from '../../fields/util';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -22,10 +23,12 @@ import { GroupManager } from '../util/GroupManager';
 import { HistoryUtil } from '../util/History';
 import { Hypothesis } from '../util/HypothesisUtils';
 import { Scripting } from '../util/Scripting';
+import { SelectionManager } from '../util/SelectionManager';
 import { SettingsManager } from '../util/SettingsManager';
 import { SharingManager } from '../util/SharingManager';
 import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
+import { UndoManager } from '../util/UndoManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
@@ -35,10 +38,10 @@ import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
-import { InkStrokeProperties } from './InkStrokeProperties';
 import { GestureOverlay } from './GestureOverlay';
 import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
+import { InkStrokeProperties } from './InkStrokeProperties';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
@@ -55,10 +58,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { TraceMobx } from '../../fields/util';
-import { SelectionManager } from '../util/SelectionManager';
-import { UndoManager } from '../util/UndoManager';
-import { TabDocView } from './collections/TabDocView';
+import { DefaultStyleProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -66,8 +66,7 @@ export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
-    private _lastButton: Doc | undefined;
-
+    @observable public LastButton: Opt<Doc>;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -238,7 +237,7 @@ export class MainView extends React.Component {
 
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
-    getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
+    getContentsHeight = () => this._panelHeight;
 
     @computed get mainDocView() {
         return <DocumentView
@@ -248,10 +247,8 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
-            onClick={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={emptyFunction}
@@ -312,14 +309,12 @@ export class MainView extends React.Component {
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
-                        onClick={undefined}
                         ScreenToLocalTransform={this.mainContainerXf}
-                        ContentScaling={returnOne}
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        styleProvider={TabDocView.styleProvider}
+                        styleProvider={DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -328,7 +323,6 @@ export class MainView extends React.Component {
                         searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        relative={true}
                     />
                 </div>
                 {this.docButtons}
@@ -345,14 +339,12 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
-                onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
-                ContentScaling={returnOne}
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                styleProvider={TabDocView.styleProvider}
+                styleProvider={DefaultStyleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -361,7 +353,6 @@ export class MainView extends React.Component {
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                relative={true}
                 scriptContext={this}
             />
         </div>;
@@ -404,7 +395,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={TabDocView.styleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -425,14 +416,11 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        button._backgroundColor = this.darkScheme ? "dimgrey" : "lightgrey";
-        button.color = "black";
-        this._lastButton = button;
+        this.LastButton = button;
     });
 
     closeFlyout = action(() => {
-        this._lastButton && (this._lastButton.color = "white");
-        this._lastButton && (this._lastButton._backgroundColor = "");
+        this.LastButton = undefined;
         this._panelContent = "none";
         this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
@@ -456,9 +444,8 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     fieldKey={"data"}
                     dropAction={"alias"}
-                    annotationsKey={""}
                     parentActive={returnFalse}
-                    styleProvider={TabDocView.styleProvider}
+                    styleProvider={DefaultStyleProvider}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
@@ -470,9 +457,7 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
-                    ContentScaling={returnOne}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
@@ -516,7 +501,6 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();
@@ -527,16 +511,14 @@ export class MainView extends React.Component {
                 dropAction="move"
                 isSelected={returnTrue}
                 active={returnTrue}
-                select={this.select}
+                select={returnTrue}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
-                onClick={undefined}
-                styleProvider={TabDocView.styleProvider}
+                styleProvider={DefaultStyleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
@@ -575,7 +557,6 @@ export class MainView extends React.Component {
                     focus={returnFalse}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
-                    ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -595,10 +576,9 @@ export class MainView extends React.Component {
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={TabDocView.styleProvider}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
-                addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
+            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
+                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>
@@ -641,7 +621,6 @@ export class MainView extends React.Component {
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}
-                            ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}

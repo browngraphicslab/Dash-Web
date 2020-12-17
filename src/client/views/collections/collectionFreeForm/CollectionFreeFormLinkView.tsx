@@ -1,14 +1,14 @@
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
-import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from '../../../../Utils';
+import { Id } from "../../../../fields/FieldSymbols";
+import { NumCast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, setupMoveUpEvents, Utils } from '../../../../Utils';
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { SnappingManager } from "../../../util/SnappingManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer, trace, computed } from "mobx";
-import { StrCast, Cast, NumCast } from "../../../../fields/Types";
-import { Id } from "../../../../fields/FieldSymbols";
-import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -103,7 +103,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const top = rect.top, height = rect.height;
         var el = el.parentNode;
         while (el && el !== document.body) {
-            rect = el?.getBoundingClientRect();
+            rect = el.getBoundingClientRect?.();
             if (rect?.width) {
                 if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
                 // Check if the element is out of view due to a container scrolling

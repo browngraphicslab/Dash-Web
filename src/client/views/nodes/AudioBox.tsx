@@ -13,7 +13,7 @@ import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, DateCast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { emptyFunction, formatTime, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils, numberRange } from "../../../Utils";
+import { emptyFunction, formatTime, numberRange, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -23,6 +23,7 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { StyleProp } from "../StyleProvider";
 import "./AudioBox.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -134,7 +135,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             }, { fireImmediately: true });
 
         // for play when link is selected
-        this._disposers.reaction = reaction(() => SelectionManager.SelectedDocuments(),
+        this._disposers.reaction = reaction(() => SelectionManager.Views(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
                 let link;
@@ -538,7 +539,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     rangeScript = () => AudioBox.RangeScript;
     labelScript = () => AudioBox.LabelScript;
-
+    static audioStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+        if (property === StyleProp.BackgroundColor) return "transparent";
+        if (property === StyleProp.PointerEvents) return "none";
+    }
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
@@ -636,9 +640,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             ContainingCollectionDoc={this.props.Document}
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
-                                            ContentScaling={returnOne}
-                                            styleProvider={(doc: Opt<Doc>, props: Opt<DocumentViewProps>, property: string) => property === "backgroundColor" ? "transparent" : undefined}
-                                            pointerEvents={"none"}
+                                            styleProvider={AudioBox.audioStyleProvider}
                                             LayoutTemplate={undefined}
                                             LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                         />

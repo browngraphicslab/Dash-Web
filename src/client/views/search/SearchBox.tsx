@@ -559,7 +559,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             <div style={{ display: this.open ? "flex" : "none", overflow: "auto", position: "absolute" }}>
                                 <CollectionSchemaView {...this.props}
                                     CollectionView={undefined}
-                                    annotationsKey={""}
                                     addDocument={returnFalse}
                                     Document={this.props.Document}
                                     moveDocument={returnFalse}
