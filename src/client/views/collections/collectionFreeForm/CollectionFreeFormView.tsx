@@ -183,7 +183,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     CollectionFreeFormDocumentView.animFields.forEach(field => delete newBox[`${field}-indexed`]);
                     CollectionFreeFormDocumentView.animFields.forEach(field => delete newBox[field]);
                     delete newBox.activeFrame;
-                    CollectionFreeFormDocumentView.animFields.forEach((field, i) => field !== opacity && (newBox[field] = vals[i]));
+                    CollectionFreeFormDocumentView.animFields.forEach((field, i) => field !== "opacity" && (newBox[field] = vals[i]));
                 }
             }
             if (this.Document._currentFrame !== undefined && !this.props.isAnnotationOverlay) {

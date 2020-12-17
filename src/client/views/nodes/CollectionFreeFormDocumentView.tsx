@@ -37,12 +37,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
     @observable _contentView: DocumentView | undefined | null;
-    random(min: number, max: number) { // min should not be equal to max
-        const mseed = Math.abs(this.X * this.Y);
-        const seed = (mseed * 9301 + 49297) % 233280;
-        const rnd = seed / 233280;
-        return min + rnd * (max - min);
-    }
+    random(min: number, max: number) { /* min should not be equal to max */ return min + ((Math.abs(this.X * this.Y) * 9301 + 49297) % 233280 / 233280) * (max - min); }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
     get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
     get transform() { return `translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
@@ -119,8 +114,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         docs.forEach(doc => {
             if (doc.appearFrame === undefined) doc.appearFrame = currTimecode;
             if (!doc["opacity-indexed"]) { // opacity is unlike other fields because it's value should not be undefined before it appears to enable it to fade-in
-                const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
-                doc["opacity-indexed"] = olist;
+                doc["opacity-indexed"] = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
             }
             CollectionFreeFormDocumentView.animFields.forEach(val => doc[val] = ComputedField.MakeInterpolated(val, "activeFrame", doc, currTimecode));
             doc.activeFrame = ComputedField.MakeFunction("self.context?._currentFrame||0");

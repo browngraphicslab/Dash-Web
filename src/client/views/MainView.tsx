@@ -501,7 +501,6 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();
@@ -512,7 +511,7 @@ export class MainView extends React.Component {
                 dropAction="move"
                 isSelected={returnTrue}
                 active={returnTrue}
-                select={this.select}
+                select={returnTrue}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
