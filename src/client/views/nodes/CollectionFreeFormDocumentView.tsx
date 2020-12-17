@@ -7,8 +7,11 @@ import { listSpec } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { numberRange, returnOne } from "../../../Utils";
+import { numberRange } from "../../../Utils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { DocComponent } from "../DocComponent";
 import { InkingStroke } from "../InkingStroke";
 import { StyleProp } from "../StyleProvider";
@@ -16,8 +19,6 @@ import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldViewProps } from "./FieldView";
 import React = require("react");
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { SelectionManager } from "../../util/SelectionManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
