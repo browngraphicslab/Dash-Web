@@ -11,6 +11,7 @@ import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -33,7 +34,6 @@ import { PresBox } from "../nodes/PresBox";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
-import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -52,7 +52,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     componentDidMount() {
-        reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
+        reaction(() => SelectionManager.Views().length && SelectionManager.Views()[0],
             (doc) => doc && this.SetSelection(doc));
     }
 
@@ -372,7 +372,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get notACollection() {
@@ -514,7 +514,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
                                 <button className={"antimodeMenu-button"} key="float"
                                     style={{ backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray" }}
-                                    onClick={() => DocumentView.FloatDoc(this.props.docView)}>
+                                    onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}
@@ -554,7 +554,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get selectedDocumentView() {
-        return SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
@@ -621,7 +621,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
     @action
     editProperties = (value: any, field: string) => {
-        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        SelectionManager.Views().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK) {
                 switch (field) {

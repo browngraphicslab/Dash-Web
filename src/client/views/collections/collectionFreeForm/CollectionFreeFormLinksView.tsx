@@ -1,15 +1,14 @@
-import { computed, trace } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
+import { Utils } from "../../../../Utils";
+import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Utils, emptyFunction } from "../../../../Utils";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { SnappingManager } from "../../../util/SnappingManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {

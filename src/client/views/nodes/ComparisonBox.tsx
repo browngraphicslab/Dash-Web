@@ -4,17 +4,16 @@ import { observer } from "mobx-react";
 import { Doc } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { NumCast, Cast, StrCast } from '../../../fields/Types';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
+import { emptyFunction, OmitKeys, setupMoveUpEvents } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
-import { ViewBoxAnnotatableComponent } from '../DocComponent';
-import { FieldView, FieldViewProps } from './FieldView';
-import "./ComparisonBox.scss";
-import React = require("react");
-import { ContentFittingDocumentView } from './ContentFittingDocumentView';
-import { undoBatch } from '../../util/UndoManager';
-import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { SnappingManager } from '../../util/SnappingManager';
-import { DocumentViewProps } from './DocumentView';
+import { undoBatch } from '../../util/UndoManager';
+import { ViewBoxAnnotatableComponent } from '../DocComponent';
+import "./ComparisonBox.scss";
+import { DocumentView } from './DocumentView';
+import { FieldView, FieldViewProps } from './FieldView';
+import React = require("react");
 
 export const comparisonSchema = createSchema({});
 
@@ -74,7 +73,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     render() {
         const clipWidth = NumCast(this.layoutDoc._clipWidth) + "%";
-        const childProps: DocumentViewProps = { ...this.props, pointerEvents: "none", parentActive: this.props.active };
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`}
                 onPointerDown={e => e.stopPropagation()} // prevent triggering slider movement in registerSliding 
@@ -85,7 +83,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const displayDoc = (which: string) => {
             const whichDoc = Cast(this.dataDoc[`compareBox-${which}`], Doc, null);
             return whichDoc ? <>
-                <ContentFittingDocumentView {...childProps} Document={whichDoc} />
+                <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    Document={whichDoc}
+                    DataDoc={undefined}
+                    pointerEvents={"none"}
+                    parentActive={this.props.active} />
                 {clearButton(which)}
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">

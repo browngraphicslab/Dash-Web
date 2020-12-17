@@ -1,20 +1,20 @@
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../../../fields/Schema';
-import { documentSchema } from '../../../../fields/documentSchemas';
-import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../../fields/Doc';
-import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../fields/Types';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
-import { Utils, returnZero, returnFalse, returnOne } from '../../../../Utils';
-import "./CollectionMultirowView.scss";
-import { computed, trace, observable, action } from 'mobx';
+import { documentSchema } from '../../../../fields/documentSchemas';
+import { List } from '../../../../fields/List';
+import { makeInterface } from '../../../../fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
+import { returnFalse } from '../../../../Utils';
+import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
+import { undoBatch } from '../../../util/UndoManager';
+import { DocumentView } from '../../nodes/DocumentView';
+import { CollectionSubView } from '../CollectionSubView';
+import "./CollectionMultirowView.scss";
 import HeightLabel from './MultirowHeightLabel';
 import ResizeBar from './MultirowResizer';
-import { undoBatch } from '../../../util/UndoManager';
-import { DragManager, dropActionType } from '../../../util/DragManager';
-import { List } from '../../../../fields/List';
 
 type MultirowDocument = makeInterface<[typeof documentSchema]>;
 const MultirowDocument = makeInterface(documentSchema);
@@ -213,7 +213,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         return this.props.addDocTab(doc, where);
     }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        return <ContentFittingDocumentView
+        return <DocumentView
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             styleProvider={this.props.styleProvider}
@@ -223,7 +223,6 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            fitToBox={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -243,7 +242,6 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
             bringToFront={returnFalse}
-            ContentScaling={returnOne}
         />;
     }
     /**

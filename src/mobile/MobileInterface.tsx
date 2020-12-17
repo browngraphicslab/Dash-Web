@@ -38,7 +38,6 @@ import { Uploader } from "./ImageUpload";
 import "./AudioUpload.scss";
 import "./ImageUpload.scss";
 import "./MobileInterface.scss";
-import { InkStrokeProperties } from '../client/views/InkStrokeProperties';
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -207,9 +206,7 @@ export class MobileInterface extends React.Component {
                     pinToPres={emptyFunction}
                     rootSelected={returnFalse}
                     removeDocument={undefined}
-                    onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}
                     renderDepth={0}

@@ -144,7 +144,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     }
 
     componentDidMount() {
-        this._reaction = reaction(() => SelectionManager.SelectedDocuments(),
+        this._reaction = reaction(() => SelectionManager.Views(),
             () => this._delayHide && !(this._delayHide = false) && this.fadeOut(true));
     }
     componentWillUnmount() {
@@ -836,7 +836,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                         if (linkDoc instanceof Doc) {
                             const anchor1 = await Cast(linkDoc.anchor1, Doc);
                             const anchor2 = await Cast(linkDoc.anchor2, Doc);
-                            const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+                            const currentDoc = SelectionManager.Views().length && SelectionManager.Views()[0].props.Document;
                             if (currentDoc && anchor1 && anchor2) {
                                 if (Doc.AreProtosEqual(currentDoc, anchor1)) {
                                     return StrCast(anchor2.title);
@@ -987,11 +987,11 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 <div className="richTextMenu-divider" key="divider 3" />,
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => {
                     this.activeFontSize = val;
-                    SelectionManager.SelectedDocuments().map(dv => dv.props.Document._fontSize = val);
+                    SelectionManager.Views().map(dv => dv.props.Document._fontSize = val);
                 })),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => {
                     this.activeFontFamily = val;
-                    SelectionManager.SelectedDocuments().map(dv => dv.props.Document._fontFamily = val);
+                    SelectionManager.Views().map(dv => dv.props.Document._fontFamily = val);
                 })),
                 <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", () => ({})),

@@ -9,7 +9,7 @@ import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from '../../../fields/util';
-import { Utils } from '../../../Utils';
+import { Utils, returnOne } from '../../../Utils';
 import { KeyCodes } from '../../util/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -183,7 +183,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} >
@@ -209,6 +208,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
                 startupLive={true}
+                ContentScaling={this.props.scaling}
             />
             {this.settingsPanel()}
         </div>;

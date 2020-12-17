@@ -1,25 +1,25 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Utils, setupMoveUpEvents, emptyFunction, OmitKeys } from '../../../Utils';
-import { DocumentManager } from "../../util/DocumentManager";
-import { DragManager } from "../../util/DragManager";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import "./LinkAnchorBox.scss";
-import { FieldView, FieldViewProps } from "./FieldView";
-import React = require("react");
-import { ContextMenuProps } from "../ContextMenuItem";
-import { ContextMenu } from "../ContextMenu";
-import { LinkEditor } from "../linking/LinkEditor";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
-import { Id } from "../../../fields/FieldSymbols";
-import { LinkDocPreview } from "./LinkDocPreview";
+import { emptyFunction, setupMoveUpEvents, Utils } from '../../../Utils';
+import { DragManager } from "../../util/DragManager";
+import { LinkManager } from "../../util/LinkManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { LinkEditor } from "../linking/LinkEditor";
 import { StyleProp } from "../StyleProvider";
+import { FieldView, FieldViewProps } from "./FieldView";
+import "./LinkAnchorBox.scss";
+import { LinkDocPreview } from "./LinkDocPreview";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -74,7 +74,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, (doc, where) => this.props.addDocTab(doc, where), false);
+                    LinkManager.FollowLink(this.rootDoc, anchorContainerDoc, this.props, false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -119,7 +119,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
         const linkSource = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.LinkSource);
-        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.ItemBackgroundColor);
+        const background = this.props.styleProvider?.(this.dataDoc, this.props, StyleProp.BackgroundColor);
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
@@ -136,17 +136,18 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
             onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
             onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
-                addDocTab: this.props.addDocTab,
+                docprops: this.props,
                 linkSrc: linkSource,
                 linkDoc: this.rootDoc,
                 Location: [e.clientX, e.clientY + 20]
             })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
-            ref={this._ref} style={{
+            ref={this._ref}
+            style={{
                 background,
                 left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
                 top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
-                transform: `scale(${anchorScale / this.props.ContentScaling()})`
+                transform: `scale(${anchorScale})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} open={this._forceOpen ? true : undefined} onOpen={() => this._isOpen = true} onClose={action(() => this._isOpen = this._forceOpen = this._editing = false)}>

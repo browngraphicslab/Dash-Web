@@ -109,6 +109,7 @@ export namespace DragManager {
             this.linkDragData = dragData instanceof LinkDragData ? dragData : undefined;
             this.columnDragData = dragData instanceof ColumnDragData ? dragData : undefined;
         }
+        linkDocument?: Doc;
         aborted: boolean;
         docDragData?: DocumentDragData;
         annoDragData?: PdfAnnoDragData;
@@ -125,7 +126,6 @@ export namespace DragManager {
         }
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
-        dragDivName?: string;
         treeViewDoc?: Doc;
         offset: number[];
         canEmbed?: boolean;
@@ -144,8 +144,7 @@ export namespace DragManager {
         droppedDocuments: Doc[] = [];
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
-        linkDocument?: Doc;
-        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
+        linkDropCallback?: (data: { linkDocument: Doc }) => void;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -162,7 +161,6 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.offset = [0, 0];
         }
-        linkDocument?: Doc;
         targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
@@ -170,7 +168,7 @@ export namespace DragManager {
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
-        linkDropCallback?: (data: { linkDocument?: Doc }) => void;
+        linkDropCallback?: (data: { linkDocument: Doc }) => void;
     }
 
     export function MakeDropTarget(
@@ -215,7 +213,7 @@ export namespace DragManager {
         };
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
-            if (dropEvent) dropEvent(); // glr: optional additional function to be called - in this case with presentation trails
+            dropEvent?.(); // glr: optional additional function to be called - in this case with presentation trails
             if (docDragData && !docDragData.droppedDocuments.length) {
                 docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
                 docDragData.droppedDocuments =
@@ -342,12 +340,14 @@ export namespace DragManager {
             dragLabel.style.zIndex = "100001";
             dragLabel.style.fontSize = "10px";
             dragLabel.style.position = "absolute";
-            // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
+            dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
+        dragDiv.style.width = "";
+        dragDiv.style.height = "";
+        dragDiv.style.overflow = "";
         dragDiv.hidden = false;
-        dragLabel.style.display = "";
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -415,14 +415,12 @@ export namespace DragManager {
             return dragElement;
         });
 
-        const hideSource = options?.hideSource ? true : false;
-        eles.forEach(ele => {
-            if (ele.parentElement && ele.parentElement?.className === dragData.dragDivName) {
-                ele.parentElement.hidden = hideSource;
-            } else {
-                ele.hidden = hideSource;
-            }
-        });
+        const hideDragShowOriginalElements = (hide: boolean) => {
+            dragLabel.style.display = hide ? "" : "none";
+            !hide && dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
+            eles.forEach(ele => ele.hidden = hide);
+        };
+        options?.hideSource && hideDragShowOriginalElements(true);
 
         SnappingManager.SetIsDragging(true);
         let lastX = downX;
@@ -517,13 +515,8 @@ export namespace DragManager {
             );
         };
 
-        const hideDragShowOriginalElements = () => {
-            dragLabel.style.display = "none";
-            dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.hidden = ele.parentElement.hidden = false) : (ele.hidden = false));
-        };
         const endDrag = action(() => {
-            hideDragShowOriginalElements();
+            hideDragShowOriginalElements(false);
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             SnappingManager.SetIsDragging(false);
@@ -554,6 +547,9 @@ export namespace DragManager {
             return ret;
         });
         dragDiv.hidden = true;
+        dragDiv.style.width = "0";
+        dragDiv.style.height = "0";
+        dragDiv.style.overflow = "hidden";
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
             r.ele.style.width = r.w;

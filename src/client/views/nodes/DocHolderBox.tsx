@@ -3,23 +3,22 @@ import { action, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Field } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface, listSpec } from "../../../fields/Schema";
+import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyPath, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { returnFalse } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { StyleProp } from "../StyleProvider";
 import "./DocHolderBox.scss";
 import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
-import { StyleProp } from "../StyleProvider";
 
 type DocHolderBoxSchema = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const DocHolderBoxDocument = makeInterface(documentSchema, collectionSchema);
@@ -124,7 +123,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
-                    fitToBox={true}
                     styleProvider={this.props.styleProvider}
                     LayoutTemplateString={layoutTemplate}
                     LayoutTemplate={this.layoutTemplateDoc}
@@ -142,9 +140,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     parentActive={this.isActive}
                     dontRegisterView={true}
                     whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={returnFalse}
-                    ContentScaling={returnOne} /> :
-                <ContentFittingDocumentView
+                    bringToFront={returnFalse} /> :
+                <DocumentView
                     Document={containedDoc}
                     DataDoc={undefined}
                     docFilters={this.props.docFilters}
@@ -152,7 +149,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
-                    fitToBox={true}
                     styleProvider={this.props.styleProvider}
                     ignoreAutoHeight={true}
                     LayoutTemplateString={layoutTemplate}
@@ -172,7 +168,6 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     dontRegisterView={true}
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={returnFalse}
-                    ContentScaling={returnOne}
                 />;
         return contents;
     }

@@ -1,12 +1,17 @@
-import { action, computed, observable, ObservableMap, runInAction, untracked } from "mobx";
+import { saveAs } from "file-saver";
+import { action, computed, observable, ObservableMap, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
-import { alias, map, serializable, list } from "serializr";
+import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
+import { LinkManager } from "../client/util/LinkManager";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
+import { SelectionManager } from "../client/util/SelectionManager";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
+import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
 import { intersectRect, Utils } from "../Utils";
+import { DateField } from "./DateField";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { InkTool } from "./InkField";
 import { List } from "./List";
@@ -14,18 +19,12 @@ import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
-import { ImageField, VideoField, WebField, AudioField, PdfField } from "./URLField";
-import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions, normalizeEmail } from "./util";
-import { LinkManager } from "../client/util/LinkManager";
+import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
+import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
-import { saveAs } from "file-saver";
-import { CollectionDockingView } from "../client/views/collections/CollectionDockingView";
-import { SelectionManager } from "../client/util/SelectionManager";
-import { DocumentView } from "../client/views/nodes/DocumentView";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -1330,7 +1329,7 @@ Scripting.addGlobal(function activePresentationItem() {
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = SelectionManager.SelectedDocuments().map(dv => dv.props.Document).
+    const docs = SelectionManager.Views().map(dv => dv.props.Document).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;

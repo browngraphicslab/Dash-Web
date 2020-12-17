@@ -23,6 +23,8 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
+import { Transform } from "../../util/Transform";
+import { StyleProp } from "../StyleProvider";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -413,16 +415,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
+        const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
+        const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                width: "100%",
+                height: "100%",
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+                borderRadius
             }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
@@ -431,7 +434,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    ContentScaling={returnOne}
+                    scaling={returnOne}
+                    ScreenToLocalTransform={this.screenToLocalTransform}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}

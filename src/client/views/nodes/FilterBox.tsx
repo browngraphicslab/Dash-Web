@@ -204,7 +204,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     treeViewHideTitle={true}
-                    ContentScaling={returnOne}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}

@@ -13,7 +13,7 @@ import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -46,7 +46,7 @@ import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
+import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -58,7 +58,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -237,7 +237,7 @@ export class MainView extends React.Component {
 
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
-    getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
+    getContentsHeight = () => this._panelHeight;
 
     @computed get mainDocView() {
         return <DocumentView
@@ -247,10 +247,8 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
-            onClick={undefined}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={emptyFunction}
@@ -311,9 +309,7 @@ export class MainView extends React.Component {
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
-                        onClick={undefined}
                         ScreenToLocalTransform={this.mainContainerXf}
-                        ContentScaling={returnOne}
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
@@ -343,9 +339,7 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
-                onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
-                ContentScaling={returnOne}
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
@@ -463,9 +457,7 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
-                    ContentScaling={returnOne}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
@@ -509,7 +501,6 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();
@@ -520,16 +511,14 @@ export class MainView extends React.Component {
                 dropAction="move"
                 isSelected={returnTrue}
                 active={returnTrue}
-                select={this.select}
+                select={returnTrue}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
-                onClick={undefined}
                 styleProvider={DefaultStyleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
@@ -568,7 +557,6 @@ export class MainView extends React.Component {
                     focus={returnFalse}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
-                    ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -588,10 +576,9 @@ export class MainView extends React.Component {
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} styleProvider={DefaultStyleProvider}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
-                addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
+            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
+                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>
@@ -634,7 +621,6 @@ export class MainView extends React.Component {
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}
-                            ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}

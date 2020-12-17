@@ -21,9 +21,9 @@
 
     ul {
         list-style: none;
-        padding-left: 20px;
+        padding-left: $TREE_BULLET_WIDTH;
         margin-bottom: 1px; // otherwise vertical scrollbars may pop up for no apparent reason....
-        .contentFittingDocumentView  {
+        > .contentFittingDocumentView  {
             width: unset;
             height: unset;
         }

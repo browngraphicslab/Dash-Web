@@ -1,21 +1,18 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { observable, computed } from 'mobx';
+import { computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
+import { Doc } from '../../../fields/Doc';
+import { collectionSchema, documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from '../../../fields/Schema';
-import { NumCast, StrCast, ScriptCast, Cast } from '../../../fields/Types';
+import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
+import { OmitKeys, returnFalse } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../nodes/DocumentView';
+import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
+import { StyleProp } from '../StyleProvider';
 import "./CollectionCarouselView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { Doc } from '../../../fields/Doc';
-import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
-import { ContextMenu } from '../ContextMenu';
-import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse, returnZero, OmitKeys } from '../../../Utils';
-import { ScriptField } from '../../../fields/ScriptField';
-import { StyleProp } from '../StyleProvider';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const CarouselDocument = makeInterface(documentSchema, collectionSchema);
@@ -50,7 +47,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         return !(curDoc?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
-                    <ContentFittingDocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                    <DocumentView  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                         onDoubleClick={this.onContentDoubleClick}
                         onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}

@@ -50,17 +50,16 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 const linkDrag = UndoManager.StartBatch("Drag Link");
                 this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View.props.Document, e.pageX, e.pageY, {
                     dragComplete: dropEv => {
-                        const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
-                        if (this.props.View && linkDoc) {
-                            !linkDoc.linkRelationship && (Doc.GetProto(linkDoc).linkRelationship = "hyperlink");
+                        if (this.props.View && dropEv.linkDocument) {// dropEv.linkDocument equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
+                            !dropEv.linkDocument.linkRelationship && (Doc.GetProto(dropEv.linkDocument).linkRelationship = "hyperlink");
 
                             // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
                             // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures
                             // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
                             // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
-                            dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
-                            runInAction(() => this.props.View._link = linkDoc);
-                            setTimeout(action(() => this.props.View._link = undefined), 0);
+                            dropEv.linkDragData?.linkDropCallback?.(dropEv as { linkDocument: Doc }); // bcz: typescript can't figure out that this is valid even though we tested dropEv.linkDocument above
+                            runInAction(() => this.props.View.LinkBeingCreated = dropEv.linkDocument);
+                            setTimeout(action(() => this.props.View.LinkBeingCreated = undefined), 0);
                         }
                         linkDrag?.end();
                     },
@@ -164,11 +163,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag", undefined, undefined, true);
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
             if (endLinkView) {
-                endLinkView._link = linkDoc;
-                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = linkDoc);
+                endLinkView.LinkBeingCreated = linkDoc;
+                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = linkDoc);
                 setTimeout(action(() => {
-                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = undefined);
-                    endLinkView._link = undefined;
+                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = undefined);
+                    endLinkView.LinkBeingCreated = undefined;
                 }), 0);
             }
             LinkManager.currentLink = linkDoc;

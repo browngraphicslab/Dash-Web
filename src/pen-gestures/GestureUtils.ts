@@ -8,7 +8,6 @@ export namespace GestureUtils {
             readonly gesture: Gestures,
             readonly points: PointData[],
             readonly bounds: Rect,
-            readonly callbackFn?: Function,
             readonly text?: any
         ) { }
     }
