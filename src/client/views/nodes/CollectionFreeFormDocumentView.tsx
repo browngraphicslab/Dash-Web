@@ -33,7 +33,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
-    static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
+    public static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
     @observable _contentView: DocumentView | undefined | null;
     random(min: number, max: number) { // min should not be equal to max
