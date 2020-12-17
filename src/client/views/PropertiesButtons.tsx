@@ -326,20 +326,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         this.selectedDoc && (this.selectedDoc.onClickBehavior = e.target.value);
 
         SelectionManager.Views().forEach(dv => {
-            if (value === "nothing") {
-                dv.docView?.noOnClick();
-            } else if (value === "enterPortal") {
-                dv.docView?.noOnClick();
-                dv.docView?.makeIntoPortal();
-            } else if (value === "toggleDetail") {
-                dv.docView?.noOnClick();
-                dv.docView?.toggleDetail();
-            } else if (value === "linkInPlace") {
-                dv.docView?.noOnClick();
-                dv.toggleFollowLink("inPlace", true, false);
-            } else if (value === "linkOnRight") {
-                dv.docView?.noOnClick();
-                dv.toggleFollowLink("add:right", false, false);
+            dv.docView?.noOnClick();
+            switch (value) {
+                case "enterPortal": dv.docView?.makeIntoPortal(); break;
+                case "toggleDetail": dv.docView?.toggleDetail(); break;
+                case "linkInPlace": dv.docView?.toggleFollowLink("inPlace", true, false); break;
+                case "linkOnRight": dv.docView?.toggleFollowLink("add:right", false, false); break;
             }
         });
     }

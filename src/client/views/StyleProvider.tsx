@@ -6,7 +6,6 @@ import { Doc, Opt, StrListCast } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
-import { returnFalse } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { SnappingManager } from '../util/SnappingManager';
