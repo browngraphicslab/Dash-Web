@@ -317,17 +317,19 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
-            <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
-                style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
-                onCanPlay={this.videoLoad}
-                controls={VideoBox._showControls}
-                onPlay={() => this.Play()}
-                onSeeked={this.updateTimecode}
-                onPause={() => this.Pause()}
-                onClick={e => e.preventDefault()}>
-                <source src={field.url.href} type="video/mp4" />
+            <div>
+                <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
+                    style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
+                    onCanPlay={this.videoLoad}
+                    controls={VideoBox._showControls}
+                    onPlay={() => this.Play()}
+                    onSeeked={this.updateTimecode}
+                    onPause={() => this.Pause()}
+                    onClick={e => e.preventDefault()}>
+                    <source src={field.url.href} type="video/mp4" />
                 Not supported.
-            </video>;
+            </video>
+            </div>;
     }
 
     @computed get youtubeVideoId() {
@@ -379,7 +381,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     private get uIButtons() {
         const curTime = (this.layoutDoc._currentTimecode || 0);
         return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
-            <span>{"" + Math.round(curTime)}</span>
+            <span>{"" + formatTime(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
         <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
@@ -630,7 +632,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 bringToFront={emptyFunction}
                 scriptContext={this} />;
         };
-        return (<div className="videoBox" onContextMenu={this.specificContextMenu}
+        return <div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
@@ -705,7 +707,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.videoDuration * 100}%`, pointerEvents: "none" }} />
                 </div>}
 
-        </div >);
+        </div >;
     }
 }
 
