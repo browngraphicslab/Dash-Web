@@ -27,7 +27,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    docprops: DocumentViewSharedProps,
+    docprops: DocumentViewSharedProps;
     menuRef: React.Ref<HTMLDivElement>;
 }
 

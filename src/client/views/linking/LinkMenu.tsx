@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, DocumentViewSharedProps } from "../nodes/DocumentView";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
@@ -13,7 +13,7 @@ import React = require("react");
 interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
-    addDocTab: (document: Doc, where: string) => boolean;
+    docprops: DocumentViewSharedProps;
 }
 
 @observer
@@ -67,7 +67,7 @@ export class LinkMenu extends React.Component<Props> {
                 group={group[1]}
                 groupType={group[0]}
                 showEditor={action(linkDoc => this._editingLink = linkDoc)}
-                addDocTab={this.props.addDocTab} />);
+                docprops={this.props.docprops} />);
 
         return linkItems.length ? linkItems : [<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>];
     }
