@@ -42,6 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { List } from '../../../fields/List';
 import { Tooltip } from '@material-ui/core';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -714,6 +715,16 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {this.hideLinkButton ? (null) :
                 <DocumentLinksButton View={this.props.DocumentView} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+            {!this.props.Document.numUsersShared && !this.props.Document.numGroupsShared ? (null) :
+                <Tooltip title={<> <div className="dash-tooltip">Tap to open sharing menu</div></>}>
+                    <div className="sharingIndicator"
+                        onPointerDown={() => SharingManager.Instance.open(undefined, this.props.Document)}
+                        style={{ backgroundColor: GetEffectiveAcl(this.props.Document[DataSym]) === AclAdmin ? "#9dca96" : "lightgrey" }}
+                    >
+                        <FontAwesomeIcon size="lg" icon={this.indicatorIcon} />
+                    </div>
+                </Tooltip >
+            }
         </div>;
     }
 
