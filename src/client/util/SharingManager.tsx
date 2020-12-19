@@ -7,7 +7,7 @@ import Select from "react-select";
 import * as RequestPromise from "request-promise";
 import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { distributeAcls, GetEffectiveAcl, normalizeEmail, SharingPermissions, TraceMobx } from "../../fields/util";
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -173,7 +173,7 @@ export class SharingManager extends React.Component<{}> {
         const acl = `acl-${normalizeEmail(user.email)}`;
         const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
-        const docs = SelectionManager.SelectedDocuments().length < 2 ? [target] : SelectionManager.SelectedDocuments().map(docView => docView.props.Document);
+        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
         docs.forEach(doc => {
             doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
 
@@ -309,21 +309,21 @@ export class SharingManager extends React.Component<{}> {
     /**
      * Shares the document with a user.
      */
-    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
-        const { user, sharingDoc } = recipient;
-        const target = targetDoc || this.targetDoc!;
-        const acl = `acl-${normalizeEmail(user.email)}`;
-        const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
+    // setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
+    //     const { user, sharingDoc } = recipient;
+    //     const target = targetDoc || this.targetDoc!;
+    //     const acl = `acl-${normalizeEmail(user.email)}`;
+    //     const myAcl = `acl-${Doc.CurrentUserEmailNormalized}`;
 
-        const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
-        docs.forEach(doc => {
-            doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
-            distributeAcls(acl, permission as SharingPermissions, doc);
+    //     const docs = SelectionManager.Views().length < 2 ? [target] : SelectionManager.Views().map(docView => docView.props.Document);
+    //     docs.forEach(doc => {
+    //         doc.author === Doc.CurrentUserEmail && !doc[myAcl] && distributeAcls(myAcl, SharingPermissions.Admin, doc);
+    //         distributeAcls(acl, permission as SharingPermissions, doc);
 
-            if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
-            else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
-        });
-    }
+    //         if (permission !== SharingPermissions.None) Doc.AddDocToList(sharingDoc, storage, doc);
+    //         else GetEffectiveAcl(doc, user.email) === AclPrivate && Doc.RemoveDocFromList(sharingDoc, storage, (doc.aliasOf as Doc || doc));
+    //     });
+    // }
 
 
     // private setExternalSharing = (permission: string) => {
@@ -357,11 +357,11 @@ export class SharingManager extends React.Component<{}> {
         if (!uniform) dropdownValues.unshift("-multiple-");
         if (override) dropdownValues.unshift("None");
         return dropdownValues.filter(permission => permission !== SharingPermissions.View).map(permission =>
-            (
-                <option key={permission} value={permission}>
-                    {permission === SharingPermissions.Add ? "Can Augment" : permission}
-                </option>
-            )
+        (
+            <option key={permission} value={permission}>
+                {permission === SharingPermissions.Add ? "Can Augment" : permission}
+            </option>
+        )
         );
     }
 

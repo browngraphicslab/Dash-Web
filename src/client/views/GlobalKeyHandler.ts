@@ -27,6 +27,7 @@ import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
 import { DocumentView } from "./nodes/DocumentView";
+import { SettingsManager } from "../util/SettingsManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -128,6 +129,7 @@ export class KeyManager {
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
+                if (!GroupManager.Instance.isOpen) SettingsManager.Instance.close();
                 GroupManager.Instance.close();
                 CollectionFreeFormViewChrome.Instance?.clearKeep();
                 window.getSelection()?.empty();
