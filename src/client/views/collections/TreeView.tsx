@@ -466,6 +466,34 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         </div>;
     }
+    
+    @action
+    toggleHidden = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.doc.hidden = this.doc.hidden ? undefined : true;
+    }
+
+    @action
+    toggleLock = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.doc.lockedPosition = this.doc.lockedPosition ? undefined : true;
+    }
+
+    @computed get renderRightButtons() {
+        TraceMobx();
+        const hidden = this.doc.hidden;
+        const locked = this.doc.lockedPosition;
+        return this.doc._viewType == CollectionViewType.Docking || (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) ? (null) :
+            <>
+                <div className={`treeView-hide${hidden ? "-active" : ""}`} onClick={this.toggleHidden}>
+                    <FontAwesomeIcon icon={hidden ? "eye-slash" : "eye"} size="sm" />
+                </div>
+                <div className={`treeView-lock${locked ? "-active" : ""}`} onClick={this.toggleLock}>
+                    <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
+                </div>
+            </>
+    }
+
     @computed get showTitleEditorControl() { return ["*", this._uniqueId, this.props.treeView._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || ""); }
     @computed get headerElements() {
         return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
@@ -584,6 +612,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
+            {this.renderRightButtons}
             {this.headerElements}
         </>;
     }

@@ -98,7 +98,12 @@
         width: unset;
     }
 
-    >svg {
+    >svg, .treeView-lock, .treeView-hide, .treeView-lock-active, .treeView-hide-active {
+        margin-left: 0.25rem;
+        margin-right: 0.25rem; 
+    }
+
+    >svg, .treeView-lock, .treeView-hide {
         display: none;
     }
 
@@ -124,6 +129,10 @@
             padding: 0px;
             margin-left: 3px;
         }
+    }
+
+    .treeView-lock, .treeView-hide {
+        display: inherit;
     }
 }
 
