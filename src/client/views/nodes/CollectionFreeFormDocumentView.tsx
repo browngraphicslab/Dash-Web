@@ -7,8 +7,11 @@ import { listSpec } from "../../../fields/Schema";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { numberRange, returnOne } from "../../../Utils";
+import { numberRange } from "../../../Utils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { DocComponent } from "../DocComponent";
 import { InkingStroke } from "../InkingStroke";
 import { StyleProp } from "../StyleProvider";
@@ -16,7 +19,6 @@ import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import { FieldViewProps } from "./FieldView";
 import React = require("react");
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -32,15 +34,10 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
-    static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
+    public static animFields = ["_height", "_width", "x", "y", "_scrollTop", "opacity"];  // fields that are configured to be animatable using animation frames
     @observable _animPos: number[] | undefined = undefined;
     @observable _contentView: DocumentView | undefined | null;
-    random(min: number, max: number) { // min should not be equal to max
-        const mseed = Math.abs(this.X * this.Y);
-        const seed = (mseed * 9301 + 49297) % 233280;
-        const rnd = seed / 233280;
-        return min + rnd * (max - min);
-    }
+    random(min: number, max: number) { /* min should not be equal to max */ return min + ((Math.abs(this.X * this.Y) * 9301 + 49297) % 233280 / 233280) * (max - min); }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
     get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
     get transform() { return `translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
@@ -117,14 +114,37 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         docs.forEach(doc => {
             if (doc.appearFrame === undefined) doc.appearFrame = currTimecode;
             if (!doc["opacity-indexed"]) { // opacity is unlike other fields because it's value should not be undefined before it appears to enable it to fade-in
-                const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
-                doc["opacity-indexed"] = olist;
+                doc["opacity-indexed"] = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
             }
             CollectionFreeFormDocumentView.animFields.forEach(val => doc[val] = ComputedField.MakeInterpolated(val, "activeFrame", doc, currTimecode));
             doc.activeFrame = ComputedField.MakeFunction("self.context?._currentFrame||0");
             doc.dataTransition = "inherit";
         });
     }
+
+    @action public float = () => {
+        const { Document: topDoc, ContainingCollectionView: container } = this.props;
+        const screenXf = container?.screenToLocalTransform();
+        if (screenXf) {
+            SelectionManager.DeselectAll();
+            if (topDoc.z) {
+                const spt = screenXf.inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
+                topDoc.z = 0;
+                topDoc.x = spt[0];
+                topDoc.y = spt[1];
+                this.props.removeDocument?.(topDoc);
+                this.props.addDocTab(topDoc, "inParent");
+            } else {
+                const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const fpt = screenXf.transformPoint(spt[0], spt[1]);
+                topDoc.z = 1;
+                topDoc.x = fpt[0];
+                topDoc.y = fpt[1];
+            }
+            setTimeout(() => SelectionManager.SelectView(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
+        }
+    }
+
 
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;

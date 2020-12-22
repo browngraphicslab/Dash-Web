@@ -592,6 +592,14 @@ export function lightOrDark(color: any) {
     }
 }
 
+export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {
+    let entered = false;
+    for (let child = document.elementFromPoint(x, y); !entered && child; child = child.parentElement) {
+        entered = entered || child === target;
+    }
+    return entered;
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,

@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { emptyFunction, returnFalse, returnVal, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -180,20 +180,14 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @undoBatch
     @action
     onIconifyClick = (e: PointerEvent): void => {
-        if (e.button === 0) {
-            SelectionManager.Views().forEach(dv => dv?.iconify());
-        }
+        (e.button === 0) && SelectionManager.Views().forEach(dv => dv?.iconify());
         SelectionManager.DeselectAll();
     }
 
     @action
     onSelectorUp = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) => {
-            const selDoc = SelectionManager.Views()?.[0];
-            if (selDoc) {
-                selDoc.props.ContainingCollectionView?.props.select(false);
-            }
-        }));
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) =>
+            SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false)));
     }
 
     @action

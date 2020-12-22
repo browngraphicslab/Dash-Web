@@ -39,8 +39,6 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { ScriptField } from '../../../fields/ScriptField';
-import { StyleProp } from '../StyleProvider';
-import { SnappingManager } from '../../util/SnappingManager';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 

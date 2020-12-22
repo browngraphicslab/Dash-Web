@@ -1,14 +1,12 @@
 import { action, observable } from 'mobx';
 import { Doc, DocListCast, DocListCastAsync, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../fields/Types';
+import { Cast, NumCast } from '../../fields/Types';
 import { returnFalse } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
-import { FormattedTextBoxComment } from '../views/nodes/formattedText/FormattedTextBoxComment';
-import { LinkDocPreview } from '../views/nodes/LinkDocPreview';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 
@@ -51,7 +49,7 @@ export class DocumentManager {
         index !== -1 && this.DocumentViews.splice(index, 1);
 
         this.LinkedDocumentViews.slice().forEach(action((pair, i) => pair.a === view || pair.b === view ? this.LinkedDocumentViews.splice(i, 1) : null));
-    })
+    });
 
     //gets all views
     public getDocumentViewsById(id: string) {
@@ -223,37 +221,5 @@ export class DocumentManager {
         }
     }
 
-    public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
-        LinkDocPreview.TargetDoc = undefined;
-        FormattedTextBoxComment.linkDoc = undefined;
-        const linkDocs = link ? [link] : DocListCast(doc.links);
-        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
-        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
-        const fwdLinkWithoutTargetView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
-        const backLinkWithoutTargetView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
-        const linkWithoutTargetDoc = traverseBacklink === undefined ? fwdLinkWithoutTargetView || backLinkWithoutTargetView : traverseBacklink ? backLinkWithoutTargetView : fwdLinkWithoutTargetView;
-        const linkDocList = linkWithoutTargetDoc ? [linkWithoutTargetDoc] : (traverseBacklink === undefined ? firstDocs.concat(secondDocs) : traverseBacklink ? secondDocs : firstDocs);
-        const followLinks = linkDocList.length ? (doc.isPushpin ? linkDocList : [linkDocList[0]]) : [];
-        followLinks.forEach(async linkDoc => {
-            if (linkDoc) {
-                const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
-                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
-                const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") :
-                    doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
-                        (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
-                if (target) {
-                    const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                    containerDoc._currentTimecode = targetTimecode;
-                    const targetContext = await target?.context as Doc;
-                    const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
-                } else {
-                    finished?.();
-                }
-            } else {
-                finished?.();
-            }
-        });
-    }
 }
 Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

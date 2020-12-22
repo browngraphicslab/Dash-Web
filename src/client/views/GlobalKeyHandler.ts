@@ -180,7 +180,7 @@ export class KeyManager {
             case "ƒ":
             case "f":
                 const dv = SelectionManager.Views()?.[0];
-                UndoManager.RunInBatch(() => dv?.float(), "float");
+                UndoManager.RunInBatch(() => dv.props.CollectionFreeFormDocumentView?.().float(), "float");
         }
 
         return {

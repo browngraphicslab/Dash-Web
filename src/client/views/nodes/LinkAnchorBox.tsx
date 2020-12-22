@@ -1,25 +1,25 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Utils, setupMoveUpEvents, emptyFunction, OmitKeys } from '../../../Utils';
-import { DocumentManager } from "../../util/DocumentManager";
-import { DragManager } from "../../util/DragManager";
-import { ViewBoxBaseComponent } from "../DocComponent";
-import "./LinkAnchorBox.scss";
-import { FieldView, FieldViewProps } from "./FieldView";
-import React = require("react");
-import { ContextMenuProps } from "../ContextMenuItem";
-import { ContextMenu } from "../ContextMenu";
-import { LinkEditor } from "../linking/LinkEditor";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
-import { Id } from "../../../fields/FieldSymbols";
-import { LinkDocPreview } from "./LinkDocPreview";
+import { emptyFunction, setupMoveUpEvents, Utils } from '../../../Utils';
+import { DragManager } from "../../util/DragManager";
+import { LinkManager } from "../../util/LinkManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { LinkEditor } from "../linking/LinkEditor";
 import { StyleProp } from "../StyleProvider";
+import { FieldView, FieldViewProps } from "./FieldView";
+import "./LinkAnchorBox.scss";
+import { LinkDocPreview } from "./LinkDocPreview";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -74,7 +74,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, (doc, where) => this.props.addDocTab(doc, where), false);
+                    LinkManager.FollowLink(this.rootDoc, anchorContainerDoc, this.props, false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -136,7 +136,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
             onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
             onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
-                addDocTab: this.props.addDocTab,
+                docprops: this.props,
                 linkSrc: linkSource,
                 linkDoc: this.rootDoc,
                 Location: [e.clientX, e.clientY + 20]

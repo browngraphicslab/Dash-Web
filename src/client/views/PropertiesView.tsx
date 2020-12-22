@@ -119,7 +119,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
             const docs = SelectionManager.Views().length < 2 ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] :
-                SelectionManager.Views().map(dv => this.layoutFields ? Doc.Layout(dv.layoutDoc) : dv.dataDoc);
+                SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {

@@ -116,7 +116,7 @@ export class FormattedTextBoxComment {
                                 textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
-                                target && DocumentView.followLinkClick(linkDoc, textBox.dataDoc, textBox.props, e.altKey);
+                                target && LinkManager.FollowLink(linkDoc, textBox.dataDoc, textBox.props, e.altKey);
                             }
                         }
                     }

@@ -550,8 +550,7 @@ export class GestureOverlay extends Touchable {
                 detail: {
                     points: this._points,
                     gesture: GestureUtils.Gestures.Line,
-                    bounds: B,
-                    callbackFn: callback
+                    bounds: B
                 }
             });
         target1?.dispatchEvent(ge);

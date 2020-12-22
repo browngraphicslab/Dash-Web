@@ -3,7 +3,7 @@ import { Doc } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { Cast } from "../../../fields/Types";
 import { LinkManager } from "../../util/LinkManager";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, DocumentViewSharedProps } from "../nodes/DocumentView";
 import './LinkMenu.scss';
 import { LinkMenuItem } from "./LinkMenuItem";
 import React = require("react");
@@ -13,7 +13,7 @@ interface LinkMenuGroupProps {
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, where: string) => boolean;
+    docprops: DocumentViewSharedProps;
     docView: DocumentView;
 }
 
@@ -31,7 +31,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={linkDoc[Id]}
                     groupType={this.props.groupType}
-                    addDocTab={this.props.addDocTab}
+                    docprops={this.props.docprops}
                     docView={this.props.docView}
                     linkDoc={linkDoc}
                     sourceDoc={this.props.sourceDoc}

@@ -65,7 +65,7 @@ export interface TreeViewProps {
     whenActiveChanged: (isActive: boolean) => void;
 }
 
-let treeBulletWidth = function () { return Number(TREE_BULLET_WIDTH.replace("px", "")); }
+const treeBulletWidth = function () { return Number(TREE_BULLET_WIDTH.replace("px", "")); };
 
 @observer
 /**

@@ -514,7 +514,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
                                 <button className={"antimodeMenu-button"} key="float"
                                     style={{ backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray" }}
-                                    onClick={undoBatch(() => this.props.docView.float())}>
+                                    onClick={undoBatch(() => this.props.docView.props.CollectionFreeFormDocumentView?.().float())}>
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}

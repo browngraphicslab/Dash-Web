@@ -1,14 +1,14 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Field, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { Cast, FieldValue, BoolCast, NumCast, StrCast, PromiseValue } from "../../../fields/Types";
-import { DocumentManager } from "../../util/DocumentManager";
-import { PDFMenu } from "./PDFMenu";
-import "./Annotation.scss";
+import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../../../fields/Types";
+import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
+import "./Annotation.scss";
+import { PDFMenu } from "./PDFMenu";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -119,7 +119,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             e.persist();
             e.stopPropagation();
             PromiseValue(this.props.document.group).then(annoGroup => annoGroup instanceof Doc &&
-                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined,
+                LinkManager.traverseLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined,
                     () => this.props.select(false))
             );
         }
