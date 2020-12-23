@@ -160,6 +160,43 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                     </div>
                     : (null);
             }
+        }
+}
+
+function toggleHidden(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.hidden = doc.hidden ? undefined : true;
+    }), "toggleHidden");
+}
+
+function toggleLock(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "toggleHidden");
+}
+
+/**
+ * add lock and hide button decorations for the "Dashboards" flyout TreeView
+ */
+export function DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+    switch (property.split(":")[0]) {
+        case StyleProp.Decorations:
+            if (doc) {
+                const hidden = doc.hidden;
+                const locked = doc.lockedPosition;
+                return doc._viewType == CollectionViewType.Docking || (Doc.IsSystem(doc) && Doc.UserDoc().noviceMode) ? (null) :
+                <>
+                    <div className={`styleProvider-treeView-hide${hidden ? "-active" : ""}`} onClick={(e) => toggleHidden(e, doc)}>
+                        <FontAwesomeIcon icon={hidden ? "eye-slash" : "eye"} size="sm" />
+                    </div>
+                    <div className={`styleProvider-treeView-lock${locked ? "-active" : ""}`} onClick={(e) => toggleLock(e, doc)}>
+                        <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
+                    </div>
+                </>
+            }
+        default: return DefaultStyleProvider(doc, props, property);
     }
 }
 

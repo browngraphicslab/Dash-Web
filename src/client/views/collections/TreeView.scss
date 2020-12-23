@@ -98,12 +98,12 @@
         width: unset;
     }
 
-    >svg, .treeView-lock, .treeView-hide, .treeView-lock-active, .treeView-hide-active {
+    >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide, .styleProvider-treeView-lock-active, .styleProvider-treeView-hide-active {
         margin-left: 0.25rem;
         margin-right: 0.25rem; 
     }
 
-    >svg, .treeView-lock, .treeView-hide {
+    >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
         display: none;
     }
 
@@ -131,7 +131,7 @@
         }
     }
 
-    .treeView-lock, .treeView-hide {
+    .styleProvider-treeView-lock, .styleProvider-treeView-hide {
         display: inherit;
     }
 }

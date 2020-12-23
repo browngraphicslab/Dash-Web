@@ -58,7 +58,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider } from './StyleProvider';
+import { DefaultStyleProvider, DashboardStyleProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -296,6 +296,7 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
+        console.log(this._sidebarContent.title);
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
         </div> :
@@ -314,7 +315,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        styleProvider={DefaultStyleProvider}
+                        styleProvider={this._sidebarContent.title === "My Dashboards" ? DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
