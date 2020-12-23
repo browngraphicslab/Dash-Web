@@ -296,7 +296,6 @@ export class MainView extends React.Component {
     }
 
     @computed get flyout() {
-        console.log(this._sidebarContent.title);
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
         </div> :
@@ -387,8 +386,8 @@ export class MainView extends React.Component {
             {this.menuPanel}
             <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                < div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
-                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{opacity: "50%"}} size="sm" />
                 </div>
 
                 {this.dockingContent}
