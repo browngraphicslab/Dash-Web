@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { computed } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -20,6 +20,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
 import { values } from "lodash";
+import { tokenToString } from "typescript";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -30,6 +31,11 @@ const FilterBoxDocument = makeInterface(documentSchema);
 @observer
 export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDocument>(FilterBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
+
+    public _filterBoolean = "AND";
+    public _filterScope = "Current Dashboard";
+    public _filterSelected = false;
+    public _filterMatch = "matched";
 
     @computed get allDocs() {
         const allDocs = new Set<Doc>();
@@ -159,6 +165,37 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return script ? () => script : undefined;
     }
 
+    @action
+    changeBool = (e: any) => {
+        this._filterBoolean = e.currentTarget.value;
+        console.log(this._filterBoolean);
+    }
+
+    @action
+    changeScope = (e: any) => {
+        this._filterScope = e.currentTarget.value;
+        console.log(this._filterScope);
+    }
+
+    @action
+    changeMatch = (e: any) => {
+        this._filterMatch = e.currentTarget.value;
+        console.log(this._filterMatch);
+    }
+
+
+    @action
+    changeSelected = (e: any) => {
+        if (this._filterSelected) {
+            this._filterSelected = false;
+            // helper method to deselect all documents
+        } else {
+            this._filterSelected = true;
+            // helper method to select specified docs
+        }
+        console.log(this._filterSelected);
+    }
+
     render() {
         const facetCollection = this.props.Document;
         const flyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
@@ -170,14 +207,35 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         </div>;
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
-            <div className="filterBox-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
-                <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                    <div className="filterBox-addFacetButton">
-                        <FontAwesomeIcon icon={"edit"} size={"lg"} />
-                        <span className="filterBox-span">Choose Facets</span>
-                    </div>
-                </Flyout>
+            <div className="filter-bookmark">
+                <FontAwesomeIcon className="filter-bookmark-icon" icon={"bookmark"} size={"lg"} />
             </div>
+
+            {/* <div className="filterBox-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
+                <div className="filterBox-addFacetButton"> */}
+            <div className="filterBox-title">
+                <span className="filterBox-span">Choose Filters</span>
+            </div>
+            {/* </div>
+            </div> */}
+
+            <div className="filterBox-select-bool">
+                <select className="filterBox-selection" onChange={e => this.changeBool(e)}>
+                    <option value="AND" key="AND">AND</option>
+                    <option value="OR" key="OR">OR</option>
+                </select>
+                <div className="filterBox-select-text">specified filters</div>
+            </div>
+
+            <div className="filterBox-select-scope">
+                <div className="filterBox-select-text">Scope: </div>
+                <select className="filterBox-selection" onChange={e => this.changeScope(e)}>
+                    <option value="Current Dashboard" key="Current Dashboard">Current Dashboard</option>
+                    <option value="Current Tab" key="Current Tab">Current Tab</option>
+                    <option value="Current Collection" key="Current Collection">Current Collection</option>
+                </select>
+            </div>
+
             <div className="filterBox-tree" key="tree">
                 <CollectionTreeView
                     Document={facetCollection}
@@ -212,6 +270,29 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
+            </div>
+            <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+                <div className="filterBox-addWrapper">
+                    <div className="filterBox-addFilter"> + add a filter</div>
+                </div>
+            </Flyout>
+
+            <div className="filterBox-select-matched">
+                <input className="filterBox-select-box" type="checkbox"
+                    onChange={e => this.changeSelected(e)} />
+                <div className="filterBox-select-text">select</div>
+                <select className="filterBox-selection" onChange={e => this.changeMatch(e)}>
+                    <option value="matched" key="matched">matched</option>
+                    <option value="unmatched" key="unmatched">unmatched</option>
+                </select>
+                <div className="filterBox-select-text">documents</div>
+            </div>
+
+            <div className="filterBox-saveWrapper">
+                <div className="filterBox-saveBookmark">
+                    <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
+                    <div>SAVE</div>
+                </div>
             </div>
         </div>;
     }

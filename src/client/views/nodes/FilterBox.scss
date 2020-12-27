@@ -1,17 +1,124 @@
-
-
 .filterBox-flyout {
-    width: 400px;
     display: block;
     text-align: left;
+
     .filterBox-flyout-facet {
-            background-color: lightgray;
-            text-align: left;
-            display: inline-block;
-            position: relative;
-            width: 100%;
+        background-color: lightgray;
+        text-align: left;
+        display: inline-block;
+        position: relative;
+        width: 100%;
     }
 }
+
+
+.filter-bookmark {
+    //display: flex;
+
+    .filter-bookmark-icon {
+        float: right;
+        margin-right: 10px;
+        margin-top: 7px;
+    }
+}
+
+
+.filterBox-saveBookmark {
+    width: 105px;
+    background-color: rgb(216, 214, 214);
+    border-radius: 6px;
+    padding: 5px;
+    margin: 5px;
+    display: flex;
+    font-size: 17px;
+
+    &:hover {
+        background-color: white;
+    }
+
+    .filterBox-saveBookmark-icon {
+        margin-right: 10px;
+        margin-top: 4px;
+        margin-left: 10px;
+    }
+
+}
+
+.filterBox-title {
+
+    justify-content: center;
+    text-align: center;
+    padding-bottom: 13px;
+    font-size: 20px;
+    font-weight: bold;
+
+    .filterBox-span {
+        margin-right: 15px;
+    }
+
+}
+
+.filterBox-select-scope,
+.filterBox-select-bool,
+.filterBox-addWrapper,
+.filterBox-select-matched,
+.filterBox-saveWrapper {
+    font-size: 12px;
+    justify-content: center;
+    justify-items: center;
+    padding-bottom: 10px;
+    display: flex;
+}
+
+.filterBox-addWrapper {
+    font-size: 15px;
+    width: 100%;
+}
+
+.filterBox-saveWrapper {
+    width: 100%;
+}
+
+.filterBox-select-scope {
+    margin-bottom: 5px;
+    // border-bottom: 1px solid black;
+}
+
+.filterBox-select-text {
+    margin-right: 8px;
+    margin-left: 8px;
+}
+
+.filterBox-select-box {
+    margin-right: 2px;
+    font-size: 30px;
+    border: none;
+}
+
+.filterBox-selection {
+    border-radius: 6px;
+    border: none;
+    background-color: rgb(216, 214, 214);
+    padding: 2px;
+
+    &:hover {
+        background-color: white;
+    }
+}
+
+.filterBox-addFilter {
+    width: 100px;
+    background-color: rgb(216, 214, 214);
+    border-radius: 6px;
+    padding: 5px;
+    margin: 5px;
+    display: flex;
+
+    &:hover {
+        background-color: white;
+    }
+}
+
 .filterBox-treeView {
     display: flex;
     flex-direction: column;
@@ -22,6 +129,7 @@
     top: 0;
     border-left: solid 1px;
     z-index: 1;
+    background-color: darkGray;
 
     .filterBox-addfacet {
         display: inline-block;
@@ -34,10 +142,6 @@
             display: flex;
             margin: auto;
             cursor: pointer;
-
-            .filterBox-span {
-                margin-right: 15px;
-            }
         }
 
         >div,
