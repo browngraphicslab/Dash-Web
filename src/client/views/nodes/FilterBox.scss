@@ -22,10 +22,16 @@
     }
 }
 
+.filterBox-bottom {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
 
 .filterBox-saveBookmark {
     width: 105px;
-    background-color: rgb(216, 214, 214);
+    background-color: #f5f5f5;
     border-radius: 6px;
     padding: 5px;
     margin: 5px;
@@ -79,9 +85,17 @@
     width: 100%;
 }
 
+// .filterBox-top {
+//     padding-bottom: 20px;
+//     border-bottom: 2px solid black;
+//     position: fixed;
+//     top: 0;
+//     width: 100%;
+// }
+
 .filterBox-select-scope {
-    margin-bottom: 5px;
-    // border-bottom: 1px solid black;
+    padding-bottom: 20px;
+    border-bottom: 2px solid black;
 }
 
 .filterBox-select-text {
@@ -98,7 +112,7 @@
 .filterBox-selection {
     border-radius: 6px;
     border: none;
-    background-color: rgb(216, 214, 214);
+    background-color: #f5f5f5;
     padding: 2px;
 
     &:hover {
@@ -108,7 +122,7 @@
 
 .filterBox-addFilter {
     width: 100px;
-    background-color: rgb(216, 214, 214);
+    background-color: #f5f5f5;
     border-radius: 6px;
     padding: 5px;
     margin: 5px;
@@ -129,13 +143,12 @@
     top: 0;
     border-left: solid 1px;
     z-index: 1;
-    background-color: darkGray;
+    background-color: #D3D3D3;
 
     .filterBox-addfacet {
         display: inline-block;
         width: 200px;
         height: 30px;
-        background: darkGray;
         text-align: left;
 
         .filterBox-addFacetButton {
@@ -154,6 +167,6 @@
     .filterBox-tree {
         display: inline-block;
         width: 100%;
-        height: calc(100% - 30px);
+        //height: calc(100% - 30px);
     }
 }

@@ -21,6 +21,7 @@ import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
 import { values } from "lodash";
 import { tokenToString } from "typescript";
+import { SelectionManager } from "../../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -158,7 +159,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
     }
-    filterBackground = () => "rgba(105, 105, 105, 0.432)";
+    filterBackground = () => "#d3d3d3";
     @computed get scriptField() {
         const scriptText = "setDocFilter(this?.target, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
@@ -188,7 +189,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     changeSelected = (e: any) => {
         if (this._filterSelected) {
             this._filterSelected = false;
-            // helper method to deselect all documents
+            SelectionManager.DeselectAll();
         } else {
             this._filterSelected = true;
             // helper method to select specified docs
@@ -206,18 +207,24 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </label>)}
         </div>;
 
+        const newFlyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+            {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+                <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
+                <span className="checkmark" />
+                {facet}
+            </label>)}
+        </div>
+
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
+
+            {/* <div className="filterBox-top"> */}
             <div className="filter-bookmark">
                 <FontAwesomeIcon className="filter-bookmark-icon" icon={"bookmark"} size={"lg"} />
             </div>
 
-            {/* <div className="filterBox-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
-                <div className="filterBox-addFacetButton"> */}
             <div className="filterBox-title">
                 <span className="filterBox-span">Choose Filters</span>
             </div>
-            {/* </div>
-            </div> */}
 
             <div className="filterBox-select-bool">
                 <select className="filterBox-selection" onChange={e => this.changeBool(e)}>
@@ -235,6 +242,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <option value="Current Collection" key="Current Collection">Current Collection</option>
                 </select>
             </div>
+            {/* </div> */}
 
             <div className="filterBox-tree" key="tree">
                 <CollectionTreeView
@@ -277,21 +285,23 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 </div>
             </Flyout>
 
-            <div className="filterBox-select-matched">
-                <input className="filterBox-select-box" type="checkbox"
-                    onChange={e => this.changeSelected(e)} />
-                <div className="filterBox-select-text">select</div>
-                <select className="filterBox-selection" onChange={e => this.changeMatch(e)}>
-                    <option value="matched" key="matched">matched</option>
-                    <option value="unmatched" key="unmatched">unmatched</option>
-                </select>
-                <div className="filterBox-select-text">documents</div>
-            </div>
+            <div className="filterBox-bottom">
+                <div className="filterBox-select-matched">
+                    <input className="filterBox-select-box" type="checkbox"
+                        onChange={e => this.changeSelected(e)} />
+                    <div className="filterBox-select-text">select</div>
+                    <select className="filterBox-selection" onChange={e => this.changeMatch(e)}>
+                        <option value="matched" key="matched">matched</option>
+                        <option value="unmatched" key="unmatched">unmatched</option>
+                    </select>
+                    <div className="filterBox-select-text">documents</div>
+                </div>
 
-            <div className="filterBox-saveWrapper">
-                <div className="filterBox-saveBookmark">
-                    <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
-                    <div>SAVE</div>
+                <div className="filterBox-saveWrapper">
+                    <div className="filterBox-saveBookmark">
+                        <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
+                        <div>SAVE</div>
+                    </div>
                 </div>
             </div>
         </div>;
