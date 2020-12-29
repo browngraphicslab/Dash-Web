@@ -9,8 +9,7 @@ import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
-import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, isTarget as hasDescendantTarget, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
+import { emptyFunction, hasDescendantTarget, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -832,7 +831,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             onPointerDown={this.onPointerDown}
             onClick={this.onClick}
             onPointerEnter={e => !SnappingManager.GetIsDragging() && Doc.BrushDoc(this.props.Document)}
-            onPointerLeave={e => hasDescendantTarget(e.nativeEvent.x, e.nativeEvent.y, this.ContentDiv) && Doc.UnBrushDoc(this.props.Document)}
+            onPointerLeave={e => !hasDescendantTarget(e.nativeEvent.x, e.nativeEvent.y, this.ContentDiv) && Doc.UnBrushDoc(this.props.Document)}
             style={{
                 borderRadius: this.borderRounding,
                 pointerEvents: this.pointerEvents,

@@ -592,7 +592,7 @@ export function lightOrDark(color: any) {
     }
 }
 
-export function isTarget(x: number, y: number, target: HTMLDivElement | null) {
+export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {
     let entered = false;
     for (let child = document.elementFromPoint(x, y); !entered && child; child = child.parentElement) {
         entered = entered || child === target;
