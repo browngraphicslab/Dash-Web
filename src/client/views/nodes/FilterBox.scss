@@ -3,7 +3,7 @@
     text-align: left;
 
     .filterBox-flyout-facet {
-        background-color: lightgray;
+        background-color: white;
         text-align: left;
         display: inline-block;
         position: relative;
@@ -106,7 +106,8 @@
 .filterBox-select-box {
     margin-right: 2px;
     font-size: 30px;
-    border: none;
+    border: 0;
+    background: transparent;
 }
 
 .filterBox-selection {
@@ -167,6 +168,7 @@
     .filterBox-tree {
         display: inline-block;
         width: 100%;
+        margin-bottom: 10px;
         //height: calc(100% - 30px);
     }
 }

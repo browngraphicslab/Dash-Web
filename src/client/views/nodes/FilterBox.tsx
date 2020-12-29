@@ -207,7 +207,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </label>)}
         </div>;
 
-        const newFlyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+        const newFlyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
             {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                 <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
                 <span className="checkmark" />
@@ -279,7 +279,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
             </div>
-            <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+            <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.LEFT_TOP} content={newFlyout}>
                 <div className="filterBox-addWrapper">
                     <div className="filterBox-addFilter"> + add a filter</div>
                 </div>
