@@ -1,19 +1,45 @@
 input.lm_title:focus,
-input.lm_title
-{
+input.lm_title {
     max-width: unset !important;
     transition-delay: unset;
-    width: 100%;
+    width: max-content;
     cursor: text;
 }
+
 input.lm_title {
     transition-delay: 0.35s;
     width: 100px;
     cursor: pointer;
 }
+
 .tabDocView-drag {
     margin: auto;
 }
+
+.ffMenu {
+    display: grid;
+    grid-auto-rows: 35px;
+    grid-auto-columns: auto auto auto auto auto;
+    right: 10px;
+    bottom: 50px;
+    position: absolute;
+    min-height: 35px;
+    height: max-content;
+    border: solid 2px black;
+    border-radius: 5px;
+    background-color: #bddbe6;
+    width: max-content;
+    min-width: 35px;
+
+    .ffMenuButton {
+        display: flex;
+        width: 35px;
+        height: 35px;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
 .miniMap-hidden,
 .miniMap {
     position: absolute;
@@ -37,6 +63,7 @@ input.lm_title {
         }
     }
 }
+
 .miniMap-hidden {
     position: absolute;
     bottom: 0;
@@ -46,7 +73,8 @@ input.lm_title {
     transform: translate(20px, 20px) rotate(45deg);
     border-radius: 30px;
     padding: 2px;
-    > svg {
+
+    >svg {
         margin-top: 3px;
         transform: translate(0px, 7px);
     }

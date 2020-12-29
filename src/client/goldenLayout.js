@@ -63,16 +63,16 @@
         return target;
     };
 
-	/**
-	 * This is based on Paul Irish's shim, but looks quite odd in comparison. Why?
-	 * Because
-	 * a) it shouldn't affect the global requestAnimationFrame function
-	 * b) it shouldn't pass on the time that has passed
-	 *
-	 * @param   {Function} fn
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * This is based on Paul Irish's shim, but looks quite odd in comparison. Why?
+     * Because
+     * a) it shouldn't affect the global requestAnimationFrame function
+     * b) it shouldn't pass on the time that has passed
+     *
+     * @param   {Function} fn
+     *
+     * @returns {void}
+     */
     lm.utils.animFrame = function (fn) {
         return (window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
@@ -159,16 +159,16 @@
             .replace('.', '');
     };
 
-	/**
-	 * A basic XSS filter. It is ultimately up to the
-	 * implementing developer to make sure their particular
-	 * applications and usecases are save from cross site scripting attacks
-	 *
-	 * @param   {String} input
-	 * @param    {Boolean} keepTags
-	 *
-	 * @returns {String} filtered input
-	 */
+    /**
+     * A basic XSS filter. It is ultimately up to the
+     * implementing developer to make sure their particular
+     * applications and usecases are save from cross site scripting attacks
+     *
+     * @param   {String} input
+     * @param    {Boolean} keepTags
+     *
+     * @returns {String} filtered input
+     */
     lm.utils.filterXss = function (input, keepTags) {
 
         var output = input
@@ -187,41 +187,41 @@
         }
     };
 
-	/**
-	 * Removes html tags from a string
-	 *
-	 * @param   {String} input
-	 *
-	 * @returns {String} input without tags
-	 */
+    /**
+     * Removes html tags from a string
+     *
+     * @param   {String} input
+     *
+     * @returns {String} input without tags
+     */
     lm.utils.stripTags = function (input) {
         return $.trim(input.replace(/(<([^>]+)>)/ig, ''));
     };
-	/**
-	 * A generic and very fast EventEmitter
-	 * implementation. On top of emitting the
-	 * actual event it emits an
-	 *
-	 * lm.utils.EventEmitter.ALL_EVENT
-	 *
-	 * event for every event triggered. This allows
-	 * to hook into it and proxy events forwards
-	 *
-	 * @constructor
-	 */
+    /**
+     * A generic and very fast EventEmitter
+     * implementation. On top of emitting the
+     * actual event it emits an
+     *
+     * lm.utils.EventEmitter.ALL_EVENT
+     *
+     * event for every event triggered. This allows
+     * to hook into it and proxy events forwards
+     *
+     * @constructor
+     */
     lm.utils.EventEmitter = function () {
         this._mSubscriptions = {};
         this._mSubscriptions[lm.utils.EventEmitter.ALL_EVENT] = [];
 
-		/**
-		 * Listen for events
-		 *
-		 * @param   {String} sEvent    The name of the event to listen to
-		 * @param   {Function} fCallback The callback to execute when the event occurs
-		 * @param   {[Object]} oContext The value of the this pointer within the callback function
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Listen for events
+         *
+         * @param   {String} sEvent    The name of the event to listen to
+         * @param   {Function} fCallback The callback to execute when the event occurs
+         * @param   {[Object]} oContext The value of the this pointer within the callback function
+         *
+         * @returns {void}
+         */
         this.on = function (sEvent, fCallback, oContext) {
             if (!lm.utils.isFunction(fCallback)) {
                 throw new Error('Tried to listen to event ' + sEvent + ' with non-function callback ' + fCallback);
@@ -234,14 +234,14 @@
             this._mSubscriptions[sEvent].push({ fn: fCallback, ctx: oContext });
         };
 
-		/**
-		 * Emit an event and notify listeners
-		 *
-		 * @param   {String} sEvent The name of the event
-		 * @param    {Mixed}  various additional arguments that will be passed to the listener
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Emit an event and notify listeners
+         *
+         * @param   {String} sEvent The name of the event
+         * @param    {Mixed}  various additional arguments that will be passed to the listener
+         *
+         * @returns {void}
+         */
         this.emit = function (sEvent) {
             var i, ctx, args;
 
@@ -267,15 +267,15 @@
             }
         };
 
-		/**
-		 * Removes a listener for an event, or all listeners if no callback and context is provided.
-		 *
-		 * @param   {String} sEvent    The name of the event
-		 * @param   {Function} fCallback The previously registered callback method (optional)
-		 * @param   {Object} oContext  The previously registered context (optional)
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Removes a listener for an event, or all listeners if no callback and context is provided.
+         *
+         * @param   {String} sEvent    The name of the event
+         * @param   {Function} fCallback The previously registered callback method (optional)
+         * @param   {Object} oContext  The previously registered context (optional)
+         *
+         * @returns {void}
+         */
         this.unbind = function (sEvent, fCallback, oContext) {
             if (!this._mSubscriptions[sEvent]) {
                 throw new Error('No subscribtions to unsubscribe for event ' + sEvent);
@@ -299,28 +299,28 @@
             }
         };
 
-		/**
-		 * Alias for unbind
-		 */
+        /**
+         * Alias for unbind
+         */
         this.off = this.unbind;
 
-		/**
-		 * Alias for emit
-		 */
+        /**
+         * Alias for emit
+         */
         this.trigger = this.emit;
     };
 
-	/**
-	 * The name of the event that's triggered for every other event
-	 *
-	 * usage
-	 *
-	 * myEmitter.on( lm.utils.EventEmitter.ALL_EVENT, function( eventName, argsArray ){
-	 * 	//do stuff
-	 * });
-	 *
-	 * @type {String}
-	 */
+    /**
+     * The name of the event that's triggered for every other event
+     *
+     * usage
+     *
+     * myEmitter.on( lm.utils.EventEmitter.ALL_EVENT, function( eventName, argsArray ){
+     * 	//do stuff
+     * });
+     *
+     * @type {String}
+     */
     lm.utils.EventEmitter.ALL_EVENT = '__all';
     lm.utils.DragListener = function (eElement, nButtonCode) {
         lm.utils.EventEmitter.call(this);
@@ -330,14 +330,14 @@
         this._eBody = $(document.body);
         this._nButtonCode = nButtonCode || 0;
 
-		/**
-		 * The delay after which to start the drag in milliseconds
-		 */
+        /**
+         * The delay after which to start the drag in milliseconds
+         */
         this._nDelay = 200;
 
-		/**
-		 * The distance the mouse needs to be moved to qualify as a drag
-		 */
+        /**
+         * The distance the mouse needs to be moved to qualify as a drag
+         */
         this._nDistance = 10;//TODO - works better with delay only
 
         this._nX = 0;
@@ -440,16 +440,16 @@
             };
         }
     });
-	/**
-	 * The main class that will be exposed as GoldenLayout.
-	 *
-	 * @public
-	 * @constructor
-	 * @param {GoldenLayout config} config
-	 * @param {[DOM element container]} container Can be a jQuery selector string or a Dom element. Defaults to body
-	 *
-	 * @returns {VOID}
-	 */
+    /**
+     * The main class that will be exposed as GoldenLayout.
+     *
+     * @public
+     * @constructor
+     * @param {GoldenLayout config} config
+     * @param {[DOM element container]} container Can be a jQuery selector string or a Dom element. Defaults to body
+     *
+     * @returns {VOID}
+     */
     lm.LayoutManager = function (config, container) {
 
         if (!$ || typeof $.noConflict !== 'function') {
@@ -500,59 +500,59 @@
         };
     };
 
-	/**
-	 * Hook that allows to access private classes
-	 */
+    /**
+     * Hook that allows to access private classes
+     */
     lm.LayoutManager.__lm = lm;
 
-	/**
-	 * Takes a GoldenLayout configuration object and
-	 * replaces its keys and values recursively with
-	 * one letter codes
-	 *
-	 * @static
-	 * @public
-	 * @param   {Object} config A GoldenLayout config object
-	 *
-	 * @returns {Object} minified config
-	 */
+    /**
+     * Takes a GoldenLayout configuration object and
+     * replaces its keys and values recursively with
+     * one letter codes
+     *
+     * @static
+     * @public
+     * @param   {Object} config A GoldenLayout config object
+     *
+     * @returns {Object} minified config
+     */
     lm.LayoutManager.minifyConfig = function (config) {
         return (new lm.utils.ConfigMinifier()).minifyConfig(config);
     };
 
-	/**
-	 * Takes a configuration Object that was previously minified
-	 * using minifyConfig and returns its original version
-	 *
-	 * @static
-	 * @public
-	 * @param   {Object} minifiedConfig
-	 *
-	 * @returns {Object} the original configuration
-	 */
+    /**
+     * Takes a configuration Object that was previously minified
+     * using minifyConfig and returns its original version
+     *
+     * @static
+     * @public
+     * @param   {Object} minifiedConfig
+     *
+     * @returns {Object} the original configuration
+     */
     lm.LayoutManager.unminifyConfig = function (config) {
         return (new lm.utils.ConfigMinifier()).unminifyConfig(config);
     };
 
     lm.utils.copy(lm.LayoutManager.prototype, {
 
-		/**
-		 * Register a component with the layout manager. If a configuration node
-		 * of type component is reached it will look up componentName and create the
-		 * associated component
-		 *
-		 *  {
-		 *		type: "component",
-		 *		componentName: "EquityNewsFeed",
-		 *		componentState: { "feedTopic": "us-bluechips" }
-		 *  }
-		 *
-		 * @public
-		 * @param   {String} name
-		 * @param   {Function} constructor
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Register a component with the layout manager. If a configuration node
+         * of type component is reached it will look up componentName and create the
+         * associated component
+         *
+         *  {
+         *		type: "component",
+         *		componentName: "EquityNewsFeed",
+         *		componentState: { "feedTopic": "us-bluechips" }
+         *  }
+         *
+         * @public
+         * @param   {String} name
+         * @param   {Function} constructor
+         *
+         * @returns {void}
+         */
         registerComponent: function (name, constructor) {
             if (typeof constructor !== 'function') {
                 throw new Error('Please register a constructor function');
@@ -565,12 +565,12 @@
             this._components[name] = constructor;
         },
 
-		/**
-		 * Creates a layout configuration object based on the the current state
-		 *
-		 * @public
-		 * @returns {Object} GoldenLayout configuration
-		 */
+        /**
+         * Creates a layout configuration object based on the the current state
+         *
+         * @public
+         * @returns {Object} GoldenLayout configuration
+         */
         toConfig: function (root) {
             var config, next, i;
 
@@ -582,18 +582,18 @@
                 throw new Error('Root must be a ContentItem');
             }
 
-			/*
-			 * settings & labels
-			 */
+            /*
+             * settings & labels
+             */
             config = {
                 settings: lm.utils.copy({}, this.config.settings),
                 dimensions: lm.utils.copy({}, this.config.dimensions),
                 labels: lm.utils.copy({}, this.config.labels)
             };
 
-			/*
-			 * Content
-			 */
+            /*
+             * Content
+             */
             config.content = [];
             next = function (configNode, item) {
                 var key, i;
@@ -620,30 +620,30 @@
                 next(config, this.root);
             }
 
-			/*
-			 * Retrieve config for subwindows
-			 */
+            /*
+             * Retrieve config for subwindows
+             */
             this._$reconcilePopoutWindows();
             config.openPopouts = [];
             for (i = 0; i < this.openPopouts.length; i++) {
                 config.openPopouts.push(this.openPopouts[i].toConfig());
             }
 
-			/*
-			 * Add maximised item
-			 */
+            /*
+             * Add maximised item
+             */
             config.maximisedItemId = this._maximisedItem ? '__glMaximised' : null;
             return config;
         },
 
-		/**
-		 * Returns a previously registered component
-		 *
-		 * @public
-		 * @param   {String} name The name used
-		 *
-		 * @returns {Function}
-		 */
+        /**
+         * Returns a previously registered component
+         *
+         * @public
+         * @param   {String} name The name used
+         *
+         * @returns {Function}
+         */
         getComponent: function (name) {
             if (this._components[name] === undefined) {
                 throw new lm.errors.ConfigurationError('Unknown component "' + name + '"');
@@ -652,44 +652,44 @@
             return this._components[name];
         },
 
-		/**
-		 * Creates the actual layout. Must be called after all initial components
-		 * are registered. Recurses through the configuration and sets up
-		 * the item tree.
-		 *
-		 * If called before the document is ready it adds itself as a listener
-		 * to the document.ready event
-		 *
-		 * @public
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Creates the actual layout. Must be called after all initial components
+         * are registered. Recurses through the configuration and sets up
+         * the item tree.
+         *
+         * If called before the document is ready it adds itself as a listener
+         * to the document.ready event
+         *
+         * @public
+         *
+         * @returns {void}
+         */
         init: function () {
 
-			/**
-			 * Create the popout windows straight away. If popouts are blocked
-			 * an error is thrown on the same 'thread' rather than a timeout and can
-			 * be caught. This also prevents any further initilisation from taking place.
-			 */
+            /**
+             * Create the popout windows straight away. If popouts are blocked
+             * an error is thrown on the same 'thread' rather than a timeout and can
+             * be caught. This also prevents any further initilisation from taking place.
+             */
             if (this._subWindowsCreated === false) {
                 this._createSubWindows();
                 this._subWindowsCreated = true;
             }
 
 
-			/**
-			 * If the document isn't ready yet, wait for it.
-			 */
+            /**
+             * If the document isn't ready yet, wait for it.
+             */
             if (document.readyState === 'loading' || document.body === null) {
                 $(document).ready(lm.utils.fnBind(this.init, this));
                 return;
             }
 
-			/**
-			 * If this is a subwindow, wait a few milliseconds for the original
-			 * page's js calls to be executed, then replace the bodies content
-			 * with GoldenLayout
-			 */
+            /**
+             * If this is a subwindow, wait a few milliseconds for the original
+             * page's js calls to be executed, then replace the bodies content
+             * with GoldenLayout
+             */
             if (this.isSubWindow === true && this._creationTimeoutPassed === false) {
                 setTimeout(lm.utils.fnBind(this.init, this), 7);
                 this._creationTimeoutPassed = true;
@@ -711,15 +711,15 @@
             this.emit('initialised');
         },
 
-		/**
-		 * Updates the layout managers size
-		 *
-		 * @public
-		 * @param   {[int]} width  height in pixels
-		 * @param   {[int]} height width in pixels
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Updates the layout managers size
+         *
+         * @public
+         * @param   {[int]} width  height in pixels
+         * @param   {[int]} height width in pixels
+         *
+         * @returns {void}
+         */
         updateSize: function (width, height) {
             if (arguments.length === 2) {
                 this.width = width;
@@ -742,13 +742,13 @@
             }
         },
 
-		/**
-		 * Destroys the LayoutManager instance itself as well as every ContentItem
-		 * within it. After this is called nothing should be left of the LayoutManager.
-		 *
-		 * @public
-		 * @returns {void}
-		 */
+        /**
+         * Destroys the LayoutManager instance itself as well as every ContentItem
+         * within it. After this is called nothing should be left of the LayoutManager.
+         *
+         * @public
+         * @returns {void}
+         */
         destroy: function () {
             if (this.isInitialised === false) {
                 return;
@@ -772,16 +772,16 @@
             this._dragSources = [];
         },
 
-		/**
-		 * Recursively creates new item tree structures based on a provided
-		 * ItemConfiguration object
-		 *
-		 * @public
-		 * @param   {Object} config ItemConfig
-		 * @param   {[ContentItem]} parent The item the newly created item should be a child of
-		 *
-		 * @returns {lm.items.ContentItem}
-		 */
+        /**
+         * Recursively creates new item tree structures based on a provided
+         * ItemConfiguration object
+         *
+         * @public
+         * @param   {Object} config ItemConfig
+         * @param   {[ContentItem]} parent The item the newly created item should be a child of
+         *
+         * @returns {lm.items.ContentItem}
+         */
         createContentItem: function (config, parent) {
             var typeErrorMsg, contentItem;
 
@@ -802,9 +802,9 @@
             }
 
 
-			/**
-			 * We add an additional stack around every component that's not within a stack anyways.
-			 */
+            /**
+             * We add an additional stack around every component that's not within a stack anyways.
+             */
             if (
                 // If this is a component
                 config.type === 'component' &&
@@ -830,17 +830,17 @@
             return contentItem;
         },
 
-		/**
-		 * Creates a popout window with the specified content and dimensions
-		 *
-		 * @param   {Object|lm.itemsAbstractContentItem} configOrContentItem
-		 * @param   {[Object]} dimensions A map with width, height, left and top
-		 * @param    {[String]} parentId the id of the element this item will be appended to
-		 *                             when popIn is called
-		 * @param    {[Number]} indexInParent The position of this item within its parent element
+        /**
+         * Creates a popout window with the specified content and dimensions
+         *
+         * @param   {Object|lm.itemsAbstractContentItem} configOrContentItem
+         * @param   {[Object]} dimensions A map with width, height, left and top
+         * @param    {[String]} parentId the id of the element this item will be appended to
+         *                             when popIn is called
+         * @param    {[Number]} indexInParent The position of this item within its parent element
 	
-		 * @returns {lm.controls.BrowserPopout}
-		 */
+         * @returns {lm.controls.BrowserPopout}
+         */
         createPopout: function (configOrContentItem, dimensions, parentId, indexInParent) {
             var config = configOrContentItem,
                 isItem = configOrContentItem instanceof lm.items.AbstractContentItem,
@@ -858,14 +858,14 @@
                 config = this.toConfig(configOrContentItem).content;
                 parentId = lm.utils.getUniqueId();
 
-				/**
-				 * If the item is the only component within a stack or for some
-				 * other reason the only child of its parent the parent will be destroyed
-				 * when the child is removed.
-				 *
-				 * In order to support this we move up the tree until we find something
-				 * that will remain after the item is being popped out
-				 */
+                /**
+                 * If the item is the only component within a stack or for some
+                 * other reason the only child of its parent the parent will be destroyed
+                 * when the child is removed.
+                 *
+                 * In order to support this we move up the tree until we find something
+                 * that will remain after the item is being popped out
+                 */
                 parent = configOrContentItem.parent;
                 child = configOrContentItem;
                 while (parent.contentItems.length === 1 && !parent.isRoot) {
@@ -925,16 +925,16 @@
             return browserPopout;
         },
 
-		/**
-		 * Attaches DragListener to any given DOM element
-		 * and turns it into a way of creating new ContentItems
-		 * by 'dragging' the DOM element into the layout
-		 *
-		 * @param   {jQuery DOM element} element
-		 * @param   {Object|Function} itemConfig for the new item to be created, or a function which will provide it
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Attaches DragListener to any given DOM element
+         * and turns it into a way of creating new ContentItems
+         * by 'dragging' the DOM element into the layout
+         *
+         * @param   {jQuery DOM element} element
+         * @param   {Object|Function} itemConfig for the new item to be created, or a function which will provide it
+         *
+         * @returns {void}
+         */
         createDragSource: function (element, itemConfig) {
             this.config.settings.constrainDragToContainer = false;
             var dragSource = new lm.controls.DragSource($(element), itemConfig, this);
@@ -943,17 +943,17 @@
             return dragSource;
         },
 
-		/**
-		 * Programmatically selects an item. This deselects
-		 * the currently selected item, selects the specified item
-		 * and emits a selectionChanged event
-		 *
-		 * @param   {lm.item.AbstractContentItem} item#
-		 * @param   {[Boolean]} _$silent Wheather to notify the item of its selection
-		 * @event    selectionChanged
-		 *
-		 * @returns {VOID}
-		 */
+        /**
+         * Programmatically selects an item. This deselects
+         * the currently selected item, selects the specified item
+         * and emits a selectionChanged event
+         *
+         * @param   {lm.item.AbstractContentItem} item#
+         * @param   {[Boolean]} _$silent Wheather to notify the item of its selection
+         * @event    selectionChanged
+         *
+         * @returns {VOID}
+         */
         selectItem: function (item, _$silent) {
 
             if (this.config.settings.selectionEnabled !== true) {
@@ -977,9 +977,9 @@
             this.emit('selectionChanged', item);
         },
 
-		/*************************
-		 * PACKAGE PRIVATE
-		 *************************/
+        /*************************
+         * PACKAGE PRIVATE
+         *************************/
         _$maximiseItem: function (contentItem) {
             if (this._maximisedItem !== null) {
                 this._$minimiseItem(this._maximisedItem);
@@ -1007,20 +1007,20 @@
             this.emit('stateChanged');
         },
 
-		/**
-		 * This method is used to get around sandboxed iframe restrictions.
-		 * If 'allow-top-navigation' is not specified in the iframe's 'sandbox' attribute
-		 * (as is the case with codepens) the parent window is forbidden from calling certain
-		 * methods on the child, such as window.close() or setting document.location.href.
-		 *
-		 * This prevented GoldenLayout popouts from popping in in codepens. The fix is to call
-		 * _$closeWindow on the child window's gl instance which (after a timeout to disconnect
-		 * the invoking method from the close call) closes itself.
-		 *
-		 * @packagePrivate
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * This method is used to get around sandboxed iframe restrictions.
+         * If 'allow-top-navigation' is not specified in the iframe's 'sandbox' attribute
+         * (as is the case with codepens) the parent window is forbidden from calling certain
+         * methods on the child, such as window.close() or setting document.location.href.
+         *
+         * This prevented GoldenLayout popouts from popping in in codepens. The fix is to call
+         * _$closeWindow on the child window's gl instance which (after a timeout to disconnect
+         * the invoking method from the close call) closes itself.
+         *
+         * @packagePrivate
+         *
+         * @returns {void}
+         */
         _$closeWindow: function () {
             window.setTimeout(function () {
                 window.close();
@@ -1067,13 +1067,13 @@
             var i, area, allContentItems = this._getAllContentItems();
             this._itemAreas = [];
 
-			/**
-			 * If the last item is dragged out, highlight the entire container size to
-			 * allow to re-drop it. allContentItems[ 0 ] === this.root at this point
-			 *
-			 * Don't include root into the possible drop areas though otherwise since it
-			 * will used for every gap in the layout, e.g. splitters
-			 */
+            /**
+             * If the last item is dragged out, highlight the entire container size to
+             * allow to re-drop it. allContentItems[ 0 ] === this.root at this point
+             *
+             * Don't include root into the possible drop areas though otherwise since it
+             * will used for every gap in the layout, e.g. splitters
+             */
             if (allContentItems.length === 1) {
                 this._itemAreas.push(this.root._$getArea());
                 return;
@@ -1103,18 +1103,18 @@
             }
         },
 
-		/**
-		 * Takes a contentItem or a configuration and optionally a parent
-		 * item and returns an initialised instance of the contentItem.
-		 * If the contentItem is a function, it is first called
-		 *
-		 * @packagePrivate
-		 *
-		 * @param   {lm.items.AbtractContentItem|Object|Function} contentItemOrConfig
-		 * @param   {lm.items.AbtractContentItem} parent Only necessary when passing in config
-		 *
-		 * @returns {lm.items.AbtractContentItem}
-		 */
+        /**
+         * Takes a contentItem or a configuration and optionally a parent
+         * item and returns an initialised instance of the contentItem.
+         * If the contentItem is a function, it is first called
+         *
+         * @packagePrivate
+         *
+         * @param   {lm.items.AbtractContentItem|Object|Function} contentItemOrConfig
+         * @param   {lm.items.AbtractContentItem} parent Only necessary when passing in config
+         *
+         * @returns {lm.items.AbtractContentItem}
+         */
         _$normalizeContentItem: function (contentItemOrConfig, parent) {
             if (!contentItemOrConfig) {
                 throw new Error('No content item defined');
@@ -1137,15 +1137,15 @@
             }
         },
 
-		/**
-		 * Iterates through the array of open popout windows and removes the ones
-		 * that are effectively closed. This is necessary due to the lack of reliably
-		 * listening for window.close / unload events in a cross browser compatible fashion.
-		 *
-		 * @packagePrivate
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Iterates through the array of open popout windows and removes the ones
+         * that are effectively closed. This is necessary due to the lack of reliably
+         * listening for window.close / unload events in a cross browser compatible fashion.
+         *
+         * @packagePrivate
+         *
+         * @returns {void}
+         */
         _$reconcilePopoutWindows: function () {
             var openPopouts = [], i;
 
@@ -1164,17 +1164,17 @@
 
         },
 
-		/***************************
-		 * PRIVATE
-		 ***************************/
-		/**
-		 * Returns a flattened array of all content items,
-		 * regardles of level or type
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /***************************
+         * PRIVATE
+         ***************************/
+        /**
+         * Returns a flattened array of all content items,
+         * regardles of level or type
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _getAllContentItems: function () {
             var allContentItems = [];
 
@@ -1193,13 +1193,13 @@
             return allContentItems;
         },
 
-		/**
-		 * Binds to DOM/BOM events on init
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Binds to DOM/BOM events on init
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _bindEvents: function () {
             if (this._isFullPage) {
                 $(window).resize(this._resizeFunction);
@@ -1207,27 +1207,27 @@
             $(window).on('unload beforeunload', this._unloadFunction);
         },
 
-		/**
-		 * Debounces resize events
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Debounces resize events
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _onResize: function () {
             clearTimeout(this._resizeTimeoutId);
             this._resizeTimeoutId = setTimeout(lm.utils.fnBind(this.updateSize, this), 100);
         },
 
-		/**
-		 * Extends the default config with the user specific settings and applies
-		 * derivations. Please note that there's a seperate method (AbstractContentItem._extendItemNode)
-		 * that deals with the extension of item configs
-		 *
-		 * @param   {Object} config
-		 * @static
-		 * @returns {Object} config
-		 */
+        /**
+         * Extends the default config with the user specific settings and applies
+         * derivations. Please note that there's a seperate method (AbstractContentItem._extendItemNode)
+         * that deals with the extension of item configs
+         *
+         * @param   {Object} config
+         * @static
+         * @returns {Object} config
+         */
         _createConfig: function (config) {
             var windowConfigKey = lm.utils.getQueryStringParam('gl-window');
 
@@ -1262,14 +1262,14 @@
             return config;
         },
 
-		/**
-		 * This is executed when GoldenLayout detects that it is run
-		 * within a previously opened popout window.
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * This is executed when GoldenLayout detects that it is run
+         * within a previously opened popout window.
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _adjustToWindowMode: function () {
             var popInButton = $('<div class="lm_popin" title="' + this.config.labels.popin + '">' +
                 '<div class="lm_icon"></div>' +
@@ -1289,26 +1289,26 @@
                 .css('visibility', 'visible')
                 .append(popInButton);
 
-			/*
-			 * This seems a bit pointless, but actually causes a reflow/re-evaluation getting around
-			 * slickgrid's "Cannot find stylesheet." bug in chrome
-			 */
+            /*
+             * This seems a bit pointless, but actually causes a reflow/re-evaluation getting around
+             * slickgrid's "Cannot find stylesheet." bug in chrome
+             */
             var x = document.body.offsetHeight; // jshint ignore:line
 
-			/*
-			 * Expose this instance on the window object
-			 * to allow the opening window to interact with
-			 * it
-			 */
+            /*
+             * Expose this instance on the window object
+             * to allow the opening window to interact with
+             * it
+             */
             window.__glInstance = this;
         },
 
-		/**
-		 * Creates Subwindows (if there are any). Throws an error
-		 * if popouts are blocked.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Creates Subwindows (if there are any). Throws an error
+         * if popouts are blocked.
+         *
+         * @returns {void}
+         */
         _createSubWindows: function () {
             var i, popout;
 
@@ -1324,13 +1324,13 @@
             }
         },
 
-		/**
-		 * Determines what element the layout will be created in
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Determines what element the layout will be created in
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _setContainer: function () {
             var container = $(this.container || 'body');
 
@@ -1356,13 +1356,13 @@
             this.container = container;
         },
 
-		/**
-		 * Kicks of the initial, recursive creation chain
-		 *
-		 * @param   {Object} config GoldenLayout Config
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Kicks of the initial, recursive creation chain
+         *
+         * @param   {Object} config GoldenLayout Config
+         *
+         * @returns {void}
+         */
         _create: function (config) {
             var errorMsg;
 
@@ -1389,12 +1389,12 @@
             }
         },
 
-		/**
-		 * Called when the window is closed or the user navigates away
-		 * from the page
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Called when the window is closed or the user navigates away
+         * from the page
+         *
+         * @returns {void}
+         */
         _onUnload: function () {
             if (this.config.settings.closePopoutsOnUnload === true) {
                 for (var i = 0; i < this.openPopouts.length; i++) {
@@ -1403,11 +1403,11 @@
             }
         },
 
-		/**
-		 * Adjusts the number of columns to be lower to fit the screen and still maintain minItemWidth.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Adjusts the number of columns to be lower to fit the screen and still maintain minItemWidth.
+         *
+         * @returns {void}
+         */
         _adjustColumnsResponsive: function () {
 
             // If there is no min width set, or not content items, do nothing.
@@ -1449,21 +1449,21 @@
             this._updatingColumnsResponsive = false;
         },
 
-		/**
-		 * Determines if responsive layout should be used.
-		 *
-		 * @returns {bool} - True if responsive layout should be used; otherwise false.
-		 */
+        /**
+         * Determines if responsive layout should be used.
+         *
+         * @returns {bool} - True if responsive layout should be used; otherwise false.
+         */
         _useResponsiveLayout: function () {
             return this.config.settings && (this.config.settings.responsiveMode == 'always' || (this.config.settings.responsiveMode == 'onload' && this._firstLoad));
         },
 
-		/**
-		 * Adds all children of a node to another container recursively.
-		 * @param {object} container - Container to add child content items to.
-		 * @param {object} node - Node to search for content items.
-		 * @returns {void}
-		 */
+        /**
+         * Adds all children of a node to another container recursively.
+         * @param {object} container - Container to add child content items to.
+         * @param {object} node - Node to search for content items.
+         * @returns {void}
+         */
         _addChildContentItemsToContainer: function (container, node) {
             if (node.type === 'stack') {
                 node.contentItems.forEach(function (item) {
@@ -1478,10 +1478,10 @@
             }
         },
 
-		/**
-		 * Finds all the stack containers.
-		 * @returns {array} - The found stack containers.
-		 */
+        /**
+         * Finds all the stack containers.
+         * @returns {array} - The found stack containers.
+         */
         _findAllStackContainers: function () {
             var stackContainers = [];
             this._findAllStackContainersRecursive(stackContainers, this.root);
@@ -1489,14 +1489,14 @@
             return stackContainers;
         },
 
-		/**
-		 * Finds all the stack containers.
-		 *
-		 * @param {array} - Set of containers to populate.
-		 * @param {object} - Current node to process.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Finds all the stack containers.
+         *
+         * @param {array} - Set of containers to populate.
+         * @param {object} - Current node to process.
+         *
+         * @returns {void}
+         */
         _findAllStackContainersRecursive: function (stackContainers, node) {
             node.contentItems.forEach(lm.utils.fnBind(function (item) {
                 if (item.type == 'stack') {
@@ -1509,9 +1509,9 @@
         }
     });
 
-	/**
-	 * Expose the Layoutmanager as the single entrypoint using UMD
-	 */
+    /**
+     * Expose the Layoutmanager as the single entrypoint using UMD
+     */
     (function () {
         /* global define */
         if (typeof define === 'function' && define.amd) {
@@ -1546,7 +1546,7 @@
             showCloseIcon: true,
             responsiveMode: 'onload', // Can be onload, always, or none.
             tabOverlapAllowance: 0, // maximum pixel overlap per tab
-            reorderOnTabMenuClick: true,
+            reorderOnTabMenuClick: false, // do not reorder!
             tabControlOffset: 10
         },
         dimensions: {
@@ -1554,7 +1554,7 @@
             borderGrabWidth: 5,
             minItemHeight: 10,
             minItemWidth: 10,
-            headerHeight: 20,
+            headerHeight: 22,
             dragProxyWidth: 300,
             dragProxyHeight: 200
         },
@@ -1590,36 +1590,36 @@
 
     lm.utils.copy(lm.container.ItemContainer.prototype, {
 
-		/**
-		 * Get the inner DOM element the container's content
-		 * is intended to live in
-		 *
-		 * @returns {DOM element}
-		 */
+        /**
+         * Get the inner DOM element the container's content
+         * is intended to live in
+         *
+         * @returns {DOM element}
+         */
         getElement: function () {
             return this._contentElement;
         },
 
-		/**
-		 * Hide the container. Notifies the containers content first
-		 * and then hides the DOM node. If the container is already hidden
-		 * this should have no effect
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Hide the container. Notifies the containers content first
+         * and then hides the DOM node. If the container is already hidden
+         * this should have no effect
+         *
+         * @returns {void}
+         */
         hide: function () {
             this.emit('hide');
             this.isHidden = true;
             this._element.hide();
         },
 
-		/**
-		 * Shows a previously hidden container. Notifies the
-		 * containers content first and then shows the DOM element.
-		 * If the container is already visible this has no effect.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Shows a previously hidden container. Notifies the
+         * containers content first and then shows the DOM element.
+         * If the container is already visible this has no effect.
+         *
+         * @returns {void}
+         */
         show: function () {
             this.emit('show');
             this.isHidden = false;
@@ -1630,19 +1630,19 @@
             }
         },
 
-		/**
-		 * Set the size from within the container. Traverses up
-		 * the item tree until it finds a row or column element
-		 * and resizes its items accordingly.
-		 *
-		 * If this container isn't a descendant of a row or column
-		 * it returns false
-		 * @todo  Rework!!!
-		 * @param {Number} width  The new width in pixel
-		 * @param {Number} height The new height in pixel
-		 *
-		 * @returns {Boolean} resizeSuccesful
-		 */
+        /**
+         * Set the size from within the container. Traverses up
+         * the item tree until it finds a row or column element
+         * and resizes its items accordingly.
+         *
+         * If this container isn't a descendant of a row or column
+         * it returns false
+         * @todo  Rework!!!
+         * @param {Number} width  The new width in pixel
+         * @param {Number} height The new height in pixel
+         *
+         * @returns {Boolean} resizeSuccesful
+         */
         setSize: function (width, height) {
             var rowOrColumn = this.parent,
                 rowOrColumnChild = this,
@@ -1658,9 +1658,9 @@
                 rowOrColumn = rowOrColumn.parent;
 
 
-				/**
-				 * No row or column has been found
-				 */
+                /**
+                 * No row or column has been found
+                 */
                 if (rowOrColumn.isRoot) {
                     return false;
                 }
@@ -1686,13 +1686,13 @@
             return true;
         },
 
-		/**
-		 * Closes the container if it is closable. Can be called by
-		 * both the component within at as well as the contentItem containing
-		 * it. Emits a close event before the container itself is closed.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Closes the container if it is closable. Can be called by
+         * both the component within at as well as the contentItem containing
+         * it. Emits a close event before the container itself is closed.
+         *
+         * @returns {void}
+         */
         close: function () {
             if (this._config.isClosable) {
                 this.emit('close');
@@ -1700,55 +1700,55 @@
             }
         },
 
-		/**
-		 * Returns the current state object
-		 *
-		 * @returns {Object} state
-		 */
+        /**
+         * Returns the current state object
+         *
+         * @returns {Object} state
+         */
         getState: function () {
             return this._config.componentState;
         },
 
-		/**
-		 * Merges the provided state into the current one
-		 *
-		 * @param   {Object} state
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Merges the provided state into the current one
+         *
+         * @param   {Object} state
+         *
+         * @returns {void}
+         */
         extendState: function (state) {
             this.setState($.extend(true, this.getState(), state));
         },
 
-		/**
-		 * Notifies the layout manager of a stateupdate
-		 *
-		 * @param {serialisable} state
-		 */
+        /**
+         * Notifies the layout manager of a stateupdate
+         *
+         * @param {serialisable} state
+         */
         setState: function (state) {
             this._config.componentState = state;
             this.parent.emitBubblingEvent('stateChanged');
         },
 
-		/**
-		 * Set's the components title
-		 *
-		 * @param {String} title
-		 */
+        /**
+         * Set's the components title
+         *
+         * @param {String} title
+         */
         setTitle: function (title) {
             this.parent.setTitle(title);
         },
 
-		/**
-		 * Set's the containers size. Called by the container's component.
-		 * To set the size programmatically from within the container please
-		 * use the public setSize method
-		 *
-		 * @param {[Int]} width  in px
-		 * @param {[Int]} height in px
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Set's the containers size. Called by the container's component.
+         * To set the size programmatically from within the container please
+         * use the public setSize method
+         *
+         * @param {[Int]} width  in px
+         * @param {[Int]} height in px
+         *
+         * @returns {void}
+         */
         _$setSize: function (width, height) {
             if (width !== this.width || height !== this.height) {
                 this.width = width;
@@ -1763,22 +1763,22 @@
         }
     });
 
-	/**
-	 * Pops a content item out into a new browser window.
-	 * This is achieved by
-	 *
-	 *    - Creating a new configuration with the content item as root element
-	 *    - Serializing and minifying the configuration
-	 *    - Opening the current window's URL with the configuration as a GET parameter
-	 *    - GoldenLayout when opened in the new window will look for the GET parameter
-	 *      and use it instead of the provided configuration
-	 *
-	 * @param {Object} config GoldenLayout item config
-	 * @param {Object} dimensions A map with width, height, top and left
-	 * @param {String} parentId The id of the element the item will be appended to on popIn
-	 * @param {Number} indexInParent The position of this element within its parent
-	 * @param {lm.LayoutManager} layoutManager
-	 */
+    /**
+     * Pops a content item out into a new browser window.
+     * This is achieved by
+     *
+     *    - Creating a new configuration with the content item as root element
+     *    - Serializing and minifying the configuration
+     *    - Opening the current window's URL with the configuration as a GET parameter
+     *    - GoldenLayout when opened in the new window will look for the GET parameter
+     *      and use it instead of the provided configuration
+     *
+     * @param {Object} config GoldenLayout item config
+     * @param {Object} dimensions A map with width, height, top and left
+     * @param {String} parentId The id of the element the item will be appended to on popIn
+     * @param {Number} indexInParent The position of this element within its parent
+     * @param {lm.LayoutManager} layoutManager
+     */
     lm.controls.BrowserPopout = function (config, dimensions, parentId, indexInParent, layoutManager) {
         lm.utils.EventEmitter.call(this);
         this.isInitialised = false;
@@ -1832,10 +1832,10 @@
             }
         },
 
-		/**
-		 * Returns the popped out item to its original position. If the original
-		 * parent isn't available anymore it falls back to the layout's topmost element
-		 */
+        /**
+         * Returns the popped out item to its original position. If the original
+         * parent isn't available anymore it falls back to the layout's topmost element
+         */
         popIn: function () {
             var childConfig,
                 parentItem,
@@ -1843,22 +1843,22 @@
 
             if (this._parentId) {
 
-				/*
-				 * The $.extend call seems a bit pointless, but it's crucial to
-				 * copy the config returned by this.getGlInstance().toConfig()
-				 * onto a new object. Internet Explorer keeps the references
-				 * to objects on the child window, resulting in the following error
-				 * once the child window is closed:
-				 *
-				 * The callee (server [not server application]) is not available and disappeared
-				 */
+                /*
+                 * The $.extend call seems a bit pointless, but it's crucial to
+                 * copy the config returned by this.getGlInstance().toConfig()
+                 * onto a new object. Internet Explorer keeps the references
+                 * to objects on the child window, resulting in the following error
+                 * once the child window is closed:
+                 *
+                 * The callee (server [not server application]) is not available and disappeared
+                 */
                 childConfig = $.extend(true, {}, this.getGlInstance().toConfig()).content[0];
                 parentItem = this._layoutManager.root.getItemsById(this._parentId)[0];
 
-				/*
-				 * Fallback if parentItem is not available. Either add it to the topmost
-				 * item or make it the topmost item if the layout is empty
-				 */
+                /*
+                 * Fallback if parentItem is not available. Either add it to the topmost
+                 * item or make it the topmost item if the layout is empty
+                 */
                 if (!parentItem) {
                     if (this._layoutManager.root.contentItems.length > 0) {
                         parentItem = this._layoutManager.root.contentItems[0];
@@ -1873,28 +1873,28 @@
             this.close();
         },
 
-		/**
-		 * Creates the URL and window parameter
-		 * and opens a new window
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Creates the URL and window parameter
+         * and opens a new window
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _createWindow: function () {
             var checkReadyInterval,
                 url = this._createUrl(),
 
-				/**
-				 * Bogus title to prevent re-usage of existing window with the
-				 * same title. The actual title will be set by the new window's
-				 * GoldenLayout instance if it detects that it is in subWindowMode
-				 */
+                /**
+                 * Bogus title to prevent re-usage of existing window with the
+                 * same title. The actual title will be set by the new window's
+                 * GoldenLayout instance if it detects that it is in subWindowMode
+                 */
                 title = Math.floor(Math.random() * 1000000).toString(36),
 
-				/**
-				 * The options as used in the window.open string
-				 */
+                /**
+                 * The options as used in the window.open string
+                 */
                 options = this._serializeWindowOptions({
                     width: this._dimensions.width,
                     height: this._dimensions.height,
@@ -1925,12 +1925,12 @@
                 .on('load', lm.utils.fnBind(this._positionWindow, this))
                 .on('unload beforeunload', lm.utils.fnBind(this._onClose, this));
 
-			/**
-			 * Polling the childwindow to find out if GoldenLayout has been initialised
-			 * doesn't seem optimal, but the alternatives - adding a callback to the parent
-			 * window or raising an event on the window object - both would introduce knowledge
-			 * about the parent to the child window which we'd rather avoid
-			 */
+            /**
+             * Polling the childwindow to find out if GoldenLayout has been initialised
+             * doesn't seem optimal, but the alternatives - adding a callback to the parent
+             * window or raising an event on the window object - both would introduce knowledge
+             * about the parent to the child window which we'd rather avoid
+             */
             checkReadyInterval = setInterval(lm.utils.fnBind(function () {
                 if (this._popoutWindow.__glInstance && this._popoutWindow.__glInstance.isInitialised) {
                     this._onInitialised();
@@ -1939,13 +1939,13 @@
             }, this), 10);
         },
 
-		/**
-		 * Serialises a map of key:values to a window options string
-		 *
-		 * @param   {Object} windowOptions
-		 *
-		 * @returns {String} serialised window options
-		 */
+        /**
+         * Serialises a map of key:values to a window options string
+         *
+         * @param   {Object} windowOptions
+         *
+         * @returns {String} serialised window options
+         */
         _serializeWindowOptions: function (windowOptions) {
             var windowOptionsString = [], key;
 
@@ -1956,12 +1956,12 @@
             return windowOptionsString.join(',');
         },
 
-		/**
-		 * Creates the URL for the new window, including the
-		 * config GET parameter
-		 *
-		 * @returns {String} URL
-		 */
+        /**
+         * Creates the URL for the new window, including the
+         * config GET parameter
+         *
+         * @returns {String} URL
+         */
         _createUrl: function () {
             var config = { content: this._config },
                 storageKey = 'gl-window-config-' + lm.utils.getUniqueId(),
@@ -1987,57 +1987,57 @@
             }
         },
 
-		/**
-		 * Move the newly created window roughly to
-		 * where the component used to be.
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Move the newly created window roughly to
+         * where the component used to be.
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _positionWindow: function () {
             this._popoutWindow.moveTo(this._dimensions.left, this._dimensions.top);
             this._popoutWindow.focus();
         },
 
-		/**
-		 * Callback when the new window is opened and the GoldenLayout instance
-		 * within it is initialised
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Callback when the new window is opened and the GoldenLayout instance
+         * within it is initialised
+         *
+         * @returns {void}
+         */
         _onInitialised: function () {
             this.isInitialised = true;
             this.getGlInstance().on('popIn', this.popIn, this);
             this.emit('initialised');
         },
 
-		/**
-		 * Invoked 50ms after the window unload event
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Invoked 50ms after the window unload event
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _onClose: function () {
             setTimeout(lm.utils.fnBind(this.emit, this, ['closed']), 50);
         }
     });
-	/**
-	 * This class creates a temporary container
-	 * for the component whilst it is being dragged
-	 * and handles drag events
-	 *
-	 * @constructor
-	 * @private
-	 *
-	 * @param {Number} x              The initial x position
-	 * @param {Number} y              The initial y position
-	 * @param {lm.utils.DragListener} dragListener
-	 * @param {lm.LayoutManager} layoutManager
-	 * @param {lm.item.AbstractContentItem} contentItem
-	 * @param {lm.item.AbstractContentItem} originalParent
-	 */
+    /**
+     * This class creates a temporary container
+     * for the component whilst it is being dragged
+     * and handles drag events
+     *
+     * @constructor
+     * @private
+     *
+     * @param {Number} x              The initial x position
+     * @param {Number} y              The initial y position
+     * @param {lm.utils.DragListener} dragListener
+     * @param {lm.LayoutManager} layoutManager
+     * @param {lm.item.AbstractContentItem} contentItem
+     * @param {lm.item.AbstractContentItem} originalParent
+     */
     lm.controls.DragProxy = function (x, y, dragListener, layoutManager, contentItem, originalParent) {
 
         lm.utils.EventEmitter.call(this);
@@ -2097,19 +2097,19 @@
 
     lm.utils.copy(lm.controls.DragProxy.prototype, {
 
-		/**
-		 * Callback on every mouseMove event during a drag. Determines if the drag is
-		 * still within the valid drag area and calls the layoutManager to highlight the
-		 * current drop area
-		 *
-		 * @param   {Number} offsetX The difference from the original x position in px
-		 * @param   {Number} offsetY The difference from the original y position in px
-		 * @param   {jQuery DOM event} event
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Callback on every mouseMove event during a drag. Determines if the drag is
+         * still within the valid drag area and calls the layoutManager to highlight the
+         * current drop area
+         *
+         * @param   {Number} offsetX The difference from the original x position in px
+         * @param   {Number} offsetY The difference from the original y position in px
+         * @param   {jQuery DOM event} event
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _onDrag: function (offsetX, offsetY, event) {
 
             event = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event;
@@ -2125,16 +2125,16 @@
             this._setDropPosition(x, y);
         },
 
-		/**
-		 * Sets the target position, highlighting the appropriate area
-		 *
-		 * @param   {Number} x The x position in px
-		 * @param   {Number} y The y position in px
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Sets the target position, highlighting the appropriate area
+         *
+         * @param   {Number} x The x position in px
+         * @param   {Number} y The y position in px
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _setDropPosition: function (x, y) {
             this.element.css({ left: x, top: y });
             this._area = this._layoutManager._$getArea(x, y);
@@ -2145,43 +2145,43 @@
             }
         },
 
-		/**
-		 * Callback when the drag has finished. Determines the drop area
-		 * and adds the child to it
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Callback when the drag has finished. Determines the drop area
+         * and adds the child to it
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _onDrop: function () {
             this._layoutManager.dropTargetIndicator.hide();
 
-			/*
-			 * Valid drop area found
-			 */
+            /*
+             * Valid drop area found
+             */
             if (this._area !== null) {
                 this._area.contentItem._$onDrop(this._contentItem, this._area);
 
-				/**
-				 * No valid drop area available at present, but one has been found before.
-				 * Use it
-				 */
+                /**
+                 * No valid drop area available at present, but one has been found before.
+                 * Use it
+                 */
             } else if (this._lastValidArea !== null) {
                 this._lastValidArea.contentItem._$onDrop(this._contentItem, this._lastValidArea);
 
-				/**
-				 * No valid drop area found during the duration of the drag. Return
-				 * content item to its original position if a original parent is provided.
-				 * (Which is not the case if the drag had been initiated by createDragSource)
-				 */
+                /**
+                 * No valid drop area found during the duration of the drag. Return
+                 * content item to its original position if a original parent is provided.
+                 * (Which is not the case if the drag had been initiated by createDragSource)
+                 */
             } else if (this._originalParent) {
                 this._originalParent.addChild(this._contentItem);
 
-				/**
-				 * The drag didn't ultimately end up with adding the content item to
-				 * any container. In order to ensure clean up happens, destroy the
-				 * content item.
-				 */
+                /**
+                 * The drag didn't ultimately end up with adding the content item to
+                 * any container. In order to ensure clean up happens, destroy the
+                 * content item.
+                 */
             } else {
                 this._contentItem._$destroy();
             }
@@ -2191,18 +2191,18 @@
             this._layoutManager.emit('itemDropped', this._contentItem);
         },
 
-		/**
-		 * Removes the item from its original position within the tree
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Removes the item from its original position within the tree
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _updateTree: function () {
 
-			/**
-			 * parent is null if the drag had been initiated by a external drag source
-			 */
+            /**
+             * parent is null if the drag had been initiated by a external drag source
+             */
             if (this._contentItem.parent) {
                 this._contentItem.parent.removeChild(this._contentItem, true);
             }
@@ -2210,13 +2210,13 @@
             this._contentItem._$setParent(this);
         },
 
-		/**
-		 * Updates the Drag Proxie's dimensions
-		 *
-		 * @private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Updates the Drag Proxie's dimensions
+         *
+         * @private
+         *
+         * @returns {void}
+         */
         _setDimensions: function () {
             var dimensions = this._layoutManager.config.dimensions,
                 width = dimensions.dragProxyWidth,
@@ -2235,16 +2235,16 @@
         }
     });
 
-	/**
-	 * Allows for any DOM item to create a component on drag
-	 * start tobe dragged into the Layout
-	 *
-	 * @param {jQuery element} element
-	 * @param {Object} itemConfig the configuration for the contentItem that will be created
-	 * @param {LayoutManager} layoutManager
-	 *
-	 * @constructor
-	 */
+    /**
+     * Allows for any DOM item to create a component on drag
+     * start tobe dragged into the Layout
+     *
+     * @param {jQuery element} element
+     * @param {Object} itemConfig the configuration for the contentItem that will be created
+     * @param {LayoutManager} layoutManager
+     *
+     * @constructor
+     */
     lm.controls.DragSource = function (element, itemConfig, layoutManager) {
         this._element = element;
         this._itemConfig = itemConfig;
@@ -2256,11 +2256,11 @@
 
     lm.utils.copy(lm.controls.DragSource.prototype, {
 
-		/**
-		 * Called initially and after every drag
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Called initially and after every drag
+         *
+         * @returns {void}
+         */
         _createDragListener: function () {
             if (this._dragListener !== null) {
                 this._dragListener.destroy();
@@ -2282,14 +2282,14 @@
             }
         },
 
-		/**
-		 * Callback for the DragListener's dragStart event
-		 *
-		 * @param   {int} x the x position of the mouse on dragStart
-		 * @param   {int} y the x position of the mouse on dragStart
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Callback for the DragListener's dragStart event
+         *
+         * @param   {int} x the x position of the mouse on dragStart
+         * @param   {int} y the x position of the mouse on dragStart
+         *
+         * @returns {void}
+         */
         _onDragStart: function (x, y) {
             var itemConfig = this._itemConfig;
             if (lm.utils.isFunction(itemConfig)) {
@@ -2331,12 +2331,12 @@
             this.element.hide();
         }
     });
-	/**
-	 * This class represents a header above a Stack ContentItem.
-	 *
-	 * @param {lm.LayoutManager} layoutManager
-	 * @param {lm.item.AbstractContentItem} parent
-	 */
+    /**
+     * This class represents a header above a Stack ContentItem.
+     *
+     * @param {lm.LayoutManager} layoutManager
+     * @param {lm.item.AbstractContentItem} parent
+     */
     lm.controls.Header = function (layoutManager, parent) {
         lm.utils.EventEmitter.call(this);
 
@@ -2366,24 +2366,24 @@
         this._createControls();
     };
 
+    // '<ul class="lm_tabdropdown_list"></ul>',
     lm.controls.Header._template = [
         '<div class="lm_header">',
         '<ul class="lm_tabs"></ul>',
         '<ul class="lm_controls"></ul>',
-        '<ul class="lm_tabdropdown_list"></ul>',
         '</div>'
     ].join('');
 
     lm.utils.copy(lm.controls.Header.prototype, {
 
-		/**
-		 * Creates a new tab and associates it with a contentItem
-		 *
-		 * @param    {lm.item.AbstractContentItem} contentItem
-		 * @param    {Integer} index The position of the tab
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Creates a new tab and associates it with a contentItem
+         *
+         * @param    {lm.item.AbstractContentItem} contentItem
+         * @param    {Integer} index The position of the tab
+         *
+         * @returns {void}
+         */
         createTab: function (contentItem, index) {
             var tab, i;
 
@@ -2417,13 +2417,13 @@
             this._updateTabSizes();
         },
 
-		/**
-		 * Finds a tab based on the contentItem its associated with and removes it.
-		 *
-		 * @param    {lm.item.AbstractContentItem} contentItem
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Finds a tab based on the contentItem its associated with and removes it.
+         *
+         * @param    {lm.item.AbstractContentItem} contentItem
+         *
+         * @returns {void}
+         */
         removeTab: function (contentItem) {
             for (var i = 0; i < this.tabs.length; i++) {
                 if (this.tabs[i].contentItem === contentItem) {
@@ -2436,11 +2436,11 @@
             throw new Error('contentItem is not controlled by this header');
         },
 
-		/**
-		 * The programmatical equivalent of clicking a Tab.
-		 *
-		 * @param {lm.item.AbstractContentItem} contentItem
-		 */
+        /**
+         * The programmatical equivalent of clicking a Tab.
+         *
+         * @param {lm.item.AbstractContentItem} contentItem
+         */
         setActiveContentItem: function (contentItem) {
             var i, j, isActive, activeTab;
 
@@ -2454,10 +2454,10 @@
             }
 
             if (this.layoutManager.config.settings.reorderOnTabMenuClick) {
-				/**
-				 * If the tab selected was in the dropdown, move everything down one to make way for this one to be the first.
-				 * This will make sure the most used tabs stay visible.
-				 */
+                /**
+                 * If the tab selected was in the dropdown, move everything down one to make way for this one to be the first.
+                 * This will make sure the most used tabs stay visible.
+                 */
                 if (this._lastVisibleTabIndex !== -1 && this.parent.config.activeItemIndex > this._lastVisibleTabIndex) {
                     activeTab = this.tabs[this.parent.config.activeItemIndex];
                     for (j = this.parent.config.activeItemIndex; j > 0; j--) {
@@ -2472,13 +2472,13 @@
             this.parent.emitBubblingEvent('stateChanged');
         },
 
-		/**
-		 * Programmatically operate with header position.
-		 *
-		 * @param {string} position one of ('top','left','right','bottom') to set or empty to get it.
-		 *
-		 * @returns {string} previous header position
-		 */
+        /**
+         * Programmatically operate with header position.
+         *
+         * @param {string} position one of ('top','left','right','bottom') to set or empty to get it.
+         *
+         * @returns {string} previous header position
+         */
         position: function (position) {
             var previous = this.parent._header.show;
             if (previous && !this.parent._side)
@@ -2490,14 +2490,14 @@
             return previous;
         },
 
-		/**
-		 * Programmatically set closability.
-		 *
-		 * @package private
-		 * @param {Boolean} isClosable Whether to enable/disable closability.
-		 *
-		 * @returns {Boolean} Whether the action was successful
-		 */
+        /**
+         * Programmatically set closability.
+         *
+         * @package private
+         * @param {Boolean} isClosable Whether to enable/disable closability.
+         *
+         * @returns {Boolean} Whether the action was successful
+         */
         _$setClosable: function (isClosable) {
             if (this.closeButton && this._isClosable()) {
                 this.closeButton.element[isClosable ? "show" : "hide"]();
@@ -2507,13 +2507,13 @@
             return false;
         },
 
-		/**
-		 * Destroys the entire header
-		 *
-		 * @package private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Destroys the entire header
+         *
+         * @package private
+         *
+         * @returns {void}
+         */
         _$destroy: function () {
             this.emit('destroy', this);
 
@@ -2524,20 +2524,20 @@
             this.element.remove();
         },
 
-		/**
-		 * get settings from header
-		 *
-		 * @returns {string} when exists
-		 */
+        /**
+         * get settings from header
+         *
+         * @returns {string} when exists
+         */
         _getHeaderSetting: function (name) {
             if (name in this.parent._header)
                 return this.parent._header[name];
         },
-		/**
-		 * Creates the popout, maximise and close buttons in the header's top right corner
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Creates the popout, maximise and close buttons in the header's top right corner
+         *
+         * @returns {void}
+         */
         _createControls: function () {
             var closeStack,
                 popout,
@@ -2545,30 +2545,30 @@
                 maximiseLabel,
                 minimiseLabel,
                 maximise,
-                maximiseButton,
-                tabDropdownLabel,
-                showTabDropdown;
+                maximiseButton;
+            // tabDropdownLabel,
+            // showTabDropdown;
 
-			/**
-			 * Dropdown to show additional tabs.
-			 */
+            /**
+             * Dropdown to show additional tabs.
+             */
             showTabDropdown = lm.utils.fnBind(this._showAdditionalTabsDropdown, this);
             tabDropdownLabel = this.layoutManager.config.labels.tabDropdown;
             this.tabDropdownButton = new lm.controls.HeaderButton(this, tabDropdownLabel, 'lm_tabdropdown', showTabDropdown);
             this.tabDropdownButton.element.hide();
 
-			/**
-			 * Popout control to launch component in new window.
-			 */
+            /**
+             * Popout control to launch component in new window.
+             */
             if (this._getHeaderSetting('popout')) {
                 popout = lm.utils.fnBind(this._onPopoutClick, this);
                 label = this._getHeaderSetting('popout');
                 new lm.controls.HeaderButton(this, label, 'lm_popout', popout);
             }
 
-			/**
-			 * Maximise control - set the component to the full size of the layout
-			 */
+            /**
+             * Maximise control - set the component to the full size of the layout
+             */
             if (this._getHeaderSetting('maximise')) {
                 maximise = lm.utils.fnBind(this.parent.toggleMaximise, this.parent);
                 maximiseLabel = this._getHeaderSetting('maximise');
@@ -2584,9 +2584,9 @@
                 });
             }
 
-			/**
-			 * Close button
-			 */
+            /**
+             * Close button
+             */
             if (this._isClosable()) {
                 closeStack = lm.utils.fnBind(this.parent.remove, this.parent);
                 label = this._getHeaderSetting('close');
@@ -2594,30 +2594,30 @@
             }
         },
 
-		/**
-		 * Shows drop down for additional tabs when there are too many to display.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Shows drop down for additional tabs when there are too many to display.
+         *
+         * @returns {void}
+         */
         _showAdditionalTabsDropdown: function () {
             this.tabDropdownContainer.show();
         },
 
-		/**
-		 * Hides drop down for additional tabs when there are too many to display.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Hides drop down for additional tabs when there are too many to display.
+         *
+         * @returns {void}
+         */
         _hideAdditionalTabsDropdown: function (e) {
             this.tabDropdownContainer.hide();
         },
 
-		/**
-		 * Checks whether the header is closable based on the parent config and
-		 * the global config.
-		 *
-		 * @returns {Boolean} Whether the header is closable.
-		 */
+        /**
+         * Checks whether the header is closable based on the parent config and
+         * the global config.
+         *
+         * @returns {Boolean} Whether the header is closable.
+         */
         _isClosable: function () {
             return this.parent.config.isClosable && this.layoutManager.config.settings.showCloseIcon;
         },
@@ -2631,24 +2631,24 @@
         },
 
 
-		/**
-		 * Invoked when the header's background is clicked (not it's tabs or controls)
-		 *
-		 * @param    {jQuery DOM event} event
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Invoked when the header's background is clicked (not it's tabs or controls)
+         *
+         * @param    {jQuery DOM event} event
+         *
+         * @returns {void}
+         */
         _onHeaderClick: function (event) {
             if (event.target === this.element[0]) {
                 this.parent.select();
             }
         },
 
-		/**
-		 * Pushes the tabs to the tab dropdown if the available space is not sufficient
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Pushes the tabs to the tab dropdown if the available space is not sufficient
+         *
+         * @returns {void}
+         */
         _updateTabSizes: function (showTabMenu) {
             if (this.tabs.length === 0) {
                 return;
@@ -2811,14 +2811,14 @@
         }
     });
 
-	/**
-	 * Represents an individual tab within a Stack's header
-	 *
-	 * @param {lm.controls.Header} header
-	 * @param {lm.items.AbstractContentItem} contentItem
-	 *
-	 * @constructor
-	 */
+    /**
+     * Represents an individual tab within a Stack's header
+     *
+     * @param {lm.controls.Header} header
+     * @param {lm.items.AbstractContentItem} contentItem
+     *
+     * @constructor
+     */
     lm.controls.Tab = function (header, contentItem) {
         this.header = header;
         this.contentItem = contentItem;
@@ -2864,37 +2864,37 @@
         }
     };
 
-	/**
-	 * The tab's html template
-	 *
-	 * @type {String}
-	 */
+    /**
+     * The tab's html template
+     *
+     * @type {String}
+     */
     lm.controls.Tab._template = '<li class="lm_tab"><i class="lm_left"></i>' +
         '<div class="lm_title_wrap"><input class="lm_title"/></div><div class="lm_close_tab"></div>' +
         '<i class="lm_right"></i></li>';
 
     lm.utils.copy(lm.controls.Tab.prototype, {
 
-		/**
-		 * Sets the tab's title to the provided string and sets
-		 * its title attribute to a pure text representation (without
-		 * html tags) of the same string.
-		 *
-		 * @public
-		 * @param {String} title can contain html
-		 */
+        /**
+         * Sets the tab's title to the provided string and sets
+         * its title attribute to a pure text representation (without
+         * html tags) of the same string.
+         *
+         * @public
+         * @param {String} title can contain html
+         */
         setTitle: function (title) {
             this.element.attr('title', lm.utils.stripTags(title));
             this.titleElement.html(title);
         },
 
-		/**
-		 * Sets this tab's active state. To programmatically
-		 * switch tabs, use header.setActiveContentItem( item ) instead.
-		 *
-		 * @public
-		 * @param {Boolean} isActive
-		 */
+        /**
+         * Sets this tab's active state. To programmatically
+         * switch tabs, use header.setActiveContentItem( item ) instead.
+         *
+         * @public
+         * @param {Boolean} isActive
+         */
         setActive: function (isActive) {
             if (isActive === this.isActive) {
                 return;
@@ -2908,12 +2908,12 @@
             }
         },
 
-		/**
-		 * Destroys the tab
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Destroys the tab
+         *
+         * @private
+         * @returns {void}
+         */
         _$destroy: function () {
             this._layoutManager.emit('tabDestroyed', this);
             this.element.off('mousedown touchstart', this._onTabClickFn);
@@ -2926,15 +2926,15 @@
             this.element.remove();
         },
 
-		/**
-		 * Callback for the DragListener
-		 *
-		 * @param   {Number} x The tabs absolute x position
-		 * @param   {Number} y The tabs absolute y position
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Callback for the DragListener
+         *
+         * @param   {Number} x The tabs absolute x position
+         * @param   {Number} y The tabs absolute y position
+         *
+         * @private
+         * @returns {void}
+         */
         _onDragStart: function (x, y) {
             if (this.contentItem.parent.isMaximised === true) {
                 this.contentItem.parent.toggleMaximise();
@@ -2949,14 +2949,14 @@
             );
         },
 
-		/**
-		 * Callback when the tab is clicked
-		 *
-		 * @param {jQuery DOM event} event
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Callback when the tab is clicked
+         *
+         * @param {jQuery DOM event} event
+         *
+         * @private
+         * @returns {void}
+         */
         _onTabClick: function (event) {
             // left mouse button or tap
             if (event.button === 0 || event.type === 'touchstart') {
@@ -2971,30 +2971,30 @@
             }
         },
 
-		/**
-		 * Callback when the tab's close button is
-		 * clicked
-		 *
-		 * @param   {jQuery DOM event} event
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Callback when the tab's close button is
+         * clicked
+         *
+         * @param   {jQuery DOM event} event
+         *
+         * @private
+         * @returns {void}
+         */
         _onCloseClick: function (event) {
             event.stopPropagation();
             this.header.parent.removeChild(this.contentItem);
         },
 
 
-		/**
-		 * Callback to capture tab close button mousedown
-		 * to prevent tab from activating.
-		 *
-		 * @param (jQuery DOM event) event
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Callback to capture tab close button mousedown
+         * to prevent tab from activating.
+         *
+         * @param (jQuery DOM event) event
+         *
+         * @private
+         * @returns {void}
+         */
         _onCloseMousedown: function (event) {
             event.stopPropagation();
         }
@@ -3016,9 +3016,9 @@
         },
 
         transitionElements: function (fromElement, toElement) {
-			/**
-			 * TODO - This is not quite as cool as expected. Review.
-			 */
+            /**
+             * TODO - This is not quite as cool as expected. Review.
+             */
             return;
             this._toElement = toElement;
             this._animationStartTime = lm.utils.now();
@@ -3072,27 +3072,27 @@
 
     lm.errors.ConfigurationError.prototype = new Error();
 
-	/**
-	 * This is the baseclass that all content items inherit from.
-	 * Most methods provide a subset of what the sub-classes do.
-	 *
-	 * It also provides a number of functions for tree traversal
-	 *
-	 * @param {lm.LayoutManager} layoutManager
-	 * @param {item node configuration} config
-	 * @param {lm.item} parent
-	 *
-	 * @event stateChanged
-	 * @event beforeItemDestroyed
-	 * @event itemDestroyed
-	 * @event itemCreated
-	 * @event componentCreated
-	 * @event rowCreated
-	 * @event columnCreated
-	 * @event stackCreated
-	 *
-	 * @constructor
-	 */
+    /**
+     * This is the baseclass that all content items inherit from.
+     * Most methods provide a subset of what the sub-classes do.
+     *
+     * It also provides a number of functions for tree traversal
+     *
+     * @param {lm.LayoutManager} layoutManager
+     * @param {item node configuration} config
+     * @param {lm.item} parent
+     *
+     * @event stateChanged
+     * @event beforeItemDestroyed
+     * @event itemDestroyed
+     * @event itemCreated
+     * @event componentCreated
+     * @event rowCreated
+     * @event columnCreated
+     * @event stackCreated
+     *
+     * @constructor
+     */
     lm.items.AbstractContentItem = function (layoutManager, config, parent) {
         lm.utils.EventEmitter.call(this);
 
@@ -3122,26 +3122,26 @@
 
     lm.utils.copy(lm.items.AbstractContentItem.prototype, {
 
-		/**
-		 * Set the size of the component and its children, called recursively
-		 *
-		 * @abstract
-		 * @returns void
-		 */
+        /**
+         * Set the size of the component and its children, called recursively
+         *
+         * @abstract
+         * @returns void
+         */
         setSize: function () {
             throw new Error('Abstract Method');
         },
 
-		/**
-		 * Calls a method recursively downwards on the tree
-		 *
-		 * @param   {String} functionName      the name of the function to be called
-		 * @param   {[Array]}functionArguments optional arguments that are passed to every function
-		 * @param   {[bool]} bottomUp          Call methods from bottom to top, defaults to false
-		 * @param   {[bool]} skipSelf          Don't invoke the method on the class that calls it, defaults to false
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Calls a method recursively downwards on the tree
+         *
+         * @param   {String} functionName      the name of the function to be called
+         * @param   {[Array]}functionArguments optional arguments that are passed to every function
+         * @param   {[bool]} bottomUp          Call methods from bottom to top, defaults to false
+         * @param   {[bool]} skipSelf          Don't invoke the method on the class that calls it, defaults to false
+         *
+         * @returns {void}
+         */
         callDownwards: function (functionName, functionArguments, bottomUp, skipSelf) {
             var i;
 
@@ -3156,53 +3156,53 @@
             }
         },
 
-		/**
-		 * Removes a child node (and its children) from the tree
-		 *
-		 * @param   {lm.items.ContentItem} contentItem
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Removes a child node (and its children) from the tree
+         *
+         * @param   {lm.items.ContentItem} contentItem
+         *
+         * @returns {void}
+         */
         removeChild: function (contentItem, keepChild) {
 
-			/*
-			 * Get the position of the item that's to be removed within all content items this node contains
-			 */
+            /*
+             * Get the position of the item that's to be removed within all content items this node contains
+             */
             var index = lm.utils.indexOf(contentItem, this.contentItems);
 
-			/*
-			 * Make sure the content item to be removed is actually a child of this item
-			 */
+            /*
+             * Make sure the content item to be removed is actually a child of this item
+             */
             if (index === -1) {
                 throw new Error('Can\'t remove child item. Unknown content item');
             }
 
-			/**
-			 * Call ._$destroy on the content item. This also calls ._$destroy on all its children
-			 */
+            /**
+             * Call ._$destroy on the content item. This also calls ._$destroy on all its children
+             */
             if (keepChild !== true) {
                 this.contentItems[index]._$destroy();
             }
 
-			/**
-			 * Remove the content item from this nodes array of children
-			 */
+            /**
+             * Remove the content item from this nodes array of children
+             */
             this.contentItems.splice(index, 1);
 
-			/**
-			 * Remove the item from the configuration
-			 */
+            /**
+             * Remove the item from the configuration
+             */
             this.config.content.splice(index, 1);
 
-			/**
-			 * If this node still contains other content items, adjust their size
-			 */
+            /**
+             * If this node still contains other content items, adjust their size
+             */
             if (this.contentItems.length > 0) {
                 this.callDownwards('setSize');
 
-				/**
-				 * If this was the last content item, remove this node as well
-				 */
+                /**
+                 * If this was the last content item, remove this node as well
+                 */
             } else if (!(this instanceof lm.items.Root) && this.config.isClosable === true) {
                 const stack = this;
                 const rowOrCol = stack.parent;
@@ -3217,14 +3217,14 @@
             }
         },
 
-		/**
-		 * Sets up the tree structure for the newly added child
-		 * The responsibility for the actual DOM manipulations lies
-		 * with the concrete item
-		 *
-		 * @param {lm.items.AbstractContentItem} contentItem
-		 * @param {[Int]} index If omitted item will be appended
-		 */
+        /**
+         * Sets up the tree structure for the newly added child
+         * The responsibility for the actual DOM manipulations lies
+         * with the concrete item
+         *
+         * @param {lm.items.AbstractContentItem} contentItem
+         * @param {[Int]} index If omitted item will be appended
+         */
         addChild: function (contentItem, index) {
             if (index === undefined) {
                 index = this.contentItems.length;
@@ -3244,15 +3244,15 @@
             }
         },
 
-		/**
-		 * Replaces oldChild with newChild. This used to use jQuery.replaceWith... which for
-		 * some reason removes all event listeners, so isn't really an option.
-		 *
-		 * @param   {lm.item.AbstractContentItem} oldChild
-		 * @param   {lm.item.AbstractContentItem} newChild
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Replaces oldChild with newChild. This used to use jQuery.replaceWith... which for
+         * some reason removes all event listeners, so isn't really an option.
+         *
+         * @param   {lm.item.AbstractContentItem} oldChild
+         * @param   {lm.item.AbstractContentItem} newChild
+         *
+         * @returns {void}
+         */
         replaceChild: function (oldChild, newChild, _$destroyOldChild) {
 
             newChild = this.layoutManager._$normalizeContentItem(newChild);
@@ -3266,23 +3266,23 @@
 
             parentNode.replaceChild(newChild.element[0], oldChild.element[0]);
 
-			/*
-			 * Optionally destroy the old content item
-			 */
+            /*
+             * Optionally destroy the old content item
+             */
             if (_$destroyOldChild === true) {
                 oldChild.parent = null;
                 oldChild._$destroy();
             }
 
-			/*
-			 * Wire the new contentItem into the tree
-			 */
+            /*
+             * Wire the new contentItem into the tree
+             */
             this.contentItems[index] = newChild;
             newChild.parent = this;
 
-			/*
-			 * Update tab reference
-			 */
+            /*
+             * Update tab reference
+             */
             if (this.isStack) {
                 this.header.tabs[index].contentItem = newChild;
             }
@@ -3295,33 +3295,33 @@
             this.callDownwards('setSize');
         },
 
-		/**
-		 * Convenience method.
-		 * Shorthand for this.parent.removeChild( this )
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Convenience method.
+         * Shorthand for this.parent.removeChild( this )
+         *
+         * @returns {void}
+         */
         remove: function () {
             this.parent.removeChild(this);
         },
 
-		/**
-		 * Removes the component from the layout and creates a new
-		 * browser window with the component and its children inside
-		 *
-		 * @returns {lm.controls.BrowserPopout}
-		 */
+        /**
+         * Removes the component from the layout and creates a new
+         * browser window with the component and its children inside
+         *
+         * @returns {lm.controls.BrowserPopout}
+         */
         popout: function () {
             var browserPopout = this.layoutManager.createPopout(this);
             this.emitBubblingEvent('stateChanged');
             return browserPopout;
         },
 
-		/**
-		 * Maximises the Item or minimises it if it is already maximised
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Maximises the Item or minimises it if it is already maximised
+         *
+         * @returns {void}
+         */
         toggleMaximise: function (e) {
             e && e.preventDefault();
             if (this.isMaximised === true) {
@@ -3334,11 +3334,11 @@
             this.emitBubblingEvent('stateChanged');
         },
 
-		/**
-		 * Selects the item if it is not already selected
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Selects the item if it is not already selected
+         *
+         * @returns {void}
+         */
         select: function () {
             if (this.layoutManager.selectedItem !== this) {
                 this.layoutManager.selectItem(this, true);
@@ -3346,11 +3346,11 @@
             }
         },
 
-		/**
-		 * De-selects the item if it is selected
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * De-selects the item if it is selected
+         *
+         * @returns {void}
+         */
         deselect: function () {
             if (this.layoutManager.selectedItem === this) {
                 this.layoutManager.selectedItem = null;
@@ -3358,28 +3358,28 @@
             }
         },
 
-		/**
-		 * Set this component's title
-		 *
-		 * @public
-		 * @param {String} title
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Set this component's title
+         *
+         * @public
+         * @param {String} title
+         *
+         * @returns {void}
+         */
         setTitle: function (title) {
             this.config.title = title;
             this.emit('titleChanged', title);
             this.emit('stateChanged');
         },
 
-		/**
-		 * Checks whether a provided id is present
-		 *
-		 * @public
-		 * @param   {String}  id
-		 *
-		 * @returns {Boolean} isPresent
-		 */
+        /**
+         * Checks whether a provided id is present
+         *
+         * @public
+         * @param   {String}  id
+         *
+         * @returns {Boolean} isPresent
+         */
         hasId: function (id) {
             if (!this.config.id) {
                 return false;
@@ -3390,15 +3390,15 @@
             }
         },
 
-		/**
-		 * Adds an id. Adds it as a string if the component doesn't
-		 * have an id yet or creates/uses an array
-		 *
-		 * @public
-		 * @param {String} id
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Adds an id. Adds it as a string if the component doesn't
+         * have an id yet or creates/uses an array
+         *
+         * @public
+         * @param {String} id
+         *
+         * @returns {void}
+         */
         addId: function (id) {
             if (this.hasId(id)) {
                 return;
@@ -3413,15 +3413,15 @@
             }
         },
 
-		/**
-		 * Removes an existing id. Throws an error
-		 * if the id is not present
-		 *
-		 * @public
-		 * @param   {String} id
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Removes an existing id. Throws an error
+         * if the id is not present
+         *
+         * @public
+         * @param   {String} id
+         *
+         * @returns {void}
+         */
         removeId: function (id) {
             if (!this.hasId(id)) {
                 throw new Error('Id not found');
@@ -3435,9 +3435,9 @@
             }
         },
 
-		/****************************************
-		 * SELECTOR
-		 ****************************************/
+        /****************************************
+         * SELECTOR
+         ****************************************/
         getItemsByFilter: function (filter) {
             var result = [],
                 next = function (contentItem) {
@@ -3481,9 +3481,9 @@
             return instances;
         },
 
-		/****************************************
-		 * PACKAGE PRIVATE
-		 ****************************************/
+        /****************************************
+         * PACKAGE PRIVATE
+         ****************************************/
         _$getItemsByProperty: function (key, value) {
             return this.getItemsByFilter(function (item) {
                 return item[key] === value;
@@ -3528,11 +3528,11 @@
             }
         },
 
-		/**
-		 * Destroys this item ands its children
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Destroys this item ands its children
+         *
+         * @returns {void}
+         */
         _$destroy: function () {
             this.emitBubblingEvent('beforeItemDestroyed');
             this.callDownwards('_$destroy', [], true, true);
@@ -3540,17 +3540,17 @@
             this.emitBubblingEvent('itemDestroyed');
         },
 
-		/**
-		 * Returns the area the component currently occupies in the format
-		 *
-		 * {
-		 *		x1: int
-		 *		xy: int
-		 *		y1: int
-		 *		y2: int
-		 *		contentItem: contentItem
-		 * }
-		 */
+        /**
+         * Returns the area the component currently occupies in the format
+         *
+         * {
+         *		x1: int
+         *		xy: int
+         *		y1: int
+         *		y2: int
+         *		contentItem: contentItem
+         * }
+         */
         _$getArea: function (element) {
             element = element || this.element;
 
@@ -3568,17 +3568,17 @@
             };
         },
 
-		/**
-		 * The tree of content items is created in two steps: First all content items are instantiated,
-		 * then init is called recursively from top to bottem. This is the basic init function,
-		 * it can be used, extended or overwritten by the content items
-		 *
-		 * Its behaviour depends on the content item
-		 *
-		 * @package private
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * The tree of content items is created in two steps: First all content items are instantiated,
+         * then init is called recursively from top to bottem. This is the basic init function,
+         * it can be used, extended or overwritten by the content items
+         *
+         * Its behaviour depends on the content item
+         *
+         * @package private
+         *
+         * @returns {void}
+         */
         _$init: function () {
             var i;
             this.setSize();
@@ -3592,26 +3592,26 @@
             this.emitBubblingEvent(this.type + 'Created');
         },
 
-		/**
-		 * Emit an event that bubbles up the item tree.
-		 *
-		 * @param   {String} name The name of the event
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Emit an event that bubbles up the item tree.
+         *
+         * @param   {String} name The name of the event
+         *
+         * @returns {void}
+         */
         emitBubblingEvent: function (name) {
             var event = new lm.utils.BubblingEvent(name, this);
             this.emit(name, event);
         },
 
-		/**
-		 * Private method, creates all content items for this node at initialisation time
-		 * PLEASE NOTE, please see addChild for adding contentItems add runtime
-		 * @private
-		 * @param   {configuration item node} config
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Private method, creates all content items for this node at initialisation time
+         * PLEASE NOTE, please see addChild for adding contentItems add runtime
+         * @private
+         * @param   {configuration item node} config
+         *
+         * @returns {void}
+         */
         _createContentItems: function (config) {
             var oContentItem, i;
 
@@ -3625,13 +3625,13 @@
             }
         },
 
-		/**
-		 * Extends an item configuration node with default settings
-		 * @private
-		 * @param   {configuration item node} config
-		 *
-		 * @returns {configuration item node} extended config
-		 */
+        /**
+         * Extends an item configuration node with default settings
+         * @private
+         * @param   {configuration item node} config
+         *
+         * @returns {configuration item node} extended config
+         */
         _extendItemNode: function (config) {
 
             for (var key in lm.config.itemDefaultConfig) {
@@ -3643,26 +3643,26 @@
             return config;
         },
 
-		/**
-		 * Called for every event on the item tree. Decides whether the event is a bubbling
-		 * event and propagates it to its parent
-		 *
-		 * @param    {String} name the name of the event
-		 * @param   {lm.utils.BubblingEvent} event
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Called for every event on the item tree. Decides whether the event is a bubbling
+         * event and propagates it to its parent
+         *
+         * @param    {String} name the name of the event
+         * @param   {lm.utils.BubblingEvent} event
+         *
+         * @returns {void}
+         */
         _propagateEvent: function (name, event) {
             if (event instanceof lm.utils.BubblingEvent &&
                 event.isPropagationStopped === false &&
                 this.isInitialised === true) {
 
-				/**
-				 * In some cases (e.g. if an element is created from a DragSource) it
-				 * doesn't have a parent and is not below root. If that's the case
-				 * propagate the bubbling event from the top level of the substree directly
-				 * to the layoutManager
-				 */
+                /**
+                 * In some cases (e.g. if an element is created from a DragSource) it
+                 * doesn't have a parent and is not below root. If that's the case
+                 * propagate the bubbling event from the top level of the substree directly
+                 * to the layoutManager
+                 */
                 if (this.isRoot === false && this.parent) {
                     this.parent.emit.apply(this.parent, Array.prototype.slice.call(arguments, 0));
                 } else {
@@ -3671,16 +3671,16 @@
             }
         },
 
-		/**
-		 * All raw events bubble up to the root element. Some events that
-		 * are propagated to - and emitted by - the layoutManager however are
-		 * only string-based, batched and sanitized to make them more usable
-		 *
-		 * @param {String} name the name of the event
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * All raw events bubble up to the root element. Some events that
+         * are propagated to - and emitted by - the layoutManager however are
+         * only string-based, batched and sanitized to make them more usable
+         *
+         * @param {String} name the name of the event
+         *
+         * @private
+         * @returns {void}
+         */
         _scheduleEventPropagationToLayoutManager: function (name, event) {
             if (lm.utils.indexOf(name, this._throttledEvents) === -1) {
                 this.layoutManager.emit(name, event.origin);
@@ -3693,25 +3693,25 @@
 
         },
 
-		/**
-		 * Callback for events scheduled by _scheduleEventPropagationToLayoutManager
-		 *
-		 * @param {String} name the name of the event
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Callback for events scheduled by _scheduleEventPropagationToLayoutManager
+         *
+         * @param {String} name the name of the event
+         *
+         * @private
+         * @returns {void}
+         */
         _propagateEventToLayoutManager: function (name, event) {
             this._pendingEventPropagations[name] = false;
             this.layoutManager.emit(name, event);
         }
     });
 
-	/**
-	 * @param {[type]} layoutManager [description]
-	 * @param {[type]} config      [description]
-	 * @param {[type]} parent        [description]
-	 */
+    /**
+     * @param {[type]} layoutManager [description]
+     * @param {[type]} config      [description]
+     * @param {[type]} parent        [description]
+     */
     lm.items.Component = function (layoutManager, config, parent) {
         lm.items.AbstractContentItem.call(this, layoutManager, config, parent);
 
@@ -3771,11 +3771,11 @@
             lm.items.AbstractContentItem.prototype._$destroy.call(this);
         },
 
-		/**
-		 * Dragging onto a component directly is not an option
-		 *
-		 * @returns null
-		 */
+        /**
+         * Dragging onto a component directly is not an option
+         *
+         * @returns null
+         */
         _$getArea: function () {
             return null;
         }
@@ -3814,9 +3814,9 @@
             this.element.width(width);
             this.element.height(height);
 
-			/*
-			 * Root can be empty
-			 */
+            /*
+             * Root can be empty
+             */
             if (this.contentItems[0]) {
                 this.contentItems[0].element.width(width);
                 this.contentItems[0].element.height(height);
@@ -3890,18 +3890,18 @@
 
     lm.utils.copy(lm.items.RowOrColumn.prototype, {
 
-		/**
-		 * Add a new contentItem to the Row or Column
-		 *
-		 * @param {lm.item.AbstractContentItem} contentItem
-		 * @param {[int]} index The position of the new item within the Row or Column.
-		 *                      If no index is provided the item will be added to the end
-		 * @param {[bool]} _$suspendResize If true the items won't be resized. This will leave the item in
-		 *                                 an inconsistent state and is only intended to be used if multiple
-		 *                                 children need to be added in one go and resize is called afterwards
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Add a new contentItem to the Row or Column
+         *
+         * @param {lm.item.AbstractContentItem} contentItem
+         * @param {[int]} index The position of the new item within the Row or Column.
+         *                      If no index is provided the item will be added to the end
+         * @param {[bool]} _$suspendResize If true the items won't be resized. This will leave the item in
+         *                                 an inconsistent state and is only intended to be used if multiple
+         *                                 children need to be added in one go and resize is called afterwards
+         *
+         * @returns {void}
+         */
         addChild: function (contentItem, index, _$suspendResize) {
 
             var newItemSize, itemSize, i, splitterElement;
@@ -3959,14 +3959,14 @@
 
         },
 
-		/**
-		 * Removes a child of this element
-		 *
-		 * @param   {lm.items.AbstractContentItem} contentItem
-		 * @param   {boolean} keepChild   If true the child will be removed, but not destroyed
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Removes a child of this element
+         *
+         * @param   {lm.items.AbstractContentItem} contentItem
+         * @param   {boolean} keepChild   If true the child will be removed, but not destroyed
+         *
+         * @returns {void}
+         */
         removeChild: function (contentItem, keepChild) {
             var removedItemSize = contentItem.config[this._dimension],
                 index = lm.utils.indexOf(contentItem, this.contentItems),
@@ -3978,10 +3978,10 @@
                 throw new Error('Can\'t remove child. ContentItem is not child of this Row or Column');
             }
 
-			/**
-			 * Remove the splitter before the item or after if the item happens
-			 * to be the first in the row/column
-			 */
+            /**
+             * Remove the splitter before the item or after if the item happens
+             * to be the first in the row/column
+             */
             if (this._splitter[splitterIndex]) {
                 this._splitter[splitterIndex]._$destroy();
                 this._splitter.splice(splitterIndex, 1);
@@ -3992,9 +3992,9 @@
                 if (this.contentItems[i].config.fixed)
                     fixedItemSize += this.contentItems[i].config[this._dimension];
             }
-			/**
-			 * Allocate the space that the removed item occupied to the remaining items
-			 */
+            /**
+             * Allocate the space that the removed item occupied to the remaining items
+             */
             for (i = 0; i < this.contentItems.length; i++) {
                 if (this.contentItems[i].config.fixed)
                     ;
@@ -4017,14 +4017,14 @@
             }
         },
 
-		/**
-		 * Replaces a child of this Row or Column with another contentItem
-		 *
-		 * @param   {lm.items.AbstractContentItem} oldChild
-		 * @param   {lm.items.AbstractContentItem} newChild
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Replaces a child of this Row or Column with another contentItem
+         *
+         * @param   {lm.items.AbstractContentItem} oldChild
+         * @param   {lm.items.AbstractContentItem} newChild
+         *
+         * @returns {void}
+         */
         replaceChild: function (oldChild, newChild) {
             var size = oldChild.config[this._dimension];
             lm.items.AbstractContentItem.prototype.replaceChild.call(this, oldChild, newChild);
@@ -4033,11 +4033,11 @@
             this.emitBubblingEvent('stateChanged');
         },
 
-		/**
-		 * Called whenever the dimensions of this item or one of its parents change
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Called whenever the dimensions of this item or one of its parents change
+         *
+         * @returns {void}
+         */
         setSize: function () {
             if (this.contentItems.length > 0) {
                 this._calculateRelativeSizes();
@@ -4047,15 +4047,15 @@
             this.emit('resize');
         },
 
-		/**
-		 * Invoked recursively by the layout manager. AbstractContentItem.init appends
-		 * the contentItem's DOM elements to the container, RowOrColumn init adds splitters
-		 * in between them
-		 *
-		 * @package private
-		 * @override AbstractContentItem._$init
-		 * @returns {void}
-		 */
+        /**
+         * Invoked recursively by the layout manager. AbstractContentItem.init appends
+         * the contentItem's DOM elements to the container, RowOrColumn init adds splitters
+         * in between them
+         *
+         * @package private
+         * @override AbstractContentItem._$init
+         * @returns {void}
+         */
         _$init: function () {
             if (this.isInitialised === true) return;
 
@@ -4068,15 +4068,15 @@
             }
         },
 
-		/**
-		 * Turns the relative sizes calculated by _calculateRelativeSizes into
-		 * absolute pixel values and applies them to the children's DOM elements
-		 *
-		 * Assigns additional pixels to counteract Math.floor
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Turns the relative sizes calculated by _calculateRelativeSizes into
+         * absolute pixel values and applies them to the children's DOM elements
+         *
+         * Assigns additional pixels to counteract Math.floor
+         *
+         * @private
+         * @returns {void}
+         */
         _setAbsoluteSizes: function () {
             var i,
                 sizeData = this._calculateAbsoluteSizes();
@@ -4096,10 +4096,10 @@
             }
         },
 
-		/**
-		 * Calculates the absolute sizes of all of the children of this Item.
-		 * @returns {object} - Set with absolute sizes and additional pixels.
-		 */
+        /**
+         * Calculates the absolute sizes of all of the children of this Item.
+         * @returns {object} - Set with absolute sizes and additional pixels.
+         */
         _calculateAbsoluteSizes: function () {
             var i,
                 totalSplitterSize = (this.contentItems.length - 1) * this._splitterSize,
@@ -4137,27 +4137,27 @@
             };
         },
 
-		/**
-		 * Calculates the relative sizes of all children of this Item. The logic
-		 * is as follows:
-		 *
-		 * - Add up the total size of all items that have a configured size
-		 *
-		 * - If the total == 100 (check for floating point errors)
-		 *        Excellent, job done
-		 *
-		 * - If the total is > 100,
-		 *        set the size of items without set dimensions to 1/3 and add this to the total
-		 *        set the size off all items so that the total is hundred relative to their original size
-		 *
-		 * - If the total is < 100
-		 *        If there are items without set dimensions, distribute the remainder to 100 evenly between them
-		 *        If there are no items without set dimensions, increase all items sizes relative to
-		 *        their original size so that they add up to 100
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Calculates the relative sizes of all children of this Item. The logic
+         * is as follows:
+         *
+         * - Add up the total size of all items that have a configured size
+         *
+         * - If the total == 100 (check for floating point errors)
+         *        Excellent, job done
+         *
+         * - If the total is > 100,
+         *        set the size of items without set dimensions to 1/3 and add this to the total
+         *        set the size off all items so that the total is hundred relative to their original size
+         *
+         * - If the total is < 100
+         *        If there are items without set dimensions, distribute the remainder to 100 evenly between them
+         *        If there are no items without set dimensions, increase all items sizes relative to
+         *        their original size so that they add up to 100
+         *
+         * @private
+         * @returns {void}
+         */
         _calculateRelativeSizes: function () {
 
             var i,
@@ -4173,17 +4173,17 @@
                 }
             }
 
-			/**
-			 * Everything adds up to hundred, all good :-)
-			 */
+            /**
+             * Everything adds up to hundred, all good :-)
+             */
             if (Math.round(total) === 100) {
                 this._respectMinItemWidth();
                 return;
             }
 
-			/**
-			 * Allocate the remaining size to the items without a set dimension
-			 */
+            /**
+             * Allocate the remaining size to the items without a set dimension
+             */
             if (Math.round(total) < 100 && itemsWithoutSetDimension.length > 0) {
                 for (i = 0; i < itemsWithoutSetDimension.length; i++) {
                     itemsWithoutSetDimension[i].config[dimension] = (100 - total) / itemsWithoutSetDimension.length;
@@ -4192,12 +4192,12 @@
                 return;
             }
 
-			/**
-			 * If the total is > 100, but there are also items without a set dimension left, assing 50
-			 * as their dimension and add it to the total
-			 *
-			 * This will be reset in the next step
-			 */
+            /**
+             * If the total is > 100, but there are also items without a set dimension left, assing 50
+             * as their dimension and add it to the total
+             *
+             * This will be reset in the next step
+             */
             if (Math.round(total) > 100) {
                 for (i = 0; i < itemsWithoutSetDimension.length; i++) {
                     itemsWithoutSetDimension[i].config[dimension] = 50;
@@ -4205,9 +4205,9 @@
                 }
             }
 
-			/**
-			 * Set every items size relative to 100 relative to its size to total
-			 */
+            /**
+             * Set every items size relative to 100 relative to its size to total
+             */
             for (i = 0; i < this.contentItems.length; i++) {
                 this.contentItems[i].config[dimension] = (this.contentItems[i].config[dimension] / total) * 100;
             }
@@ -4215,10 +4215,10 @@
             this._respectMinItemWidth();
         },
 
-		/**
-		 * Adjusts the column widths to respect the dimensions minItemWidth if set.
-		 * @returns {}
-		 */
+        /**
+         * Adjusts the column widths to respect the dimensions minItemWidth if set.
+         * @returns {}
+         */
         _respectMinItemWidth: function () {
             var minItemWidth = this.layoutManager.config.dimensions ? (this.layoutManager.config.dimensions.minItemWidth || 0) : 0,
                 sizeData = null,
@@ -4239,9 +4239,9 @@
 
             sizeData = this._calculateAbsoluteSizes();
 
-			/**
-			 * Figure out how much we are under the min item size total and how much room we have to use.
-			 */
+            /**
+             * Figure out how much we are under the min item size total and how much room we have to use.
+             */
             for (var i = 0; i < this.contentItems.length; i++) {
 
                 contentItem = this.contentItems[i];
@@ -4261,16 +4261,16 @@
                 allEntries.push(entry);
             }
 
-			/**
-			 * If there is nothing under min, or there is not enough over to make up the difference, do nothing.
-			 */
+            /**
+             * If there is nothing under min, or there is not enough over to make up the difference, do nothing.
+             */
             if (totalUnderMin === 0 || totalUnderMin > totalOverMin) {
                 return;
             }
 
-			/**
-			 * Evenly reduce all columns that are over the min item width to make up the difference.
-			 */
+            /**
+             * Evenly reduce all columns that are over the min item width to make up the difference.
+             */
             reducePercent = totalUnderMin / totalOverMin;
             remainingWidth = totalUnderMin;
             for (i = 0; i < entriesOverMin.length; i++) {
@@ -4280,31 +4280,31 @@
                 entry.width -= reducedWidth;
             }
 
-			/**
-			 * Take anything remaining from the last item.
-			 */
+            /**
+             * Take anything remaining from the last item.
+             */
             if (remainingWidth !== 0) {
                 allEntries[allEntries.length - 1].width -= remainingWidth;
             }
 
-			/**
-			 * Set every items size relative to 100 relative to its size to total
-			 */
+            /**
+             * Set every items size relative to 100 relative to its size to total
+             */
             for (i = 0; i < this.contentItems.length; i++) {
                 this.contentItems[i].config.width = (allEntries[i].width / sizeData.totalWidth) * 100;
             }
         },
 
-		/**
-		 * Instantiates a new lm.controls.Splitter, binds events to it and adds
-		 * it to the array of splitters at the position specified as the index argument
-		 *
-		 * What it doesn't do though is append the splitter to the DOM
-		 *
-		 * @param   {Int} index The position of the splitter
-		 *
-		 * @returns {lm.controls.Splitter}
-		 */
+        /**
+         * Instantiates a new lm.controls.Splitter, binds events to it and adds
+         * it to the array of splitters at the position specified as the index argument
+         *
+         * What it doesn't do though is append the splitter to the DOM
+         *
+         * @param   {Int} index The position of the splitter
+         *
+         * @returns {lm.controls.Splitter}
+         */
         _createSplitter: function (index) {
             var splitter;
             splitter = new lm.controls.Splitter(this._isColumn, this._splitterSize, this._splitterGrabSize);
@@ -4315,16 +4315,16 @@
             return splitter;
         },
 
-		/**
-		 * Locates the instance of lm.controls.Splitter in the array of
-		 * registered splitters and returns a map containing the contentItem
-		 * before and after the splitters, both of which are affected if the
-		 * splitter is moved
-		 *
-		 * @param   {lm.controls.Splitter} splitter
-		 *
-		 * @returns {Object} A map of contentItems that the splitter affects
-		 */
+        /**
+         * Locates the instance of lm.controls.Splitter in the array of
+         * registered splitters and returns a map containing the contentItem
+         * before and after the splitters, both of which are affected if the
+         * splitter is moved
+         *
+         * @param   {lm.controls.Splitter} splitter
+         *
+         * @returns {Object} A map of contentItems that the splitter affects
+         */
         _getItemsForSplitter: function (splitter) {
             var index = lm.utils.indexOf(splitter, this._splitter);
 
@@ -4334,11 +4334,11 @@
             };
         },
 
-		/**
-		 * Gets the minimum dimensions for the given item configuration array
-		 * @param item
-		 * @private
-		 */
+        /**
+         * Gets the minimum dimensions for the given item configuration array
+         * @param item
+         * @private
+         */
         _getMinimumDimensions: function (arr) {
             var minWidth = 0, minHeight = 0;
 
@@ -4350,14 +4350,14 @@
             return { horizontal: minWidth, vertical: minHeight };
         },
 
-		/**
-		 * Invoked when a splitter's dragListener fires dragStart. Calculates the splitters
-		 * movement area once (so that it doesn't need calculating on every mousemove event)
-		 *
-		 * @param   {lm.controls.Splitter} splitter
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Invoked when a splitter's dragListener fires dragStart. Calculates the splitters
+         * movement area once (so that it doesn't need calculating on every mousemove event)
+         *
+         * @param   {lm.controls.Splitter} splitter
+         *
+         * @returns {void}
+         */
         _onSplitterDragStart: function (splitter) {
             var items = this._getItemsForSplitter(splitter),
                 minSize = this.layoutManager.config.dimensions[this._isColumn ? 'minItemHeight' : 'minItemWidth'];
@@ -4373,16 +4373,16 @@
             this._splitterMaxPosition = items.after.element[this._dimension]() - (afterMinSize || minSize);
         },
 
-		/**
-		 * Invoked when a splitter's DragListener fires drag. Updates the splitters DOM position,
-		 * but not the sizes of the elements the splitter controls in order to minimize resize events
-		 *
-		 * @param   {lm.controls.Splitter} splitter
-		 * @param   {Int} offsetX  Relative pixel values to the splitters original position. Can be negative
-		 * @param   {Int} offsetY  Relative pixel values to the splitters original position. Can be negative
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Invoked when a splitter's DragListener fires drag. Updates the splitters DOM position,
+         * but not the sizes of the elements the splitter controls in order to minimize resize events
+         *
+         * @param   {lm.controls.Splitter} splitter
+         * @param   {Int} offsetX  Relative pixel values to the splitters original position. Can be negative
+         * @param   {Int} offsetY  Relative pixel values to the splitters original position. Can be negative
+         *
+         * @returns {void}
+         */
         _onSplitterDrag: function (splitter, offsetX, offsetY) {
             var offset = this._isColumn ? offsetY : offsetX;
 
@@ -4392,15 +4392,15 @@
             }
         },
 
-		/**
-		 * Invoked when a splitter's DragListener fires dragStop. Resets the splitters DOM position,
-		 * and applies the new sizes to the elements before and after the splitter and their children
-		 * on the next animation frame
-		 *
-		 * @param   {lm.controls.Splitter} splitter
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Invoked when a splitter's DragListener fires dragStop. Resets the splitters DOM position,
+         * and applies the new sizes to the elements before and after the splitter and their children
+         * on the next animation frame
+         *
+         * @param   {lm.controls.Splitter} splitter
+         *
+         * @returns {void}
+         */
         _onSplitterDragStop: function (splitter) {
 
             var items = this._getItemsForSplitter(splitter),
@@ -4548,13 +4548,13 @@
             this.emitBubblingEvent('stateChanged');
         },
 
-		/**
-		 * Validates that the stack is still closable or not. If a stack is able
-		 * to close, but has a non closable component added to it, the stack is no
-		 * longer closable until all components are closable.
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Validates that the stack is still closable or not. If a stack is able
+         * to close, but has a non closable component added to it, the stack is no
+         * longer closable until all components are closable.
+         *
+         * @returns {void}
+         */
         _$validateClosability: function () {
             var contentItem,
                 isClosable,
@@ -4580,51 +4580,51 @@
         },
 
 
-		/**
-		 * Ok, this one is going to be the tricky one: The user has dropped {contentItem} onto this stack.
-		 *
-		 * It was dropped on either the stacks header or the top, right, bottom or left bit of the content area
-		 * (which one of those is stored in this._dropSegment). Now, if the user has dropped on the header the case
-		 * is relatively clear: We add the item to the existing stack... job done (might be good to have
-		 * tab reordering at some point, but lets not sweat it right now)
-		 *
-		 * If the item was dropped on the content part things are a bit more complicated. If it was dropped on either the
-		 * top or bottom region we need to create a new column and place the items accordingly.
-		 * Unless, of course if the stack is already within a column... in which case we want
-		 * to add the newly created item to the existing column...
-		 * either prepend or append it, depending on wether its top or bottom.
-		 *
-		 * Same thing for rows and left / right drop segments... so in total there are 9 things that can potentially happen
-		 * (left, top, right, bottom) * is child of the right parent (row, column) + header drop
-		 *
-		 * @param    {lm.item} contentItem
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Ok, this one is going to be the tricky one: The user has dropped {contentItem} onto this stack.
+         *
+         * It was dropped on either the stacks header or the top, right, bottom or left bit of the content area
+         * (which one of those is stored in this._dropSegment). Now, if the user has dropped on the header the case
+         * is relatively clear: We add the item to the existing stack... job done (might be good to have
+         * tab reordering at some point, but lets not sweat it right now)
+         *
+         * If the item was dropped on the content part things are a bit more complicated. If it was dropped on either the
+         * top or bottom region we need to create a new column and place the items accordingly.
+         * Unless, of course if the stack is already within a column... in which case we want
+         * to add the newly created item to the existing column...
+         * either prepend or append it, depending on wether its top or bottom.
+         *
+         * Same thing for rows and left / right drop segments... so in total there are 9 things that can potentially happen
+         * (left, top, right, bottom) * is child of the right parent (row, column) + header drop
+         *
+         * @param    {lm.item} contentItem
+         *
+         * @returns {void}
+         */
         _$onDrop: function (contentItem) {
 
-			/*
-			 * The item was dropped on the header area. Just add it as a child of this stack and
-			 * get the hell out of this logic
-			 */
+            /*
+             * The item was dropped on the header area. Just add it as a child of this stack and
+             * get the hell out of this logic
+             */
             if (this._dropSegment === 'header') {
                 this._resetHeaderDropZone();
                 this.addChild(contentItem, this._dropIndex);
                 return;
             }
 
-			/*
-			 * The stack is empty. Let's just add the element.
-			 */
+            /*
+             * The stack is empty. Let's just add the element.
+             */
             if (this._dropSegment === 'body') {
                 this.addChild(contentItem);
                 return;
             }
 
-			/*
-			 * The item was dropped on the top-, left-, bottom- or right- part of the content. Let's
-			 * aggregate some conditions to make the if statements later on more readable
-			 */
+            /*
+             * The item was dropped on the top-, left-, bottom- or right- part of the content. Let's
+             * aggregate some conditions to make the if statements later on more readable
+             */
             var isVertical = this._dropSegment === 'top' || this._dropSegment === 'bottom',
                 isHorizontal = this._dropSegment === 'left' || this._dropSegment === 'right',
                 insertBefore = this._dropSegment === 'top' || this._dropSegment === 'left',
@@ -4635,9 +4635,9 @@
                 stack,
                 rowOrColumn;
 
-			/*
-			 * The content item can be either a component or a stack. If it is a component, wrap it into a stack
-			 */
+            /*
+             * The content item can be either a component or a stack. If it is a component, wrap it into a stack
+             */
             if (contentItem.isComponent) {
                 stack = this.layoutManager.createContentItem({
                     type: 'stack',
@@ -4648,20 +4648,20 @@
                 contentItem = stack;
             }
 
-			/*
-			 * If the item is dropped on top or bottom of a column or left and right of a row, it's already
-			 * layd out in the correct way. Just add it as a child
-			 */
+            /*
+             * If the item is dropped on top or bottom of a column or left and right of a row, it's already
+             * layd out in the correct way. Just add it as a child
+             */
             if (hasCorrectParent) {
                 index = lm.utils.indexOf(this, this.parent.contentItems);
                 this.parent.addChild(contentItem, insertBefore ? index : index + 1, true);
                 this.config[dimension] *= 0.5;
                 contentItem.config[dimension] = this.config[dimension];
                 this.parent.callDownwards('setSize');
-				/*
-				 * This handles items that are dropped on top or bottom of a row or left / right of a column. We need
-				 * to create the appropriate contentItem for them to live in
-				 */
+                /*
+                 * This handles items that are dropped on top or bottom of a row or left / right of a column. We need
+                 * to create the appropriate contentItem for them to live in
+                 */
             } else {
                 type = isVertical ? 'column' : 'row';
                 rowOrColumn = this.layoutManager.createContentItem({ type: type }, this);
@@ -4676,15 +4676,15 @@
             }
         },
 
-		/**
-		 * If the user hovers above the header part of the stack, indicate drop positions for tabs.
-		 * otherwise indicate which segment of the body the dragged item would be dropped on
-		 *
-		 * @param    {Int} x Absolute Screen X
-		 * @param    {Int} y Absolute Screen Y
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * If the user hovers above the header part of the stack, indicate drop positions for tabs.
+         * otherwise indicate which segment of the body the dragged item would be dropped on
+         *
+         * @param    {Int} x Absolute Screen X
+         * @param    {Int} y Absolute Screen Y
+         *
+         * @returns {void}
+         */
         _$highlightDropZone: function (x, y) {
             var segment, area;
 
@@ -4734,17 +4734,17 @@
                 }
             };
 
-			/**
-			 * If this Stack is a parent to rows, columns or other stacks only its
-			 * header is a valid dropzone.
-			 */
+            /**
+             * If this Stack is a parent to rows, columns or other stacks only its
+             * header is a valid dropzone.
+             */
             if (this._activeContentItem && this._activeContentItem.isComponent === false) {
                 return headerArea;
             }
 
-			/**
-			 * Highlight the entire body if the stack is empty
-			 */
+            /**
+             * Highlight the entire body if the stack is empty
+             */
             if (this.contentItems.length === 0) {
 
                 this._contentAreaDimensions.body = {
@@ -4944,13 +4944,13 @@
     lm.utils.BubblingEvent.prototype.stopPropagation = function () {
         this.isPropagationStopped = true;
     };
-	/**
-	 * Minifies and unminifies configs by replacing frequent keys
-	 * and values with one letter substitutes. Config options must
-	 * retain array position/index, add new options at the end.
-	 *
-	 * @constructor
-	 */
+    /**
+     * Minifies and unminifies configs by replacing frequent keys
+     * and values with one letter substitutes. Config options must
+     * retain array position/index, add new options at the end.
+     *
+     * @constructor
+     */
     lm.utils.ConfigMinifier = function () {
         this._keys = [
             'settings',
@@ -5010,154 +5010,154 @@
 
     lm.utils.copy(lm.utils.ConfigMinifier.prototype, {
 
-		/**
-		 * Takes a GoldenLayout configuration object and
-		 * replaces its keys and values recursively with
-		 * one letter counterparts
-		 *
-		 * @param   {Object} config A GoldenLayout config object
-		 *
-		 * @returns {Object} minified config
-		 */
+        /**
+         * Takes a GoldenLayout configuration object and
+         * replaces its keys and values recursively with
+         * one letter counterparts
+         *
+         * @param   {Object} config A GoldenLayout config object
+         *
+         * @returns {Object} minified config
+         */
         minifyConfig: function (config) {
             var min = {};
             this._nextLevel(config, min, '_min');
             return min;
         },
 
-		/**
-		 * Takes a configuration Object that was previously minified
-		 * using minifyConfig and returns its original version
-		 *
-		 * @param   {Object} minifiedConfig
-		 *
-		 * @returns {Object} the original configuration
-		 */
+        /**
+         * Takes a configuration Object that was previously minified
+         * using minifyConfig and returns its original version
+         *
+         * @param   {Object} minifiedConfig
+         *
+         * @returns {Object} the original configuration
+         */
         unminifyConfig: function (minifiedConfig) {
             var orig = {};
             this._nextLevel(minifiedConfig, orig, '_max');
             return orig;
         },
 
-		/**
-		 * Recursive function, called for every level of the config structure
-		 *
-		 * @param   {Array|Object} orig
-		 * @param   {Array|Object} min
-		 * @param    {String} translationFn
-		 *
-		 * @returns {void}
-		 */
+        /**
+         * Recursive function, called for every level of the config structure
+         *
+         * @param   {Array|Object} orig
+         * @param   {Array|Object} min
+         * @param    {String} translationFn
+         *
+         * @returns {void}
+         */
         _nextLevel: function (from, to, translationFn) {
             var key, minKey;
 
             for (key in from) {
 
-				/**
-				 * For in returns array indices as keys, so let's cast them to numbers
-				 */
+                /**
+                 * For in returns array indices as keys, so let's cast them to numbers
+                 */
                 if (from instanceof Array) key = parseInt(key, 10);
 
-				/**
-				 * In case something has extended Object prototypes
-				 */
+                /**
+                 * In case something has extended Object prototypes
+                 */
                 if (!from.hasOwnProperty(key)) continue;
 
-				/**
-				 * Translate the key to a one letter substitute
-				 */
+                /**
+                 * Translate the key to a one letter substitute
+                 */
                 minKey = this[translationFn](key, this._keys);
 
-				/**
-				 * For Arrays and Objects, create a new Array/Object
-				 * on the minified object and recurse into it
-				 */
+                /**
+                 * For Arrays and Objects, create a new Array/Object
+                 * on the minified object and recurse into it
+                 */
                 if (typeof from[key] === 'object') {
                     to[minKey] = from[key] instanceof Array ? [] : {};
                     this._nextLevel(from[key], to[minKey], translationFn);
 
-					/**
-					 * For primitive values (Strings, Numbers, Boolean etc.)
-					 * minify the value
-					 */
+                    /**
+                     * For primitive values (Strings, Numbers, Boolean etc.)
+                     * minify the value
+                     */
                 } else {
                     to[minKey] = this[translationFn](from[key], this._values);
                 }
             }
         },
 
-		/**
-		 * Minifies value based on a dictionary
-		 *
-		 * @param   {String|Boolean} value
-		 * @param   {Array<String|Boolean>} dictionary
-		 *
-		 * @returns {String} The minified version
-		 */
+        /**
+         * Minifies value based on a dictionary
+         *
+         * @param   {String|Boolean} value
+         * @param   {Array<String|Boolean>} dictionary
+         *
+         * @returns {String} The minified version
+         */
         _min: function (value, dictionary) {
-			/**
-			 * If a value actually is a single character, prefix it
-			 * with ___ to avoid mistaking it for a minification code
-			 */
+            /**
+             * If a value actually is a single character, prefix it
+             * with ___ to avoid mistaking it for a minification code
+             */
             if (typeof value === 'string' && value.length === 1) {
                 return '___' + value;
             }
 
             var index = lm.utils.indexOf(value, dictionary);
 
-			/**
-			 * value not found in the dictionary, return it unmodified
-			 */
+            /**
+             * value not found in the dictionary, return it unmodified
+             */
             if (index === -1) {
                 return value;
 
-				/**
-				 * value found in dictionary, return its base36 counterpart
-				 */
+                /**
+                 * value found in dictionary, return its base36 counterpart
+                 */
             } else {
                 return index.toString(36);
             }
         },
 
         _max: function (value, dictionary) {
-			/**
-			 * value is a single character. Assume that it's a translation
-			 * and return the original value from the dictionary
-			 */
+            /**
+             * value is a single character. Assume that it's a translation
+             * and return the original value from the dictionary
+             */
             if (typeof value === 'string' && value.length === 1) {
                 return dictionary[parseInt(value, 36)];
             }
 
-			/**
-			 * value originally was a single character and was prefixed with ___
-			 * to avoid mistaking it for a translation. Remove the prefix
-			 * and return the original character
-			 */
+            /**
+             * value originally was a single character and was prefixed with ___
+             * to avoid mistaking it for a translation. Remove the prefix
+             * and return the original character
+             */
             if (typeof value === 'string' && value.substr(0, 3) === '___') {
                 return value[3];
             }
-			/**
-			 * value was not minified
-			 */
+            /**
+             * value was not minified
+             */
             return value;
         }
     });
 
-	/**
-	 * An EventEmitter singleton that propagates events
-	 * across multiple windows. This is a little bit trickier since
-	 * windows are allowed to open childWindows in their own right
-	 *
-	 * This means that we deal with a tree of windows. Hence the rules for event propagation are:
-	 *
-	 * - Propagate events from this layout to both parents and children
-	 * - Propagate events from parent to this and children
-	 * - Propagate events from children to the other children (but not the emitting one) and the parent
-	 *
-	 * @constructor
-	 *
-	 * @param {lm.LayoutManager} layoutManager
-	 */
+    /**
+     * An EventEmitter singleton that propagates events
+     * across multiple windows. This is a little bit trickier since
+     * windows are allowed to open childWindows in their own right
+     *
+     * This means that we deal with a tree of windows. Hence the rules for event propagation are:
+     *
+     * - Propagate events from this layout to both parents and children
+     * - Propagate events from parent to this and children
+     * - Propagate events from children to the other children (but not the emitting one) and the parent
+     *
+     * @constructor
+     *
+     * @param {lm.LayoutManager} layoutManager
+     */
     lm.utils.EventHub = function (layoutManager) {
         lm.utils.EventEmitter.call(this);
         this._layoutManager = layoutManager;
@@ -5168,15 +5168,15 @@
         $(window).on('gl_child_event', this._boundOnEventFromChild);
     };
 
-	/**
-	 * Called on every event emitted on this eventHub, regardles of origin.
-	 *
-	 * @private
-	 *
-	 * @param {Mixed}
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * Called on every event emitted on this eventHub, regardles of origin.
+     *
+     * @private
+     *
+     * @param {Mixed}
+     *
+     * @returns {void}
+     */
     lm.utils.EventHub.prototype._onEventFromThis = function () {
         var args = Array.prototype.slice.call(arguments);
 
@@ -5190,40 +5190,40 @@
         this._childEventSource = null;
     };
 
-	/**
-	 * Called by the parent layout.
-	 *
-	 * @param   {Array} args Event name + arguments
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * Called by the parent layout.
+     *
+     * @param   {Array} args Event name + arguments
+     *
+     * @returns {void}
+     */
     lm.utils.EventHub.prototype._$onEventFromParent = function (args) {
         this._dontPropagateToParent = args[0];
         this.emit.apply(this, args);
     };
 
-	/**
-	 * Callback for child events raised on the window
-	 *
-	 * @param   {DOMEvent} event
-	 * @private
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * Callback for child events raised on the window
+     *
+     * @param   {DOMEvent} event
+     * @private
+     *
+     * @returns {void}
+     */
     lm.utils.EventHub.prototype._onEventFromChild = function (event) {
         this._childEventSource = event.originalEvent.__gl;
         this.emit.apply(this, event.originalEvent.__glArgs);
     };
 
-	/**
-	 * Propagates the event to the parent by emitting
-	 * it on the parent's DOM window
-	 *
-	 * @param   {Array} args Event name + arguments
-	 * @private
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * Propagates the event to the parent by emitting
+     * it on the parent's DOM window
+     *
+     * @param   {Array} args Event name + arguments
+     * @private
+     *
+     * @returns {void}
+     */
     lm.utils.EventHub.prototype._propagateToParent = function (args) {
         var event,
             eventName = 'gl_child_event';
@@ -5247,14 +5247,14 @@
         }
     };
 
-	/**
-	 * Propagate events to children
-	 *
-	 * @param   {Array} args Event name + arguments
-	 * @private
-	 *
-	 * @returns {void}
-	 */
+    /**
+     * Propagate events to children
+     *
+     * @param   {Array} args Event name + arguments
+     * @private
+     *
+     * @returns {void}
+     */
     lm.utils.EventHub.prototype._propagateToChildren = function (args) {
         var childGl, i;
 
@@ -5268,25 +5268,25 @@
     };
 
 
-	/**
-	 * Destroys the EventHub
-	 *
-	 * @public
-	 * @returns {void}
-	 */
+    /**
+     * Destroys the EventHub
+     *
+     * @public
+     * @returns {void}
+     */
 
     lm.utils.EventHub.prototype.destroy = function () {
         $(window).off('gl_child_event', this._boundOnEventFromChild);
     };
-	/**
-	 * A specialised GoldenLayout component that binds GoldenLayout container
-	 * lifecycle events to react components
-	 *
-	 * @constructor
-	 *
-	 * @param {lm.container.ItemContainer} container
-	 * @param {Object} state state is not required for react components
-	 */
+    /**
+     * A specialised GoldenLayout component that binds GoldenLayout container
+     * lifecycle events to react components
+     *
+     * @constructor
+     *
+     * @param {lm.container.ItemContainer} container
+     * @param {Object} state state is not required for react components
+     */
     lm.utils.ReactComponentHandler = function (container, state) {
         this._reactComponent = null;
         this._originalComponentWillUpdate = null;
@@ -5299,15 +5299,15 @@
 
     lm.utils.copy(lm.utils.ReactComponentHandler.prototype, {
 
-		/**
-		 * Creates the react class and component and hydrates it with
-		 * the initial state - if one is present
-		 *
-		 * By default, react's getInitialState will be used
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Creates the react class and component and hydrates it with
+         * the initial state - if one is present
+         *
+         * By default, react's getInitialState will be used
+         *
+         * @private
+         * @returns {void}
+         */
         _render: function () {
             this._reactComponent = ReactDOM.render(this._getReactComponent(), this._container.getElement()[0]);
             this._originalComponentWillUpdate = this._reactComponent.componentWillUpdate || function () {
@@ -5318,36 +5318,36 @@
             }
         },
 
-		/**
-		 * Removes the component from the DOM and thus invokes React's unmount lifecycle
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Removes the component from the DOM and thus invokes React's unmount lifecycle
+         *
+         * @private
+         * @returns {void}
+         */
         _destroy: function () {
             ReactDOM.unmountComponentAtNode(this._container.getElement()[0]);
             this._container.off('open', this._render, this);
             this._container.off('destroy', this._destroy, this);
         },
 
-		/**
-		 * Hooks into React's state management and applies the componentstate
-		 * to GoldenLayout
-		 *
-		 * @private
-		 * @returns {void}
-		 */
+        /**
+         * Hooks into React's state management and applies the componentstate
+         * to GoldenLayout
+         *
+         * @private
+         * @returns {void}
+         */
         _onUpdate: function (nextProps, nextState) {
             this._container.setState(nextState);
             this._originalComponentWillUpdate.call(this._reactComponent, nextProps, nextState);
         },
 
-		/**
-		 * Retrieves the react class from GoldenLayout's registry
-		 *
-		 * @private
-		 * @returns {React.Class}
-		 */
+        /**
+         * Retrieves the react class from GoldenLayout's registry
+         *
+         * @private
+         * @returns {React.Class}
+         */
         _getReactClass: function () {
             var componentName = this._container._config.component;
             var reactClass;
@@ -5366,12 +5366,12 @@
             return reactClass;
         },
 
-		/**
-		 * Copies and extends the properties array and returns the React element
-		 *
-		 * @private
-		 * @returns {React.Element}
-		 */
+        /**
+         * Copies and extends the properties array and returns the React element
+         *
+         * @private
+         * @returns {React.Element}
+         */
         _getReactComponent: function () {
             var defaultProps = {
                 glEventHub: this._container.layoutManager.eventHub,

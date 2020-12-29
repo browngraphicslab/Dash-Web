@@ -1,5 +1,7 @@
 @import "../globalCssVariables";
 @import "./NaviconButton.scss";
+$light-blue: #BDDBE7;
+$dark-blue: #279ECD;
 
 .searchBox-container {
     display: flex;
@@ -20,7 +22,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: black;
+        background-color: $light-blue;
 
         .searchBox-lozenges {
             position: absolute;
@@ -40,6 +42,7 @@
                 border-top: dimgrey 1px solid;
                 border-left: dimgrey 1px solid;
                 display: flex;
+
                 .searchBox-logoff,
                 .searchBox-dashboards {
                     border-radius: 3px;
@@ -53,11 +56,12 @@
                     padding-bottom: 11px;
                     cursor: default;
                 }
+
                 .searchBox-logoff {
                     background: red;
                 }
 
-                .searchBox-dashSelect{
+                .searchBox-dashSelect {
                     background-color: black;
                     color: white;
                     font-size: 9;
@@ -65,29 +69,39 @@
                     border-radius: 5px;
                     position: relative;
                     height: 15px;
-                    transform: translate(0,-3px);
+                    transform: translate(0, -3px);
 
                     &:hover {
                         cursor: pointer;
                     }
                 }
             }
+
             .searchBox-lozenge-user:hover {
                 .searchBox-logoff {
-                    display:inline-block;
+                    display: inline-block;
                 }
             }
+
             .searchBox-lozenge-dashboard:hover {
                 .searchBox-dashboards {
-                    display:inline-block;
+                    display: inline-block;
                 }
             }
         }
+
         .searchBox-query {
             position: relative;
             display: flex;
             width: 450;
         }
+
+        .searchBox-modalMenuButtons {
+            position: absolute;
+            right: 15;
+            display: flex;
+        }
+
         .searchBox-barChild {
 
             &.searchBox-collection {
@@ -97,24 +111,28 @@
             }
 
             &.searchBox-input {
-                margin:5px;
-                border-radius:20px;
-                border:black;    
+                margin: 5px;
+                border-radius: 20px;
+                border: black;
                 display: block;
                 width: 130px;
                 -webkit-transition: width 0.4s;
                 transition: width 0.4s;
                 align-self: stretch;
-                outline:none;
+                outline: none;
+
                 &:focus {
                     width: 500px;
-                    outline:none;
+                    outline: none;
                 }
             }
+
             &.searchBox-filter {
                 align-self: stretch;
-                button{
-                    transform:none;
+
+                button {
+                    transform: none;
+
                     &:hover {
                         transform: none;
                     }
@@ -131,7 +149,7 @@
                 max-height: $searchpanel-height;
             }
         }
-    }   
+    }
 }
 
 .searchBox-results {

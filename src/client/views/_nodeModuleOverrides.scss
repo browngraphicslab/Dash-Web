@@ -2,7 +2,45 @@
 
 // goldenlayout stuff
 div .lm_header {
-    background: $dark-color;
+    background: #92ADB9;
+    overflow-x: scroll;
+    overflow-y: visible;
+}
+
+/* Width */
+.lm_header::-webkit-scrollbar {
+    -webkit-appearance: none;
+    display: none;
+}
+
+/* Width */
+.lm_header:hover::-webkit-scrollbar {
+    -webkit-appearance: none;
+    display: block;
+    height: 3px;
+    width: 2px;
+}
+
+/* Track */
+.lm_header:hover::-webkit-scrollbar-track {
+    -webkit-appearance: none;
+    display: none;
+}
+
+/* Handle */
+.lm_header:hover::-webkit-scrollbar-thumb {
+    -webkit-appearance: none;
+    background: #888;
+}
+
+/* Handle on hover */
+.lm_header:hover::-webkit-scrollbar-thumb:hover {
+    -webkit-appearance: none;
+    background: #555;
+}
+
+.lm_tabs {
+    display: flex;
 }
 
 .lm_tab {
@@ -15,7 +53,10 @@ div .lm_header {
 }
 
 .lm_header .lm_controls {
-    right: 1em !important;
+    position: fixed;
+    background-color: #92adb9;
+    right: 0px;
+    height: 22px;
 }
 
 // @TODO the ril__navgiation buttons in the img gallery are a lil messed up but I can't figure out

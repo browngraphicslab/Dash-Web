@@ -64,7 +64,7 @@
     color: dimgray;
 
     .lm_title {
-        background: #cacaca;
+        background: transparent;
         color: black;
     }
 }
@@ -77,7 +77,7 @@
     }
 
     .lm_title {
-        background: black;
+        background: transparent;
         color: unset;
     }
 
@@ -153,7 +153,14 @@
     cursor: auto;
 }
 
-.mainView-innerContent, .mainView-innerContent-dark {
+.mainView-content {
+    width: 100%;
+    height: 100%;
+    display: grid;
+}
+
+.mainView-innerContent,
+.mainView-innerContent-dark {
     display: contents;
     flex-direction: row;
     position: relative;
@@ -175,51 +182,60 @@
         position: absolute;
         z-index: 2;
         background-color: rgb(159, 159, 159);
+
         .editable-title {
             background-color: lightgrey;
         }
     }
 
 }
+
 .mainView-libraryHandle {
     background-color: lightgrey;
 }
-.mainView-innerContent-dark 
-{
+
+.mainView-innerContent-dark {
     .propertiesView {
         background-color: #252525;
+
         input {
             background-color: dimgrey;
         }
-        .propertiesView-sharingTable 
-        {
+
+        .propertiesView-sharingTable {
             background-color: dimgrey;
         }
+
         .editable-title {
             background-color: dimgrey;
         }
+
         .propertiesView-field {
             background-color: dimgrey;
         }
     }
+
     .mainView-propertiesDragger,
     .mainView-libraryHandle {
         background: #353535;
     }
 }
+
 .mainView-container-dark {
     .contextMenu-cont {
         background: dimgrey;
         color: white;
+
         input::placeholder {
-            color:white;
+            color: white;
         }
     }
 }
 
 .mainView-menuPanel {
     min-width: var(--menuPanelWidth);
-    background-color: #121721;
+    // background-color: #121721; //darkmode
+    background-color: #F7F7F7; //lightmode
 
     .collectionStackingView {
         scrollbar-width: none;
@@ -233,13 +249,13 @@
         padding: 7px;
         padding-left: 7px;
         width: 100%;
-        background: black;
+        background: transparent;
 
         .mainView-menuPanel-button-wrap {
             width: 45px;
             /* padding: 5px; */
             touch-action: none;
-            background: black;
+            background: transparent;
             transform-origin: top left;
             /* margin-bottom: 5px; */
             margin-top: 5px;
@@ -358,9 +374,9 @@
 .mainView-libraryFlyout-out {
     transition: width .25s;
     box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
-    .mainView-docButtons {
-        left: 0;
-    }
+    // .mainView-docButtons {
+    //     left: 0;
+    // }
 }
 
 
@@ -436,6 +452,7 @@
     right: unset !important;
     left: 0 !important;
 }
+
 .lm_close_tab {
     padding: 0;
     width: 15px !important;
@@ -447,7 +464,9 @@
     right: unset !important;
     left: 0 !important;
 }
-.lm_tab, .lm_tab_active {
+
+.lm_tab,
+.lm_tab_active {
     display: flex !important;
     padding-right: 0 !important;
 }

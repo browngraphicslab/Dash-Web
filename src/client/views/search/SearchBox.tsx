@@ -26,6 +26,7 @@ import "./SearchBox.scss";
 import { undoBatch } from "../../util/UndoManager";
 import { DocServer } from "../../DocServer";
 import { MainView } from "../MainView";
+import { SettingsManager } from "../../util/SettingsManager";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -552,6 +553,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             {this.scopeButtons}
                         </div>
                     </div >
+                    <div className="searchBox-modalMenuButtons">
+                        <div className="searchBox-helpButton">
+                            <FontAwesomeIcon icon={"question-circle"} size="lg"
+                                style={{ fontSize: 20, cursor: "pointer", padding: 1, backgroundColor: "transparent", color: "black" }}
+                                onClick={action(() => console.log("TODO: Setup 'Help' link that opens feature documentation?"))} />
+                        </div>
+                        <div className="searchBox-settingsButton">
+                            <FontAwesomeIcon icon={"cog"} size="lg"
+                                style={{ fontSize: 20, cursor: "pointer", padding: 1, backgroundColor: "transparent", color: "black" }}
+                                onClick={action(() => SettingsManager.Instance.open())} />
+                        </div>
+                    </div>
                 </div >
                 {!this._searchbarOpen ? (null) :
                     <div style={{ zIndex: 20000, color: "black" }} ref={(r) => r?.focus()}>

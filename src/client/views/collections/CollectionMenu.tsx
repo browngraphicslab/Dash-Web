@@ -89,7 +89,7 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
         const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties" style={{ backgroundColor: "#424242" }}
+            <button className="antimodeMenu-button" key="properties"
                 onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
             </button>
@@ -522,7 +522,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         {this.notACollection ? (null) : this.gridbackgroundButton}
                         {this.aliasButton}
                         {/* {this.pinButton} */}
-                        {this.pinWithViewButton}
+                        {/* {this.pinWithViewButton} */}
                     </div>
                     {this.subChrome}
                 </div>

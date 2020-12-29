@@ -120,7 +120,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                                             Doc.UserDoc().activeCollectionBackground));
                     break;
                 //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: docColor = darkScheme() ? "black" : "white"; break;
+                default: docColor = darkScheme() ? "pink" : "white"; break;
             }
             if (docColor && (!doc || props?.layerProvider?.(doc) === false)) docColor = Color(docColor.toLowerCase()).fade(0.5).toString();
             return docColor;

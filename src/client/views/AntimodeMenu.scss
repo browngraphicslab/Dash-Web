@@ -1,13 +1,18 @@
 @import "./globalCssVariables";
+$hover: #121212;
+$light-background: lightgrey;
+$dark-background: black;
+$active-blue: #5B9FDD;
 
+$background-blue: #92ADB9;
 
 .antimodeMenu-cont {
     position: absolute;
     z-index: 10000;
     height: $antimodemenu-height;
-    background: #323232;
+    background: $background-blue;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
-    border-radius: 0px 6px 6px 6px;
+    border-radius: 0px;
     // overflow: hidden;    
     display: flex;
 
@@ -26,12 +31,12 @@
         height: 35px;
 
         &.active {
-            background-color: #121212;
+            background-color: $hover;
         }
     }
 
     .antimodeMenu-button:hover {
-        background-color: #121212;
+        background-color: $hover;
     }
 
     .antimodeMenu-dragger {

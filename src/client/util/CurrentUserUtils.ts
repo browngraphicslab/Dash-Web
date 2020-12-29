@@ -524,9 +524,9 @@ export class CurrentUserUtils {
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
             { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
-            { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
-            { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
+            // { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
+            // { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
+            // { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
             { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
         ];
     }
@@ -550,7 +550,7 @@ export class CurrentUserUtils {
                     _hideContextMenu: true,
                     title,
                     target,
-                    _backgroundColor: "black",
+                    _backgroundColor: "rgba(0,0,0,0)",
                     dropAction: "alias",
                     removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
@@ -566,7 +566,7 @@ export class CurrentUserUtils {
                 title: "menuItemPanel",
                 childDropAction: "alias",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-                _backgroundColor: "black", ignoreClick: true,
+                _backgroundColor: "rgba(0,0,0,0)", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled", system: true
@@ -576,7 +576,7 @@ export class CurrentUserUtils {
         PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
             stack && PromiseValue(stack.data).then(btns => {
                 DocListCastAsync(btns).then(bts => bts?.forEach(btn => {
-                    btn.color = "white";
+                    btn.color = "black";
                     btn._backgroundColor = "";
                 }));
             });

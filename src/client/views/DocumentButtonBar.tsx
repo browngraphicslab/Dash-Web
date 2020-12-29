@@ -372,9 +372,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            {/* <div className="documentButtonBar-button">
+            <div className="documentButtonBar-button">
                 {this.pinWithViewButton}
-            </div> */}
+            </div>
             {!Doc.UserDoc()["documentLinksButton-fullMenu"] ? (null) : <div className="documentButtonBar-button">
                 {this.shareButton}
             </div>}

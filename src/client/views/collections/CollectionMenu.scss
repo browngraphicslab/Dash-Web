@@ -1,14 +1,20 @@
 @import "../globalCssVariables";
+$hover: #121212;
+$light-background: lightgrey;
+$dark-background: black;
+$active-blue: #5B9FDD;
+
+$background-blue: #92ADB9;
 
 
 .collectionMenu-cont {
     position: relative;
     display: inline-flex;
     width: 100%;
-    opacity: 0.9;
+    opacity: 1;
     z-index: 9001;
     transition: top .5s;
-    background: #323232;
+    background: transparent;
     color: white;
     transform-origin: top left;
     top: 0;
@@ -35,11 +41,12 @@
 
         .collectionViewBaseChrome {
             display: flex;
+            background: transparent;
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                background: #323232;
                 outline-color: black;
+                background: transparent;
                 color: white;
                 border: none;
                 border-right: solid gray 1px;
@@ -65,7 +72,7 @@
                 margin-left: 3px;
                 margin-right: 0px;
                 font-size: 75%;
-                background: #323232;
+                background: transparent;
                 color: white;
                 border: none;
                 border-right: solid gray 1px;
@@ -73,7 +80,7 @@
 
             .commandEntry-outerDiv {
                 pointer-events: all;
-                background-color: #323232;
+                background-color: transparent;
                 display: flex;
                 flex-direction: row;
                 height: 30px;
@@ -104,7 +111,7 @@
             .collectionViewBaseChrome-template,
             .collectionViewBaseChrome-viewModes {
                 display: grid;
-                background: rgb(238, 238, 238);
+                background: transparent;
                 color: grey;
                 margin-top: auto;
                 margin-bottom: auto;
@@ -417,7 +424,6 @@
         width: 20;
         height: 30;
         bottom: 0;
-        background: #323232;
         display: inline-flex;
         align-items: center;
         color: white;

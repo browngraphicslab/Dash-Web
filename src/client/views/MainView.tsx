@@ -72,8 +72,8 @@ export class MainView extends React.Component {
     @observable private _panelContent: string = "none";
     @observable private _sidebarContent: any = this.userDoc?.sidebar;
     @observable private _flyoutWidth: number = 0;
-
-    @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
+    @computed private get mainContTopOffset() { return Number(CollectionMenu.Instance?.Pinned ? 35 : 0) }
+    @computed private get topOffset() { return Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
     @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -174,8 +174,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                        thing.className === "collectionSchema-header-menuOptions"));
+                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                    thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -267,6 +267,8 @@ export class MainView extends React.Component {
     @computed get dockingContent() {
         return <div className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
+            {this.search}
+            <CollectionMenu />
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -365,15 +367,15 @@ export class MainView extends React.Component {
         this.closeFlyout();
         if (willOpen) {
             switch (this._panelContent = title) {
-                case "Settings":
-                    SettingsManager.Instance.open();
-                    break;
-                case "Catalog":
-                    SearchBox.Instance._searchFullDB = "My Stuff";
-                    SearchBox.Instance.enter(undefined);
-                    break;
-                case "Help":
-                    break;
+                // case "Settings":
+                //     SettingsManager.Instance.open();
+                //     break;
+                // case "Catalog":
+                //     SearchBox.Instance._searchFullDB = "My Stuff";
+                //     SearchBox.Instance.enter(undefined);
+                //     break;
+                // case "Help":
+                //     break;
                 default:
                     this.expandFlyout(button);
             }
@@ -573,8 +575,7 @@ export class MainView extends React.Component {
             <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
-            {this.search}
-            <CollectionMenu />
+            {/* <CollectionMenu /> */}
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}

@@ -2,12 +2,14 @@
 
 
 .lm_title {
-    margin-top: 3px;
-    border-radius: 5px;
-    border: solid 0px dimgray;
-    border-width: 2px 2px 0px;
-    height: 20px;
-    transform: translate(0px, -3px);
+    outline: none;
+    -webkit-appearance: none;
+    /* margin-top: 3px; */
+    /* border-radius: 5px; */
+    border: solid 0px transparent;
+    /* border-width: 2px 2px 0px; */
+    height: 100%;
+    transform: translate(0px, -2px);
     cursor: grab;
 }
 
@@ -17,13 +19,15 @@
 
 .lm_title_wrap {
     overflow: hidden;
-    height: 19px;
-    margin-top: -2px;
+    background: transparent;
+    height: 100%;
+    // margin-top: -2px;
     display: inline-block;
 }
 
 .lm_active .lm_title {
-    border: solid 1px lightgray;
+    // border: solid 1px lightgray;
+    -webkit-appearance: none;
 }
 
 .lm_header .lm_tab .lm_close_tab {
@@ -33,8 +37,10 @@
 
 .lm_header .lm_tab {
     padding-right: 20px;
-    margin-top: -1px;
-    border-bottom: 1px black;
+    opacity: 0.7;
+    box-shadow: none;
+    height: 15px;
+    // border-bottom: 1px black;
 
     .collectionDockingView-gear {
         display: none;
@@ -43,8 +49,12 @@
 
 .lm_header .lm_tab.lm_active {
     padding-right: 20px;
-    margin-top: 1px;
-    border-bottom: unset;
+    opacity: 1;
+    margin: 0;
+    box-shadow: none;
+    height: 100%;
+    margin-right: 2px;
+    // border-bottom: unset;
 
     .collectionDockingView-gear {
         display: inline-block;

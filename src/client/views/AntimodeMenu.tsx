@@ -140,7 +140,8 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
                     left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
                     position: this.Pinned ? "unset" : undefined
                 }}>
-                <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />
+                {/* Removed dragger as antimodeMenu is no longer draggable */}
+                {/* <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} /> */}
                 {buttons}
             </div>
         );
