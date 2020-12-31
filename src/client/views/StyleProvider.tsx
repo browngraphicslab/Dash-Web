@@ -23,6 +23,7 @@ export enum StyleLayers {
 }
 
 export enum StyleProp {
+    TreeViewIcon = "treeViewIcon",
     DocContents = "docContents",          // when specified, the JSX returned will replace the normal rendering of the document view
     Opacity = "opacity",                  // opacity of the document view
     Hidden = "hidden",                    // whether the document view should not be isplayed
@@ -64,11 +65,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
+    const isFooter = property.includes(":footer");
+
     const isBackground = () => StrListCast(doc?.layers).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
     switch (property.split(":")[0]) {
+        case StyleProp.TreeViewIcon: return doc && Doc.toIcon(doc);
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
@@ -152,6 +156,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;
         case StyleProp.Decorations:
+            // if (isFooter)
+
             if (props?.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform) {
                 return doc && (isBackground() || selected) && (props?.renderDepth || 0) > 0 &&
                     ((doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Pile) || [DocumentType.RTF, DocumentType.IMG, DocumentType.INK].includes(doc.type as DocumentType)) ?

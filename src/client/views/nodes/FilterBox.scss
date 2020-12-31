@@ -1,6 +1,7 @@
 .filterBox-flyout {
     display: block;
     text-align: left;
+    font-weight: 200;
 
     .filterBox-flyout-facet {
         background-color: white;
@@ -8,6 +9,10 @@
         display: inline-block;
         position: relative;
         width: 100%;
+
+        .filterBox-flyout-facet-check {
+            margin-right: 6px;
+        }
     }
 }
 
