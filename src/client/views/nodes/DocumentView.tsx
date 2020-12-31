@@ -74,6 +74,7 @@ export interface DocumentViewSharedProps {
     dropAction?: dropActionType;
     dontRegisterView?: boolean;
     ignoreAutoHeight?: boolean;
+    cantBrush?: boolean; // whether the document doesn't show brush highlighting
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
 }
@@ -820,7 +821,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
         const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];
-        let highlighting = highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        let highlighting = !this.props.cantBrush && highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :

@@ -31,6 +31,7 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { SliderBox } from '../nodes/SliderBox';
 
 export interface TreeViewProps {
     document: Doc;
@@ -568,6 +569,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 parentActive={returnTrue}
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={emptyFunction}
+                cantBrush={this.props.treeView.props.cantBrush}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -616,15 +618,17 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderEmbeddedDocument = (asText: boolean) => {
-        const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
-        const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
+        const layout = StrCast(Doc.LayoutField(this.layoutDoc));
+        const isExpandable = layout.includes(FormattedTextBox.name) || layout.includes(SliderBox.name);
+        const panelWidth = asText || isExpandable ? this.rtfWidth : this.expandPanelWidth;
+        const panelHeight = asText ? this.rtfOutlineHeight : isExpandable ? this.rtfHeight : this.expandPanelHeight;
         return <DocumentView key={this.doc[Id]} ref={action((r: DocumentView | null) => this._dref = r)}
             Document={this.doc}
             DataDoc={undefined}
             PanelWidth={panelWidth}
             PanelHeight={panelHeight}
-            NativeWidth={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
-            NativeHeight={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+            NativeWidth={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfWidth : undefined}
+            NativeHeight={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfHeight : undefined}
             fitContentsToDoc={true}
             hideTitle={asText}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
@@ -646,6 +650,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
+            cantBrush={this.props.treeView.props.cantBrush}
             bringToFront={returnFalse}
         />;
     }

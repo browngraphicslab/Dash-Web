@@ -113,6 +113,7 @@ export interface DocumentOptions {
     page?: number;
     description?: string; // added for links
     _viewScale?: number;
+    _overflow?: string;
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
@@ -1250,14 +1251,13 @@ export namespace DocUtils {
             });
         });
         if (x !== undefined && y !== undefined) {
-            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100 });
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _overflow: "visible" });
             newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
             newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
             newCollection._width = newCollection._height = 110;
             //newCollection.borderRounding = "40px";
             newCollection._jitterRotation = 10;
             newCollection._backgroundColor = "gray";
-            newCollection._overflow = "visible";
             return newCollection;
         }
     }

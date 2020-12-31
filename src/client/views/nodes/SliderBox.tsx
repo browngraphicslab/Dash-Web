@@ -50,10 +50,12 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
         return domain[1] <= domain[0] ? (null) : (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
                 style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) }}>
-                <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
-                    background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
-                    fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
-                }} >
+                <div className="sliderBox-mainButton"
+                    onContextMenu={this.specificContextMenu} style={{
+                        background: StrCast(this.layoutDoc.backgroundColor),
+                        color: StrCast(this.layoutDoc.color, "black"),
+                        fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
+                    }} >
                     <Slider
                         mode={2}
                         step={1}
