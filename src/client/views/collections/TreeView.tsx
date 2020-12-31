@@ -441,7 +441,9 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderBullet() {
         TraceMobx();
-        const iconType = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon);
+        const iconType = Doc.toIcon(this.doc);
+
+        //const iconType = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon);
 
 
         // const footerDecoration = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decoration + ":footer");

@@ -3,7 +3,7 @@ import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as far from '@fortawesome/free-regular-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, reaction } from 'mobx';
+import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -28,7 +28,7 @@ import { SettingsManager } from '../util/SettingsManager';
 import { SharingManager } from '../util/SharingManager';
 import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
@@ -46,7 +46,7 @@ import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView } from './nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -58,7 +58,8 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider } from './StyleProvider';
+import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { FieldViewProps } from './nodes/FieldView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -295,6 +296,33 @@ export class MainView extends React.Component {
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
 
+
+    /**
+     * add lock and hide button decorations for the "Dashboards" flyout TreeView
+     */
+    DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+        const toggleField = undoBatch(action((e: React.MouseEvent, doc: Doc, field: string) => {
+            e.stopPropagation();
+            doc[field] = doc[field] ? undefined : true;
+        }));
+        switch (property.split(":")[0]) {
+            case StyleProp.Decorations:
+                return !doc || property.includes(":afterHeader") || // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
+                    DocListCast((Doc.UserDoc().myDashboards as Doc).data).some(dash => dash === doc ||
+                        DocListCast(dash.data).some(tabset => tabset === doc)) ? (null) :
+                    <>
+                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
+                            <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
+                        </div>
+                        <div className={`styleProvider-treeView-lock${doc.lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "lockedPosition")}>
+                            <FontAwesomeIcon icon={doc.lockedPosition ? "lock" : "unlock"} size="sm" />
+                        </div>
+                    </>;
+        }
+        return DefaultStyleProvider(doc, props, property);
+    }
+
+
     @computed get flyout() {
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
@@ -314,7 +342,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        styleProvider={DefaultStyleProvider}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -386,8 +414,8 @@ export class MainView extends React.Component {
             {this.menuPanel}
             <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                < div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
-                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{ opacity: "50%" }} size="sm" />
                 </div>
 
                 {this.dockingContent}

@@ -159,7 +159,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
     }
-    filterBackground = () => "#d3d3d3";
+
     @computed get scriptField() {
         const scriptText = "setDocFilter(this?.target, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
@@ -266,7 +266,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
-                    styleProvider={this.filterBackground}
+                    styleProvider={this.props.styleProvider}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
