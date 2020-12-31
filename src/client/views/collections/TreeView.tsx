@@ -590,7 +590,10 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
-            {this.headerElements}
+            <div className={"right-buttons-container"}>
+                {this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations)} {/* hide and lock buttons */}
+                {this.headerElements}
+            </div>
         </>;
     }
 

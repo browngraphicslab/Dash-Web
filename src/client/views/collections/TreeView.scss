@@ -29,7 +29,7 @@
         }
 
         .treeView-checkIcon {
-            left: 3px;
+            left: 3.5px;
             top: 2px;
             position: absolute;
         }
@@ -118,12 +118,18 @@
         margin-left: 0.25rem;
         opacity: 0.75;
 
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide, .styleProvider-treeView-lock-active, .styleProvider-treeView-hide-active {
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide,
+        .styleProvider-treeView-lock-active,
+        .styleProvider-treeView-hide-active {
             margin-left: 0.25rem;
-            margin-right: 0.25rem; 
+            margin-right: 0.25rem;
         }
-    
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide {
             display: none;
         }
     }
@@ -148,7 +154,10 @@
     }
 
     .right-buttons-container {
-        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+
+        >svg,
+        .styleProvider-treeView-lock,
+        .styleProvider-treeView-hide {
             display: inherit;
         }
     }

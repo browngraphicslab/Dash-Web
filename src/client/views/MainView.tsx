@@ -44,6 +44,7 @@ import { KeyManager } from './GlobalKeyHandler';
 import { InkStrokeProperties } from './InkStrokeProperties';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
+import "./collections/TreeView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
@@ -58,7 +59,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider, DashboardStyleProvider, StyleProp } from './StyleProvider';
 import { FieldViewProps } from './nodes/FieldView';
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -342,7 +343,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         focus={emptyFunction}
-                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
+                        styleProvider={this._sidebarContent.title === "My Dashboards" ? DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
