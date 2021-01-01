@@ -5,7 +5,7 @@ import { action, computed, IReactionDisposer, observable, ObservableMap, reactio
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { Bounce, Fade, Flip, LightSpeed, Roll, Rotate, Zoom } from 'react-reveal';
-import { Doc, DocListCast, DocListCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { returnFalse, returnOne } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -483,6 +483,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             resize.style.left = vfLeft + 'px';
         }
     }
+
+    createGroup = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) => {
+        const newGroup = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
+            Doc.GetProto(doc).data = new List<Doc>(selected);
+            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
+            doc._panX = doc._panY = 0;
+            return doc;
+        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newGroup.system = undefined;
+        newGroup.layers = new List<string>(layers);
+        newGroup._isGroup = makeGroup;
+        selected.forEach(d => d.context = newGroup);
+        return newGroup;
+    });
 
     /**
      * For 'Hide Before' and 'Hide After' buttons making sure that
