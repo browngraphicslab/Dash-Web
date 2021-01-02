@@ -522,7 +522,7 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Filter", target: Cast(doc.myFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
+            { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
@@ -786,18 +786,18 @@ export class CurrentUserUtils {
         }
     }
     static setupFilterDocs(doc: Doc) {
-        // setup Recently Closed library item
-        doc.myFilter === undefined;
-        if (doc.myFilter === undefined) {
-            doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
+        // setup Filter item
+        doc.currentFilter === undefined;
+        if (doc.currentFilter === undefined) {
+            doc.currentFilter = new PrefetchProxy(Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
-            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.currentFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.currentFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 
@@ -1005,6 +1005,7 @@ export class CurrentUserUtils {
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId, linkDatabaseId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
+        // doc.savedFilters = new List<Doc>();
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 
