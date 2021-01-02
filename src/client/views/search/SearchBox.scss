@@ -30,42 +30,29 @@
             .searchBox-lozenge-user,
             .searchBox-lozenge-dashboard,
             .searchBox-lozenge {
-                background-color: #313131;
-                border-radius: 5px;
                 height: 18px;
                 padding: 4px;
-                box-shadow: lightgrey 0.15em 0.15em 0.1em;
-                margin: 2px;
-                margin-bottom: 4px;
-                border-top: dimgrey 1px solid;
-                border-left: dimgrey 1px solid;
+                margin-right: 5px;
                 display: flex;
+                align-items: center;
+                border: grey 1px solid;
                 .searchBox-logoff,
                 .searchBox-dashboards {
                     border-radius: 3px;
                     background: olivedrab;
                     color: white;
-                    position: relative;
                     display: none;
-                    margin-left: 3px;
-                    padding-left: 2px;
-                    padding-right: 2px;
-                    padding-bottom: 11px;
-                    cursor: default;
+                    margin-left: 5px;
+                    padding: 1px 2px 1px 2px;
+                    cursor: pointer;
                 }
                 .searchBox-logoff {
                     background: red;
                 }
 
                 .searchBox-dashSelect{
-                    background-color: black;
-                    color: white;
-                    font-size: 9;
-                    margin-right: 6;
-                    border-radius: 5px;
-                    position: relative;
-                    height: 15px;
-                    transform: translate(0,-3px);
+                    border: none;
+                    background-color: transparent;
 
                     &:hover {
                         cursor: pointer;

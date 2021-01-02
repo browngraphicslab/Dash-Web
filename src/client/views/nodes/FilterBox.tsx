@@ -102,7 +102,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             if (docRangeFilters) {
                 let index: number;
                 while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
-                    docRangeFilters.splice(index, 1);
+                    docRangeFilters.splice(index, 3);
                 }
             }
         } else {
@@ -122,13 +122,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             });
             let newFacet: Opt<Doc>;
             if (facetHeader === "text" || facetValues.rtFields / allCollectionDocs.length > 0.1) {
-                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, system: true, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _overflow: "visible", _height: 40, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
@@ -146,13 +146,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
-                const capturedVariables = { layoutDoc: targetDoc, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
+                const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
             }
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
     }
-    filterBackground = () => "rgba(105, 105, 105, 0.432)";
+
     @computed get scriptField() {
         const scriptText = "setDocFilter(this?.target, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
@@ -184,6 +184,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     DataDoc={Doc.GetProto(facetCollection)}
                     fieldKey={`${this.props.fieldKey}`}
                     CollectionView={undefined}
+                    cantBrush={true}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -208,7 +209,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
-                    styleProvider={this.filterBackground}
+                    styleProvider={this.props.styleProvider}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
