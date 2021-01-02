@@ -443,6 +443,12 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get renderBullet() {
         TraceMobx();
         const iconType = Doc.toIcon(this.doc);
+
+        //const iconType = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon);
+
+
+        // const footerDecoration = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decoration + ":footer");
+
         const checked = this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
@@ -467,7 +473,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         </div>;
     }
-
     @computed get showTitleEditorControl() { return ["*", this._uniqueId, this.props.treeView._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || ""); }
     @computed get headerElements() {
         return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
@@ -588,7 +593,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 {view}
             </div >
             <div className={"right-buttons-container"}>
-                {this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations + (Doc.IsSystem(this.props.containingCollection) ? ":afterHeader" : ""))} {/* hide and lock buttons */}
+                {this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations)} {/* hide and lock buttons */}
                 {this.headerElements}
             </div>
         </>;
