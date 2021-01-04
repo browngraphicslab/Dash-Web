@@ -795,10 +795,11 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
-            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
+        const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
+        (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+        (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+
     }
 
     static setupUserDoc(doc: Doc) {

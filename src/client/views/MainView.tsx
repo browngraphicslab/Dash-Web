@@ -3,7 +3,7 @@ import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as far from '@fortawesome/free-regular-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
+import { action, computed, configure, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -28,7 +28,7 @@ import { SettingsManager } from '../util/SettingsManager';
 import { SharingManager } from '../util/SharingManager';
 import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
-import { UndoManager, undoBatch } from '../util/UndoManager';
+import { undoBatch, UndoManager } from '../util/UndoManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
@@ -47,6 +47,7 @@ import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
+import { FieldViewProps } from './nodes/FieldView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -59,7 +60,6 @@ import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
 import { DefaultStyleProvider, StyleProp } from './StyleProvider';
-import { FieldViewProps } from './nodes/FieldView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -341,6 +341,7 @@ export class MainView extends React.Component {
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
+                        scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={emptyFunction}
                         styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
