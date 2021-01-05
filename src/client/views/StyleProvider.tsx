@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
-import { Doc, Opt, StrListCast } from "../../fields/Doc";
+import { Doc, Opt, StrListCast, LayoutSym } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
@@ -105,11 +105,13 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
                 case DocumentType.FONTICON: docColor = undefined; break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
-                case DocumentType.LABEL:
+                case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
                 case DocumentType.INK: docColor = undefined; break;
+                case DocumentType.SLIDER: break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:
+                    if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;
                     docColor = docColor ? docColor :
                         doc?._isGroup ? "#00000004" : // very faint highlight to show bounds of group
                             (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") : // system docs (seen in treeView) get a grayish background

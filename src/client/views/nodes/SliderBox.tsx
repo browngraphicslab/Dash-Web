@@ -41,7 +41,10 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
     onChange = (values: readonly number[]) => runInAction(() => {
         this.dataDoc[this.minThumbKey] = values[0];
         this.dataDoc[this.maxThumbKey] = values[1];
-        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({ self: this.rootDoc, range: values, this: this.layoutDoc });
+        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({
+            self: this.rootDoc,
+            scriptContext: this.props.scriptContext, range: values, this: this.layoutDoc
+        });
     })
 
     render() {
@@ -50,10 +53,12 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
         return domain[1] <= domain[0] ? (null) : (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
                 style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) }}>
-                <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
-                    background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
-                    fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
-                }} >
+                <div className="sliderBox-mainButton"
+                    onContextMenu={this.specificContextMenu} style={{
+                        background: StrCast(this.layoutDoc.backgroundColor),
+                        color: StrCast(this.layoutDoc.color, "black"),
+                        fontSize: StrCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
+                    }} >
                     <Slider
                         mode={2}
                         step={1}
@@ -101,7 +106,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
                         </Tracks>
                         <Ticks count={5}>
                             {({ ticks }) => (
-                                <div className="slider-tracks">
+                                <div className="slider-ticks">
                                     {ticks.map((tick) => (
                                         <Tick
                                             key={tick.id}

@@ -1,7 +1,19 @@
 .sliderBox-outerDiv {
-    width: 100%;
+    width: calc(100% - 14px);   // 14px accounts for handles that are at the max value of the slider that would extend outside the box
     height: 100%;
     border-radius: inherit;
     display: flex;
     flex-direction: column;
+    position: relative;
+    .slider-tracks {
+        top: 7px;
+        position: relative;
+    }
+    .slider-ticks {
+        position: relative;
+    }
+    .slider-handles {
+        top: 7px;
+        position: relative;
+    }
 }

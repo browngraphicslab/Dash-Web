@@ -169,6 +169,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return <div className={"collectionFreeFormDocumentView-container"}
             style={{
                 outline: this.Highlight ? "orange solid 2px" : "",
+                width: this.panelWidth(),
+                height: this.panelHeight(),
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
                 zIndex: this.ZInd,

@@ -98,18 +98,25 @@
         width: unset;
     }
 
-    >svg {
-        display: none;
-    }
+    .right-buttons-container {
+        display: flex;
+        align-items: center;
+        margin-left: 0.25rem;
+        opacity: 0.75;
 
+        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide, .styleProvider-treeView-lock-active, .styleProvider-treeView-hide-active {
+            margin-left: 0.25rem;
+            margin-right: 0.25rem; 
+        }
+    
+        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+            display: none;
+        }
+    }
 }
 
 .treeView-header:hover {
     .collectionTreeView-keyHeader {
-        display: inherit;
-    }
-
-    >svg {
         display: inherit;
     }
 
@@ -123,6 +130,12 @@
             display: block;
             padding: 0px;
             margin-left: 3px;
+        }
+    }
+
+    .right-buttons-container {
+        >svg, .styleProvider-treeView-lock, .styleProvider-treeView-hide {
+            display: inherit;
         }
     }
 }
