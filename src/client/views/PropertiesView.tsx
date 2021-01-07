@@ -11,7 +11,7 @@ import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { denormalizeEmail, GetEffectiveAcl, SharingPermissions } from "../../fields/util";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../Utils";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -29,6 +29,7 @@ import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { DefaultStyleProvider } from "./StyleProvider";
+import { FilterBox } from "./nodes/FilterBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -67,6 +68,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
+    @observable openFilters: boolean = true;
+
     // @observable selectedUser: string = "";
     // @observable addButtonPressed: boolean = false;
     @observable layoutDocAcls: boolean = false;
@@ -510,8 +513,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
-
-
     @computed
     get controlPointsButton() {
         const formatInstance = InkStrokeProperties.Instance;
@@ -904,6 +905,44 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                     </Tooltip> */}
                                 </div>
                                 {this.sharingTable}
+                            </div>}
+                    </div>
+
+                    <div className="propertiesView-settings">
+                        <div className="propertiesView-settings-title"
+                            onPointerDown={action(() => this.openFilters = !this.openFilters)}
+                            style={{ backgroundColor: this.openFilters ? "black" : "" }}>
+                            Filters
+                        <div className="propertiesView-settings-title-icon">
+                                <FontAwesomeIcon icon={this.openFilters ? "caret-down" : "caret-right"} size="lg" color="white" />
+                            </div>
+                        </div>
+                        {!this.openFilters ? (null) :
+                            <div className="propertiesView-settings-content">
+                                <DocumentView
+                                    Document={Doc.UserDoc().myFilter as any as Doc}
+                                    DataDoc={undefined}
+                                    addDocument={undefined}
+                                    addDocTab={returnFalse}
+                                    pinToPres={emptyFunction}
+                                    rootSelected={returnTrue}
+                                    removeDocument={returnFalse}
+                                    ScreenToLocalTransform={this.getTransform}
+                                    PanelWidth={this.docWidth}
+                                    PanelHeight={this.docHeight}
+                                    renderDepth={0}
+                                    scriptContext={CollectionDockingView.Instance.props.Document}
+                                    focus={emptyFunction}
+                                    styleProvider={DefaultStyleProvider}
+                                    parentActive={returnTrue}
+                                    whenActiveChanged={emptyFunction}
+                                    bringToFront={emptyFunction}
+                                    docFilters={returnEmptyFilter}
+                                    docRangeFilters={returnEmptyFilter}
+                                    searchFilterDocs={returnEmptyDoclist}
+                                    ContainingCollectionView={undefined}
+                                    ContainingCollectionDoc={undefined}
+                                />
                             </div>}
                     </div>
 

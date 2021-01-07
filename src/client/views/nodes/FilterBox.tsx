@@ -210,13 +210,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
             {/* <div className="filterBox-top"> */}
-            <div className="filter-bookmark">
+            {/* <div className="filter-bookmark">
                 <FontAwesomeIcon className="filter-bookmark-icon" icon={"bookmark"} size={"lg"} />
             </div>
 
             <div className="filterBox-title">
                 <span className="filterBox-span">Choose Filters</span>
-            </div>
+            </div> */}
 
             <div className="filterBox-select-bool">
                 <select className="filterBox-selection" onChange={e => this.changeBool(e)}>

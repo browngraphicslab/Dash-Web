@@ -28,9 +28,9 @@
 }
 
 .filterBox-bottom {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
+    // position: fixed;
+    // bottom: 0;
+    // width: 100%;
 }
 
 
@@ -147,9 +147,8 @@
     position: absolute;
     right: 0;
     top: 0;
-    border-left: solid 1px;
     z-index: 1;
-    background-color: #D3D3D3;
+    background-color: #9F9F9F;
 
     .filterBox-addfacet {
         display: inline-block;

@@ -35,7 +35,8 @@ export type collectionTreeViewProps = {
 };
 
 @observer
-export class CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
+export class
+    CollectionTreeView extends CollectionSubView<Document, Partial<collectionTreeViewProps>>(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _isChildActive = false;
     private _mainEle?: HTMLDivElement;
@@ -212,7 +213,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = this.props.treeViewHideTitle && this.props.treeViewHideHeaderFields ? "#D3D3D3" : this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
+        const background = this.props.treeViewHideTitle && this.props.treeViewHideHeaderFields ? "#9F9F9F" : this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
         const paddingX = `${NumCast(this.doc._xPadding, 15)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
