@@ -73,7 +73,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
     switch (property.split(":")[0]) {
-        case StyleProp.TreeViewIcon: return doc && Doc.toIcon(doc);
+        case StyleProp.TreeViewIcon: return doc ? Doc.toIcon(doc) : "question";
         case StyleProp.DocContents: return undefined;
         case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));

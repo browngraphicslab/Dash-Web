@@ -441,14 +441,17 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderBullet() {
         TraceMobx();
+
         const iconType = Doc.toIcon(this.doc);
 
+        // console.log(this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon)); <- always undefined
         //const iconType = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.TreeViewIcon);
 
 
         // const footerDecoration = this.titleStyleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decoration + ":footer");
 
         const checked = this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
+
         return <div className={`bullet${this.outlineMode ? "-outline" : ""}`} key={"bullet"}
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
