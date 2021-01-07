@@ -12,7 +12,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, lightOrDark, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -33,6 +33,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -52,7 +53,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @observable private _view: DocumentView | undefined;
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
+    @computed get tabColor() { return this._document?.type === DocumentType.PRES ? "grey" : StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -73,6 +74,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
             tab.DashDoc = doc;
             CollectionDockingView.Instance.tabMap.add(tab);
+            const iconType: IconProp = Doc.toIcon(doc);
 
             // setup the title element and set its size according to the # of chars in the title.  Show the full title when clicked.
             const titleEle = tab.titleElement[0];
@@ -100,9 +102,36 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 };
                 // tab.element[0].style.borderTopRightRadius = "6px";
                 // tab.element[0].style.borderTopLeftRadius = "6px";
-                // tab.element[0].children[1].appendChild(toggle);
+                const iconWrap = document.createElement("div");
+                const moreWrap = document.createElement("div");
+                const closeWrap = document.createElement("div");
+                iconWrap.className = "lm_iconWrap";
+                closeWrap.className = "lm_iconWrap";
+                moreWrap.className = "lm_iconWrap";
+                let docIcon = <FontAwesomeIcon icon={iconType} />
+                let moreIcon = (
+                    <>
+                        <div className="moreInfoDot"></div>
+                        <div className="moreInfoDot"></div>
+                        <div className="moreInfoDot"></div>
+                    </>
+                )
+                let closeIcon = <FontAwesomeIcon icon={"times"} />
+                ReactDOM.render(docIcon, iconWrap);
+                ReactDOM.render(closeIcon, closeWrap);
+                ReactDOM.render(moreIcon, moreWrap);
+                tab.element[0].append(moreWrap);
+                tab.element[0].append(closeWrap);
+                tab.element[0].prepend(iconWrap);
                 tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
-                    ({ layer, color }) => tab.element[0].style.background = !layer ? color : "dimgrey", { fireImmediately: true });
+                    ({ layer, color }) => {
+                        const textColor = lightOrDark(color) === 'light' ? "black" : "white";
+                        console.log(this.tabColor, textColor);
+                        iconWrap.style.color = textColor;
+                        moreWrap.style.backgroundColor = textColor;
+                        tab.element[0].style.background = !layer ? color : "dimgrey";
+                        tab.element[0].children[1].style.color = textColor;
+                    }, { fireImmediately: true });
                 // ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
             }
             // shifts the focus to this tab when another tab is dragged over it

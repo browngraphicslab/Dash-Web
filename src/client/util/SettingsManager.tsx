@@ -128,6 +128,11 @@ export class SettingsManager extends React.Component<{}> {
                 <div className="preferences-check">Show full toolbar</div>
             </div>
             <div>
+                <input type="checkbox" onChange={e => Doc.UserDoc()._darkMode = !Doc.UserDoc()._darkMode}
+                    checked={BoolCast(Doc.UserDoc()._darkMode)} />
+                <div className="preferences-check">Dark mode</div>
+            </div>
+            <div>
                 <input type="checkbox" onChange={e => Doc.UserDoc()._raiseWhenDragged = !Doc.UserDoc()._raiseWhenDragged}
                     checked={BoolCast(Doc.UserDoc()._raiseWhenDragged)} />
                 <div className="preferences-check">Raise on drag</div>

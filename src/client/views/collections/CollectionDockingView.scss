@@ -2,32 +2,37 @@
 
 
 .lm_title {
-    outline: none;
     -webkit-appearance: none;
-    /* margin-top: 3px; */
-    /* border-radius: 5px; */
-    border: solid 0px transparent;
-    /* border-width: 2px 2px 0px; */
+    display: inline-block;
+    align-self: center;
+    align-items: center;
     height: 100%;
-    transform: translate(0px, -2px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: transparent;
+    border: solid 0px transparent;
     cursor: grab;
+    color: black;
 }
 
 .lm_title.focus-visible {
+    -webkit-appearance: none;
     cursor: text;
 }
 
 .lm_title_wrap {
     overflow: hidden;
+    align-items: center;
+    align-self: center;
     background: transparent;
+    width: max-content;
     height: 100%;
-    // margin-top: -2px;
-    display: inline-block;
+    display: flex;
 }
 
 .lm_active .lm_title {
-    // border: solid 1px lightgray;
     -webkit-appearance: none;
+    font-weight: 700;
 }
 
 .lm_header .lm_tab .lm_close_tab {
@@ -101,13 +106,13 @@
     }
 
     .lm_controls .lm_popout {
-        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAUCAAAAABHICnvAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QAAKqNIzIAAAAHdElNRQfkCBsXMgbrEyzaAAAAT0lEQVQY02NgIAcIu8tgEW3/u4IDQ5B14/8LQlhFhckVFfCJjIyIOfP/QWpEZGSQJFS05s9fIPj3/z+YmseCTxS7CZS7DI+PsYcOjpAkDAA6H0KZxzDzlgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMC0wOC0yN1QyMzo1MDowNi0wNDowMDvgVpQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjAtMDgtMjdUMjM6NTA6MDYtMDQ6MDBKve4oAAAAAElFTkSuQmCC)
+        // background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAUCAAAAABHICnvAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QAAKqNIzIAAAAHdElNRQfkCBsXMgbrEyzaAAAAT0lEQVQY02NgIAcIu8tgEW3/u4IDQ5B14/8LQlhFhckVFfCJjIyIOfP/QWpEZGSQJFS05s9fIPj3/z+YmseCTxS7CZS7DI+PsYcOjpAkDAA6H0KZxzDzlgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMC0wOC0yN1QyMzo1MDowNi0wNDowMDvgVpQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjAtMDgtMjdUMjM6NTA6MDYtMDQ6MDBKve4oAAAAAElFTkSuQmCC)
     }
 
     .lm_maximised .lm_controls .lm_maximise {
         opacity: 1;
         transform: scale(0.8);
-        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKElEQVR4nGP8////fwYCgImQAgYGBgYWKM2IR81/okwajIpgvsMbVgAwgQYRVakEKQAAAABJRU5ErkJggg==) !important;
+        // background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKElEQVR4nGP8////fwYCgImQAgYGBgYWKM2IR81/okwajIpgvsMbVgAwgQYRVakEKQAAAABJRU5ErkJggg==) !important;
     }
 
     .flexlayout__layout {

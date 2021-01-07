@@ -93,17 +93,17 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
             let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
             if (!docProps) {
-                if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
+                if (MainView.Instance.LastButton === doc) return darkScheme() ? "transparent" : "transparent";
                 switch (doc?.type) {
                     case DocumentType.FONTICON: return docColor || "black";
-                    case DocumentType.LINK: return docColor || "lightblue";
+                    case DocumentType.LINK: return docColor || (darkScheme() ? "black" : "#f7f7f7");
                     default: undefined;
                 }
             }
             switch (doc?.type) {
                 case DocumentType.PRESELEMENT: docColor = docColor || (darkScheme() ? "" : ""); break;
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
-                case DocumentType.FONTICON: docColor = undefined; break;
+                case DocumentType.FONTICON: docColor = docColor || (darkScheme() ? "black" : "#f7f7f7"); break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
                 case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
                 case DocumentType.INK: docColor = undefined; break;

@@ -549,8 +549,11 @@ export function simulateMouseClick(element: Element | null | undefined, x: numbe
         }));
 }
 
+
+
 export function lightOrDark(color: any) {
 
+    console.log(typeof (color));
     // Variables for red, green, blue values
     var r, g, b, hsp;
 
@@ -563,32 +566,35 @@ export function lightOrDark(color: any) {
         r = color[1];
         g = color[2];
         b = color[3];
+
+        // HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
+        hsp = Math.sqrt(
+            0.299 * (r * r) +
+            0.587 * (g * g) +
+            0.114 * (b * b)
+        );
+
+        // Using the HSP value, determine whether the color is light or dark
+        if (hsp > 127.5) {
+            return 'light';
+        }
+        else {
+            return 'dark';
+        }
     }
     else {
-
         // If hex --> Convert it to RGB: http://gist.github.com/983661
-        color = +("0x" + color.slice(1).replace(
-            color.length < 5 && /./g, '$&$&'));
-
-        r = color >> 16;
-        g = color >> 8 & 255;
-        b = color & 255;
-    }
-
-    // HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
-    hsp = Math.sqrt(
-        0.299 * (r * r) +
-        0.587 * (g * g) +
-        0.114 * (b * b)
-    );
-
-    // Using the HSP value, determine whether the color is light or dark
-    if (hsp > 127.5) {
-        return 'light';
-    }
-    else {
-
-        return 'dark';
+        var c: any;
+        if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)) {
+            c = color.substring(1).split('');
+            if (c.length == 3) {
+                c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+            }
+            c = '0x' + c.join('');
+            const rgba = 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',1)';
+            lightOrDark(rgba);
+        }
+        else return 'light';
     }
 }
 

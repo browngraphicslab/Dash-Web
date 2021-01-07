@@ -437,7 +437,7 @@ export class MainView extends React.Component {
                 r && new _global.ResizeObserver(action(() => { this._panelWidth = r.getBoundingClientRect().width; this._panelHeight = r.getBoundingClientRect().height; })).observe(r);
             }} style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                height: `calc(100% - ${this.topOffset}px)`,
+                height: "100%",
                 width: "100%",
             }} >
                 {this.mainInnerContent}

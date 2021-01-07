@@ -25,8 +25,9 @@ $dark-blue: #279ECD;
         background-color: $light-blue;
 
         .searchBox-lozenges {
-            position: absolute;
-            left: 15;
+            position: relative;
+            justify-content: center;
+            align-items: center;
             display: flex;
 
             .searchBox-lozenge-user,
@@ -38,6 +39,7 @@ $dark-blue: #279ECD;
                 display: flex;
                 align-items: center; //master
                 border: grey 1px solid; //master
+
                 .searchBox-logoff,
                 .searchBox-dashboards {
                     border-radius: 3px;
@@ -53,7 +55,7 @@ $dark-blue: #279ECD;
                     background: red;
                 }
 
-                .searchBox-dashSelect{
+                .searchBox-dashSelect {
                     border: none;
                     background-color: transparent;
 
@@ -63,11 +65,7 @@ $dark-blue: #279ECD;
                 }
             }
 
-            .searchBox-lozenge-user:hover {
-                .searchBox-logoff {
-                    display: inline-block;
-                }
-            }
+
 
             .searchBox-lozenge-dashboard:hover {
                 .searchBox-dashboards {
@@ -77,7 +75,8 @@ $dark-blue: #279ECD;
         }
 
         .searchBox-query {
-            position: relative;
+            position: absolute;
+            left: 15;
             display: flex;
             width: 450;
         }
@@ -86,6 +85,38 @@ $dark-blue: #279ECD;
             position: absolute;
             right: 15;
             display: flex;
+
+            .searchBox-lozenge-user {
+                height: 18px;
+                padding: 4px;
+                margin-right: 5px;
+                display: flex;
+                align-items: center; //master
+                border: grey 1px solid; //master
+            }
+
+            .searchBox-lozenge-user:hover {
+                .searchBox-logoff {
+                    display: inline-block;
+                }
+            }
+
+            .searchBox-logoff,
+            .searchBox-dashboards {
+                border-radius: 3px;
+                background: olivedrab;
+                color: white;
+                display: none;
+                margin-left: 5px;
+                padding: 1px 2px 1px 2px;
+                cursor: pointer;
+            }
+
+            .searchBox-logoff {
+                background: red;
+            }
+
+
         }
 
         .searchBox-barChild {

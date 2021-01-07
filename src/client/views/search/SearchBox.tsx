@@ -467,7 +467,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @computed get scopeButtons() {
-        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px"}}>
+        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px" }}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                 <div style={{ display: "contents" }}>
                     <div className="radio" style={{ margin: 0 }}>
@@ -503,29 +503,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar" style={{ background: SearchBox.Instance._undoBackground }}>
-                    <div className="searchBox-lozenges" >
-                        <div className="searchBox-lozenge-user">
-                            {`${Doc.CurrentUserEmail}`}
-                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                                Logoff
-                        </div>
-                        </div>
-                        <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
-                            {`UI project`}
-                        </div>
-                        <div className="searchBox-lozenge-dashboard"  >
-                            <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
-                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
-                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
-                            </select>
-                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
-                                New
-                        </div>
-                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
-                                Snapshot
-                        </div>
-                        </div>
-                    </div>
                     <div className="searchBox-query" >
                         <input defaultValue={""} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
                             className="searchBox-barChild searchBox-input" onKeyPress={this.enter}
@@ -553,19 +530,40 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             {this.scopeButtons}
                         </div>
                     </div >
+                    <div className="searchBox-lozenges" >
+                        <div className="searchBox-lozenge-dashboard"  >
+                            <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
+                                value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>
+                                {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                            </select>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                                New
+                        </div>
+                            <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
+                                Snapshot
+                        </div>
+                        </div>
+                    </div>
                     <div className="searchBox-modalMenuButtons">
+                        <div className="searchBox-lozenge-user">
+                            {`${Doc.CurrentUserEmail}`}
+                            <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                Logoff
+                        </div>
+                        </div>
                         <div className="searchBox-helpButton">
                             <FontAwesomeIcon icon={"question-circle"} size="lg"
-                                style={{ fontSize: 20, cursor: "pointer", padding: 1, backgroundColor: "transparent", color: "black" }}
+                                style={{ fontSize: 25, cursor: "pointer", padding: 3, backgroundColor: "transparent", color: "black" }}
                                 onClick={action(() => console.log("TODO: Setup 'Help' link that opens feature documentation?"))} />
                         </div>
                         <div className="searchBox-settingsButton">
                             <FontAwesomeIcon icon={"cog"} size="lg"
-                                style={{ fontSize: 20, cursor: "pointer", padding: 1, backgroundColor: "transparent", color: "black" }}
+                                style={{ fontSize: 25, cursor: "pointer", padding: 3, backgroundColor: "transparent", color: "black" }}
                                 onClick={action(() => SettingsManager.Instance.open())} />
                         </div>
-                    </div>
-                </div >
+                    </div >
+                </div>
+
                 {!this._searchbarOpen ? (null) :
                     <div style={{ zIndex: 20000, color: "black" }} ref={(r) => r?.focus()}>
                         <div style={{ display: "flex", justifyContent: "center", }}>

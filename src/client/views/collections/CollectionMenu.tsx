@@ -507,7 +507,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         return (
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
-                    <div className="collectionViewBaseChrome">
+                    {/* <div className="collectionViewBaseChrome">
                         {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {!this._buttonizableCommands ? (null) : this.templateChrome}
                         {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
@@ -521,10 +521,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         {this.notACollection ? (null) : this.lightboxButton}
                         {this.notACollection ? (null) : this.gridbackgroundButton}
                         {this.aliasButton}
-                        {/* {this.pinButton} */}
-                        {/* {this.pinWithViewButton} */}
                     </div>
-                    {this.subChrome}
+                    {this.subChrome} */}
                 </div>
             </div>
         );
