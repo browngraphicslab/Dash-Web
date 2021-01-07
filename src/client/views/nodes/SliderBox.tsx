@@ -41,7 +41,10 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
     onChange = (values: readonly number[]) => runInAction(() => {
         this.dataDoc[this.minThumbKey] = values[0];
         this.dataDoc[this.maxThumbKey] = values[1];
-        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({ self: this.rootDoc, range: values, this: this.layoutDoc });
+        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({
+            self: this.rootDoc,
+            scriptContext: this.props.scriptContext, range: values, this: this.layoutDoc
+        });
     })
 
     render() {
@@ -103,7 +106,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
                         </Tracks>
                         <Ticks count={5}>
                             {({ ticks }) => (
-                                <div className="slider-tracks">
+                                <div className="slider-ticks">
                                     {ticks.map((tick) => (
                                         <Tick
                                             key={tick.id}

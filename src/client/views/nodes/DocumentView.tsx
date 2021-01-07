@@ -596,9 +596,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
-            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
-            item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, scriptContext: this.props.scriptContext, self: this.rootDoc }), icon: "sticky-note" }));
 
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         const appearance = cm.findByDescription("UI Controls...");

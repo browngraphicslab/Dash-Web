@@ -4,6 +4,16 @@
     border-radius: inherit;
     display: flex;
     flex-direction: column;
-    top: 7px;
     position: relative;
+    .slider-tracks {
+        top: 7px;
+        position: relative;
+    }
+    .slider-ticks {
+        position: relative;
+    }
+    .slider-handles {
+        top: 7px;
+        position: relative;
+    }
 }
