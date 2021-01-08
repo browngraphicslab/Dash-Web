@@ -7,6 +7,8 @@ import { Cast, NumCast } from "../../fields/Types";
 import { DocumentType } from "../documents/DocumentTypes";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
+import { DocumentView } from "./nodes/DocumentView";
+import { returnVal } from "../../Utils";
 
 export class InkStrokeProperties {
     static Instance: InkStrokeProperties | undefined;
@@ -14,6 +16,7 @@ export class InkStrokeProperties {
     private _lastFill = "#D0021B";
     private _lastLine = "#D0021B";
     private _lastDash = "2";
+    private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
 
     @observable _lock = false;
     @observable _controlBtn = false;
@@ -190,11 +193,19 @@ export class InkStrokeProperties {
 
                     doc._height = (bottom - top);
                     doc._width = (right - left);
+
                 }
                 index++;
             }
         }));
     }
+
+    @undoBatch
+    @action
+    resetPoints = () => {
+
+    }
+
 
     @undoBatch
     @action
@@ -218,31 +229,36 @@ export class InkStrokeProperties {
                                 (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2)
                                 || ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
                             ) {
-                                newPoints.push({ X: ink[i].X - (xDiff * inkView.props.ScreenToLocalTransform().Scale), Y: ink[i].Y - (yDiff * inkView.props.ScreenToLocalTransform().Scale) });
+                                newPoints.push({ X: ink[i].X - (xDiff), Y: ink[i].Y - (yDiff) });
                             }
                             else {
                                 newPoints.push({ X: ink[i].X, Y: ink[i].Y });
                             }
                         }
+                        const oldHeight = doc._height;
+                        const oldWidth = doc._width;
                         const oldx = doc.x;
                         const oldy = doc.y;
-                        const xs = ink.map(p => p.X);
-                        const ys = ink.map(p => p.Y);
-                        const left = Math.min(...xs);
-                        const top = Math.min(...ys);
+                        const oldxs = ink.map(p => p.X);
+                        const oldys = ink.map(p => p.Y);
+                        const oldleft = Math.min(...oldxs);
+                        const oldtop = Math.min(...oldys);
+                        const oldright = Math.max(...oldxs);
+                        const oldbottom = Math.max(...oldys);
                         Doc.GetProto(doc).data = new InkField(newPoints);
-                        const xs2 = newPoints.map(p => p.X);
-                        const ys2 = newPoints.map(p => p.Y);
-                        const left2 = Math.min(...xs2);
-                        const top2 = Math.min(...ys2);
-                        const right2 = Math.max(...xs2);
-                        const bottom2 = Math.max(...ys2);
-                        doc._height = (bottom2 - top2);
-                        doc._width = (right2 - left2);
-                        //if points move out of bounds
+                        const newxs = newPoints.map(p => p.X);
+                        const newys = newPoints.map(p => p.Y);
+                        const newleft = Math.min(...newxs);
+                        const newtop = Math.min(...newys);
+                        const newright = Math.max(...newxs);
+                        const newbottom = Math.max(...newys);
 
-                        doc.x = oldx - (left - left2);
-                        doc.y = oldy - (top - top2);
+                        //if points move out of bounds
+                        doc._height = (newbottom - newtop) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc._width = (newright - newleft) * inkView.props.ScreenToLocalTransform().Scale;
+
+                        doc.x = oldx - (oldleft - newleft) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc.y = oldy - (oldtop - newtop) * inkView.props.ScreenToLocalTransform().Scale;
 
                     }
                 }
