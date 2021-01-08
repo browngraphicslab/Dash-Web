@@ -223,17 +223,22 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <option value="AND" key="AND">AND</option>
                     <option value="OR" key="OR">OR</option>
                 </select>
-                <div className="filterBox-select-text">specified filters</div>
-            </div>
-
-            <div className="filterBox-select-scope">
-                <div className="filterBox-select-text">Scope: </div>
+                <div className="filterBox-select-text">filters in </div>
                 <select className="filterBox-selection" onChange={e => this.changeScope(e)}>
                     <option value="Current Dashboard" key="Current Dashboard">Current Dashboard</option>
                     <option value="Current Tab" key="Current Tab">Current Tab</option>
                     <option value="Current Collection" key="Current Collection">Current Collection</option>
                 </select>
             </div>
+
+            {/* <div className="filterBox-select-scope">
+                <div className="filterBox-select-text">Scope: </div>
+                <select className="filterBox-selection" onChange={e => this.changeScope(e)}>
+                    <option value="Current Dashboard" key="Current Dashboard">Current Dashboard</option>
+                    <option value="Current Tab" key="Current Tab">Current Tab</option>
+                    <option value="Current Collection" key="Current Collection">Current Collection</option>
+                </select>
+            </div> */}
             {/* </div> */}
 
             <div className="filterBox-tree" key="tree">
@@ -291,10 +296,18 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <div className="filterBox-select-text">documents</div>
                 </div>
 
-                <div className="filterBox-saveWrapper">
-                    <div className="filterBox-saveBookmark">
-                        <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
-                        <div>SAVE</div>
+                <div style={{ display: "flex" }}>
+                    <div className="filterBox-saveWrapper">
+                        <div className="filterBox-saveBookmark">
+                            <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"save"} size={"sm"} />
+                            <div>SAVE</div>
+                        </div>
+                    </div>
+                    <div className="filterBox-saveWrapper">
+                        <div className="filterBox-saveBookmark">
+                            <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
+                            <div>MY FILTERS</div>
+                        </div>
                     </div>
                 </div>
             </div>

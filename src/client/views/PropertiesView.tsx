@@ -908,19 +908,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>}
                     </div>
 
-                    <div className="propertiesView-settings">
-                        <div className="propertiesView-settings-title"
+                    <div className="propertiesView-sharing">
+                        <div className="propertiesView-sharing-title"
                             onPointerDown={action(() => this.openFilters = !this.openFilters)}
                             style={{ backgroundColor: this.openFilters ? "black" : "" }}>
                             Filters
-                        <div className="propertiesView-settings-title-icon">
+                        <div className="propertiesView-sharing-title-icon">
                                 <FontAwesomeIcon icon={this.openFilters ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {!this.openFilters ? (null) :
-                            <div className="propertiesView-settings-content">
+                            <div className="propertiesView-sharing-content">
                                 <DocumentView
-                                    Document={Doc.UserDoc().myFilter as any as Doc}
+                                    Document={Doc.UserDoc().currentFilter as any as Doc}
                                     DataDoc={undefined}
                                     addDocument={undefined}
                                     addDocTab={returnFalse}

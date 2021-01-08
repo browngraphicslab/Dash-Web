@@ -799,9 +799,9 @@ export class CurrentUserUtils {
             (doc.currentFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.currentFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
-        const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
-        (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        // const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
+        // (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+        // (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
     }
 
