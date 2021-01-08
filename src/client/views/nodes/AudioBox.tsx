@@ -546,10 +546,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
-        const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
+        const markerStyle = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any => {
+            return property.startsWith("backgroundColor") ? "dimGrey" : this.props.styleProvider?.(doc, props, property);
+        }
+        const markerDoc = (mark: Doc, script: undefined | (() => ScriptField), width?: number, height?: number) => {
             return <DocumentView {...this.props}
                 Document={mark}
+                PanelWidth={width ? () => width : this.props.PanelWidth}
+                PanelHeight={height ? () => height : this.props.PanelHeight}
                 focus={() => this.playLink(mark)}
+                styleProvider={markerStyle}
                 pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
@@ -611,11 +617,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             style={{
                                                 left: `${NumCast(m.audioStart) / this.audioDuration * 100}%`,
                                                 top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
-                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
+                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`,
+                                                height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
                                             }}
                                             onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
-                                            {markerDoc(m, this.rangeScript)}
+                                            {markerDoc(m, this.rangeScript, this.props.PanelWidth() * (NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration,
+                                                .64 * this.props.PanelHeight() / (this.dataDoc.markerAmount + 1))}
                                             <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
                                         </div>
                                     :
