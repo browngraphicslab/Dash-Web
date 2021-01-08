@@ -357,8 +357,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
             await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
-            //awaiting jump so that new scale can be found, since jumping is async
-            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
+            //awaiting jump so that new scale can be found, since jumping is async     
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right    
         }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
@@ -367,6 +367,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.navigateToView(targetDoc, activeItem);
         }
         // TODO: Add progressivize for navigating web (storing websites for given frames)
+
     }
 
     /**
@@ -470,6 +471,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         this.next();
                     }
                 }
+
                 await timer(duration); this.next(); // then the created Promise can be awaited
                 if (i === this.childDocs.length - 1) {
                     setTimeout(() => {
@@ -673,11 +675,40 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //Regular click
     @action
-    selectElement = (doc: Doc) => {
+    selectElement = async (doc: Doc) => {
         const context = Cast(doc.context, Doc, null);
         this.gotoDocument(this.childDocs.indexOf(doc));
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
+
+
+
+        if (this.targetDoc.isInkMask) {
+            if (this.activeItem.y !== undefined &&
+                this.activeItem.x !== undefined &&
+                this.targetDoc.y !== undefined &&
+                this.targetDoc.y !== undefined) {
+                const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
+
+                const ydiff = this.activeItem.y - this.targetDoc.y;
+                const xdiff = this.activeItem.x - this.targetDoc.x;
+
+                const time = 10;
+
+                const yOffset = ydiff / time;
+                const xOffset = xdiff / time;
+
+                for (let i = 0; i < time; i++) {
+                    const newy = Number(this.targetDoc.y) + yOffset;
+                    const newx = Number(this.targetDoc.x) + xOffset;
+                    this.targetDoc.y = newy;
+                    this.targetDoc.x = newx;
+                    await timer(0.1);
+                }
+
+            }
+
+        }
     }
 
     //Command click

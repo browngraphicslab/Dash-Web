@@ -142,6 +142,16 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinDoc.presStartTime = 0;
                 pinDoc.presEndTime = doc.duration;
             }
+            //save position
+            if (pinDoc.isInkMask) {
+                pinDoc.y = doc.y;
+                pinDoc.x = doc.x;
+                pinDoc.presHideAfter = true;
+                pinDoc.presHideBefore = true;
+                pinDoc.title = doc.title + "- Spotlight";
+                pinDoc.presMovement = PresMovement.None;
+
+            }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             const dview = CollectionDockingView.Instance.props.Document;
             const fieldKey = CollectionDockingView.Instance.props.fieldKey;
