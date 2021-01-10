@@ -423,7 +423,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;
-                const scale = docView.props.ScreenToLocalTransform().Scale * docView.ContentScale();
+                const scale = docView.props.ScreenToLocalTransform().Scale;
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
