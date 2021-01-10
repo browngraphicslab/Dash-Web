@@ -634,9 +634,10 @@ export class SharingManager extends React.Component<{}> {
                     {<div className="share-container">
                         <div className="share-setup">
                             <Select
-                                className={"user-search"}
-                                placeholder={"Enter user or group name..."}
+                                className="user-search"
+                                placeholder="Enter user or group name..."
                                 isMulti
+                                isSearchable
                                 closeMenuOnSelect={false}
                                 options={options}
                                 onChange={this.handleUsersChange}

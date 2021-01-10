@@ -25,6 +25,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
+import Select from "react-select";
+import { UserOptions } from "../../util/GroupManager";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
@@ -207,6 +209,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </label>)}
         </div>;
 
+        const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
             {/* <div className="filterBox-top"> */}
@@ -278,11 +282,19 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     removeDocument={returnFalse}
                     addDocument={returnFalse} />
             </div>
-            <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+            {/* <Flyout className="filterBox-flyout" anchorPoint={anchorPoints.RIGHT_TOP} content={flyout}>
                 <div className="filterBox-addWrapper">
                     <div className="filterBox-addFilter"> + add a filter</div>
                 </div>
-            </Flyout>
+            </Flyout> */}
+            <Select
+                placeholder="Add a filter..."
+                options={options}
+                isMulti={false}
+                onChange={val => this.facetClick((val as UserOptions).value)}
+                value={null}
+                closeMenuOnSelect={false}
+            />
 
             <div className="filterBox-bottom">
                 <div className="filterBox-select-matched">

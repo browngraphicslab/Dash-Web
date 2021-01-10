@@ -284,8 +284,7 @@ export class GroupManager extends React.Component<{}> {
                     placeholder="Group name"
                     onChange={action(() => this.buttonColour = this.inputRef.current?.value ? "black" : "#979797")} />
                 <Select
-                    isMulti={true}
-                    isSearchable={true}
+                    isMulti
                     options={this.options}
                     onChange={this.handleChange}
                     placeholder={"Select users"}
