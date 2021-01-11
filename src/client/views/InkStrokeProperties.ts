@@ -191,19 +191,11 @@ export class InkStrokeProperties {
 
                     doc._height = (bottom - top);
                     doc._width = (right - left);
-
                 }
                 index++;
             }
         }));
     }
-
-    @undoBatch
-    @action
-    resetPoints = () => {
-
-    }
-
 
     @undoBatch
     @action

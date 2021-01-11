@@ -774,33 +774,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
 
-
-
         if (this.targetDoc.isInkMask) {
             if (this.activeItem.y !== undefined &&
                 this.activeItem.x !== undefined &&
                 this.targetDoc.y !== undefined &&
                 this.targetDoc.y !== undefined) {
                 const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
-
-                const ydiff = this.activeItem.y - this.targetDoc.y;
-                const xdiff = this.activeItem.x - this.targetDoc.x;
-
                 const time = 10;
-
-                const yOffset = ydiff / time;
-                const xOffset = xdiff / time;
+                const ydiff = NumCast(this.activeItem.y) - NumCast(this.targetDoc.y);
+                const xdiff = NumCast(this.activeItem.x) - NumCast(this.targetDoc.x);
 
                 for (let i = 0; i < time; i++) {
-                    const newy = Number(this.targetDoc.y) + yOffset;
-                    const newx = Number(this.targetDoc.x) + xOffset;
-                    this.targetDoc.y = newy;
-                    this.targetDoc.x = newx;
+                    this.targetDoc.x = NumCast(this.targetDoc.x) + xdiff / time;
+                    this.targetDoc.y = NumCast(this.targetDoc.y) + ydiff / time;
                     await timer(0.1);
                 }
-
             }
-
         }
     }
 
