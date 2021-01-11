@@ -777,7 +777,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (this.targetDoc.isInkMask) {
             if (this.activeItem.y !== undefined &&
                 this.activeItem.x !== undefined &&
-                this.targetDoc.y !== undefined &&
+                this.targetDoc.x !== undefined &&
                 this.targetDoc.y !== undefined) {
                 const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
                 const time = 10;
