@@ -512,7 +512,7 @@ export class MobileInterface extends React.Component {
             return <div className="docButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Unpin from presentation" : "Pin to presentation"}
                 style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-                onClick={e => TabDocView.PinDoc(this._activeDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(this._activeDoc, { unpin: isPinned })}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div>;
         } else return (null);
