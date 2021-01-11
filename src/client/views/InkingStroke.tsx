@@ -47,6 +47,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     @action
     onControlDown = (e: React.PointerEvent, i: number): void => {
         //TODO:renew points before controlling 
+        InkStrokeProperties.Instance?.control(0.001, 0.001, 1);
         setupMoveUpEvents(this, e, this.onControlMove, this.onControlup, (e) => { });
         this._controlUndo = UndoManager.StartBatch("DocDecs set radius");
         this._prevX = e.clientX;

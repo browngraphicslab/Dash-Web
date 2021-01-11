@@ -275,7 +275,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
                     doc._height = (bottom - top);
                     doc._width = (right - left);
-
                 }
                 index++;
             }
