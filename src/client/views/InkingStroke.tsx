@@ -35,7 +35,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     }
 
     private makeMask = () => {
-        this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
         this.props.Document.mixBlendMode = "hard-light";
         this.props.Document.color = "#9b9b9bff";
         //this.props.Document._stayInCollection = true;
