@@ -55,7 +55,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         const props: FieldViewProps = {
             Document: this.props.doc,
             DataDoc: this.props.doc,
-            LibraryPath: [],
             docFilters: returnEmptyFilter,
             docRangeFilters: returnEmptyFilter,
             searchFilterDocs: returnEmptyDoclist,
@@ -68,6 +67,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             dropAction: "alias",
             bringToFront: emptyFunction,
             renderDepth: 1,
+            parentActive: returnFalse,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,
@@ -76,7 +76,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelHeight: this.props.PanelHeight,
             addDocTab: returnFalse,
             pinToPres: returnZero,
-            ContentScaling: returnOne
         };
         const contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";

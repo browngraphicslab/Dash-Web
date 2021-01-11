@@ -461,9 +461,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
     }
 
-
-    get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; }
-
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });

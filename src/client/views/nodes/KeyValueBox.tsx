@@ -70,7 +70,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript, forceOnDelegate?: boolean): boolean {
         const { script, type, onDelegate } = kvpScript;
         //const target = onDelegate ? Doc.Layout(doc.layout) : Doc.GetProto(doc); // bcz: TODO need to be able to set fields on layout templates
-        const target = forceOnDelegate || onDelegate ? doc : Doc.GetProto(doc);
+        const target = forceOnDelegate || onDelegate ? doc : doc.proto || doc;
         let field: Field;
         if (type === "computed") {
             field = new ComputedField(script);
@@ -169,7 +169,6 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     getTemplate = async () => {
         const parent = Docs.Create.StackingDocument([], { _width: 800, _height: 800, title: "Template" });
-        parent._columnsStack = false;
         parent._columnWidth = 100;
         for (const row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);

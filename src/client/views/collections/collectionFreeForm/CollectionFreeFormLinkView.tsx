@@ -1,14 +1,14 @@
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
-import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from '../../../../Utils';
+import { Id } from "../../../../fields/FieldSymbols";
+import { NumCast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, setupMoveUpEvents, Utils } from '../../../../Utils';
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { SnappingManager } from "../../../util/SnappingManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer, trace, computed } from "mobx";
-import { StrCast, Cast, NumCast } from "../../../../fields/Types";
-import { Id } from "../../../../fields/FieldSymbols";
-import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -40,6 +40,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         if (SnappingManager.GetIsDragging() || !A.ContentDiv || !B.ContentDiv) return;
         setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
         setTimeout(action(() => (!LinkDocs.length || !linkDoc.linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
+        if (!linkDoc.linkAutoMove) return;
         const acont = A.props.Document.type === DocumentType.LINK ? A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
         const bcont = B.props.Document.type === DocumentType.LINK ? B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
         const adiv = (acont.length ? acont[0] : A.ContentDiv);
@@ -60,6 +61,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const linkEles = Array.from(window.document.getElementsByClassName(linkDoc[Id]));
         const targetAhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[afield] as Doc)[Id]));
         const targetBhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[bfield] as Doc)[Id]));
+        if ((!targetAhyperlink && !a.width) || (!targetBhyperlink && !b.width)) return;
         if (!targetBhyperlink) {
             A.rootDoc[afield + "_x"] = (apt.point.x - aleft) / awidth * 100;
             A.rootDoc[afield + "_y"] = (apt.point.y - atop) / aheight * 100;
@@ -101,8 +103,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const top = rect.top, height = rect.height;
         var el = el.parentNode;
         while (el && el !== document.body) {
-            if (el.hasOwnProperty("getBoundingClientRect")) {
-                rect = el.getBoundingClientRect();
+            rect = el.getBoundingClientRect?.();
+            if (rect?.width) {
                 if (top <= rect.bottom === false && getComputedStyle(el).overflow === "hidden") return rect.bottom;
                 // Check if the element is out of view due to a container scrolling
                 if ((top + height) <= rect.top && getComputedStyle(el).overflow === "hidden") return rect.top;
@@ -117,8 +119,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const left = rect.left, width = rect.width;
         var el = el.parentNode;
         while (el && el !== document.body) {
-            if (el.hasOwnProperty("getBoundingClientRect")) {
-                rect = el.getBoundingClientRect();
+            rect = el?.getBoundingClientRect();
+            if (rect?.width) {
                 if (left <= rect.right === false && getComputedStyle(el).overflow === "hidden") return rect.right;
                 // Check if the element is out of view due to a container scrolling
                 if ((left + width) <= rect.left && getComputedStyle(el).overflow === "hidden") return rect.left;
@@ -138,11 +140,14 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const adiv = (acont.length ? acont[0] : A.ContentDiv);
         const bdiv = (bcont.length ? bcont[0] : B.ContentDiv);
         for (let apdiv = adiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
-        for (let apdiv = bdiv; apdiv; apdiv = apdiv.parentElement as any) if ((apdiv as any).hidden) return;
+        for (let bpdiv = bdiv; bpdiv; bpdiv = bpdiv.parentElement as any) if ((bpdiv as any).hidden) return;
         const a = adiv.getBoundingClientRect();
         const b = bdiv.getBoundingClientRect();
         const atop = this.visibleY(adiv);
         const btop = this.visibleY(bdiv);
+        if (!a.width || !b.width) return undefined;
+        const atop2 = this.visibleY(adiv);
+        const btop2 = this.visibleY(bdiv);
         const aleft = this.visibleX(adiv);
         const bleft = this.visibleX(bdiv);
         const clipped = aleft !== a.left || atop !== a.top || bleft !== b.left || btop !== b.top;

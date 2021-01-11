@@ -49,14 +49,12 @@ export const documentSchema = createSchema({
     _showTitle: "string",       // the fieldkey whose contents should be displayed at the top of the document
     _showTitleHover: "string",  // the showTitle should be shown only on hover
     _showAudio: "boolean",      // whether to show the audio record icon on documents
-    _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
     _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
     _columnsFill: "boolean",    // whether documents in a stacking view column should be sized to fill the column
     _columnsSort: "string",     // how a document should be sorted "ascending", "descending", undefined (none)   
-    _columnsStack: "boolean",   // whether a stacking document stacks vertically (as opposed to masonry horizontal)
     _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
     _columnHeaders: listSpec(SchemaHeaderField), // header descriptions for stacking/masonry
     _schemaHeaders: listSpec(SchemaHeaderField), // header descriptions for schema views
@@ -102,7 +100,7 @@ export const documentSchema = createSchema({
     linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
-    _isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
+    layers: listSpec("string"), // which layers the document is part of
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 

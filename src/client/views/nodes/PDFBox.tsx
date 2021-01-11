@@ -1,28 +1,27 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable, runInAction, reaction, IReactionDisposer, trace, untracked, computed } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Opt, WidthSym, Doc, HeightSym } from "../../../fields/Doc";
+import { Doc, Opt, WidthSym } from "../../../fields/Doc";
+import { documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from "../../../fields/Schema";
-import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { PdfField, URLField } from "../../../fields/URLField";
-import { Utils } from '../../../Utils';
+import { Cast, NumCast } from "../../../fields/Types";
+import { PdfField } from "../../../fields/URLField";
+import { TraceMobx } from '../../../fields/util';
+import { Utils, returnOne } from '../../../Utils';
+import { KeyCodes } from '../../util/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
+import { CollectionViewType } from '../collections/CollectionView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
-import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
-import { documentSchema } from '../../../fields/documentSchemas';
-import { CollectionViewType } from '../collections/CollectionView';
-import { TraceMobx } from '../../../fields/util';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -30,17 +29,11 @@ const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 @observer
 export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
-    private _keyValue: string = "";
-    private _valueValue: string = "";
-    private _scriptValue: string = "";
     private _searchString: string = "";
     private _initialScale: number = 0;  // the initial scale of the PDF when first rendered which determines whether the document will be live on startup or not.  Getting bigger after startup won't make it automatically be live.
     private _displayPdfLive = false; // has this box ever had its contents activated -- if so, stop drawing the overlay title
     private _pdfViewer: PDFViewer | undefined;
     private _searchRef = React.createRef<HTMLInputElement>();
-    private _keyRef = React.createRef<HTMLInputElement>();
-    private _valueRef = React.createRef<HTMLInputElement>();
-    private _scriptRef = React.createRef<HTMLInputElement>();
     private _selectReactionDisposer: IReactionDisposer | undefined;
 
     @observable private _searching: boolean = false;
@@ -130,25 +123,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     });
 
-    @undoBatch
-    @action
-    private applyFilter = () => {
-        const scriptText = this._scriptValue ? this._scriptValue :
-            this._keyValue && this._valueValue ? `this.${this._keyValue} === ${this._valueValue}` : "true";
-        this.props.Document.filterScript = ScriptField.MakeFunction(scriptText);
-    }
-
-    private resetFilters = () => {
-        this._keyValue = this._valueValue = this._scriptValue = "";
-        this._keyRef.current && (this._keyRef.current.value = "");
-        this._valueRef.current && (this._valueRef.current.value = "");
-        this._scriptRef.current && (this._scriptRef.current.value = "");
-        this.applyFilter();
-    }
-    private newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => this._keyValue = e.currentTarget.value;
-    private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => this._valueValue = e.currentTarget.value;
-    private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => this._scriptValue = e.currentTarget.value;
-
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
@@ -197,36 +171,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
-                {/* <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
-                    <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
-                        <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />
-                        <div className="pdfBox-settingsButton-iconCont">
-                            <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="lg" />
-                        </div>
-                    </button>
-                    <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -1000}px` }} >
-                        <div className="pdfBox-settingsFlyout-title">
-                            Annotation View Settings
-                        </div>
-                        <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange} style={{ gridColumn: 1 }} ref={this._keyRef} />
-                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange} style={{ gridColumn: 3 }} ref={this._valueRef} />
-                        </div>
-                        <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
-                        </div>
-                        <div className="pdfBox-settingsFlyout-kvpInput">
-                            <button style={{ gridColumn: 1 }} onClick={this.resetFilters}>
-                                <FontAwesomeIcon style={{ color: "white" }} icon="trash" size="lg" />
-                                &nbsp; Reset Filters
-                            </button>
-                            <button style={{ gridColumn: 3 }} onClick={this.applyFilter}>
-                                <FontAwesomeIcon style={{ color: "white" }} icon="check" size="lg" />
-                                &nbsp; Apply
-                            </button>
-                        </div>
-                    </div>
-                </div> */}
             </div>);
     }
 
@@ -239,7 +183,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} >
@@ -253,19 +196,20 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     @computed get renderPdfView() {
         TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
-            <div className="pdfBox-background"></div>
-            <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
-                setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
-                renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
-                addDocTab={this.props.addDocTab} focus={this.props.focus} searchFilterDocs={this.props.searchFilterDocs}
-                docFilters={this.props.docFilters} docRangeFilters={this.props.docRangeFilters}
-                pinToPres={this.props.pinToPres} addDocument={this.addDocument}
-                Document={this.props.Document} DataDoc={this.dataDoc} ContentScaling={this.props.ContentScaling}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
-                isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu}
+            style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
+            <div className="pdfBox-background" />
+            <PDFViewer {...this.props}
+                pdf={this._pdf!}
+                url={pdfUrl!.url.pathname}
+                loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
+                setPdfViewer={this.setPdfViewer}
+                addDocument={this.addDocument}
+                whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
-                fieldKey={this.props.fieldKey} startupLive={true} />
+                startupLive={true}
+                ContentScaling={this.props.scaling}
+            />
             {this.settingsPanel()}
         </div>;
     }

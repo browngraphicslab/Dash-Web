@@ -14,6 +14,7 @@ import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail }
 interface DocComponentProps {
     Document: Doc;
     LayoutTemplate?: () => Opt<Doc>;
+    LayoutTemplateString?: string;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -22,7 +23,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
+        @computed get layoutDoc() { return this.props.LayoutTemplateString ? this.props.Document : Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
@@ -37,6 +38,7 @@ interface ViewBoxBaseProps {
     DataDoc?: Doc;
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
+    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
     rootSelected: (outsideReaction?: boolean) => boolean;
@@ -58,7 +60,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
-        active = (outsideReaction?: boolean) => !this.props.Document._isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
+        active = (outsideReaction?: boolean) => this.props.layerProvider?.(this.props.Document) !== false && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -70,6 +72,7 @@ export interface ViewBoxAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
+    layerProvider?: (doc: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
@@ -190,7 +193,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document._) &&
             (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.Document._isBackground && this.props.active()) ||
+        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

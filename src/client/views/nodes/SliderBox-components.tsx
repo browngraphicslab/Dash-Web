@@ -11,7 +11,6 @@ const railStyle: React.CSSProperties = {
     position: "absolute",
     width: "100%",
     height: 40,
-    top: -13,
     borderRadius: 7,
     cursor: "pointer",
     opacity: 0.3,
@@ -231,7 +230,7 @@ export function Tick({ tick, count, format = defaultFormat }: TickProps) {
             <div
                 style={{
                     position: "absolute",
-                    marginTop: 17,
+                    marginTop: 20,
                     width: 1,
                     height: 5,
                     backgroundColor: "rgb(200,200,200)",

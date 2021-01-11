@@ -1,5 +1,8 @@
 @import "../globalCssVariables";
 
+.documentView-effectsWrapper {
+    border-radius: inherit;
+}
 .documentView-node,
 .documentView-node-topmost {
     position: inherit;
@@ -54,6 +57,12 @@
         }
     }
 
+    .documentView-contentsView {
+        border-radius: inherit;
+        width: 100%;
+        height: 100%;
+    }
+
     .documentView-anchorCont {
         position: absolute;
         top: 0; 
@@ -62,25 +71,6 @@
         height: 100%; 
         display: inline-block;
         pointer-events: none;
-    }
-
-    .documentView-lock {
-        width: 20; 
-        height: 20; 
-        position: absolute; 
-        right: -5; 
-        top: -5;
-        background: transparent;
-        pointer-events: all;
-        opacity: 0.3;
-        display: flex;
-        color: gold;
-        border-radius: 3px;
-        justify-content: center;
-        cursor: default;
-    }
-    .documentView-lock:hover {
-        opacity:1;
     }
 
     .documentView-contentBlocker {
@@ -151,5 +141,28 @@
         > .documentView-captionWrapper {
             opacity: 1;
         }
+    }
+}
+.contentFittingDocumentView {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+
+    .contentFittingDocumentView-previewDoc {
+        position: relative;
+        display: inline;
+    }
+
+    .contentFittingDocumentView-input {
+        position: absolute;
+        max-width: 150px;
+        width: 100%;
+        bottom: 0px;
+    }
+
+    .documentView-node:first-child {
+        position: relative;
+        background: "#B59B66"; //$light-color;
     }
 }

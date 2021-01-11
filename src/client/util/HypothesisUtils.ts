@@ -29,7 +29,7 @@ export namespace Hypothesis {
      * Search for a WebDocument whose url field matches the given uri, return undefined if not found
      */
     export const findWebDoc = async (uri: string) => {
-        const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
+        const currentDoc = SelectionManager.Views().length && SelectionManager.Views()[0].props.Document;
         if (currentDoc && Cast(currentDoc.data, WebField)?.url.href === uri) return currentDoc; // always check first whether the currently selected doc is the annotation's source, only use Search otherwise
 
         const results: Doc[] = [];

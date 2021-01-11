@@ -466,7 +466,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @computed get scopeButtons() {
-        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px", border: "1px solid gray", borderRadius: "0.3em", borderBottom: !this.open ? "1px solid" : "none", }}>
+        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px"}}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                 <div style={{ display: "contents" }}>
                     <div className="radio" style={{ margin: 0 }}>
@@ -559,7 +559,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             <div style={{ display: this.open ? "flex" : "none", overflow: "auto", position: "absolute" }}>
                                 <CollectionSchemaView {...this.props}
                                     CollectionView={undefined}
-                                    annotationsKey={""}
                                     addDocument={returnFalse}
                                     Document={this.props.Document}
                                     moveDocument={returnFalse}

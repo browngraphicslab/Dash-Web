@@ -1,4 +1,5 @@
-import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Tooltip } from '@material-ui/core';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
@@ -12,9 +13,8 @@ import { DragManager } from '../../util/DragManager';
 import { Hypothesis } from '../../util/HypothesisUtils';
 import { LinkManager } from '../../util/LinkManager';
 import { undoBatch } from '../../util/UndoManager';
-import { ContextMenu } from '../ContextMenu';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { DocumentView } from '../nodes/DocumentView';
+import { DocumentView, DocumentViewSharedProps } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
@@ -27,7 +27,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, where: string) => boolean;
+    docprops: DocumentViewSharedProps;
     menuRef: React.Ref<HTMLDivElement>;
 }
 
@@ -109,7 +109,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onLinkButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
-        DocumentView.followLinkClick(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false, false);
+        LinkManager.FollowLink(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
 
         e.stopPropagation();
     }
@@ -123,41 +123,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
         }
         e.stopPropagation();
-    }
-
-    @action
-    onContextMenu = (e: React.MouseEvent) => {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => LinkMenuItem.followDefault(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc, this.props.addDocTab), icon: "arrow-right" });
-        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
-    }
-
-
-    @action
-    public static followDefault(linkDoc: Doc, sourceDoc: Doc, destinationDoc: Doc, addDocTab: (doc: Doc, where: string) => void) {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-
-        if (linkDoc.followLinkLocation === "openExternal" && destinationDoc.type === DocumentType.WEB) {
-            window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
-        }
-
-        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "default") {
-            const annotationOn = destinationDoc.annotationOn as Doc;
-            addDocTab(annotationOn instanceof Doc ? annotationOn : destinationDoc, StrCast(linkDoc.followLinkLocation));
-            if (annotationOn) {
-                setTimeout(() => {
-                    const dv = DocumentManager.Instance.getFirstDocumentView(destinationDoc);
-                    dv?.props.focus(destinationDoc, false);
-                });
-            }
-        } else {
-            DocumentManager.Instance.FollowLink(linkDoc, sourceDoc, addDocTab, false);
-        }
-
-        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(linkDoc.annotationId), destinationDoc);
     }
 
     @undoBatch
@@ -174,34 +139,27 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @undoBatch
     @action
-    showLink = () => {
+    autoMove = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        this.props.linkDoc.linkAutoMove = !this.props.linkDoc.linkAutoMove;
+    }
+
+    @undoBatch
+    @action
+    showLink = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        this.props.linkDoc.linkDisplay = !this.props.linkDoc.linkDisplay;
+    }
+
+    @undoBatch
+    @action
+    showAnchor = (e: React.PointerEvent) => {
+        e.stopPropagation();
         this.props.linkDoc.hidden = !this.props.linkDoc.hidden;
     }
 
     render() {
-
-        const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
-
-        let destinationIcon: FontAwesomeIconProps["icon"] = "question";
-        switch (this.props.destinationDoc.type) {
-            case DocumentType.IMG: destinationIcon = "image"; break;
-            case DocumentType.COMPARISON: destinationIcon = "columns"; break;
-            case DocumentType.RTF: destinationIcon = "sticky-note"; break;
-            case DocumentType.COL: destinationIcon = "folder"; break;
-            case DocumentType.WEB: destinationIcon = "globe-asia"; break;
-            case DocumentType.SCREENSHOT: destinationIcon = "photo-video"; break;
-            case DocumentType.WEBCAM: destinationIcon = "video"; break;
-            case DocumentType.AUDIO: destinationIcon = "microphone"; break;
-            case DocumentType.BUTTON: destinationIcon = "bolt"; break;
-            case DocumentType.PRES: destinationIcon = "tv"; break;
-            case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
-            case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
-            case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
-            case DocumentType.VID: destinationIcon = "video"; break;
-            case DocumentType.INK: destinationIcon = "pen-nib"; break;
-            case DocumentType.PDF: destinationIcon = "file"; break;
-            default: destinationIcon = "question"; break;
-        }
+        const destinationIcon = Doc.toIcon(this.props.destinationDoc) as any as IconProp;
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
             StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;
@@ -221,7 +179,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
                         onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
-                            addDocTab: this.props.addDocTab,
+                            docprops: this.props.docprops,
                             linkSrc: this.props.sourceDoc,
                             linkDoc: this.props.linkDoc,
                             Location: [e.clientX, e.clientY + 20]
@@ -243,9 +201,19 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
 
-                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show link" : "Hide link"}</div></>}>
+                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show Anchor" : "Hide Anchor"}</div></>}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.showAnchor}>
+                                    <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.hidden ? "eye-slash" : "eye"} size="sm" /></div>
+                            </Tooltip>
+
+                            <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkDisplay ? "Show link" : "Hide link"}</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
-                                    <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
+                                    <FontAwesomeIcon className="fa-icon" icon={!this.props.linkDoc.linkDisplay ? "eye-slash" : "eye"} size="sm" /></div>
+                            </Tooltip>
+
+                            <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkAutoMove ? "Auto move dot" : "Freeze dot position"}</div></>}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.autoMove}>
+                                    <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.linkAutoMove ? "play" : "pause"} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title={<><div className="dash-tooltip">Edit Link</div></>}>
@@ -256,8 +224,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>
-                            {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
-                                <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
                 </div>

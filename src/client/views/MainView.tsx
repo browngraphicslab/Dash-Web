@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
-import * as fa from '@fortawesome/free-solid-svg-icons';
 import * as far from '@fortawesome/free-regular-svg-icons';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,21 +12,23 @@ import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { TraceMobx } from '../../fields/util';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
-import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
 import { HistoryUtil } from '../util/History';
 import { Hypothesis } from '../util/HypothesisUtils';
 import { Scripting } from '../util/Scripting';
+import { SelectionManager } from '../util/SelectionManager';
 import { SettingsManager } from '../util/SettingsManager';
 import { SharingManager } from '../util/SharingManager';
 import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
+import { undoBatch, UndoManager } from '../util/UndoManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MarqueeOptionsMenu } from './collections/collectionFreeForm/MarqueeOptionsMenu';
@@ -36,15 +38,16 @@ import { CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
-import { InkStrokeProperties } from './InkStrokeProperties';
 import { GestureOverlay } from './GestureOverlay';
 import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
+import { InkStrokeProperties } from './InkStrokeProperties';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView } from './nodes/DocumentView';
+import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
+import { FieldViewProps } from './nodes/FieldView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
@@ -56,9 +59,7 @@ import { PDFMenu } from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { TraceMobx } from '../../fields/util';
-import { SelectionManager } from '../util/SelectionManager';
-import { UndoManager } from '../util/UndoManager';
+import { DefaultStyleProvider, StyleProp } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -66,8 +67,7 @@ export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
-    private _lastButton: Doc | undefined;
-
+    @observable public LastButton: Opt<Doc>;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -75,6 +75,7 @@ export class MainView extends React.Component {
     @observable private _flyoutWidth: number = 0;
 
     @computed private get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
+    @computed private get leftOffset() { return this.menuPanelWidth() - 2; }
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
     @computed private get mainContainer() { return this.userDoc ? CurrentUserUtils.ActiveDashboard : CurrentUserUtils.GuestDashboard; }
@@ -85,6 +86,17 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         document.getElementById("root")?.addEventListener("scroll", e => ((ele) => ele.scrollLeft = ele.scrollTop = 0)(document.getElementById("root")!));
+        const ele = document.getElementById("loader");
+        const prog = document.getElementById("dash-progress");
+        if (ele && prog) {
+            // remove from DOM
+            setTimeout(() => {
+                clearTimeout();
+                prog.style.transition = "1s";
+                prog.style.width = "100%";
+            }, 0);
+            setTimeout(() => ele.outerHTML = '', 1000);
+        }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
         DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
@@ -140,7 +152,7 @@ export class MainView extends React.Component {
             fa.faSearch, fa.faFileDownload, fa.faFileUpload, fa.faStop, fa.faCalculator, fa.faWindowMaximize, fa.faAddressCard, fa.faQuestionCircle, fa.faArrowLeft,
             fa.faArrowRight, fa.faArrowDown, fa.faArrowUp, fa.faBolt, fa.faBullseye, fa.faCaretUp, fa.faCat, fa.faCheck, fa.faChevronRight, fa.faChevronLeft, fa.faChevronDown, fa.faChevronUp,
             fa.faClone, fa.faCloudUploadAlt, fa.faCommentAlt, fa.faCompressArrowsAlt, fa.faCut, fa.faEllipsisV, fa.faEraser, fa.faExclamation, fa.faFileAlt,
-            fa.faFileAudio, fa.faFilePdf, fa.faFilm, fa.faFilter, fa.faFont, fa.faGlobeAmericas, fa.faGlobeAsia, fa.faHighlighter, fa.faLongArrowAltRight, fa.faMousePointer,
+            fa.faFileAudio, fa.faFileVideo, fa.faFilePdf, fa.faFilm, fa.faFilter, fa.faFont, fa.faGlobeAmericas, fa.faGlobeAsia, fa.faHighlighter, fa.faLongArrowAltRight, fa.faMousePointer,
             fa.faMusic, fa.faObjectGroup, fa.faPause, fa.faPen, fa.faPenNib, fa.faPhone, fa.faPlay, fa.faPortrait, fa.faRedoAlt, fa.faStamp, fa.faStickyNote,
             fa.faTimesCircle, fa.faThumbtack, fa.faTree, fa.faTv, fa.faUndoAlt, fa.faVideo, fa.faAsterisk, fa.faBrain, fa.faImage, fa.faPaintBrush, fa.faTimes,
             fa.faEye, fa.faArrowsAlt, fa.faQuoteLeft, fa.faSortAmountDown, fa.faAlignLeft, fa.faAlignCenter, fa.faAlignRight, fa.faHeading, fa.faRulerCombined,
@@ -226,51 +238,18 @@ export class MainView extends React.Component {
 
     getPWidth = () => this._panelWidth - this.propertiesWidth();
     getPHeight = () => this._panelHeight;
-    getContentsHeight = () => this._panelHeight - Number(SEARCH_PANEL_HEIGHT.replace("px", ""));
-
-    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (this.darkScheme) {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "dimgrey";
-                case DocumentType.PRES: return "#3e3e3e";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "rgb(62,62,62)" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
-                default: return "black";
-            }
-        } else {
-            switch (doc?.type) {
-                case DocumentType.PRESELEMENT: return "";
-                case DocumentType.FONTICON: return "black";
-                case DocumentType.RTF: return "#f1efeb";
-                case DocumentType.BUTTON:
-                case DocumentType.LABEL: return "lightgray";
-                case DocumentType.LINK:
-                case DocumentType.COL:
-                    return Doc.IsSystem(doc) ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
-                //if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
-                default: return "white";
-            }
-        }
-    }
+    getContentsHeight = () => this._panelHeight;
 
     @computed get mainDocView() {
         return <DocumentView
             Document={this.mainContainer!}
             DataDoc={undefined}
-            LibraryPath={emptyPath}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
-            onClick={undefined}
-            backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             focus={emptyFunction}
@@ -310,12 +289,39 @@ export class MainView extends React.Component {
     }
 
     flyoutWidthFunc = () => this._flyoutWidth;
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
-    addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
+    sidebarScreenToLocal = () => new Transform(0, -this.topOffset, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-this.leftOffset, 0);
+    addDocTabFunc = (doc: Doc, where: string): boolean => {
         return where === "close" ? CollectionDockingView.CloseSplit(doc) :
             doc.dockingConfig ? CurrentUserUtils.openDashboard(Doc.UserDoc(), doc) : CollectionDockingView.AddSplit(doc, "right");
     }
+
+
+    /**
+     * add lock and hide button decorations for the "Dashboards" flyout TreeView
+     */
+    DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+        const toggleField = undoBatch(action((e: React.MouseEvent, doc: Doc, field: string) => {
+            e.stopPropagation();
+            doc[field] = doc[field] ? undefined : true;
+        }));
+        switch (property.split(":")[0]) {
+            case StyleProp.Decorations:
+                return !doc || property.includes(":afterHeader") || // bcz: Todo: afterHeader should be generalized into a renderPath that is a list of the documents rendered so far which would mimic much of CSS property selectors
+                    DocListCast((Doc.UserDoc().myDashboards as Doc).data).some(dash => dash === doc ||
+                        DocListCast(dash.data).some(tabset => tabset === doc)) ? (null) :
+                    <>
+                        <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
+                            <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
+                        </div>
+                        <div className={`styleProvider-treeView-lock${doc.lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "lockedPosition")}>
+                            <FontAwesomeIcon icon={doc.lockedPosition ? "lock" : "unlock"} size="sm" />
+                        </div>
+                    </>;
+        }
+        return DefaultStyleProvider(doc, props, property);
+    }
+
 
     @computed get flyout() {
         return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
@@ -324,22 +330,20 @@ export class MainView extends React.Component {
             <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
                 <div className="mainView-contentArea" >
                     <DocumentView
-                        Document={this._sidebarContent}
+                        Document={this._sidebarContent.proto || this._sidebarContent}
                         DataDoc={undefined}
-                        LibraryPath={emptyPath}
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
-                        onClick={undefined}
                         ScreenToLocalTransform={this.mainContainerXf}
-                        ContentScaling={returnOne}
                         PanelWidth={this.flyoutWidthFunc}
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
+                        scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={emptyFunction}
-                        backgroundColor={this.defaultBackgroundColors}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -348,8 +352,6 @@ export class MainView extends React.Component {
                         searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        relative={true}
-                        forcedBackgroundColor={() => this.darkScheme ? "rgb(62,62,62)" : "lightgrey"}
                     />
                 </div>
                 {this.docButtons}
@@ -361,20 +363,17 @@ export class MainView extends React.Component {
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
                 DataDoc={undefined}
-                LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
-                onClick={undefined}
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
-                ContentScaling={returnOne}
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={DefaultStyleProvider}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -383,7 +382,6 @@ export class MainView extends React.Component {
                 searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                relative={true}
                 scriptContext={this}
             />
         </div>;
@@ -417,8 +415,8 @@ export class MainView extends React.Component {
             {this.menuPanel}
             <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
-                < div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
-                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} size="sm" />
+                <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
+                    <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{ opacity: "50%" }} size="sm" />
                 </div>
 
                 {this.dockingContent}
@@ -426,7 +424,7 @@ export class MainView extends React.Component {
                 <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
-                {this.propertiesWidth() < 10 ? (null) : <PropertiesView backgroundColor={this.defaultBackgroundColors} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
+                {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}
             </div>
         </>;
     }
@@ -447,14 +445,11 @@ export class MainView extends React.Component {
     expandFlyout = action((button: Doc) => {
         this._flyoutWidth = (this._flyoutWidth || 250);
         this._sidebarContent.proto = button.target as any;
-        button._backgroundColor = this.darkScheme ? "dimgrey" : "lightgrey";
-        button.color = "black";
-        this._lastButton = button;
+        this.LastButton = button;
     });
 
     closeFlyout = action(() => {
-        this._lastButton && (this._lastButton.color = "white");
-        this._lastButton && (this._lastButton._backgroundColor = "");
+        this.LastButton = undefined;
         this._panelContent = "none";
         this._sidebarContent.proto = undefined;
         this._flyoutWidth = 0;
@@ -476,11 +471,10 @@ export class MainView extends React.Component {
                 <CollectionLinearView
                     Document={this.userDoc.dockedBtns}
                     DataDoc={undefined}
-                    LibraryPath={emptyPath}
                     fieldKey={"data"}
                     dropAction={"alias"}
-                    annotationsKey={""}
-                    backgroundColor={this.defaultBackgroundColors}
+                    parentActive={returnFalse}
+                    styleProvider={DefaultStyleProvider}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
@@ -492,9 +486,7 @@ export class MainView extends React.Component {
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
-                    onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
-                    ContentScaling={returnOne}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
@@ -538,7 +530,6 @@ export class MainView extends React.Component {
             </defs>
         </svg>;
     }
-    select = (ctrlPressed: boolean) => { };
 
     @computed get search() {
         TraceMobx();
@@ -549,21 +540,19 @@ export class MainView extends React.Component {
                 dropAction="move"
                 isSelected={returnTrue}
                 active={returnTrue}
-                select={this.select}
-                LibraryPath={emptyPath}
+                select={returnTrue}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
-                onClick={undefined}
-                backgroundColor={this.defaultBackgroundColors}
+                styleProvider={DefaultStyleProvider}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
@@ -582,12 +571,12 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     Document={DocumentLinksButton.invisibleWebDoc}
-                    LibraryPath={emptyPath}
                     dropAction={"move"}
                     isSelected={returnFalse}
                     select={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
+                    parentActive={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -597,7 +586,6 @@ export class MainView extends React.Component {
                     focus={returnFalse}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
-                    ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -613,14 +601,13 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
-            <DocumentDecorations />
+            <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
-                addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
+            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
+                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>
@@ -648,7 +635,6 @@ export class MainView extends React.Component {
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined}
                             Document={invisibleDoc}
-                            LibraryPath={emptyPath}
                             dropAction={"move"}
                             isSelected={returnFalse}
                             select={returnFalse}
@@ -659,11 +645,11 @@ export class MainView extends React.Component {
                             ScreenToLocalTransform={Transform.Identity}
                             bringToFront={returnFalse}
                             active={returnFalse}
+                            parentActive={returnFalse}
                             whenActiveChanged={returnFalse}
                             focus={returnFalse}
                             PanelWidth={() => 500}
                             PanelHeight={() => 800}
-                            ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
                             docRangeFilters={returnEmptyFilter}
                             searchFilterDocs={returnEmptyDoclist}

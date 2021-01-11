@@ -8,9 +8,9 @@ import { Id } from '../../../fields/FieldSymbols';
 import { makeInterface } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
 import { NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { returnFalse, Utils, OmitKeys } from '../../../Utils';
+import { OmitKeys, returnFalse, Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../nodes/DocumentView';
 import "./CollectionCarousel3DView.scss";
 import { CollectionSubView } from './CollectionSubView';
 
@@ -42,12 +42,12 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
             const script = ScriptField.MakeScript("child._showCaption = 'caption'", { child: Doc.name }, { child: childPair.layout });
             const onChildClick = script && (() => script);
-            return <ContentFittingDocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+            return <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 onDoubleClick={this.onChildDoubleClick}
                 onClick={onChildClick}
                 renderDepth={this.props.renderDepth + 1}
-                LayoutTemplate={this.props.ChildLayoutTemplate}
-                LayoutTemplateString={this.props.ChildLayoutString}
+                LayoutTemplate={this.props.childLayoutTemplate}
+                LayoutTemplateString={this.props.childLayoutString}
                 Document={childPair.layout}
                 DataDoc={childPair.data}
                 PanelWidth={this.panelWidth}

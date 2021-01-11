@@ -63,7 +63,7 @@ export class CurrentUserUtils {
                 [this.ficon({
                     ignoreClick: true,
                     icon: "mobile",
-                    backgroundColor: "rgba(0,0,0,0)"
+                    backgroundColor: "transparent"
                 }),
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
@@ -252,7 +252,7 @@ export class CurrentUserUtils {
             doc["template-note-Idea"] = new PrefetchProxy(noteView);
         }
         if (doc["template-note-Topic"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightBlue", system: true });
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightblue", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
             doc["template-note-Topic"] = new PrefetchProxy(noteView);
         }
@@ -378,10 +378,8 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            const textDoc = Docs.Create.TextDocument("Slide", { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
-            Doc.GetProto(textDoc).layout = CollectionView.LayoutString("data");
+            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
             Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
-            Doc.GetProto(textDoc).data = new List<Doc>([]);
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
@@ -496,7 +494,7 @@ export class CurrentUserUtils {
             activeInkPen,
             backgroundColor,
             _hideContextMenu: true,
-            removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
+            removeDropProperties: new List<string>(["_stayInCollection"]),
             _stayInCollection: true,
             dragFactory,
             clickFactory,
@@ -797,12 +795,12 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
-            (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
-    }
+        const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
+        (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+        (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
+    }
 
     static setupUserDoc(doc: Doc) {
         if (doc.myUserDoc === undefined) {
@@ -913,7 +911,7 @@ export class CurrentUserUtils {
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
-            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
             doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, lockedPosition: true, system: true }));
         }
     }
@@ -1052,7 +1050,12 @@ export class CurrentUserUtils {
                     Docs.newAccount = !(field instanceof Doc);
                     await Docs.Prototypes.initialize();
                     const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
-                    return this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    const updated = this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
+                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null)?.data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
+                        const a1 = await Cast(link?.anchor1, Doc, null);
+                        const a2 = await Cast(link?.anchor2, Doc, null);
+                    });
+                    return updated;
                 });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
@@ -1201,7 +1204,7 @@ Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
     if (copy) {
         CollectionDockingView.AddSplit(copy, "right");
         const view = DocumentManager.Instance.getFirstDocumentView(copy);
-        view && SelectionManager.SelectDoc(view, false);
+        view && SelectionManager.SelectView(view, false);
     }
 });
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },

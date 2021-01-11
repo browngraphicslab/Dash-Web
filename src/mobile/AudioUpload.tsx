@@ -1,21 +1,21 @@
-import { Docs } from '../client/documents/Documents';
-import "./ImageUpload.scss";
-import React = require('react');
-import { observer } from 'mobx-react';
-import { observable, action, computed } from 'mobx';
-import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter, returnEmptyDoclist } from '../Utils';
-import { Doc, Opt } from '../fields/Doc';
-import { Cast, FieldValue } from '../fields/Types';
-import { listSpec } from '../fields/Schema';
-import { MainViewModal } from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { nullAudio } from '../fields/URLField';
+import { action, observable } from 'mobx';
+import { observer } from 'mobx-react';
+import { Docs } from '../client/documents/Documents';
 import { Transform } from '../client/util/Transform';
-import { DocumentView } from '../client/views/nodes/DocumentView';
-import { MobileInterface } from './MobileInterface';
-import { DictationOverlay } from '../client/views/DictationOverlay';
-import { RichTextMenu } from '../client/views/nodes/formattedText/RichTextMenu';
 import { ContextMenu } from '../client/views/ContextMenu';
+import { DictationOverlay } from '../client/views/DictationOverlay';
+import { MainViewModal } from '../client/views/MainViewModal';
+import { DocumentView } from '../client/views/nodes/DocumentView';
+import { RichTextMenu } from '../client/views/nodes/formattedText/RichTextMenu';
+import { Doc } from '../fields/Doc';
+import { listSpec } from '../fields/Schema';
+import { Cast, FieldValue } from '../fields/Types';
+import { nullAudio } from '../fields/URLField';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from '../Utils';
+import "./ImageUpload.scss";
+import { MobileInterface } from './MobileInterface';
+import React = require('react');
 
 @observer
 export class AudioUpload extends React.Component {
@@ -81,7 +81,6 @@ export class AudioUpload extends React.Component {
                     <DocumentView
                         Document={this._audioCol}
                         DataDoc={undefined}
-                        LibraryPath={emptyPath}
                         addDocument={undefined}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
@@ -90,14 +89,12 @@ export class AudioUpload extends React.Component {
                         docFilters={returnEmptyFilter}
                         docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}
-                        onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={returnOne}
                         PanelWidth={() => 600}
                         PanelHeight={() => 400}
                         renderDepth={0}
                         focus={emptyFunction}
-                        backgroundColor={() => "rgba(0,0,0,0)"}
+                        styleProvider={() => "rgba(0,0,0,0)"}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}

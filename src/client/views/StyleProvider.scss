@@ -1,0 +1,19 @@
+.styleProvider-lock {
+    font-size: 12px;
+    width: 20; 
+    height: 20; 
+    position: absolute; 
+    right: -5; 
+    top: -5;
+    background: transparent;
+    pointer-events: all;
+    opacity: 0.3;
+    display: flex;
+    color: gold;
+    border-radius: 3px;
+    justify-content: center;
+    cursor: default;
+}
+.styleProvider-lock:hover {
+    opacity:1;
+}

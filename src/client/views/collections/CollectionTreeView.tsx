@@ -6,10 +6,11 @@ import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { Document } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../fields/Types';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
-import { emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, Utils } from '../../../Utils';
+import { returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, Utils } from '../../../Utils';
 import { DocUtils } from '../../documents/Documents';
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
@@ -17,19 +18,18 @@ import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../nodes/DocumentView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
-import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
+import { StyleProp } from '../StyleProvider';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { TreeView } from "./TreeView";
 import React = require("react");
-import { DocumentManager } from '../../util/DocumentManager';
-import { FormattedTextBoxComment } from '../nodes/formattedText/FormattedTextBoxComment';
 
 export type collectionTreeViewProps = {
     treeViewHideTitle?: boolean;
     treeViewHideHeaderFields?: boolean;
+    treeViewSkipFields?: string[]; // prevents specific fields from being displayed (see LinkBox)
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
 };
@@ -91,7 +91,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         if (this.doc.resolvedDataDoc instanceof Promise) {
             this.doc.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
         } else if (relativeTo === undefined) {
-            this.props.addDocument(doc);
+            this.props.addDocument?.(doc);
         } else {
             doAddDoc(doc);
             (doc instanceof Doc ? [doc] : doc).forEach(d => d.context = this.props.Document);
@@ -105,7 +105,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             layoutItems.push({ description: (this.doc.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.doc.treeViewPreventOpen = !this.doc.treeViewPreventOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.doc.treeViewHideHeaderFields = !this.doc.treeViewHideHeaderFields, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTitle = !this.doc.treeViewHideTitle, icon: "paint-brush" });
-            layoutItems.push({ description: (this.doc.treeViewHideLinkLines ? "Show" : "Hide") + " Link Lines", event: () => this.doc.treeViewHideLinkLines = !this.doc.treeViewHideLinkLines, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -153,21 +152,19 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     rtfOutlineHeight = () => Math.min(this.layoutDoc?.[HeightSym](), (StrCast(this.layoutDoc?._fontSize) ? Number(StrCast(this.layoutDoc?._fontSize, "32px").replace("px", "")) : NumCast(this.layoutDoc?._fontSize)) * 2);
     titleTransform = () => this.props.ScreenToLocalTransform().translate(-NumCast(this.doc._xPadding, 10), -NumCast(this.doc._yPadding, 20));
     documentTitle = (childDocs: Doc[]) => {
-        return <div style={{ display: "inline-block", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
+        return <div style={{ display: "inline-block", width: "100%", height: this.rtfOutlineHeight() }} key={this.doc[Id]}
             onKeyDown={e => {
                 e.stopPropagation();
                 e.key === "Enter" && this.makeTextCollection(childDocs);
             }}>
-            <ContentFittingDocumentView
+            <DocumentView
                 Document={this.doc}
                 DataDoc={undefined}
                 LayoutTemplateString={FormattedTextBox.LayoutString("text")}
-                LibraryPath={emptyPath}
                 renderDepth={this.props.renderDepth + 1}
                 rootSelected={returnTrue}
-                treeViewDoc={undefined}
                 //dontRegisterView={true}
-                backgroundColor={this.props.backgroundColor}
+                styleProvider={this.props.styleProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}
@@ -185,7 +182,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 bringToFront={returnFalse}
-                ContentScaling={returnOne}
             />
         </div>;
     }
@@ -193,20 +189,21 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
+    panelWidth = () => this.props.PanelWidth() - 20; // bcz: 20 is the 10 + 10 for the left and right padding.
     @computed get treeChildren() {
         TraceMobx();
-        return this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
+        return this.props.childDocuments || this.childDocs;
     }
     @computed get treeViewElements() {
         TraceMobx();
         const dropAction = StrCast(this.doc.childDropAction) as dropActionType;
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
-        const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(d, target, addDoc);
+        const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument?.(d, target, addDoc) || false;
         return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
-            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
-            this.outerXf, this.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
+            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, this.props.ScreenToLocalTransform,
+            this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.ignoreFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null));
+            this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null));
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
@@ -215,8 +212,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);
-        const background = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.doc.backgroundColor) || this.props.backgroundColor?.(this.doc, this.props.renderDepth);
-        const paddingX = `${NumCast(this.doc._xPadding, 10)}px`;
+        const background = this.props.styleProvider?.(this.doc, this.props, StyleProp.BackgroundColor);
+        const paddingX = `${NumCast(this.doc._xPadding, 15)}px`;
         const paddingTop = `${NumCast(this.doc._yPadding, 20)}px`;
         const pointerEvents = !this.props.active() && !SnappingManager.GetIsDragging() && !this._isChildActive ? "none" : undefined;
 

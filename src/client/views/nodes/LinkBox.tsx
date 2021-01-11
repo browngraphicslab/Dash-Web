@@ -8,6 +8,7 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./LinkBox.scss";
 import { Cast } from "../../../fields/Types";
+import { StyleProp } from "../StyleProvider";
 
 type LinkDocument = makeInterface<[typeof documentSchema]>;
 const LinkDocument = makeInterface(documentSchema);
@@ -17,13 +18,11 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkBox, fieldKey); }
     render() {
         return <div className={`linkBox-container${this.active() ? "-interactive" : ""}`}
-            style={{ background: this.props.backgroundColor?.(this.props.Document, this.props.renderDepth) }} >
+            style={{ background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.BackgroundColor) }} >
 
             <CollectionTreeView {...this.props}
-                ChromeHeight={returnZero}
-                overrideDocuments={[this.dataDoc]}
-                ignoreFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
-                annotationsKey={""}
+                childDocuments={[this.dataDoc]}
+                treeViewSkipFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
                 dontRegisterView={true}
                 renderDepth={this.props.renderDepth + 1}
                 CollectionView={undefined}

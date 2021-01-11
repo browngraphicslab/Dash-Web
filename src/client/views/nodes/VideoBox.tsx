@@ -21,6 +21,10 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { Networking } from "../../Network";
 import { SnappingManager } from "../../util/SnappingManager";
 import { SelectionManager } from "../../util/SelectionManager";
+import { LinkDocPreview } from "./LinkDocPreview";
+import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
+import { Transform } from "../../util/Transform";
+import { StyleProp } from "../StyleProvider";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -32,8 +36,9 @@ const VideoDocument = makeInterface(documentSchema, timeSchema);
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     static _youtubeIframeCounter: number = 0;
-    private _reactionDisposer?: IReactionDisposer;
-    private _youtubeReactionDisposer?: IReactionDisposer;
+    // private _reactionDisposer?: IReactionDisposer;
+    // private _youtubeReactionDisposer?: IReactionDisposer;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
@@ -180,8 +185,32 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
-        if (this.props.setVideoBox) this.props.setVideoBox(this);
-
+        this._disposers.videoStart = reaction(
+            () => this.Document._videoStart,
+            (videoStart) => {
+                if (videoStart !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
+                        setTimeout(() => this.player && this.Play(), delay);
+                        setTimeout(() => { this.Document._videoStart = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
+        this._disposers.videoStop = reaction(
+            () => this.Document._videoStop,
+            (videoStop) => {
+                if (videoStop !== undefined) {
+                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
+                        setTimeout(() => this.player && this.Pause(), delay);
+                        setTimeout(() => { this.Document._videoStop = undefined; }, 10 + delay);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
         if (this.youtubeVideoId) {
             const youtubeaspect = 400 / 315;
             const nativeWidth = Doc.NativeWidth(this.layoutDoc);
@@ -196,8 +225,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     componentWillUnmount() {
         this.Pause();
-        this._reactionDisposer?.();
-        this._youtubeReactionDisposer?.();
+        this._disposers.reactionDisposer?.();
+        this._disposers.youtubeReactionDisposer?.();
+        this._disposers.videoStart?.();
     }
 
     @action
@@ -207,8 +237,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._videoRef!.ontimeupdate = this.updateTimecode;
             // @ts-ignore
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
-            this._reactionDisposer?.();
-            this._reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
+            this._disposers.reactionDisposer?.();
+            this._disposers.reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }
     }
@@ -293,10 +323,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             if (event.data === YT.PlayerState.PAUSED && this._playing) this.Pause(false);
         });
         const onYoutubePlayerReady = (event: any) => {
-            this._reactionDisposer?.();
-            this._youtubeReactionDisposer?.();
-            this._reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
-            this._youtubeReactionDisposer = reaction(
+            this._disposers.reactionDisposer?.();
+            this._disposers.youtubeReactionDisposer?.();
+            this._disposers.reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
+            this._disposers.youtubeReactionDisposer = reaction(
                 () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
@@ -385,40 +415,33 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return this.addDocument(doc);
     }
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
+        const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
+        const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
         return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                pointerEvents: this.layoutDoc._isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+                width: "100%",
+                height: "100%",
+                pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
+                borderRadius
             }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     forceScaling={true}
-                    PanelHeight={this.props.PanelHeight}
-                    PanelWidth={this.props.PanelWidth}
-                    annotationsKey={this.annotationKey}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
+                    fieldKey={this.annotationKey}
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    ContentScaling={returnOne}
+                    scaling={returnOne}
+                    ScreenToLocalTransform={this.screenToLocalTransform}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}
                     addDocument={this.addDocumentWithTimestamp}
                     CollectionView={undefined}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    renderDepth={this.props.renderDepth + 1}
-                    docFilters={this.props.docFilters}
-                    docRangeFilters={this.props.docRangeFilters}
-                    searchFilterDocs={this.props.searchFilterDocs}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                    renderDepth={this.props.renderDepth + 1}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>

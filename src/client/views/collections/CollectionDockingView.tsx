@@ -4,7 +4,7 @@ import { action, IReactionDisposer, observable, reaction, runInAction } from "mo
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { List } from '../../../fields/List';
@@ -90,7 +90,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     @undoBatch
-    public static OpenFullScreen(doc: Doc, libraryPath?: Doc[]) {
+    public static OpenFullScreen(doc: Doc) {
         const instance = CollectionDockingView.Instance;
         if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
             return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
@@ -172,7 +172,9 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 instance._goldenLayout.root.addChild(newContentItem);
             } else if (instance._goldenLayout.root.contentItems[0].isStack) {
                 instance._goldenLayout.root.contentItems[0].addChild(docContentConfig);
-            } else if (instance._goldenLayout.root.contentItems.length === 1 && instance._goldenLayout.root.contentItems[0].contentItems.length === 1 &&
+            } else if (
+                instance._goldenLayout.root.contentItems.length === 1 &&
+                instance._goldenLayout.root.contentItems[0].contentItems.length === 1 &&
                 instance._goldenLayout.root.contentItems[0].contentItems[0].contentItems.length === 0) {
                 instance._goldenLayout.root.contentItems[0].contentItems[0].addChild(docContentConfig);
             }
@@ -369,16 +371,18 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         const docs = !docids ? [] : docids.map(id => DocServer.GetCachedRefField(id)).filter(f => f).map(f => f as Doc);
 
         this.props.Document.dockingConfig = json;
-        const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
-        const tabs = Cast(sublists[0], Doc, null);
-        const other = Cast(sublists[1], Doc, null);
-        const tabdocs = DocListCast(tabs.data);
-        const otherdocs = DocListCast(other.data);
-        Doc.GetProto(tabs).data = new List<Doc>(docs);
-        const otherSet = new Set<Doc>();
-        otherdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-        tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-        Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
+        setTimeout(async () => {
+            const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
+            const tabs = Cast(sublists[0], Doc, null);
+            const other = Cast(sublists[1], Doc, null);
+            const tabdocs = await DocListCastAsync(tabs.data);
+            const otherdocs = await DocListCastAsync(other.data);
+            Doc.GetProto(tabs).data = new List<Doc>(docs);
+            const otherSet = new Set<Doc>();
+            otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            tabdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
+        }, 0);
     }
 
     tabDestroyed = (tab: any) => {

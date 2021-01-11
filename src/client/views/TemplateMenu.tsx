@@ -1,19 +1,19 @@
-import { action, observable, runInAction, ObservableSet, trace, computed } from "mobx";
+import { action, computed, observable, ObservableSet, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { undoBatch } from "../util/UndoManager";
-import './TemplateMenu.scss';
-import { DocumentView } from "./nodes/DocumentView";
-import React = require("react");
 import { Doc, DocListCast } from "../../fields/Doc";
-import { Docs, DocUtils, } from "../documents/Documents";
-import { StrCast, Cast } from "../../fields/Types";
-import { CollectionTreeView } from "./collections/CollectionTreeView";
-import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
-import { Transform } from "../util/Transform";
-import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Scripting } from "../util/Scripting";
 import { List } from "../../fields/List";
+import { ScriptField } from "../../fields/ScriptField";
+import { Cast, StrCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../Utils";
+import { Docs, DocUtils } from "../documents/Documents";
+import { Scripting } from "../util/Scripting";
+import { Transform } from "../util/Transform";
+import { undoBatch } from "../util/UndoManager";
+import { CollectionTreeView } from "./collections/CollectionTreeView";
+import { DocumentView } from "./nodes/DocumentView";
+import './TemplateMenu.scss';
+import React = require("react");
 
 @observer
 class TemplateToggle extends React.Component<{ template: string, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: string) => void }> {
@@ -136,10 +136,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}
                 onChildClick={this.scriptField}
-                LibraryPath={emptyPath}
                 dropAction={undefined}
                 active={returnTrue}
-                ContentScaling={returnOne}
+                parentActive={returnFalse}
                 bringToFront={emptyFunction}
                 focus={emptyFunction}
                 whenActiveChanged={emptyFunction}
@@ -152,7 +151,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 PanelWidth={this.return100}
                 PanelHeight={this.return100}
                 treeViewHideHeaderFields={true}
-                annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
                 moveDocument={returnFalse}

@@ -1,12 +1,12 @@
 import { action, computed, Lambda, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc, Opt, WidthSym } from '../../../../fields/Doc';
+import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
-import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, OmitKeys } from '../../../../Utils';
+import { emptyFunction, OmitKeys, returnFalse, setupMoveUpEvents } from '../../../../Utils';
 import { Docs } from '../../../documents/Documents';
 import { DragManager } from '../../../util/DragManager';
 import { SnappingManager } from '../../../util/SnappingManager';
@@ -14,7 +14,7 @@ import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContextMenu } from '../../ContextMenu';
 import { ContextMenuProps } from '../../ContextMenuItem';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../../nodes/DocumentView';
 import { FormattedTextBox } from '../../nodes/formattedText/FormattedTextBox';
 import { CollectionSubView } from '../CollectionSubView';
 import "./CollectionGridView.scss";
@@ -161,19 +161,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * @returns the `ContentFittingDocumentView` of the node
      */
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        return <ContentFittingDocumentView
+        return <DocumentView
             {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
-            backgroundColor={this.props.backgroundColor}
-            ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
+            freezeDimensions={true}
             ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            dontCenter={true}
+            dontCenter={"y"}
         />;
     }
 
