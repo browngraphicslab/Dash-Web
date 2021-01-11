@@ -271,10 +271,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     const right = Math.max(...xs);
                     const bottom = Math.max(...ys);
 
-                    doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
-                    doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
-                    // doc._height = (bottom - top);
-                    // doc._width = (right - left);
+                    // doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
+                    // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+                    doc._height = (bottom - top);
+                    doc._width = (right - left);
 
 
                 }
