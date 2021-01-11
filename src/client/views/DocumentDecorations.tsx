@@ -560,7 +560,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         const canDelete = SelectionManager.Views().some(docView => {
             const collectionAcl = docView.props.ContainingCollectionView ? GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]) : AclEdit;
             const docAcl = GetEffectiveAcl(docView.props.Document);
-            return !docView.props.Document._stayInCollection && (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
+            return (!docView.props.Document._stayInCollection || docView.props.Document.isInkMask) &&
+                (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
         const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
         const closeIcon = !canDelete ? (null) : (

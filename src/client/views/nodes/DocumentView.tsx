@@ -40,6 +40,7 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { InkingStroke } from "../InkingStroke";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -965,9 +966,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
+                        position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
-                        height: Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
+                        height: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                     }}>
                     <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}
