@@ -160,6 +160,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             DocumentLinksButton.AnnotationUri = undefined;
             //!this.props.StartLink 
         } else if (startLink !== endLink) {
+            endLink = endLinkView?.docView?._componentView?.getAnchor?.() || endLink;
+            startLink = DocumentLinksButton.StartLinkView?.docView?._componentView?.getAnchor?.() || startLink;
             const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag", undefined, undefined, true);
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
             if (endLinkView) {

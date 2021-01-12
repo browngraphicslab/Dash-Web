@@ -29,6 +29,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
+import { InkingStroke } from "../InkingStroke";
 import { InkStrokeProperties } from '../InkStrokeProperties';
 import { StyleLayers, StyleProp } from "../StyleProvider";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
@@ -40,7 +41,6 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
-import { InkingStroke } from "../InkingStroke";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
@@ -52,6 +52,7 @@ export interface DocumentViewSharedProps {
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    setContentView?: (view: { getAnchor: () => Doc }) => any,
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -691,9 +692,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
     makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    setContentView = (view: { getAnchor: () => Doc }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
-
+    _componentView: { getAnchor: () => Doc } | undefined;
     @computed get contents() {
         TraceMobx();
         return <div className="documentView-contentsView"
@@ -702,6 +704,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
             }}>
             <DocumentContentsView key={1} {...this.props}
+                setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
                 contentsActive={this.setContentsActive}
