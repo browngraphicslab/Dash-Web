@@ -543,24 +543,35 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (property === StyleProp.BackgroundColor) return "transparent";
         if (property === StyleProp.PointerEvents) return "none";
     }
+    markerStyle = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any => {
+        return property.startsWith("backgroundColor") ? "dimGrey" : this.props.styleProvider?.(doc, props, property);
+    }
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
-        const markerDoc = (mark: Doc, script: undefined | (() => ScriptField)) => {
+        const markerDoc = (mark: Doc, script: undefined | (() => ScriptField), x?: number, y?: number, width?: number, height?: number) => {
             return <DocumentView {...this.props}
                 Document={mark}
+                PanelWidth={width ? () => width : this.props.PanelWidth}
+                PanelHeight={height ? () => height : this.props.PanelHeight}
                 focus={() => this.playLink(mark)}
+                styleProvider={this.markerStyle}
                 pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
                 ContainingCollectionDoc={this.props.Document}
                 removeDocument={this.removeDocument}
+                ScreenToLocalTransform={x && y ? () => this.props.ScreenToLocalTransform().translate(-x, -y) : this.props.ScreenToLocalTransform}
                 parentActive={returnTrue}
                 onClick={this.layoutDoc.playOnClick ? script : undefined}
                 ignoreAutoHeight={false}
                 bringToFront={emptyFunction}
                 scriptContext={this} />;
         };
+        const heightPercent = 80;
+        const playheadWidth = 30;
+        const timelineContentWidth = this.props.PanelWidth() - playheadWidth;
+        const timelineContentHeight = (this.props.PanelHeight() * heightPercent / 100) * heightPercent / 100; // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
         return <div className="audiobox-container" onContextMenu={this.specificContextMenu} onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined} style={{ pointerEvents: !interactive ? "none" : undefined }}>
             {!this.path ?
                 <div className="audiobox-buttons">
@@ -583,10 +594,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                         </button>}
                 </div> :
                 <div className="audiobox-controls" >
-                    <div className="audiobox-dictation"></div>
-                    <div className="audiobox-player" >
-                        <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        <div className="audiobox-timeline" ref={this.timelineRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+                    <div className="audiobox-dictation" />
+                    <div className="audiobox-player" style={{ height: `${heightPercent}%` }} >
+                        <div className="audiobox-playhead" style={{ width: playheadWidth }} title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
+                        <div className="audiobox-timeline" style={{ height: `${heightPercent}%` }} ref={this.timelineRef}
+                            onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                             onPointerDown={e => {
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
@@ -603,28 +615,34 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             <div className="waveform">
                                 {this.waveform}
                             </div>
-                            {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) =>
-                                (!m.isLabel) ?
-                                    (this.layoutDoc.hideMarkers) ? (null) :
+                            {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
+                                const isOverlap = this.isOverlap(m);
+                                return !m.isLabel ?
+                                    this.layoutDoc.hideMarkers ? (null) :
                                         <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container1`} key={i}
                                             title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`}
                                             style={{
                                                 left: `${NumCast(m.audioStart) / this.audioDuration * 100}%`,
-                                                top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
-                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
+                                                top: `${isOverlap * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
+                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`,
+                                                height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
                                             }}
                                             onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
-                                            {markerDoc(m, this.rangeScript)}
+                                            {markerDoc(m, this.rangeScript,
+                                                playheadWidth + NumCast(m.audioStart) / this.audioDuration * timelineContentWidth,
+                                                .1 * this.props.PanelHeight() + isOverlap / (this.dataDoc.markerAmount + 1) * timelineContentHeight,
+                                                timelineContentWidth * (NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration,
+                                                timelineContentHeight / (this.dataDoc.markerAmount + 1))}
                                             <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
                                         </div>
                                     :
-                                    (this.layoutDoc.hideLabels) ? (null) :
+                                    this.layoutDoc.hideLabels ? (null) :
                                         <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={i}
                                             style={{ left: `${NumCast(m.audioStart) / this.audioDuration * 100}%` }}>
                                             {markerDoc(m, this.labelScript)}
-                                        </div>
-                            )}
+                                        </div>;
+                            })}
                             {DocListCast(this.dataDoc.links).map((l, i) => {
                                 const { la1, la2, linkTime } = this.getLinkData(l);
                                 let startTime = linkTime;
