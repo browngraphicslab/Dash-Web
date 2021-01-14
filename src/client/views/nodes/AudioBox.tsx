@@ -50,6 +50,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     static Instance: AudioBox;
     static RangeScript: ScriptField;
     static LabelScript: ScriptField;
+    static RangePlayScript: ScriptField;
+    static LabelPlayScript: ScriptField;
 
     // _linkPlayDisposer: IReactionDisposer | undefined;
     // _reactionDisposer: IReactionDisposer | undefined;
@@ -94,8 +96,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         AudioBox.Instance = this;
 
         // onClick play scripts
-        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
     }
 
     getLinkData(l: Doc) {
@@ -233,8 +237,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @action
     playOnClick = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
         DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
-        if (this.layoutDoc.playOnClick) this.playFrom(seekTimeInSeconds, endTime);
-        else this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
+        this.playFrom(seekTimeInSeconds, endTime);
+    }
+
+    // play back the audio from time
+    @action
+    clickMarker = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
+        if (this.layoutDoc.playOnClick) this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
+        else {
+            DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
+            this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
+        }
     }
     // play back the audio from time
     @action
@@ -523,7 +536,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             color={"darkblue"}
             height={this._waveHeight}
             barWidth={0.1}
-            // pos={this.layoutDoc._currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
             pos={this.audioDuration}
             duration={this.audioDuration}
             peaks={audioBuckets.length === AudioBox.NUMBER_OF_BUCKETS ? audioBuckets : undefined}
@@ -545,39 +557,40 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             );
     }
 
-    rangeScript = () => AudioBox.RangeScript;
-    labelScript = () => AudioBox.LabelScript;
-    audioStyleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
-        if (property === StyleProp.BackgroundColor) return "transparent";
-        if (property === StyleProp.PointerEvents) return "none";
-        return this.props.styleProvider?.(doc, props, property);
+    rangeClickScript = () => AudioBox.RangeScript;
+    labelClickScript = () => AudioBox.LabelScript;
+    rangePlayScript = () => AudioBox.RangePlayScript;
+    labelPlayScript = () => AudioBox.LabelPlayScript;
+    renderMarker = (mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) => {
+        return <DocumentView {...this.props}
+            Document={mark}
+            PanelWidth={() => width}
+            PanelHeight={() => height}
+            focus={() => this.playLink(mark)}
+            rootSelected={returnFalse}
+            LayoutTemplate={undefined}
+            ContainingCollectionDoc={this.props.Document}
+            removeDocument={this.removeDocument}
+            ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x - 4, -y - 3)}
+            parentActive={returnTrue}
+            onClick={script}
+            onDoubleClick={this.layoutDoc.playOnClick ? undefined : doublescript}
+            ignoreAutoHeight={false}
+            bringToFront={emptyFunction}
+            scriptContext={this} />;
     }
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
-        const markerDoc = (mark: Doc, script: undefined | (() => ScriptField), x?: number, y?: number, width?: number, height?: number) => {
-            return <DocumentView {...this.props}
-                Document={mark}
-                PanelWidth={width ? () => width : this.props.PanelWidth}
-                PanelHeight={height ? () => height : this.props.PanelHeight}
-                focus={() => this.playLink(mark)}
-                pointerEvents={"all"}
-                rootSelected={returnFalse}
-                LayoutTemplate={undefined}
-                ContainingCollectionDoc={this.props.Document}
-                removeDocument={this.removeDocument}
-                ScreenToLocalTransform={x && y ? () => this.props.ScreenToLocalTransform().translate(-x - 4, -y - 3) : this.props.ScreenToLocalTransform}
-                parentActive={returnTrue}
-                onClick={script}
-                ignoreAutoHeight={false}
-                bringToFront={emptyFunction}
-                scriptContext={this} />;
-        };
+
         const heightPercent = 80;
         const playheadWidth = 30;
         const timelineContentWidth = this.props.PanelWidth() - playheadWidth;
         const timelineContentHeight = (this.props.PanelHeight() * heightPercent / 100) * heightPercent / 100; // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
-        return <div className="audiobox-container" onContextMenu={this.specificContextMenu} onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined} style={{ pointerEvents: !interactive ? "none" : undefined }}>
+        return <div className="audiobox-container"
+            onContextMenu={this.specificContextMenu}
+            onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined}
+            style={{ pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined }}>
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
@@ -586,10 +599,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     {this.audioState === "recording" || this.audioState === "paused" ?
                         <div className="recording" onClick={e => e.stopPropagation()}>
                             <div className="buttons" onClick={this.recordClick}>
-                                <FontAwesomeIcon style={{ width: "100%" }} icon={"stop"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                                <FontAwesomeIcon icon={"stop"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                             </div>
                             <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
-                                <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                                <FontAwesomeIcon icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                             </div>
                             <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}</div>
                         </div>
@@ -633,7 +646,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             }}
                                             onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)} />
-                                            {markerDoc(m, this.rangeScript,
+                                            {this.renderMarker(m, this.rangeClickScript, this.rangePlayScript,
                                                 playheadWidth + NumCast(m.audioStart) / this.audioDuration * timelineContentWidth,
                                                 .1 * this.props.PanelHeight() + isOverlap / (this.dataDoc.markerAmount + 1) * timelineContentHeight,
                                                 timelineContentWidth * (NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration,
@@ -645,7 +658,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                         <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={i}
                                             style={{ left: `${NumCast(m.audioStart) / this.audioDuration * 100}%` }}
                                             onClick={e => { this.playFrom(NumCast(m.audioStart)); e.stopPropagation(); }}>
-                                            {markerDoc(m, this.labelScript,
+                                            {this.renderMarker(m, this.labelClickScript, this.labelPlayScript,
                                                 playheadWidth + NumCast(m.audioStart) / this.audioDuration * timelineContentWidth,
                                                 .1 * this.props.PanelHeight(),
                                                 10, 10)}

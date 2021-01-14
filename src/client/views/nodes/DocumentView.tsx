@@ -379,14 +379,16 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         const func = () => this.onDoubleClickHandler.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
+                            scriptContext: this.props.scriptContext,
                             thisContainer: this.props.ContainingCollectionDoc,
+                            documentView: this.props.DocumentView,
                             shiftKey: e.shiftKey
                         }, console.log);
                         undoBatch(func)();
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type === DocumentType.INK) {
                             InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
-                        } else {
+                        } else if (this.props.Document.type !== DocumentType.LABEL) {
                             UndoManager.RunInBatch(() => {
                                 const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
                                 this.props.addDocTab(fullScreenDoc, "add");
