@@ -29,6 +29,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
+import { InkingStroke } from "../InkingStroke";
 import { InkStrokeProperties } from '../InkStrokeProperties';
 import { StyleLayers, StyleProp } from "../StyleProvider";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
@@ -51,6 +52,7 @@ export interface DocumentViewSharedProps {
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    setContentView?: (view: { getAnchor: () => Doc }) => any,
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -690,9 +692,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
     makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    setContentView = (view: { getAnchor: () => Doc }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
-
+    _componentView: { getAnchor: () => Doc } | undefined;
     @computed get contents() {
         TraceMobx();
         return <div className="documentView-contentsView"
@@ -701,6 +704,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
             }}>
             <DocumentContentsView key={1} {...this.props}
+                setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
                 contentsActive={this.setContentsActive}
@@ -965,9 +969,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
+                        position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
-                        height: Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
+                        height: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                     }}>
                     <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}

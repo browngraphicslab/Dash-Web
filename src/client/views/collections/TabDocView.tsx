@@ -24,7 +24,7 @@ import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
 import { FieldViewProps } from '../nodes/FieldView';
-import { PresBox, PresMovement } from '../nodes/PresBox';
+import { PresBox, PresMovement, PinProps } from '../nodes/PresBox';
 import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } from '../StyleProvider';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
@@ -197,8 +197,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
      * Adds a document to the presentation view
      **/
     @action
-    public static async PinDoc(doc: Doc, unpin = false, audioRange?: boolean) {
-        if (unpin) console.log('TODO: Remove UNPIN from this location');
+    public static async PinDoc(doc: Doc, pinProps?: PinProps) {
+        if (pinProps?.unpin) console.log('TODO: Remove UNPIN from this location');
         //add this new doc to props.Document
         const curPres = CurrentUserUtils.ActivePresentation;
         if (curPres) {
@@ -214,11 +214,21 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
             Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
-            if (!audioRange && (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID)) {
+            if (!pinProps?.audioRange && (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID)) {
                 pinDoc.mediaStart = "manual";
                 pinDoc.mediaStop = "manual";
                 pinDoc.presStartTime = 0;
                 pinDoc.presEndTime = pinDoc.type === DocumentType.AUDIO ? doc.duration : NumCast(doc["data-duration"]);
+            }
+            //save position
+            if (pinProps?.setPosition || pinDoc.isInkMask) {
+                pinDoc.setPosition = true;
+                pinDoc.y = doc.y;
+                pinDoc.x = doc.x;
+                pinDoc.presHideAfter = true;
+                pinDoc.presHideBefore = true;
+                pinDoc.title = doc.title + "- Spotlight";
+                pinDoc.presMovement = PresMovement.None;
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
             const dview = CollectionDockingView.Instance.props.Document;

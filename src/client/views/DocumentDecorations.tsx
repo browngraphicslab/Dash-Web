@@ -62,7 +62,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
+        const boudns = SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
             !rect ? bounds :
                 {
                     x: Math.min(rect.left, bounds.x),
@@ -71,6 +71,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     b: Math.max(rect.bottom, bounds.b)
                 },
             { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return boudns;
     }
 
     titleBlur = action((commit: boolean) => {
@@ -275,7 +276,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
                     doc._height = (bottom - top);
                     doc._width = (right - left);
-
                 }
                 index++;
             }
@@ -559,7 +559,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         const canDelete = SelectionManager.Views().some(docView => {
             const collectionAcl = docView.props.ContainingCollectionView ? GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]) : AclEdit;
             const docAcl = GetEffectiveAcl(docView.props.Document);
-            return !docView.props.Document._stayInCollection && (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
+            return (!docView.props.Document._stayInCollection || docView.props.Document.isInkMask) &&
+                (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
         const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
         const closeIcon = !canDelete ? (null) : (

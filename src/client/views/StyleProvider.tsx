@@ -106,8 +106,9 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.FONTICON: docColor = docColor || (darkScheme() ? "black" : "#f7f7f7"); break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
                 case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
-                case DocumentType.INK: docColor = undefined; break;
+                case DocumentType.INK: docColor = doc?.isInkMask ? "rgba(0,0,0,0.7)" : undefined; break;
                 case DocumentType.SLIDER: break;
+                case DocumentType.LABEL: docColor = docColor || (doc?.audioStart !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:

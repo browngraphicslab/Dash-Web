@@ -66,6 +66,12 @@ export enum PresColor {
     SlideBackground = "#d5dce2",
 }
 
+export class PinProps {
+    audioRange?: boolean;
+    unpin?: boolean;
+    setPosition?: boolean;
+}
+
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
 
@@ -427,8 +433,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
             await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {
-            //awaiting jump so that new scale can be found, since jumping is async
-            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
+            //awaiting jump so that new scale can be found, since jumping is async     
+            await DocumentManager.Instance.jumpToDocument(targetDoc, true, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right    
         }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
@@ -437,6 +443,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.navigateToView(targetDoc, activeItem);
         }
         // TODO: Add progressivize for navigating web (storing websites for given frames)
+
     }
 
     /**
@@ -554,6 +561,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         this.next();
                     }
                 }
+
                 await timer(duration); this.next(); // then the created Promise can be awaited
                 if (i === this.childDocs.length - 1) {
                     setTimeout(() => {
@@ -727,7 +735,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     audio.presStartTime = NumCast(doc.audioStart);
                     audio.presEndTime = NumCast(doc.audioEnd);
                     audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
-                    TabDocView.PinDoc(audio, false, true);
+                    TabDocView.PinDoc(audio, { audioRange: true });
                     setTimeout(() => this.removeDocument(doc), 0);
                     return false;
                 }
@@ -784,11 +792,28 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //Regular click
     @action
-    selectElement = (doc: Doc) => {
+    selectElement = async (doc: Doc) => {
         const context = Cast(doc.context, Doc, null);
         this.gotoDocument(this.childDocs.indexOf(doc), this.activeItem);
         if (doc.presPinView || doc.presentationTargetDoc === this.layoutDoc.presCollection) setTimeout(() => this.updateCurrentPresentation(context), 0);
         else this.updateCurrentPresentation(context);
+
+        if (this.activeItem.setPosition &&
+            this.activeItem.y !== undefined &&
+            this.activeItem.x !== undefined &&
+            this.targetDoc.x !== undefined &&
+            this.targetDoc.y !== undefined) {
+            const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
+            const time = 10;
+            const ydiff = NumCast(this.activeItem.y) - NumCast(this.targetDoc.y);
+            const xdiff = NumCast(this.activeItem.x) - NumCast(this.targetDoc.x);
+
+            for (let i = 0; i < time; i++) {
+                this.targetDoc.x = NumCast(this.targetDoc.x) + xdiff / time;
+                this.targetDoc.y = NumCast(this.targetDoc.y) + ydiff / time;
+                await timer(0.1);
+            }
+        }
     }
 
     //Command click
@@ -1729,7 +1754,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const presData = Cast(this.rootDoc.data, listSpec(Doc));
             if (data && presData) {
                 data.push(doc);
-                TabDocView.PinDoc(doc, false);
+                TabDocView.PinDoc(doc);
                 this.gotoDocument(this.childDocs.length, this.activeItem);
             } else {
                 this.props.addDocTab(doc, "add:right");
