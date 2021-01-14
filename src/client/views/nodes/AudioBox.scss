@@ -277,13 +277,20 @@
                     }
                 }
 
-                .audiobox-marker-container1,
+                .audiobox-marker-timeline,
                 .audiobox-marker-minicontainer {
                     position: absolute;
                     width: 10px;
                     height: 90%;
                     top: 2.5%;
                     border-radius: 5px;
+
+                    .left-resizer {
+                        background: dimgrey;     
+                    }
+                    .resizer {
+                        background: dimgrey;
+                    }
 
                     .audiobox-marker {
                         position: relative;
@@ -325,7 +332,7 @@
                     }
                 }
 
-                .audiobox-marker-container1:hover,
+                .audiobox-marker-timeline:hover,
                 .audiobox-marker-minicontainer:hover {
                     opacity: 0.8;
                 }
