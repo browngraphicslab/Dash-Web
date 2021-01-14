@@ -196,7 +196,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinDoc.x = doc.x;
                 pinDoc.presHideAfter = true;
                 pinDoc.presHideBefore = true;
-                pinDoc.title = doc.title + "- Spotlight";
+                pinDoc.title = doc.title + " (move)";
                 pinDoc.presMovement = PresMovement.None;
             }
             if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
