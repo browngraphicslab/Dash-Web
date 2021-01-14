@@ -421,11 +421,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @action
     createMarker(audioStart: number, audioEnd?: number) {
         const marker = Docs.Create.LabelDocument({
-            title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: audioEnd === undefined,
+            title: ComputedField.MakeFunction(`"#" + formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any,
             useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
+            isLabel: audioEnd === undefined,
             _autoHeight: true, annotationOn: this.props.Document
         });
-        marker.data = ""; // clears out the label's text so that only its border will display
         if (this.dataDoc[this.annotationKey]) {
             this.dataDoc[this.annotationKey].push(marker);
         } else {
@@ -552,9 +552,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (property === StyleProp.PointerEvents) return "none";
         return this.props.styleProvider?.(doc, props, property);
     }
-    markerStyle = (doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string): any => {
-        return property.startsWith("backgroundColor") ? "dimgrey" : this.props.styleProvider?.(doc, props, property);
-    }
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
@@ -564,7 +561,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 PanelWidth={width ? () => width : this.props.PanelWidth}
                 PanelHeight={height ? () => height : this.props.PanelHeight}
                 focus={() => this.playLink(mark)}
-                styleProvider={this.markerStyle}
                 pointerEvents={"all"}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
