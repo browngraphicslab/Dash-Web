@@ -197,12 +197,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
                 if (startTime) {
                     link = true;
-                    this.layoutDoc.playOnSelect && this.recordingStart && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
+                    this.layoutDoc.playOnSelect && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
                 }
             }
         });
 
-        this.layoutDoc.playOnSelect && this.recordingStart && Doc.AreProtosEqual(doc, this.props.Document) && this.pause();
+        this.layoutDoc.playOnSelect && Doc.AreProtosEqual(doc, this.props.Document) && this.pause();
         return link;
     }
 
