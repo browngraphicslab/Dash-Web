@@ -52,7 +52,7 @@ export interface DocumentViewSharedProps {
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
-    setContentView?: (view: { getAnchor: () => Doc }) => any,
+    setContentView?: (view: { getAnchor: () => Doc }) => any;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -553,7 +553,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
         if (linkSource && linkSource !== this.props.Document) {
             e.stopPropagation();
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this.props.Document }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this._componentView?.getAnchor() || this.rootDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
         }
     }
 
@@ -693,7 +693,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    makeLink = () => this.props.DocumentView.LinkBeingCreated; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
     setContentView = (view: { getAnchor: () => Doc }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -722,15 +722,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         </div>;
     }
 
-    // used to decide whether a link anchor view should be created or not.
-    // if it's a temporal link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
-    // would be good to generalize this some way.
-    isNonTemporalLink = (linkDoc: Doc) => {
-        const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
-        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
-    }
-
     @undoBatch
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
@@ -745,7 +736,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
 
-        const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink(d));
+        const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
         return filtered.map((d, i) =>
             <div className="documentView-anchorCont" key={i + 1}>
                 <DocumentView {...this.props}

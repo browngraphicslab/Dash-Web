@@ -30,7 +30,6 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { computedFn } from "mobx-utils";
-import { ObservableValue } from "mobx/lib/internal";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -46,7 +45,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
     public static NUMBER_OF_BUCKETS = 100;
-    static playheadWidth = 30; // width of playhead 
+    static playheadWidth = 30; // width of playhead
     static heightPercent = 80; // height of timeline in percent of height of audioBox.
 
     static Instance: AudioBox;
@@ -104,60 +103,34 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
-        let linkTime = NumCast(l.anchor2_timecode);
+        let linkTime = NumCast(la2.audioStart, NumCast(la1.audioStart));
         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
-            linkTime = NumCast(l.anchor1_timecode);
         }
         return { la1, la2, linkTime };
     }
 
     componentWillUnmount() {
-        this._disposers.reaction?.();
-        this._disposers.linkPlay?.();
-        this._disposers.scrubbing?.();
-        this._disposers.audioStart?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
+        const ind = DocUtils.ActiveRecordings.indexOf(this);
+        ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     }
 
     getAnchor = () => {
-        return this._ele?.currentTime ? this.createMarker(this._ele?.currentTime) : this.rootDoc;
+        const time = this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined);
+        return time ? this.createMarker(time) : this.rootDoc;
     }
+
     @action
     componentDidMount() {
         if (!this.dataDoc.markerAmount) {
             this.dataDoc.markerAmount = 0;
         }
-        this.props.setContentView?.(this);
+        this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
 
         this.audioState = this.path ? "paused" : undefined;
-        this._disposers.linkPlay = reaction(() => this.layoutDoc.scrollToLinkID,
-            scrollLinkId => {
-                if (scrollLinkId) {
-                    this.links.filter(l => l[Id] === scrollLinkId).map(l => {
-                        const { linkTime } = this.getLinkData(l);
-                        setTimeout(() => { this.playFromTime(linkTime); Doc.linkFollowHighlight(l); }, 250);
-                    });
-                    Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
-                }
-            }, { fireImmediately: true });
 
-        // for play when link is selected
-        this._disposers.reaction = reaction(() => SelectionManager.Views(),
-            selected => {
-                const sel = selected.length ? selected[0].props.Document : undefined;
-                let link;
-                sel && this.links.forEach(l => {
-                    if (l.anchor1 === sel || l.anchor2 === sel && !sel.audioStart) {
-                        link = this.playLink(sel);
-                    }
-                });
-                // for links created during recording 
-                if (!link) {
-                    this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
-                    this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
-                }
-            });
         this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
 
         this._disposers.audioStart = reaction(
@@ -183,27 +156,18 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     playLink = (doc: Doc) => {
-        let link = false;
-        !Doc.AreProtosEqual(doc, this.props.Document) && this.links.forEach(l => {
-            if (l.anchor1 === doc || l.anchor2 === doc) {
-                const { la1, la2, linkTime } = this.getLinkData(l);
-                let startTime = linkTime;
-                if (la2.audioStart) startTime = NumCast(la2.audioStart);
-                if (la1.audioStart) startTime = NumCast(la1.audioStart);
-
-                let endTime;
-                if (la1.audioEnd) endTime = NumCast(la1.audioEnd);
-                if (la2.audioEnd) endTime = NumCast(la2.audioEnd);
-
-                if (startTime) {
-                    link = true;
-                    this.layoutDoc.playOnSelect && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
-                }
+        console.log(doc);
+        this.links.filter(l => l.anchor1 === doc || l.anchor2 === doc).forEach(l => {
+            const { la1, la2 } = this.getLinkData(l);
+            const startTime = NumCast(la1.audioStart, NumCast(la2.audioStart, null));
+            const endTime = NumCast(la1.audioEnd, NumCast(la2.audioEnd, null));
+            if (startTime !== undefined) {
+                this.layoutDoc.playOnSelect && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
             }
         });
-
-        this.layoutDoc.playOnSelect && Doc.AreProtosEqual(doc, this.props.Document) && this.pause();
-        return link;
+        if (doc.annotationOn === this.rootDoc) {
+            this.playFrom(NumCast(doc.audioStart), Cast(doc.audioEnd, "number", null));
+        }
     }
 
     // for updating the timecode
@@ -227,7 +191,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this.audioState = "paused";
     });
 
-    // play audio for documents created during recording 
+    // play audio for documents created during recording
     playFromTime = (absoluteTime: number) => {
         this.recordingStart && this.playFrom((absoluteTime - this.recordingStart) / 1000);
     }
@@ -292,7 +256,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this._recorder = new MediaRecorder(this._stream);
         this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-        DocUtils.ActiveRecordings.push(this.props.Document);
+        DocUtils.ActiveRecordings.push(this);
         this._recorder.ondataavailable = async (e: any) => {
             const [{ result }] = await Networking.UploadFilesToServer(e.data);
             if (!(result instanceof Error)) {
@@ -315,14 +279,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
-    // stops the recording 
+    // stops the recording
     stopRecording = action(() => {
         this._recorder.stop();
         this._recorder = undefined;
         this.dataDoc.duration = (new Date().getTime() - this._recordStart - this.pauseTime) / 1000;
         this.audioState = "paused";
         this._stream?.getAudioTracks()[0].stop();
-        const ind = DocUtils.ActiveRecordings.indexOf(this.props.Document);
+        const ind = DocUtils.ActiveRecordings.indexOf(this);
         ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     });
 
@@ -413,7 +377,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             this._ele!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
             wasPaused && this.pause();
 
-            this.props.select(false)
+            this.props.select(false);
             const toTimeline = (screen_delta: number) => screen_delta / rect.width * this.audioDuration;
             this._markerStart = this._markerEnd = toTimeline(e.clientX - rect.x);
             setupMoveUpEvents(this, e,
@@ -568,7 +532,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     rangePlayScript = () => AudioBox.RangePlayScript;
     labelPlayScript = () => AudioBox.LabelPlayScript;
     renderInner = computedFn(function (this: AudioBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
-        let marker = observable({ view: undefined as any });
+        const marker = observable({ view: undefined as any });
         return {
             marker, view: <DocumentView key="view" {...this.props} ref={action((r: DocumentView | null) => marker.view = r)}
                 Document={mark}
