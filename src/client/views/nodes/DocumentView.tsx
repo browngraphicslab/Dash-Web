@@ -416,7 +416,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     } else func();
                 };
                 if (this.onDoubleClickHandler) {
-                    this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 500);
+                    this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 350);
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");

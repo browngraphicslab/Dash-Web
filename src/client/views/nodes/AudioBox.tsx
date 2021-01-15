@@ -3,17 +3,17 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import axios from "axios";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
+import { computedFn } from "mobx-utils";
 import Waveform from "react-audio-waveform";
 import { DateField } from "../../../fields/DateField";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { Cast, DateCast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { emptyFunction, formatTime, numberRange, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, formatTime, numberRange, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -29,7 +29,6 @@ import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { computedFn } from "mobx-utils";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -47,7 +46,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     public static NUMBER_OF_BUCKETS = 100;
     static playheadWidth = 30; // width of playhead
     static heightPercent = 80; // height of timeline in percent of height of audioBox.
-
     static Instance: AudioBox;
     static RangeScript: ScriptField;
     static LabelScript: ScriptField;
@@ -65,29 +63,27 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _start: number = 0;
     _hold: boolean = false;
     _left: boolean = false;
-    _first: boolean = false;
     _dragging = false;
     _play: any = null;
-
-    _count: Array<any> = [];
     _audioRef = React.createRef<HTMLDivElement>();
     _timeline: Opt<HTMLDivElement>;
-    _duration = 0;
     _markerStart: number = 0;
     _currMarker: any;
 
-    @observable _selectRegionVisible: boolean = false;
+    @observable static SelectingRegion: AudioBox | undefined = undefined;
+    @observable static _scrubTime = 0;
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
     @observable _waveHeight: Opt<number> = this.layoutDoc._height;
-    @observable private _paused: boolean = false;
-    @observable private static _scrubTime = 0;
+    @observable _paused: boolean = false;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = action((timeInMillisFrom1970: number) => { AudioBox._scrubTime = 0; AudioBox._scrubTime = timeInMillisFrom1970; });
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     @computed get audioDuration() { return NumCast(this.dataDoc.duration); }
-    async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
+    @computed get markerDocs() { return DocListCast(this.dataDoc[this.annotationKey]); }
+    @computed get links() { return DocListCast(this.dataDoc.links); }
+    @computed get pauseTime() { return this._pauseEnd - this._pauseStart; } // total time paused to update the correct time
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
@@ -103,7 +99,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
-        let linkTime = NumCast(la2.audioStart, NumCast(la1.audioStart));
+        const linkTime = NumCast(la2.audioStart, NumCast(la1.audioStart));
         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
@@ -118,15 +114,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     getAnchor = () => {
-        const time = this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined);
-        return time ? this.createMarker(time) : this.rootDoc;
+        return this.createMarker(this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined));
     }
 
     @action
     componentDidMount() {
-        if (!this.dataDoc.markerAmount) {
-            this.dataDoc.markerAmount = 0;
-        }
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
 
         this.audioState = this.path ? "paused" : undefined;
@@ -156,7 +148,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     playLink = (doc: Doc) => {
-        console.log(doc);
         this.links.filter(l => l.anchor1 === doc || l.anchor2 === doc).forEach(l => {
             const { la1, la2 } = this.getLinkData(l);
             const startTime = NumCast(la1.audioStart, NumCast(la2.audioStart, null));
@@ -165,9 +156,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 this.layoutDoc.playOnSelect && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
             }
         });
-        if (doc.annotationOn === this.rootDoc) {
-            this.playFrom(NumCast(doc.audioStart), Cast(doc.audioEnd, "number", null));
-        }
+        doc.annotationOn === this.rootDoc && this.playFrom(NumCast(doc.audioStart), Cast(doc.audioEnd, "number", null));
     }
 
     // for updating the timecode
@@ -216,7 +205,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @action
     playFrom = (seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
         clearTimeout(this._play);
-        this._duration = endTime - seekTimeInSeconds;
         if (Number.isNaN(this._ele?.duration)) {
             setTimeout(() => this.playFrom(seekTimeInSeconds, endTime), 500);
         } else if (this._ele && AudioBox.Enabled) {
@@ -231,7 +219,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 this._ele.play();
                 runInAction(() => this.audioState = "playing");
                 if (endTime !== this.audioDuration) {
-                    this._play = setTimeout(() => this.pause(), (this._duration) * 1000); // use setTimeout to play a specific duration
+                    this._play = setTimeout(() => this.pause(), (endTime - seekTimeInSeconds) * 1000); // use setTimeout to play a specific duration
                 }
             } else {
                 this.pause();
@@ -350,7 +338,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._paused = true;
         this._recorder.pause();
         e.stopPropagation();
-
     }
 
     // continue the recording
@@ -360,29 +347,22 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._paused = false;
         this._recorder.resume();
         e.stopPropagation();
-
-    }
-
-    // return the total time paused to update the correct time
-    @computed get pauseTime() {
-        return this._pauseEnd - this._pauseStart;
     }
 
     // starting the drag event for marker resizing
     @action
     onPointerDownTimeline = (e: React.PointerEvent): void => {
         const rect = this._timeline?.getBoundingClientRect();// (e.target as any).getBoundingClientRect();
-        if (rect && e.target !== this._audioRef.current) {
+        if (rect && e.target !== this._audioRef.current && this.active()) {
             const wasPaused = this.audioState === "paused";
             this._ele!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
             wasPaused && this.pause();
 
-            this.props.select(false);
             const toTimeline = (screen_delta: number) => screen_delta / rect.width * this.audioDuration;
             this._markerStart = this._markerEnd = toTimeline(e.clientX - rect.x);
+            AudioBox.SelectingRegion = this;
             setupMoveUpEvents(this, e,
                 action(e => {
-                    this._selectRegionVisible = true;
                     this._markerEnd = toTimeline(e.clientX - rect.x);
                     if (this._markerEnd < this._markerStart) {
                         const tmp = this._markerStart;
@@ -392,16 +372,20 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     return false;
                 }),
                 action((e, movement) => {
-                    (Math.abs(movement[0]) > 15) && this.createMarker(this._markerStart, toTimeline(e.clientX - rect.x));
-                    this._selectRegionVisible = false;
+                    AudioBox.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createMarker(this._markerStart, toTimeline(e.clientX - rect.x));
+                    AudioBox.SelectingRegion = undefined;
                 }),
-                e => e.shiftKey && this.createMarker(this._ele!.currentTime)
-            );
+                e => {
+                    this.props.select(false);
+                    e.shiftKey && this.createMarker(this._ele!.currentTime);
+                }
+                , this.props.isSelected(true) || this._isChildActive);
         }
     }
 
     @action
-    createMarker(audioStart: number, audioEnd?: number) {
+    createMarker(audioStart?: number, audioEnd?: number) {
+        if (audioStart === undefined) return this.rootDoc;
         const marker = Docs.Create.LabelDocument({
             title: ComputedField.MakeFunction(`"#" + formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any,
             useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
@@ -448,55 +432,34 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return m1.audioStart === m2.audioStart && m1.audioEnd === m2.audioEnd;
     }
 
-    // instantiates a new array of size NUMBER_OF_BUCKETS for marker layout
-    markers = () => {
-        const increment = this.audioDuration / AudioBox.NUMBER_OF_BUCKETS;
-        this._count = [];
-        for (let i = 0; i < AudioBox.NUMBER_OF_BUCKETS; i++) {
-            this._count.push([increment * i, 0]);
-        }
-    }
-
     // makes sure no markers overlaps each other by setting the correct position and width
-    isOverlap = (m: any) => {
-        if (this._first) {
-            this._first = false;
-            this.markers();
-        }
-        let max = 0;
+    getLevel = (m: any, placed: { audioStart: number, audioEnd: number, level: number }[]) => {
         const timelineContentWidth = this.props.PanelWidth() - AudioBox.playheadWidth;
-        const audioEnd = m.audioEnd === undefined ? m.audioStart + 10 / timelineContentWidth * this.audioDuration : m.audioEnd;
-        for (let i = 0; i < AudioBox.NUMBER_OF_BUCKETS; i++) {
-            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= audioEnd) {
-                this._count[i][1]++;
-
-                if (this._count[i][1] > max) {
-                    max = this._count[i][1];
-                }
+        const x1 = m.audioStart;
+        const x2 = m.audioEnd === undefined ? m.audioStart + 10 / timelineContentWidth * this.audioDuration : m.audioEnd;
+        let max = 0;
+        const overlappedLevels = new Set(placed.map(p => {
+            const y1 = p.audioStart;
+            const y2 = p.audioEnd;
+            if ((x1 >= y1 && x1 <= y2) || (x2 >= y1 && x2 <= y2) ||
+                (y1 >= x1 && y1 <= x2) || (y2 >= x1 && y2 <= x2)) {
+                max = Math.max(max, p.level);
+                return p.level;
             }
-        }
+        }));
+        let level = max + 1;
+        for (let j = max; j >= 0; j--) !overlappedLevels.has(j) && (level = j);
 
-        for (let i = 0; i < AudioBox.NUMBER_OF_BUCKETS; i++) {
-            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= audioEnd) {
-                this._count[i][1] = max;
-            }
-        }
-
-        if (this.dataDoc.markerAmount < max) {
-            this.dataDoc.markerAmount = max;
-        }
-        return max - 1;
+        placed.push({ audioStart: x1, audioEnd: x2, level });
+        return level;
     }
 
     @computed get selectionContainer() {
-        return !this._selectRegionVisible ? (null) : <div className="audiobox-container" style={{
+        return AudioBox.SelectingRegion !== this ? (null) : <div className="audiobox-container" style={{
             left: `${NumCast(this._markerStart) / this.audioDuration * 100}%`,
             width: `${Math.abs(this._markerStart - this._markerEnd) / this.audioDuration * 100}%`, height: "100%", top: "0%"
         }} />;
     }
-
-    @computed get markerDocs() { return DocListCast(this.dataDoc[this.annotationKey]); }
-    @computed get links() { return DocListCast(this.dataDoc.links); }
 
     // returns the audio waveform
     @computed get waveform() {
@@ -544,7 +507,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 ContainingCollectionDoc={this.props.Document}
                 removeDocument={this.removeDocument}
                 ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x - 4, -y - 3)}
-                parentActive={returnTrue}
+                parentActive={(out) => this.props.isSelected(out) || this._isChildActive}
+                whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
                 onClick={script}
                 onDoubleClick={this.layoutDoc.playOnClick ? undefined : doublescript}
                 ignoreAutoHeight={false}
@@ -563,12 +527,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 </>}
         </>;
     });
+
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
-        this._first = true;  // for indicating the first marker that is rendered
-
         const timelineContentWidth = this.props.PanelWidth() - AudioBox.playheadWidth;
         const timelineContentHeight = (this.props.PanelHeight() * AudioBox.heightPercent / 100) * AudioBox.heightPercent / 100; // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
+        const overlaps: { audioStart: number, audioEnd: number, level: number }[] = [];
+        const drawMarkers = this.markerDocs.map((m, i) => ({ level: this.getLevel(m, overlaps), marker: m }));
+        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 1;
         return <div className="audiobox-container"
             onContextMenu={this.specificContextMenu}
             onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined}
@@ -593,7 +559,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             RECORD
                         </button>}
                 </div> :
-                <div className="audiobox-controls" >
+                <div className="audiobox-controls" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }} >
                     <div className="audiobox-dictation" />
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
                         <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
@@ -603,20 +569,20 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             <div className="waveform">
                                 {this.waveform}
                             </div>
-                            {this.markerDocs.map((m, i) => {
-                                const isOverlap = this.isOverlap(m);
+                            {drawMarkers.map((d, i) => {
+                                const m = d.marker;
                                 const left = NumCast(m.audioStart) / this.audioDuration * timelineContentWidth;
-                                const top = isOverlap / (this.dataDoc.markerAmount + 1) * timelineContentHeight;
+                                const top = d.level / maxLevel * timelineContentHeight;
                                 const timespan = m.audioEnd === undefined ? 10 / timelineContentWidth * this.audioDuration : NumCast(m.audioEnd) - NumCast(m.audioStart);
                                 return this.layoutDoc.hideMarkers ? (null) :
                                     <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={i}
-                                        style={{ left, top, width: `${timespan / this.audioDuration * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%` }}
+                                        style={{ left, top, width: `${timespan / this.audioDuration * 100}%`, height: `${1 / maxLevel * 100}%` }}
                                         onClick={e => { this.playFrom(NumCast(m.audioStart), Cast(m.audioEnd, "number", null)); e.stopPropagation(); }} >
                                         {this.renderMarker(m, this.rangeClickScript, this.rangePlayScript,
                                             left + AudioBox.playheadWidth,
                                             (1 - AudioBox.heightPercent / 100) / 2 * this.props.PanelHeight() + top,
                                             timelineContentWidth * timespan / this.audioDuration,
-                                            timelineContentHeight / (this.dataDoc.markerAmount + 1))}
+                                            timelineContentHeight / maxLevel)}
                                     </div>;
                             })}
                             {this.selectionContainer}
