@@ -7,7 +7,9 @@ import { Doc, Field, Opt } from "./Doc";
 import { Plugins, setter } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";
-import { Cast } from "./Types";
+import { Cast, NumCast } from "./Types";
+import { List } from "./List";
+import { numberRange } from "../Utils";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -188,12 +190,21 @@ export class ComputedField extends ScriptField {
         const compiled = ScriptField.CompileScript(script, params, true, capturedVariables);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }
-    public static MakeInterpolated(fieldKey: string, interpolatorKey: string) {
+    public static MakeInterpolated(fieldKey: string, interpolatorKey: string, doc: Doc, curTimecode: number) {
+        if (!doc[`${fieldKey}-indexed`]) {
+            const flist = new List<number>(numberRange(curTimecode + 1).map(i => undefined) as any as number[]);
+            flist[curTimecode] = NumCast(doc[fieldKey]);
+            doc[`${fieldKey}-indexed`] = flist;
+        }
         const getField = ScriptField.CompileScript(`getIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey})`, {}, true, {});
-        const setField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}] = value`, { value: "any" }, true, {});
+        const setField = ScriptField.CompileScript(`setIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey}, value)`, { value: "any" }, true, {});
         return getField.compiled ? new ComputedField(getField, setField?.compiled ? setField : undefined) : undefined;
     }
 }
+Scripting.addGlobal(function setIndexVal(list: any[], index: number, value: any) {
+    while (list.length <= index) list.push(undefined);
+    list[index] = value;
+}, "sets the value at a given index of a list", "(list: any[], index: number, value: any)");
 
 Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
     return list?.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);

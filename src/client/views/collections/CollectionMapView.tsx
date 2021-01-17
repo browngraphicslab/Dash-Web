@@ -1,16 +1,16 @@
-import { GoogleApiWrapper, Map as GeoMap, IMapProps, Marker } from "google-maps-react";
+import { GoogleApiWrapper, IMapProps, Map as GeoMap, Marker } from "google-maps-react";
+import { action, computed, Lambda, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, FieldResult, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { LinkManager } from "../../util/LinkManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
-import { DocumentManager } from "../../util/DocumentManager";
-import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { computed, runInAction, Lambda, action } from "mobx";
 import requestPromise = require("request-promise");
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
@@ -88,7 +88,7 @@ export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMap
             zoom && (this.layoutDoc[`${fieldKey}-mapCenter-zoom`] = zoom);
         });
         if (layout.isLinkButton && DocListCast(layout.links).length) {
-            await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
+            await LinkManager.traverseLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
                 this.props.addDocTab(doc, where);
                 finished?.();
             }, false, this.props.ContainingCollectionDoc, batch.end, undefined);

@@ -1,26 +1,27 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, runInAction, observable, trace } from "mobx";
+import { Tooltip } from "@material-ui/core";
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../../fields/Doc";
+import { DataSym, Doc, Opt } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, setupMoveUpEvents, lightOrDark } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
 import { ViewBoxBaseComponent } from '../DocComponent';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { EditableView } from "../EditableView";
+import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
+import { StyleProp } from "../StyleProvider";
 import "./PresElementBox.scss";
 import React = require("react");
-import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Tooltip } from "@material-ui/core";
-import { DragManager } from "../../util/DragManager";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { undoBatch } from "../../util/UndoManager";
-import { EditableView } from "../EditableView";
-import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -76,6 +77,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = (): number => this.props.PanelWidth() - 35;
+    styleProvider = (doc: (Doc | undefined), props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+        if (property === StyleProp.Opacity) return 1;
+        return this.props.styleProvider?.(doc, props, property);
+    }
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -83,12 +88,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get renderEmbeddedInline() {
         return !this.rootDoc.presExpandInlineButton || !this.targetDoc ? (null) :
             <div className="presItem-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
-                <ContentFittingDocumentView
+                <DocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
-                    LibraryPath={emptyPath}
-                    fitToBox={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.styleProvider}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -103,13 +106,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
                     bringToFront={returnFalse}
-                    opacity={returnOne}
                     docFilters={this.props.docFilters}
                     docRangeFilters={this.props.docRangeFilters}
                     searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
-                    ContentScaling={returnOne}
                 />
                 <div className="presItem-embeddedMask" />
             </div>;
@@ -323,7 +324,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>}
                 {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
                     style={{
-                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props.renderDepth, "color", this.props.layerProvider),
+                        backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
                     }}>
                     <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>

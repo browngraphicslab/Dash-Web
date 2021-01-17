@@ -12,7 +12,6 @@ import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
-import { getEffectiveTypeRoots } from "typescript";
 
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;

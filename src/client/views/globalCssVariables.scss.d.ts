@@ -10,6 +10,7 @@ interface IGlobalScss {
     SEARCH_PANEL_HEIGHT: string;
     DFLT_IMAGE_NATIVE_DIM: string;
     MENU_PANEL_WIDTH: string;
+    TREE_BULLET_WIDTH: string;
 }
 declare const globalCssVariables: IGlobalScss;
 

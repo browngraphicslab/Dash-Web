@@ -1,15 +1,14 @@
-import { computed, trace } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
+import { Utils } from "../../../../Utils";
+import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Utils, emptyFunction } from "../../../../Utils";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { SnappingManager } from "../../../util/SnappingManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
@@ -28,10 +27,8 @@ export class CollectionFreeFormLinksView extends React.Component {
             }
             return drawnPairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
-        return connections.filter(c =>
-            c.a.props.Document.type === DocumentType.LINK
-            && !c.a.props.treeViewDoc?.treeViewHideLinkLines && !c.b.props.treeViewDoc?.treeViewHideLinkLines
-        ).map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.filter(c => c.a.props.Document.type === DocumentType.LINK)
+            .map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {

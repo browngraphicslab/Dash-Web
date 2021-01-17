@@ -90,7 +90,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 
     @undoBatch
-    public static OpenFullScreen(doc: Doc, libraryPath?: Doc[]) {
+    public static OpenFullScreen(doc: Doc) {
         const instance = CollectionDockingView.Instance;
         if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
             return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);

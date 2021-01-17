@@ -7,11 +7,11 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { makeInterface } from '../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, returnOne, returnTrue, Utils } from '../../../Utils';
+import { emptyFunction, returnTrue, Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
-import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { DocumentView } from '../nodes/DocumentView';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
 import "./CollectionLinearView.scss";
 import { CollectionSubView } from './CollectionSubView';
@@ -137,19 +137,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 width: nested ? pair.layout[WidthSym]() : this.dimension(),
                                 height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension(),
                             }}  >
-                            <ContentFittingDocumentView
+                            <DocumentView
                                 Document={pair.layout}
                                 DataDoc={pair.data}
-                                LibraryPath={this.props.LibraryPath}
                                 addDocument={this.props.addDocument}
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={emptyFunction}
                                 rootSelected={this.props.isSelected}
                                 removeDocument={this.props.removeDocument}
-                                onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
-                                ContentScaling={returnOne}
                                 PanelWidth={nested ? pair.layout[WidthSym] : this.dimension}
                                 PanelHeight={nested ? pair.layout[HeightSym] : this.dimension}
                                 renderDepth={this.props.renderDepth + 1}

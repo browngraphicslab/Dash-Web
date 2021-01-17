@@ -26,6 +26,8 @@ import { List } from "../../../fields/List";
 import { DocumentView } from "./DocumentView";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
+import { Transform } from "../../util/Transform";
+import { StyleProp } from "../StyleProvider";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -58,6 +60,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     _first: boolean = false;
     _count: Array<any> = [];
     _duration = 0;
+    _start: boolean = true;
     private _currMarker: any;
     @observable _visible: boolean = false;
     @observable _markerEnd: number = 0;
@@ -91,6 +94,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     @action public Play = (update: boolean = true) => {
+        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
+        document.addEventListener("keydown", VideoBox.keyEventsWrapper, true);
         this._playing = true;
         try {
             update && this.player?.play();
@@ -212,7 +217,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
-        if (this.props.setVideoBox) this.props.setVideoBox(this);
         this._disposers.videoStart = reaction(
             () => this.Document._videoStart,
             (videoStart) => {
@@ -260,6 +264,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this._disposers.reactionDisposer?.();
         this._disposers.youtubeReactionDisposer?.();
         this._disposers.videoStart?.();
+        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
     }
 
     @action
@@ -610,10 +615,35 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }} />;
     }
 
+    static keyEventsWrapper = (e: KeyboardEvent) => {
+        VideoBox.Instance.keyEvents(e);
+    }
+
+    @action
+    keyEvents = (e: KeyboardEvent) => {
+        if (e.target instanceof HTMLInputElement) return;
+        if (!this._playing) return; // can't create if video is not playing
+        switch (e.key) {
+            case "x":
+                const currTime = this.player!.currentTime;
+                if (this._start) {
+                    this._markerStart = this.player!.currentTime;
+                    this._start = false;
+                    console.log("begin");
+                    this._visible = true;
+                } else {
+                    this.createMarker(this._markerStart, currTime);
+                    this._start = true;
+                    console.log("end");
+                    this._visible = false;
+                }
+        }
+    }
+
     rangeScript = () => VideoBox.RangeScript;
     labelScript = () => VideoBox.LabelScript;
 
-    @computed get contentScaling() { return this.props.ContentScaling(); }
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
@@ -632,37 +662,30 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 bringToFront={emptyFunction}
                 scriptContext={this} />;
         };
-        return <div className="videoBox" onContextMenu={this.specificContextMenu}
+        const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
+        const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
+        return (<div className="videoBox" onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.contentScaling})`,
-                width: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.contentScaling}%`,
+                width: "100%",
+                height: "100%",
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.contentScaling}px`
+                borderRadius
             }} >
             <div className="videoBox-viewer" >
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                     forceScaling={true}
-                    PanelHeight={this.props.PanelHeight}
-                    PanelWidth={this.props.PanelWidth}
-                    annotationsKey={this.annotationKey}
-                    focus={this.props.focus}
-                    isSelected={this.props.isSelected}
+                    fieldKey={this.annotationKey}
                     isAnnotationOverlay={true}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    ContentScaling={returnOne}
+                    scaling={returnOne}
+                    ScreenToLocalTransform={this.screenToLocalTransform}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}
                     addDocument={this.addDocumentWithTimestamp}
                     CollectionView={undefined}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                    renderDepth={this.props.renderDepth + 1}
-                    docFilters={this.props.docFilters}
-                    docRangeFilters={this.props.docRangeFilters}
-                    searchFilterDocs={this.props.searchFilterDocs}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                    renderDepth={this.props.renderDepth + 1}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>
@@ -707,7 +730,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.videoDuration * 100}%`, pointerEvents: "none" }} />
                 </div>}
 
-        </div >;
+        </div >);
     }
 }
 

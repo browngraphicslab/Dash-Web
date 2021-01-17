@@ -146,7 +146,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const onLayoutDoc = this.onLayoutDoc(key);
         (onLayoutDoc ? newDoc : newDoc[DataSym])[key] = this.getValue(this.props.heading);
         const docs = this.props.parent.childDocList;
-        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
+        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument?.(newDoc) || false;
     }
 
     deleteRow = undoBatch(action(() => {

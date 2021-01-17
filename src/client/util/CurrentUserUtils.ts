@@ -252,7 +252,7 @@ export class CurrentUserUtils {
             doc["template-note-Idea"] = new PrefetchProxy(noteView);
         }
         if (doc["template-note-Topic"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightBlue", system: true });
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightblue", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
             doc["template-note-Topic"] = new PrefetchProxy(noteView);
         }
@@ -801,7 +801,6 @@ export class CurrentUserUtils {
         }
     }
 
-
     static setupUserDoc(doc: Doc) {
         if (doc.myUserDoc === undefined) {
             doc.treeViewOpen = true;
@@ -911,7 +910,7 @@ export class CurrentUserUtils {
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
-            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
             doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, lockedPosition: true, system: true }));
         }
     }
@@ -1204,7 +1203,7 @@ Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
     if (copy) {
         CollectionDockingView.AddSplit(copy, "right");
         const view = DocumentManager.Instance.getFirstDocumentView(copy);
-        view && SelectionManager.SelectDoc(view, false);
+        view && SelectionManager.SelectView(view, false);
     }
 });
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },

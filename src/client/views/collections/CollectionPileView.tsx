@@ -36,11 +36,11 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
                 addDocument={undoBatch((doc: Doc | Doc[]) => {
                     (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
-                    return this.props.addDocument(doc);
+                    return this.props.addDocument?.(doc) || false;
                 })}
                 moveDocument={undoBatch((doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
                     (doc instanceof Doc ? [doc] : doc).map(undoBatch((d) => Doc.deiconifyView(d)));
-                    return this.props.moveDocument(doc, targetCollection, addDoc);
+                    return this.props.moveDocument?.(doc, targetCollection, addDoc) || false;
                 })} />
         </div>;
     }
@@ -91,7 +91,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
                     const doc = this.childDocs[0];
                     doc.x = e.clientX;
                     doc.y = e.clientY;
-                    this.props.addDocTab(doc, "inParent") && this.props.removeDocument(doc);
+                    this.props.addDocTab(doc, "inParent") && (this.props.removeDocument?.(doc) || false);
                     dist = 0;
                 }
             }

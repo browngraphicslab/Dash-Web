@@ -6,16 +6,15 @@ import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import wiki from "wikijs";
-import { Doc, DocCastAsync, Opt, DocListCast } from "../../../../fields/Doc";
+import { Doc, DocCastAsync, DocListCast, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, Utils } from "../../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { LinkManager } from "../../../util/LinkManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
-import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
 import { DocumentLinksButton } from "../DocumentLinksButton";
 import { DocumentView } from "../DocumentView";
 import { LinkDocPreview } from "../LinkDocPreview";
@@ -117,7 +116,7 @@ export class FormattedTextBoxComment {
                                 textBox.props.addDocTab(linkDoc, e.ctrlKey ? "add" : "add:right");
                             } else {
                                 const target = LinkManager.getOppositeAnchor(linkDoc, textBox.dataDoc);
-                                target && DocumentView.followLinkClick(linkDoc, textBox.dataDoc, textBox.props, e.shiftKey, e.altKey);
+                                target && LinkManager.FollowLink(linkDoc, textBox.dataDoc, textBox.props, e.altKey);
                             }
                         }
                     }
@@ -295,10 +294,8 @@ export class FormattedTextBoxComment {
                                         </div>
                                     </div>
                                     <div className="FormattedTextBoxComment-preview-wrapper">
-                                        <ContentFittingDocumentView
+                                        <DocumentView
                                             Document={target}
-                                            LibraryPath={emptyPath}
-                                            fitToBox={true}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}
                                             ScreenToLocalTransform={Transform.Identity}
@@ -319,7 +316,6 @@ export class FormattedTextBoxComment {
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
-                                            ContentScaling={returnOne}
                                             NativeWidth={Doc.NativeWidth(target) ? (() => Doc.NativeWidth(target)) : undefined}
                                             NativeHeight={Doc.NativeHeight(target) ? (() => Doc.NativeHeight(target)) : undefined}
                                         />
