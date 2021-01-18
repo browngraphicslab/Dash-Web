@@ -3,31 +3,26 @@ import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
-import { List } from "../../../fields/List";
 import { createSchema, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
-import { GetEffectiveAcl, TraceMobx } from "../../../fields/util";
+import { TraceMobx } from "../../../fields/util";
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, OmitKeys, smoothScroll, Utils } from "../../../Utils";
-import { Docs, DocUtils } from "../../documents/Documents";
-import { DocumentType } from "../../documents/DocumentTypes";
+import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SharingManager } from "../../util/SharingManager";
 import { SnappingManager } from "../../util/SnappingManager";
-import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
+import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { Annotation } from "./Annotation";
@@ -73,10 +68,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private Index: number = -1;
-    @observable private _marqueeX: number = 0;
-    @observable private _marqueeY: number = 0;
-    @observable private _marqueeWidth: number = 0;
-    @observable private _marqueeHeight: number = 0;
     @observable private _marqueeing: boolean = false;
     @observable private _showWaiting = true;
     @observable private _showCover = false;
@@ -92,8 +83,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
-    private _startX: number = 0;
-    private _startY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
     private _coverPath: any;
@@ -196,13 +185,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     copy = (e: ClipboardEvent) => {
-        if (this.props.active(true) && e.clipboardData) {
-            const annoDoc = this.makeAnnotationDocument("rgba(3,144,152,0.3)");  // copied text markup color (blueish)
-            if (annoDoc) {
-                e.clipboardData.setData("text/plain", this._selectionText);
-                e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
-                e.clipboardData.setData("dash/pdfRegion", annoDoc[Id]);
-            }
+        if (this.active() && e.clipboardData) {
+            //const annoDoc = this.makeAnnotationDocument("rgba(3,144,152,0.3)");  // copied text markup color (blueish)
+            //if (annoDoc) {
+            e.clipboardData.setData("text/plain", this._selectionText);
+            // e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
+            // e.clipboardData.setData("dash/pdfRegion", annoDoc[Id]);
+            //}
             e.preventDefault();
         }
     }
@@ -292,57 +281,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._pdfViewer.setDocument(this.props.pdf);
     }
 
-    @undoBatch
-    @action
-    makeAnnotationDocument = (color: string): Opt<Doc> => {
-        if (this._savedAnnotations.size() === 0) return undefined;
-        // let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
-        let mainAnnoDoc = Docs.Create.FreeformDocument([], { title: "anno", _width: 1, _height: 1 });
-        let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
-        const annoDocs: Doc[] = [];
-        let maxX = -Number.MAX_VALUE;
-        let minY = Number.MAX_VALUE;
-        if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
-            const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color.replace(/[0-9.]*\)/, ".3)"), title: "Annotation on " + this.Document.title });
-            if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
-            if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-            if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-            if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
-            annoDoc.group = mainAnnoDoc;
-            annoDocs.push(annoDoc);
-            anno.remove();
-            mainAnnoDoc = annoDoc;
-            mainAnnoDocProto.type = DocumentType.COL;
-            mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
-            mainAnnoDocProto.y = annoDoc.y;
-        } else {
-            this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
-                const annoDoc = new Doc();
-                if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
-                if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-                if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-                if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
-                annoDoc.group = mainAnnoDoc;
-                annoDoc.backgroundColor = color;
-                annoDocs.push(annoDoc);
-                anno.remove();
-                (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
-                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc._width), maxX));
-            }));
 
-            mainAnnoDocProto.y = Math.max(minY, 0);
-            mainAnnoDocProto.x = Math.max(maxX, 0);
-            mainAnnoDocProto.type = DocumentType.PDFANNO;
-            mainAnnoDocProto.text = this._selectionText;
-            mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
-        }
-        mainAnnoDocProto.title = "Annotation on " + this.Document.title;
-        mainAnnoDocProto.annotationOn = this.props.Document;
-        this._savedAnnotations.clear();
-        this.Index = -1;
-        return mainAnnoDoc;
-    }
     @action
     prevAnnotation = () => {
         this.Index = Math.max(this.Index - 1, 0);
@@ -400,25 +339,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         return index;
     }
 
-    @action
-    createAnnotation = (div: HTMLDivElement, page: number) => {
-        if (this._annotationLayer.current) {
-            if (div.style.top) {
-                div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
-            }
-            this._annotationLayer.current.append(div);
-            div.style.backgroundColor = "#ACCEF7";
-            div.style.opacity = "0.5";
-            const savedPage = this._savedAnnotations.getValue(page);
-            if (savedPage) {
-                savedPage.push(div);
-                this._savedAnnotations.setValue(page, savedPage);
-            }
-            else {
-                this._savedAnnotations.setValue(page, [div]);
-            }
-        }
-    }
 
     @action
     search = (searchString: string, fwd: boolean, clear: boolean = false) => {
@@ -448,7 +368,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
         }
-
     }
 
     @action
@@ -465,11 +384,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
-        this._marqueeing = false;
         if (!e.altKey && e.button === 0 && this.active(true)) {
             // clear out old marquees and initialize menu for new selection
-            PDFMenu.Instance.StartDrag = this.startDrag;
-            PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
@@ -477,14 +393,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             if (e.target && (e.target as any).parentElement.className === "textLayer") {
                 // start selecting text if mouse down on textLayer spans
             }
-            else if (this._mainCont.current) {
-                // set marquee x and y positions to the spatially transformed position
-                const boundingRect = this._mainCont.current.getBoundingClientRect();
-                this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
-                this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
-                this._marqueeHeight = this._marqueeWidth = 0;
-                this._marqueeing = true;
-            }
+            else this._marqueeing = true;
             document.addEventListener("pointermove", this.onSelectMove);
             document.addEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.removeStyle, true);
@@ -497,21 +406,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onSelectMove = (e: PointerEvent): void => {
-        if (this._marqueeing && this._mainCont.current) {
-            // transform positions and find the width and height to set the marquee to
-            const boundingRect = this._mainCont.current.getBoundingClientRect();
-            this._marqueeWidth = ((e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width)) - this._startX;
-            this._marqueeHeight = ((e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height)) - this._startY + this._mainCont.current.scrollTop;
-            this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
-            this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
-            this._marqueeWidth = Math.abs(this._marqueeWidth);
-            this._marqueeHeight = Math.abs(this._marqueeHeight);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        else if (e.target && (e.target as any).parentElement === this._mainCont.current) {
-            e.stopPropagation();
-        }
+        if (e.target && (e.target as any).parentElement === this._mainCont.current) e.stopPropagation();
     }
 
     @action
@@ -522,17 +417,16 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             for (let i = 0; i < clientRects.length; i++) {
                 const rect = clientRects.item(i);
                 if (rect) {
-                    const scaleY = this._mainCont.current.offsetHeight / boundingRect.height;
                     const scaleX = this._mainCont.current.offsetWidth / boundingRect.width;
                     if (rect.width !== this._mainCont.current.clientWidth) {
                         const annoBox = document.createElement("div");
-                        annoBox.className = "pdfViewerDash-annotationBox";
+                        annoBox.className = "marqueeAnnotator-annotationBox";
                         // transforms the positions from screen onto the pdf div
                         annoBox.style.top = ((rect.top - boundingRect.top) * scaleX / this._zoomed + this._mainCont.current.scrollTop).toString();
                         annoBox.style.left = ((rect.left - boundingRect.left) * scaleX / this._zoomed).toString();
                         annoBox.style.width = (rect.width * this._mainCont.current.offsetWidth / boundingRect.width / this._zoomed).toString();
                         annoBox.style.height = (rect.height * this._mainCont.current.offsetHeight / boundingRect.height / this._zoomed).toString();
-                        this.createAnnotation(annoBox, this.getPageFromScroll(rect.top));
+                        this._annotationLayer.current && MarqueeAnnotator.previewNewAnnotation(this._savedAnnotations, this._annotationLayer.current, annoBox, this.getPageFromScroll(rect.top));
                     }
                 }
             }
@@ -548,115 +442,37 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
+    finishMarquee = () => { this._marqueeing = false; }
+
+    @action
     onSelectEnd = (e: PointerEvent): void => {
         clearStyleSheetRules(PDFViewer._annotationStyle);
         this.props.select(false);
         this._savedAnnotations.clear();
-        if (this._marqueeing) {
-            if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
-                const marquees = this._mainCont.current!.getElementsByClassName("pdfViewerDash-dragAnnotationBox");
-                if (marquees?.length) { // copy the marquee and convert it to a permanent annotation.
-                    const style = (marquees[0] as HTMLDivElement).style;
-                    const copy = document.createElement("div");
-                    copy.style.left = style.left;
-                    copy.style.top = style.top;
-                    copy.style.width = style.width;
-                    copy.style.height = style.height;
-                    copy.style.border = style.border;
-                    copy.style.opacity = style.opacity;
-                    (copy as any).marqueeing = true;
-                    copy.className = "pdfViewerDash-annotationBox";
-                    this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
-                }
-
-                if (!e.ctrlKey) {
-                    PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
-                }
-                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
-            }
-            this._marqueeing = false;
-        }
-        else {
-            const sel = window.getSelection();
-            if (sel?.type === "Range") {
-                const selRange = sel.getRangeAt(0);
-                this.createTextAnnotation(sel, selRange);
-                PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
-            }
-        }
-
-        if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
-            this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
-        }
-        else {
-            PDFMenu.Instance.StartDrag = this.startDrag;
-            PDFMenu.Instance.Highlight = this.highlight;
-        }
         document.removeEventListener("pointermove", this.onSelectMove);
         document.removeEventListener("pointerup", this.onSelectEnd);
-    }
 
-    @action
-    highlight = (color: string) => {
-        // creates annotation documents for current highlights
-        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
-        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
-        annotationDoc && this.addDocument?.(annotationDoc);
-        return annotationDoc as Doc ?? undefined;
-    }
-
-    /**
-     * This is temporary for creating annotations from highlights. It will
-     * start a drag event and create or put the necessary info into the drag event.
-     */
-    @action
-    startDrag = async (e: PointerEvent, ele: HTMLElement) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const clipDoc = Doc.MakeAlias(this.dataDoc);
-        clipDoc._fitWidth = true;
-        clipDoc._width = this.marqueeWidth();
-        clipDoc._height = this.marqueeHeight();
-        clipDoc._scrollTop = this.marqueeY();
-        const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.Document.title, 0, 0, 100, 100);
-        FormattedTextBox.SelectOnLoad = targetDoc[Id];
-        Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
-        clipDoc.rootDocument = targetDoc;
-        // DocUtils.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
-        // targetDoc.layoutKey = "layout";
-        // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
-        // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
-        // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
-        // Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
-        const annotationDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
-        if (annotationDoc) {
-            DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
-                dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && !e.linkDocument) {
-                        e.linkDocument = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                    }
-                    annotationDoc.isLinkButton = true; // prevents link button fro showing up --- maybe not a good thing?
-                    annotationDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.Document;
-                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument above
-                }
-            });
+        const sel = window.getSelection();
+        if (sel?.type === "Range") {
+            const selRange = sel.getRangeAt(0);
+            this.createTextAnnotation(sel, selRange);
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
         }
     }
 
     scrollXf = () => {
         return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this.layoutDoc._scrollTop || 0) : this.props.ScreenToLocalTransform();
     }
+
     onClick = (e: React.MouseEvent) => {
-        this._setPreviewCursor &&
-            e.button === 0 &&
+        if (this._setPreviewCursor && e.button === 0 &&
             Math.abs(e.clientX - this._downX) < 3 &&
-            Math.abs(e.clientY - this._downY) < 3 &&
+            Math.abs(e.clientY - this._downY) < 3) {
             this._setPreviewCursor(e.clientX, e.clientY, false);
+        }
     }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
-
 
     getCoverImage = () => {
         if (!this.props.Document[HeightSym]() || !Doc.NativeHeight(this.props.Document)) {
@@ -745,11 +561,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {this._showWaiting ? <img className="pdfViewerDash-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
         </>;
     }
-    marqueeWidth = () => this._marqueeWidth;
-    marqueeHeight = () => this._marqueeHeight;
-    marqueeX = () => this._marqueeX;
-    marqueeY = () => this._marqueeY;
-    marqueeing = () => this._marqueeing;
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
@@ -766,29 +577,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {this.overlayLayer}
             {this.overlayInfo}
             {this.standinViews}
-            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
+            {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
+                <MarqueeAnnotator rootDoc={this.rootDoc} addDocument={this.addDocument} finishMarquee={this.finishMarquee} getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} clientX={this._downX} clientY={this._downY} mainCont={this._mainCont.current} />}
         </div >;
-    }
-}
-
-export interface PdfViewerMarqueeProps {
-    isMarqueeing: () => boolean;
-    width: () => number;
-    height: () => number;
-    x: () => number;
-    y: () => number;
-}
-
-@observer
-export class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
-    render() {
-        return !this.props.isMarqueeing() ? (null) : <div className="pdfViewerDash-dragAnnotationBox"
-            style={{
-                left: `${this.props.x()}px`, top: `${this.props.y()}px`,
-                width: `${this.props.width()}px`, height: `${this.props.height()}px`,
-                border: `${this.props.width() === 0 ? "" : "2px dashed black"}`,
-                opacity: 0.2
-            }}>
-        </div>;
     }
 }
