@@ -75,8 +75,8 @@
             width: 130;
             color: black;
             border-radius: 5px;
-            padding:7px;
-            
+            padding: 7px;
+
         }
     }
 
@@ -169,7 +169,7 @@
     }
 }
 
-.prefs-content{
+.prefs-content {
     text-align: left;
 }
 
@@ -210,6 +210,7 @@
         .preferences-font-controls {
             display: flex;
             justify-content: space-between;
+            width: 130%;
         }
 
         .font-select {
@@ -429,11 +430,12 @@
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 16px;
-       }
+        }
 
-       .tab-column-title, .tab-column-content {
-           padding-left: 16px;
-       }
+        .tab-column-title,
+        .tab-column-content {
+            padding-left: 16px;
+        }
 
     }
 

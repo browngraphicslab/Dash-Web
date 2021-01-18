@@ -60,6 +60,13 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_")) || noviceFields.includes(key) || !Doc.UserDoc().noviceMode).sort();
     }
 
+    /**
+     * The current attributes selected to filter based on
+     */
+    @computed get activeAttributes() {
+        return DocListCast(this.dataDoc[this.props.fieldKey]);
+    }
+
     gatherFieldValues(dashboard: Doc, facetKey: string) {
         const childDocs = DocListCast((dashboard.data as any)[0].data);
         const valueSet = new Set<string>();
@@ -97,7 +104,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      */
     facetClick = (facetHeader: string) => {
         const targetDoc = CollectionDockingView.Instance.props.Document;
-        const found = DocListCast(this.dataDoc[this.props.fieldKey]).findIndex(doc => doc.title === facetHeader);
+        const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
             const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
@@ -209,6 +216,9 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             </label>)}
         </div>;
 
+        const attributes = this.activeAttributes;
+
+        // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
         const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
