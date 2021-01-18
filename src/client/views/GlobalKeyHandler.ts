@@ -28,6 +28,7 @@ import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
 import { DocumentView } from "./nodes/DocumentView";
 import { SettingsManager } from "../util/SettingsManager";
+import { AudioBox } from "./nodes/AudioBox";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -122,6 +123,9 @@ export class KeyManager {
                     DragManager.AbortDrag();
                 } else if (CollectionDockingView.Instance.HasFullScreen) {
                     CollectionDockingView.Instance.CloseFullScreen();
+                } else if (AudioBox.SelectingRegion) {
+                    AudioBox.SelectingRegion = undefined;
+                    doDeselect = false;
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
                 }

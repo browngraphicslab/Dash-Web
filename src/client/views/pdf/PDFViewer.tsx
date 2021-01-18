@@ -713,7 +713,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 mixBlendMode: this.allAnnotations.some(anno => anno.mixBlendMode) ? "hard-light" : undefined,
                 transform: `scale(${this._zoomed})`
             }}>
-            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                 isAnnotationOverlay={true}
                 fieldKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}

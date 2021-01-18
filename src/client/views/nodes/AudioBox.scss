@@ -4,7 +4,6 @@
     height: 100%;
     position: inherit;
     display: flex;
-    pointer-events: all;
     position: relative;
     cursor: default;
 
@@ -277,16 +276,20 @@
                     }
                 }
 
-                .audiobox-marker-container1,
+                .audiobox-marker-timeline,
                 .audiobox-marker-minicontainer {
                     position: absolute;
                     width: 10px;
                     height: 90%;
                     top: 2.5%;
-                    background: gray;
                     border-radius: 5px;
-                    box-shadow: black 2px 2px 1px;
-                    opacity: 0.3;
+
+                    .left-resizer {
+                        background: dimgrey;     
+                    }
+                    .resizer {
+                        background: dimgrey;
+                    }
 
                     .audiobox-marker {
                         position: relative;
@@ -300,10 +303,12 @@
 
                     .resizer {
                         position: absolute;
+                        top: 0;
                         right: 0;
+                        pointer-events: all;
                         cursor: ew-resize;
                         height: 100%;
-                        width: 2px;
+                        width: 10px;
                         z-index: 100;
                     }
 
@@ -317,14 +322,16 @@
                     .left-resizer {
                         position: absolute;
                         left: 0;
+                        top : 0;
+                        pointer-events: all;
                         cursor: ew-resize;
                         height: 100%;
-                        width: 2px;
+                        width: 10px;
                         z-index: 100;
                     }
                 }
 
-                .audiobox-marker-container1:hover,
+                .audiobox-marker-timeline:hover,
                 .audiobox-marker-minicontainer:hover {
                     opacity: 0.8;
                 }

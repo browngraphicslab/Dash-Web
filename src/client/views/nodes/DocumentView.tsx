@@ -29,6 +29,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
+import { InkingStroke } from "../InkingStroke";
 import { InkStrokeProperties } from '../InkStrokeProperties';
 import { StyleLayers, StyleProp } from "../StyleProvider";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
@@ -54,6 +55,7 @@ export interface DocumentViewSharedProps {
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    setContentView?: (view: { getAnchor: () => Doc }) => any;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -380,14 +382,16 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         const func = () => this.onDoubleClickHandler.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
+                            scriptContext: this.props.scriptContext,
                             thisContainer: this.props.ContainingCollectionDoc,
+                            documentView: this.props.DocumentView,
                             shiftKey: e.shiftKey
                         }, console.log);
                         undoBatch(func)();
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type === DocumentType.INK) {
                             InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
-                        } else {
+                        } else if (this.props.Document.type !== DocumentType.LABEL) {
                             UndoManager.RunInBatch(() => {
                                 const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
                                 this.props.addDocTab(fullScreenDoc, "add");
@@ -415,7 +419,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     } else func();
                 };
                 if (this.onDoubleClickHandler) {
-                    this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 500);
+                    this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 350);
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
@@ -552,7 +556,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
         if (linkSource && linkSource !== this.props.Document) {
             e.stopPropagation();
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this.props.Document }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this._componentView?.getAnchor() || this.rootDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
         }
     }
 
@@ -692,10 +696,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    makeLink = () => this.props.DocumentView._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    makeLink = () => this.props.DocumentView.LinkBeingCreated; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+    setContentView = (view: { getAnchor: () => Doc }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
-
+    _componentView: { getAnchor: () => Doc } | undefined;
     @computed get contents() {
         TraceMobx();
         return <div className="documentView-contentsView"
@@ -704,6 +709,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
             }}>
             <DocumentContentsView key={1} {...this.props}
+                setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
                 contentsActive={this.setContentsActive}
@@ -735,15 +741,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         else return "user";
     }
 
-    // used to decide whether a link anchor view should be created or not.
-    // if it's a temporal link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
-    // would be good to generalize this some way.
-    isNonTemporalLink = (linkDoc: Doc) => {
-        const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
-        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
-    }
-
     @undoBatch
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
@@ -758,7 +755,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
 
-        const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink(d));
+        const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
         return filtered.map((d, i) =>
             <div className="documentView-anchorCont" key={i + 1}>
                 <DocumentView {...this.props}
@@ -984,9 +981,10 @@ export class DocumentView extends React.Component<DocumentViewProps> {
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
+                        position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
-                        height: Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
+                        height: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                     }}>
                     <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}

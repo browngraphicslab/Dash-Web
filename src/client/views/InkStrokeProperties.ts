@@ -14,6 +14,7 @@ export class InkStrokeProperties {
     private _lastFill = "#D0021B";
     private _lastLine = "#D0021B";
     private _lastDash = "2";
+    private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
 
     @observable _lock = false;
     @observable _controlBtn = false;
@@ -205,45 +206,42 @@ export class InkStrokeProperties {
                 if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                     const ink = Cast(doc.data, InkField)?.inkData;
                     if (ink) {
-
                         const newPoints: { X: number, Y: number }[] = [];
                         const order = controlNum % 4;
                         for (var i = 0; i < ink.length; i++) {
-                            if (controlNum === i ||
-                                (order === 0 && i === controlNum + 1) ||
-                                (order === 0 && controlNum !== 0 && i === controlNum - 2) ||
-                                (order === 0 && controlNum !== 0 && i === controlNum - 1) ||
-                                (order === 3 && i === controlNum - 1) ||
-                                (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 1) ||
-                                (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2)
-                                || ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
-                            ) {
-                                newPoints.push({ X: ink[i].X - (xDiff * inkView.props.ScreenToLocalTransform().Scale), Y: ink[i].Y - (yDiff * inkView.props.ScreenToLocalTransform().Scale) });
-                            }
-                            else {
-                                newPoints.push({ X: ink[i].X, Y: ink[i].Y });
-                            }
+                            newPoints.push(
+                                (controlNum === i ||
+                                    (order === 0 && i === controlNum + 1) ||
+                                    (order === 0 && controlNum !== 0 && i === controlNum - 2) ||
+                                    (order === 0 && controlNum !== 0 && i === controlNum - 1) ||
+                                    (order === 3 && i === controlNum - 1) ||
+                                    (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 1) ||
+                                    (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2) ||
+                                    ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
+                                ) ?
+                                    { X: ink[i].X - xDiff, Y: ink[i].Y - yDiff } :
+                                    { X: ink[i].X, Y: ink[i].Y });
                         }
                         const oldx = doc.x;
                         const oldy = doc.y;
-                        const xs = ink.map(p => p.X);
-                        const ys = ink.map(p => p.Y);
-                        const left = Math.min(...xs);
-                        const top = Math.min(...ys);
+                        const oldxs = ink.map(p => p.X);
+                        const oldys = ink.map(p => p.Y);
+                        const oldleft = Math.min(...oldxs);
+                        const oldtop = Math.min(...oldys);
                         Doc.GetProto(doc).data = new InkField(newPoints);
-                        const xs2 = newPoints.map(p => p.X);
-                        const ys2 = newPoints.map(p => p.Y);
-                        const left2 = Math.min(...xs2);
-                        const top2 = Math.min(...ys2);
-                        const right2 = Math.max(...xs2);
-                        const bottom2 = Math.max(...ys2);
-                        doc._height = (bottom2 - top2);
-                        doc._width = (right2 - left2);
+                        const newxs = newPoints.map(p => p.X);
+                        const newys = newPoints.map(p => p.Y);
+                        const newleft = Math.min(...newxs);
+                        const newtop = Math.min(...newys);
+                        const newright = Math.max(...newxs);
+                        const newbottom = Math.max(...newys);
+
                         //if points move out of bounds
+                        doc._height = (newbottom - newtop) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc._width = (newright - newleft) * inkView.props.ScreenToLocalTransform().Scale;
 
-                        doc.x = oldx - (left - left2);
-                        doc.y = oldy - (top - top2);
-
+                        doc.x = oldx - (oldleft - newleft) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc.y = oldy - (oldtop - newtop) * inkView.props.ScreenToLocalTransform().Scale;
                     }
                 }
             }

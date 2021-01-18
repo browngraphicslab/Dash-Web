@@ -379,7 +379,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const expandKey = this.treeViewExpandedView;
         if (["links", "annotations", this.fieldKey].includes(expandKey)) {
-            const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
+            const key = expandKey === "annotations" ? this.fieldKey + "-annotations" : expandKey;
+            const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
             const localAdd = (doc: Doc, addBefore?: Doc, before?: boolean) => {
                 // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
                 // then the modification would be done here
@@ -391,7 +392,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1);
                     docs.forEach((d, i) => d.zIndex = i);
                 }
-                const added = Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
+                const added = Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 added && (doc.context = this.doc.context);
                 return added;
             };

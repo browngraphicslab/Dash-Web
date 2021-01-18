@@ -529,15 +529,16 @@ export namespace DragManager {
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
-            dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
+            const complete = new DragCompleteEvent(false, dragData);
+            dispatchDrag(eles, e, complete, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
+            options?.dragComplete?.(complete);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
     }
 
-    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any },
+    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, complete: DragCompleteEvent,
         xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
         const removed = dragEles.map(dragEle => {
             const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height, o: dragEle.style.overflow };
@@ -558,7 +559,6 @@ export namespace DragManager {
         });
         const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
         if (target) {
-            const complete = new DragCompleteEvent(false, dragData);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashPreDrop", {
                     bubbles: true,

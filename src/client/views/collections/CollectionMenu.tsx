@@ -389,7 +389,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
             <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderLeft: "1px solid gray" }}
-                onClick={e => TabDocView.PinDoc(targetDoc, isPinned)}>
+                onClick={e => TabDocView.PinDoc(targetDoc, { unpin: isPinned })}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
             </button>
         </Tooltip>;
@@ -399,7 +399,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @action
     pinWithView = (targetDoc: Opt<Doc>) => {
         if (targetDoc) {
-            TabDocView.PinDoc(targetDoc, false);
+            TabDocView.PinDoc(targetDoc);
             const presArray: Doc[] = PresBox.Instance?.sortArray();
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
