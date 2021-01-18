@@ -484,13 +484,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @undoBatch
     @action
     makeAnnotationDocument = (color: string): Opt<Doc> => {
+        const scale = this.props.scaling?.() || 1;
         if (this._savedAnnotations.size() === 0) return undefined;
         const anno = this._savedAnnotations.values()[0][0];
         const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.Document, title: "Annotation on " + this.Document.title });
-        if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
-        if (anno.style.top) annoDoc.y = NumCast(this.layoutDoc._scrollTop) + parseInt(anno.style.top);
-        if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-        if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
+        if (anno.style.left) annoDoc.x = parseInt(anno.style.left) / scale;
+        if (anno.style.top) annoDoc.y = (NumCast(this.layoutDoc._scrollTop) + parseInt(anno.style.top)) / scale;
+        if (anno.style.height) annoDoc._height = parseInt(anno.style.height) / scale;
+        if (anno.style.width) annoDoc._width = parseInt(anno.style.width) / scale;
         anno.remove();
         this._savedAnnotations.clear();
         return annoDoc;
@@ -575,8 +576,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 const nwidth = Doc.NativeWidth(this.Document) || 1;
                 const boundingRect = this._mainCont.current.getBoundingClientRect();
                 const boundingHeight = nheight / nwidth * boundingRect.width;
-                this._startX = (e.clientX - boundingRect.left) / boundingRect.width * nwidth;
-                this._startY = (e.clientY - boundingRect.top) / boundingHeight * nheight;
+                this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
+                this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
@@ -591,11 +592,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (this._marqueeing && this._mainCont.current) {
             // transform positions and find the width and height to set the marquee to
             const boundingRect = this._mainCont.current.getBoundingClientRect();
-            const boundingHeight = (Doc.NativeHeight(this.Document) || 1) / (Doc.NativeWidth(this.Document) || 1) * boundingRect.width;
-            const curX = (e.clientX - boundingRect.left) / boundingRect.width * (Doc.NativeWidth(this.Document) || 1);
-            const curY = (e.clientY - boundingRect.top) / boundingHeight * (Doc.NativeHeight(this.Document) || 1);
-            this._marqueeWidth = curX - this._startX;
-            this._marqueeHeight = curY - this._startY;
+            this._marqueeWidth = ((e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width)) - this._startX;
+            this._marqueeHeight = ((e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height)) - this._startY + this._mainCont.current.scrollTop;
             this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
             this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
             this._marqueeWidth = Math.abs(this._marqueeWidth);
@@ -709,7 +707,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.annotationLayer}
                 <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
             </div >
-
             {this.props.isSelected() ? this.editToggleBtn() : null}
         </div>);
     }
