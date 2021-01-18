@@ -458,7 +458,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return (<>
             <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
                 style={{
-                    width: `${100 / scale}%`,
+                    width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || `${100 / scale}%`,
                     height: `${100 / scale}%`,
                     transform: `scale(${scale})`
                 }}
@@ -572,18 +572,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }
             else if (this._mainCont.current) {
                 // set marquee x and y positions to the spatially transformed position
-                const nheight = Doc.NativeHeight(this.Document) || 1;
-                const nwidth = Doc.NativeWidth(this.Document) || 1;
                 const boundingRect = this._mainCont.current.getBoundingClientRect();
-                const boundingHeight = nheight / nwidth * boundingRect.width;
                 this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (this._mainCont.current.offsetWidth / boundingRect.width);
                 this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (this._mainCont.current.offsetHeight / boundingRect.height) + this._mainCont.current.scrollTop;
                 this._marqueeHeight = this._marqueeWidth = 0;
                 this._marqueeing = true;
             }
-            document.removeEventListener("pointermove", this.onSelectMove);
             document.addEventListener("pointermove", this.onSelectMove);
-            document.removeEventListener("pointerup", this.onSelectEnd);
             document.addEventListener("pointerup", this.onSelectEnd);
         }
     }
