@@ -220,7 +220,7 @@ export class InkStrokeProperties {
                                     ((ink[0].X === ink[ink.length - 1].X) && (ink[0].Y === ink[ink.length - 1].Y) && (i === 0 || i === ink.length - 1) && (controlNum === 0 || controlNum === ink.length - 1))
                                 ) ?
                                     { X: ink[i].X - xDiff, Y: ink[i].Y - yDiff } :
-                                    { X: ink[i].X, Y: ink[i].Y })
+                                    { X: ink[i].X, Y: ink[i].Y });
                         }
                         const oldx = doc.x;
                         const oldy = doc.y;

@@ -569,7 +569,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
                 </div></Tooltip>);
 
-        const openIcon = !canOpen ? (null) : <Tooltip title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
+        const openIcon = !canOpen ? (null) : <Tooltip key="open" title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
             {SelectionManager.Views().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
         </div>
         </Tooltip>;
@@ -613,31 +613,35 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 }}>
                     {closeIcon}
                     {bounds.r - bounds.x < 100 ? null : titleArea}
-                    {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                        <Tooltip title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
-                            <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
-                                <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
-                            </div>
-                        </Tooltip>}
-                    {openIcon}
-                    <div className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-leftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-centerCont"></div>
-                    <div className="documentDecorations-rightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-bottomLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-bottomResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    <div className="documentDecorations-bottomRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
-                    {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                        <Tooltip title={<div className="dash-tooltip">tap to select containing document</div>} placement="top">
-                            <div className="documentDecorations-levelSelector"
-                                onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                                <FontAwesomeIcon className="documentdecorations-times" icon={"arrow-alt-circle-up"} size="lg" />
-                            </div></Tooltip>}
-                    <div className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
-                        onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
+                    {(seldoc.rootDoc.annotationOn as Doc)?.type === DocumentType.AUDIO ? (null) :
+                        <>
+                            {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
+                                <Tooltip key="i" title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
+                                    <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
+                                        <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
+                                    </div>
+                                </Tooltip>}
+                            {openIcon}
+                            <div key="tl" className="documentDecorations-topLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="t" className="documentDecorations-topResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="tr" className="documentDecorations-topRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="l" className="documentDecorations-leftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="c" className="documentDecorations-centerCont"></div>
+                            <div key="r" className="documentDecorations-rightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="bl" className="documentDecorations-bottomLeftResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="b" className="documentDecorations-bottomResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
+                            <div key="br" className="documentDecorations-bottomRightResizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()} />
 
+                            {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
+                                <Tooltip key="level" title={<div className="dash-tooltip">tap to select containing document</div>} placement="top">
+                                    <div className="documentDecorations-levelSelector"
+                                        onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
+                                        <FontAwesomeIcon className="documentdecorations-times" icon={"arrow-alt-circle-up"} size="lg" />
+                                    </div></Tooltip>}
+                        </>
+                    }
+                    <div key="rot" className={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
+                        onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
                 </div >
                 {seldoc?.Document.type === DocumentType.FONTICON ? (null) : <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                     <DocumentButtonBar views={SelectionManager.Views} />

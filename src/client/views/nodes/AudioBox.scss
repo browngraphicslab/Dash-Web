@@ -4,7 +4,6 @@
     height: 100%;
     position: inherit;
     display: flex;
-    pointer-events: all;
     position: relative;
     cursor: default;
 
@@ -277,15 +276,20 @@
                     }
                 }
 
-                .audiobox-marker-container1,
+                .audiobox-marker-timeline,
                 .audiobox-marker-minicontainer {
                     position: absolute;
                     width: 10px;
                     height: 90%;
                     top: 2.5%;
-                    background: rgba(128, 128, 128, 0.18);
                     border-radius: 5px;
-                    box-shadow: black 2px 2px 1px;
+
+                    .left-resizer {
+                        background: dimgrey;     
+                    }
+                    .resizer {
+                        background: dimgrey;
+                    }
 
                     .audiobox-marker {
                         position: relative;
@@ -327,7 +331,7 @@
                     }
                 }
 
-                .audiobox-marker-container1:hover,
+                .audiobox-marker-timeline:hover,
                 .audiobox-marker-minicontainer:hover {
                     opacity: 0.8;
                 }
