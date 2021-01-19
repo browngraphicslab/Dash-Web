@@ -945,17 +945,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const newAfterFocus = (didFocus: boolean) => {
                 afterFocus && setTimeout(() => {
                     // @ts-ignore
-                    if (afterFocus?.(didFocus || (newPanX !== savedState.px || newPanY !== savedState.py))) {
+                    if (afterFocus?.(!dontCenter && (didFocus || (newPanX !== savedState.px || newPanY !== savedState.py)))) {
                         this.Document._panX = savedState.px;
                         this.Document._panY = savedState.py;
                         this.Document[this.scaleFieldKey] = savedState.s;
                         this.Document._viewTransition = savedState.pt;
                     }
+                    doc.hidden && Doc.UnHighlightDoc(doc);
                 }, newPanX !== savedState.px || newPanY !== savedState.py ? 500 : 0);
                 return false;
             };
             this.props.focus(this.props.Document, undefined, undefined, newAfterFocus, undefined, newDidFocus);
-            Doc.linkFollowHighlight(doc);
+            !doc.hidden && Doc.linkFollowHighlight(doc);
         }
 
     }

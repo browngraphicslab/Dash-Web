@@ -388,7 +388,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
             } else {
                 // clear out old marquees and initialize menu for new selection
-                PDFMenu.Instance.Status = "pdf";
+                PDFMenu.Instance.Status = "marquee";
                 PDFMenu.Instance.fadeOut(true);
                 this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();

@@ -39,7 +39,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
 
     @observable public _colorBtn = false;
     @observable public Highlighting: boolean = false;
-    @observable public Status: "pdf" | "annotation" | "" = "";
+    @observable public Status: "marquee" | "annotation" | "" = "";
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
     public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
@@ -119,7 +119,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     render() {
-        const buttons = this.Status === "pdf" ?
+        const buttons = this.Status === "marquee" ?
             [
                 this.highlighter,
 

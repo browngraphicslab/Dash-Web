@@ -40,7 +40,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     constructor(props: any) {
         super(props);
         runInAction(() => {
-            PDFMenu.Instance.Status = "pdf";
+            PDFMenu.Instance.Status = "marquee";
             PDFMenu.Instance.fadeOut(true);
             // clear out old marquees and initialize menu for new selection
             this.props.savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));

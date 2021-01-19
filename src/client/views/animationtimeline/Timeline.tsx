@@ -12,6 +12,7 @@ import "./Timeline.scss";
 import { TimelineOverview } from "./TimelineOverview";
 import { Track } from "./Track";
 import clamp from "../../util/clamp";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 /**
  * Timeline class controls most of timeline functions besides individual keyframe and track mechanism. Main functions are 
@@ -75,7 +76,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @computed
     private get children(): Doc[] {
-        const annotatedDoc = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
+        const annotatedDoc = [DocumentType.IMG, DocumentType.VID, DocumentType.PDF].includes(StrCast(this.props.Document.type) as any);
         if (annotatedDoc) {
             return DocListCast(this.props.Document[Doc.LayoutFieldKey(this.props.Document) + "-annotations"]);
         }
