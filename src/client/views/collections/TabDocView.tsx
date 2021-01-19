@@ -106,8 +106,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 const moreWrap = document.createElement("div");
                 const closeWrap = document.createElement("div");
                 iconWrap.className = "lm_iconWrap";
+                iconWrap.id = "lm_iconWrap"
                 closeWrap.className = "lm_iconWrap";
+                closeWrap.id = "lm_closeWrap"
                 moreWrap.className = "lm_iconWrap";
+                moreWrap.id = "lm_moreWrap"
                 let docIcon = <FontAwesomeIcon icon={iconType} />
                 let moreIcon = (
                     <>

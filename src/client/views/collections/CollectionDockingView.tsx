@@ -405,7 +405,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
         });
 
-        stack.header?.controlsContainer.find('.lm_close') //get the close icon
+        stack.header?.controlsContainer.find('.lm_closeWrap') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(() => {
                 //if (confirm('really close this?')) {
