@@ -68,7 +68,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private Index: number = -1;
-    @observable private _marqueeing: boolean = false;
+    @observable private _marqueeing: number[] | undefined;
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
@@ -379,34 +379,50 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
-        (e.target as any).tagName === "SPAN" && (this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" }));
         if ((this.Document._viewScale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
         if (!e.altKey && e.button === 0 && this.active(true)) {
-            // clear out old marquees and initialize menu for new selection
-            PDFMenu.Instance.Status = "pdf";
-            PDFMenu.Instance.fadeOut(true);
-            this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-            this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
-            if (e.target && (e.target as any).parentElement.className === "textLayer") {
-                // start selecting text if mouse down on textLayer spans
+            if (e.target && (e.target as any).parentElement.className !== "textLayer") {
+                this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
+            } else {
+                // clear out old marquees and initialize menu for new selection
+                PDFMenu.Instance.Status = "pdf";
+                PDFMenu.Instance.fadeOut(true);
+                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                this._savedAnnotations.clear();
+                this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
+                document.addEventListener("pointermove", this.onSelectMove);
+                document.addEventListener("pointerup", this.onSelectEnd);
             }
-            else this._marqueeing = true;
-            document.addEventListener("pointermove", this.onSelectMove);
-            document.addEventListener("pointerup", this.onSelectEnd);
-            document.addEventListener("pointerup", this.removeStyle, true);
         }
     }
-    removeStyle = () => {
-        clearStyleSheetRules(PDFViewer._annotationStyle);
-        document.removeEventListener("pointerup", this.removeStyle);
+
+    @action
+    finishMarquee = () => {
+        this._marqueeing = undefined;
+        this.props.select(false);
     }
 
     @action
     onSelectMove = (e: PointerEvent): void => {
         if (e.target && (e.target as any).parentElement === this._mainCont.current) e.stopPropagation();
+    }
+
+    @action
+    onSelectEnd = (e: PointerEvent): void => {
+        clearStyleSheetRules(PDFViewer._annotationStyle);
+        this.props.select(false);
+        document.removeEventListener("pointermove", this.onSelectMove);
+        document.removeEventListener("pointerup", this.onSelectEnd);
+
+        const sel = window.getSelection();
+        if (sel?.type === "Range") {
+            const selRange = sel.getRangeAt(0);
+            this.createTextAnnotation(sel, selRange);
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+        }
     }
 
     @action
@@ -441,35 +457,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
     }
 
-    @action
-    finishMarquee = () => { this._marqueeing = false; }
-
-    @action
-    onSelectEnd = (e: PointerEvent): void => {
-        clearStyleSheetRules(PDFViewer._annotationStyle);
-        this.props.select(false);
-        this._savedAnnotations.clear();
-        document.removeEventListener("pointermove", this.onSelectMove);
-        document.removeEventListener("pointerup", this.onSelectEnd);
-
-        const sel = window.getSelection();
-        if (sel?.type === "Range") {
-            const selRange = sel.getRangeAt(0);
-            this.createTextAnnotation(sel, selRange);
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
-        }
-    }
-
     scrollXf = () => {
         return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this.layoutDoc._scrollTop || 0) : this.props.ScreenToLocalTransform();
     }
 
     onClick = (e: React.MouseEvent) => {
         if (this._setPreviewCursor && e.button === 0 &&
-            Math.abs(e.clientX - this._downX) < 3 &&
-            Math.abs(e.clientY - this._downY) < 3) {
+            Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             this._setPreviewCursor(e.clientX, e.clientY, false);
         }
+        e.stopPropagation();
     }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
@@ -578,7 +576,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {this.overlayInfo}
             {this.standinViews}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} addDocument={this.addDocument} finishMarquee={this.finishMarquee} getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} clientX={this._downX} clientY={this._downY} mainCont={this._mainCont.current} />}
+                <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} addDocument={this.addDocument} finishMarquee={this.finishMarquee} getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
         </div >;
     }
 }

@@ -1,4 +1,4 @@
-import { action, observable } from "mobx";
+import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, Opt } from "../../fields/Doc";
@@ -19,8 +19,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 export interface MarqueeAnnotatorProps {
     rootDoc: Doc;
-    clientX: number;
-    clientY: number;
+    down: number[];
     scaling?: () => number;
     mainCont: HTMLDivElement;
     savedAnnotations: Dictionary<number, HTMLDivElement[]>;
@@ -38,11 +37,22 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     @observable private _width: number = 0;
     @observable private _height: number = 0;
 
+    constructor(props: any) {
+        super(props);
+        runInAction(() => {
+            PDFMenu.Instance.Status = "pdf";
+            PDFMenu.Instance.fadeOut(true);
+            // clear out old marquees and initialize menu for new selection
+            this.props.savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+            this.props.savedAnnotations.clear();
+        });
+    }
+
     @action componentDidMount() {
         // set marquee x and y positions to the spatially transformed position
         const boundingRect = this.props.mainCont.getBoundingClientRect();
-        this._startX = this._left = (this.props.clientX - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width);
-        this._startY = this._top = (this.props.clientY - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height) + this.props.mainCont.scrollTop;
+        this._startX = this._left = (this.props.down[0] - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width);
+        this._startY = this._top = (this.props.down[1] - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height) + this.props.mainCont.scrollTop;
         this._height = this._width = 0;
         document.addEventListener("pointermove", this.onSelectMove);
         document.addEventListener("pointerup", this.onSelectEnd);
@@ -134,7 +144,6 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         this._width = Math.abs(this._width);
         this._height = Math.abs(this._height);
         e.stopPropagation();
-        e.preventDefault();
     }
 
     onSelectEnd = (e: PointerEvent) => {
@@ -142,14 +151,6 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             PDFMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
         }
 
-        const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
-        if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
-            const copy = document.createElement("div");
-            ["left", "top", "width", "height", "border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
-            copy.className = "marqueeAnnotator-annotationBox";
-            (copy as any).marqueeing = true;
-            MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);
-        }
         PDFMenu.Instance.Highlight = this.highlight;
         /**
          * This function is used by the PDFmenu to create an anchor highlight and a new linked text annotation.  
@@ -176,11 +177,22 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         });
 
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
+            const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
+            if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
+                const copy = document.createElement("div");
+                ["left", "top", "width", "height", "border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
+                copy.className = "marqueeAnnotator-annotationBox";
+                (copy as any).marqueeing = true;
+                MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);
+            }
+
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
 
             if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
                 this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
             }
+        } else {
+            runInAction(() => this._width = this._height = 0);
         }
         this.props.finishMarquee();
     }

@@ -14,7 +14,7 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { addStyleSheet, clearStyleSheetRules, emptyFunction, OmitKeys, returnOne, smoothScroll, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, smoothScroll, Utils } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -38,26 +38,21 @@ const WebDocument = makeInterface(documentSchema);
 @observer
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
-    static _annotationStyle: any = addStyleSheet();
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _downX: number = 0;
-    private _downY: number = 0;
-    @observable private _marqueeing: boolean = false;
+    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
+    private _disposers: { [name: string]: IReactionDisposer } = {};
+    private _longPressSecondsHack?: NodeJS.Timeout;
+    private _outerRef = React.createRef<HTMLDivElement>();
+    private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
+    private _iframeDragRef = React.createRef<HTMLDivElement>();
+    @observable private _marqueeing: number[] | undefined;
     @observable private _url: string = "hello";
     @observable private _pressX: number = 0;
     @observable private _pressY: number = 0;
     @observable private _iframe: HTMLIFrameElement | null = null;
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
-    private _selectionReactionDisposer?: IReactionDisposer;
-    private _scrollReactionDisposer?: IReactionDisposer;
-    private _scrollTopReactionDisposer?: IReactionDisposer;
-    private _moveReactionDisposer?: IReactionDisposer;
-    private _longPressSecondsHack?: NodeJS.Timeout;
-    private _outerRef = React.createRef<HTMLDivElement>();
-    private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
-    private _iframeDragRef = React.createRef<HTMLDivElement>();
-    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
+
     get scrollHeight() { return this.webpage?.scrollHeight || 1000; }
     get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) !== "enabled"; }
     set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
@@ -91,8 +86,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 this.webpage.scrollLeft = NumCast(this.layoutDoc._scrollLeft);
             }
         }
-        this._scrollReactionDisposer?.();
-        this._scrollReactionDisposer = reaction(() => ({ scrollY: this.layoutDoc._scrollY, scrollX: this.layoutDoc._scrollX }),
+        this._disposers.scrollReaction?.();
+        this._disposers.scrollReaction = reaction(() => ({ scrollY: this.layoutDoc._scrollY, scrollX: this.layoutDoc._scrollX }),
             ({ scrollY, scrollX }) => {
                 const delay = this._outerRef.current ? 0 : 250; // wait for mainCont and try again to scroll
                 const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
@@ -110,7 +105,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             },
             { fireImmediately: true }
         );
-        this._scrollTopReactionDisposer = reaction(() => this.layoutDoc._scrollTop,
+        this._disposers.scrollTop = reaction(() => this.layoutDoc._scrollTop,
             scrollTop => {
                 const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
                 const duration = durationStr ? Number(durationStr[1]) : 1000;
@@ -158,14 +153,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
         runInAction(() => this._url = urlField?.url.toString() || "");
 
-        this._moveReactionDisposer = reaction(() => this.layoutDoc.x || this.layoutDoc.y,
+        this._disposers.scrollMove = reaction(() => this.layoutDoc.x || this.layoutDoc.y,
             () => this.updateScroll(this.layoutDoc._scrollLeft, this.layoutDoc._scrollTop));
 
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
+        this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
+                    this._savedAnnotations.clear();
                     PDFMenu.Instance.fadeOut(true);
                 }
             },
@@ -194,10 +189,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     componentWillUnmount() {
-        this._moveReactionDisposer?.();
-        this._selectionReactionDisposer?.();
-        this._scrollTopReactionDisposer?.();
-        this._scrollReactionDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
         this._iframe?.removeEventListener('wheel', this.iframeWheel);
@@ -471,39 +463,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     onMarqueeDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
         if (!e.altKey && e.button === 0 && this.active(true)) {
-            // clear out old marquees and initialize menu for new selection
-            PDFMenu.Instance.Status = "pdf";
-            PDFMenu.Instance.fadeOut(true);
-            this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-            this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
-            if ((e.target as any)?.parentElement.className === "textLayer") {
-                // start selecting text if mouse down on textLayer spans
-            }
-            else this._marqueeing = true;
-            document.addEventListener("pointermove", this.onSelectMove);
-            document.addEventListener("pointerup", this.onSelectEnd);
+            this._marqueeing = [e.clientX, e.clientY];
         }
     }
 
     @action
-    onSelectMove = (e: PointerEvent): void => {
-        if (e.target && (e.target as any).parentElement === this._mainCont.current) e.stopPropagation();
-    }
-
-    @action
-    finishMarquee = () => { this._marqueeing = false; }
-
-    @action
-    onSelectEnd = (e: PointerEvent): void => {
-        clearStyleSheetRules(WebBox._annotationStyle);
+    finishMarquee = () => {
+        this._marqueeing = undefined;
         this.props.select(true);
-        this._savedAnnotations.clear();
-
-        document.removeEventListener("pointermove", this.onSelectMove);
-        document.removeEventListener("pointerup", this.onSelectEnd);
     }
 
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
@@ -562,7 +530,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 </div>
                 {this.annotationLayer}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                    <MarqueeAnnotator rootDoc={this.rootDoc} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} clientX={this._downX} clientY={this._downY} mainCont={this._mainCont.current} />}
+                    <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
             </div >
             {this.props.isSelected() ? this.editToggleBtn() : null}
         </div>);

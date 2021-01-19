@@ -217,6 +217,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 // bcz: do we need this?   it kills the context menu on the main collection if !altKey
                 // e.stopPropagation();
             }
+            else PreviewCursor.Visible = false;
         }
     }
 
