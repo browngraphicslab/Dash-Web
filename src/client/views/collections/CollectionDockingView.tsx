@@ -405,7 +405,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
         });
 
-        stack.header?.controlsContainer.find('.lm_close') //get the close icon
+        stack.header?.controlsContainer.find('.lm_closeWrap') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(() => {
                 //if (confirm('really close this?')) {
@@ -413,7 +413,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                     stack.remove();
                     stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
                 } else {
-                    alert('cant delete the last stack');
+                    alert('Can' + "'" + 't delete the last stack.');
                 }
             }));
         stack.header?.controlsContainer.find('.lm_popout') //get the close icon
