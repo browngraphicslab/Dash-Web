@@ -8,7 +8,7 @@ import { DocUtils, Docs } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { DragManager } from "../util/DragManager";
 import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
-import { PDFMenu } from "./pdf/PDFMenu";
+import { AnchorMenu } from "./pdf/AnchorMenu";
 import "./MarqueeAnnotator.scss";
 import React = require("react");
 import { undoBatch } from "../util/UndoManager";
@@ -40,8 +40,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     constructor(props: any) {
         super(props);
         runInAction(() => {
-            PDFMenu.Instance.Status = "marquee";
-            PDFMenu.Instance.fadeOut(true);
+            AnchorMenu.Instance.Status = "marquee";
+            AnchorMenu.Instance.fadeOut(true);
             // clear out old marquees and initialize menu for new selection
             this.props.savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
             this.props.savedAnnotations.clear();
@@ -148,32 +148,37 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
 
     onSelectEnd = (e: PointerEvent) => {
         if (!e.ctrlKey) {
-            PDFMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
+            AnchorMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
         }
 
-        PDFMenu.Instance.Highlight = this.highlight;
+        AnchorMenu.Instance.Highlight = this.highlight;
         /**
-         * This function is used by the PDFmenu to create an anchor highlight and a new linked text annotation.  
+         * This function is used by the AnchorMenu to create an anchor highlight and a new linked text annotation.  
          * It also initiates a Drag/Drop interaction to place the text annotation.
          */
-        PDFMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
+        AnchorMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
             e.preventDefault();
             e.stopPropagation();
-            const targetDoc = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100);
-            FormattedTextBox.SelectOnLoad = targetDoc[Id];
-            const anchorHighlightDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
-            if (anchorHighlightDoc) {
-                DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.rootDoc, anchorHighlightDoc, targetDoc), e.pageX, e.pageY, {
-                    dragComplete: e => {
-                        if (!e.aborted && e.annoDragData && !e.linkDocument) {
-                            e.linkDocument = DocUtils.MakeLink({ doc: anchorHighlightDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                            anchorHighlightDoc.isLinkButton = true; // prevents link button from showing up --- maybe not a good thing?
-                            anchorHighlightDoc.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.rootDoc;
-                        }
-                        e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument
-                    }
-                });
+            const targetCreator = () => {
+                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100);
+                FormattedTextBox.SelectOnLoad = target[Id];
+                return target;
             }
+            const anchorCreator = () => {
+                const annoDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
+                annoDoc.isLinkButton = true; // prevents link button from showing up --- maybe not a good thing?
+                this.props.addDocument(annoDoc);
+                return annoDoc;
+            }
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, anchorCreator, targetCreator), e.pageX, e.pageY, {
+                dragComplete: e => {
+                    if (!e.aborted && e.annoDragData && e.annoDragData.annotationDocument && e.annoDragData.dropDocument && !e.linkDocument) {
+                        e.linkDocument = DocUtils.MakeLink({ doc: e.annoDragData.annotationDocument }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                        e.annoDragData.annotationDocument.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.rootDoc;
+                    }
+                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument
+                }
+            });
         });
 
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
@@ -186,10 +191,10 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
                 MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);
             }
 
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            AnchorMenu.Instance.jumpTo(e.clientX, e.clientY);
 
-            if (PDFMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
-                this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match PDFMenu's highlight color)
+            if (AnchorMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
+                this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
             }
         } else {
             runInAction(() => this._width = this._height = 0);

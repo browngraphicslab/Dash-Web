@@ -25,7 +25,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { Annotation } from "../pdf/Annotation";
-import { PDFMenu } from "../pdf/PDFMenu";
+import { AnchorMenu } from "../pdf/AnchorMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
@@ -161,7 +161,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.clear();
-                    PDFMenu.Instance.fadeOut(true);
+                    AnchorMenu.Instance.fadeOut(true);
                 }
             },
             { fireImmediately: true });

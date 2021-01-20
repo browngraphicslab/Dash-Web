@@ -27,7 +27,7 @@ import { Transform } from "../../util/Transform";
 import { StyleProp } from "../StyleProvider";
 import { Dictionary } from "typescript-collections";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
-import { PDFMenu } from "../pdf/PDFMenu";
+import { AnchorMenu } from "../pdf/AnchorMenu";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -195,7 +195,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.clear();
-                    PDFMenu.Instance.fadeOut(true);
+                    AnchorMenu.Instance.fadeOut(true);
                 }
             },
             { fireImmediately: true });

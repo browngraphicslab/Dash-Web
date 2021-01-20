@@ -550,10 +550,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 "linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
+        if (de.complete.annoDragData) de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
         const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
         if (linkSource && linkSource !== this.props.Document) {
             e.stopPropagation();
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: this._componentView?.getAnchor() || this.rootDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            const dropDoc = this._componentView?.getAnchor() || this.rootDoc;
+            if (de.complete.annoDragData) de.complete.annoDragData.dropDocument = dropDoc;
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
         }
     }
 
@@ -873,10 +876,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
         if (this.nativeHeight) {
-            if (this.props.Document._fitWidth) {
-                return Math.min(this.props.PanelHeight(), NumCast(this.props.Document.scrollHeight, this.props.PanelHeight()));
-            }
-            return Math.min(this.props.PanelHeight(), this.nativeHeight * this.nativeScaling);
+            return Math.min(this.props.PanelHeight(),
+                this.props.Document._fitWidth ?
+                    Math.max(NumCast(this.props.Document._height), NumCast((this.props.Document.scrollHeight as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
+                    this.nativeHeight * this.nativeScaling
+            );
         }
         return this.props.PanelHeight();
     }

@@ -8,7 +8,7 @@ import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../.
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
 import "./Annotation.scss";
-import { PDFMenu } from "./PDFMenu";
+import { AnchorMenu } from "./AnchorMenu";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -84,7 +84,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             DocListCast(group.annotations).forEach(anno => anno.delete = true);
         }
 
-        PDFMenu.Instance.fadeOut(true);
+        AnchorMenu.Instance.fadeOut(true);
     }
 
     @undoBatch
@@ -105,14 +105,14 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 2 || e.ctrlKey) {
-            PDFMenu.Instance.Status = "annotation";
-            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
-            PDFMenu.Instance.Pinned = false;
-            PDFMenu.Instance.AddTag = this.addTag.bind(this);
-            PDFMenu.Instance.PinToPres = this.pinToPres;
-            PDFMenu.Instance.MakePushpin = this.makePushpin;
-            PDFMenu.Instance.IsPushpin = this.isPushpin;
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+            AnchorMenu.Instance.Status = "annotation";
+            AnchorMenu.Instance.Delete = this.deleteAnnotation.bind(this);
+            AnchorMenu.Instance.Pinned = false;
+            AnchorMenu.Instance.AddTag = this.addTag.bind(this);
+            AnchorMenu.Instance.PinToPres = this.pinToPres;
+            AnchorMenu.Instance.MakePushpin = this.makePushpin;
+            AnchorMenu.Instance.IsPushpin = this.isPushpin;
+            AnchorMenu.Instance.jumpTo(e.clientX, e.clientY, true);
             e.stopPropagation();
         }
         else if (e.button === 0) {

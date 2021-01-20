@@ -64,6 +64,8 @@ import { SnappingManager } from '../../../util/SnappingManager';
 import { LinkDocPreview } from '../LinkDocPreview';
 import { SubCollectionViewProps } from '../../collections/CollectionSubView';
 import { StyleProp } from '../../StyleProvider';
+import { AnchorMenu } from '../../pdf/AnchorMenu';
+import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -251,6 +253,43 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+
+            if (!this._editorView.state.selection.empty) {
+                runInAction(() => {
+                    AnchorMenu.Instance.Status = "marquee";
+                    AnchorMenu.Instance.Highlight = action((color: string) => {
+                        this._editorView?.state && RichTextMenu.Instance.insertHighlight(color, this._editorView?.state, this._editorView?.dispatch);
+                        return undefined;
+                    });
+                    /**
+                     * This function is used by the PDFmenu to create an anchor highlight and a new linked text annotation.  
+                     * It also initiates a Drag/Drop interaction to place the text annotation.
+                     */
+                    AnchorMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const targetCreator = () => {
+                            const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.rootDoc.title, 0, 0, 100, 100);
+                            FormattedTextBox.SelectOnLoad = target[Id];
+                            return target;
+                        }
+
+                        DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, () => this.rootDoc, targetCreator), e.pageX, e.pageY, {
+                            dragComplete: e => {
+                                if (!e.aborted && e.annoDragData && e.annoDragData.annotationDocument && e.annoDragData.dropDocument && !e.linkDocument) {
+                                    e.linkDocument = DocUtils.MakeLink({ doc: e.annoDragData.annotationDocument }, { doc: e.annoDragData.dropDocument }, "hyperlink", "link to note");
+                                    e.annoDragData.annotationDocument.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.rootDoc;
+                                }
+                                e.linkDocument && e.annoDragData?.dropDocument && this.makeLinkToSelection(e.linkDocument[Id], "a link", "add:right", e.annoDragData.dropDocument[Id]);
+                                e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument
+                            }
+                        });
+                    });
+                });
+                const coordsT = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
+                const coordsB = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
+                AnchorMenu.Instance.jumpTo(Math.min(coordsT.left, coordsB.left), Math.max(coordsT.bottom, coordsB.bottom));
+            }
 
             const removeSelection = (json: string | undefined) => {
                 return json?.indexOf("\"storedMarks\"") === -1 ? json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
@@ -960,6 +999,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._disposers.selected = reaction(() => this.props.isSelected(),
             action((selected) => {
                 this._recording = false;
+                AnchorMenu.Instance.fadeOut(true);
                 if (RichTextMenu.Instance?.view === this._editorView && !selected) {
                     RichTextMenu.Instance?.updateMenu(undefined, undefined, undefined);
                 }

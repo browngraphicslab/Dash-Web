@@ -8,11 +8,11 @@ import { Doc, Opt } from "../../../fields/Doc";
 import { returnFalse, setupMoveUpEvents, unimplementedFunction, Utils } from "../../../Utils";
 import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
-import "./PDFMenu.scss";
+import "./AnchorMenu.scss";
 
 @observer
-export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
-    static Instance: PDFMenu;
+export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
+    static Instance: AnchorMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
     private _palette = [
@@ -54,8 +54,8 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     constructor(props: Readonly<{}>) {
         super(props);
 
-        PDFMenu.Instance = this;
-        PDFMenu.Instance._canFade = false;
+        AnchorMenu.Instance = this;
+        AnchorMenu.Instance._canFade = false;
     }
 
     pointerDown = (e: React.PointerEvent) => {
@@ -144,7 +144,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
                         <FontAwesomeIcon icon="thumbtack" size="lg" />
                     </button>
                 </Tooltip>,
-                // <div key="7" className="pdfMenu-addTag" >
+                // <div key="7" className="anchorMenu-addTag" >
                 //     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                 //     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 // </div>,

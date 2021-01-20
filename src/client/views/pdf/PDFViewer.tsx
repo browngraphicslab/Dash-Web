@@ -26,7 +26,7 @@ import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { Annotation } from "./Annotation";
-import { PDFMenu } from "./PDFMenu";
+import { AnchorMenu } from "./AnchorMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
@@ -137,7 +137,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
-                    PDFMenu.Instance.fadeOut(true);
+                    AnchorMenu.Instance.fadeOut(true);
                 }
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
@@ -384,30 +384,32 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
         if (!e.altKey && e.button === 0 && this.active(true)) {
-            if (e.target && (e.target as any).parentElement.className !== "textLayer") {
+            if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
                 this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
             } else {
                 // clear out old marquees and initialize menu for new selection
-                PDFMenu.Instance.Status = "marquee";
-                PDFMenu.Instance.fadeOut(true);
+                AnchorMenu.Instance.Status = "marquee";
+                AnchorMenu.Instance.fadeOut(true);
                 this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
-                document.addEventListener("pointermove", this.onSelectMove);
                 document.addEventListener("pointerup", this.onSelectEnd);
             }
+            document.addEventListener("pointermove", this.onSelectMove);
         }
     }
 
     @action
     finishMarquee = () => {
         this._marqueeing = undefined;
+        document.removeEventListener("pointermove", this.onSelectMove);
         this.props.select(false);
     }
 
     @action
     onSelectMove = (e: PointerEvent): void => {
-        if (e.target && (e.target as any).parentElement === this._mainCont.current) e.stopPropagation();
+        // if (e.target && (e.target as any).parentElement === this._mainCont.current) 
+        e.stopPropagation();
     }
 
     @action
@@ -421,7 +423,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (sel?.type === "Range") {
             const selRange = sel.getRangeAt(0);
             this.createTextAnnotation(sel, selRange);
-            PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
+            AnchorMenu.Instance.jumpTo(e.clientX, e.clientY);
         }
     }
 

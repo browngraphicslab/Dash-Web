@@ -27,7 +27,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { StyleProp } from '../StyleProvider';
-import { PDFMenu } from '../pdf/PDFMenu';
+import { AnchorMenu } from '../pdf/AnchorMenu';
 import { Dictionary } from 'typescript-collections';
 import { MarqueeAnnotator } from '../MarqueeAnnotator';
 import { Annotation } from '../pdf/Annotation';
@@ -83,7 +83,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.clear();
-                    PDFMenu.Instance.fadeOut(true);
+                    AnchorMenu.Instance.fadeOut(true);
                 }
             },
             { fireImmediately: true });
