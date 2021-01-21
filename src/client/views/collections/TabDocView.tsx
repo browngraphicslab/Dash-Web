@@ -54,6 +54,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
     @computed get tabColor() { return this._document?.type === DocumentType.PRES ? "grey" : StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
+    @computed get tabTextColor() { return this._document?.type === DocumentType.PRES ? "black" : StrCast(this._document?._color, StrCast(this._document?.color, DefaultStyleProvider(this._document, undefined, StyleProp.Color))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -75,15 +76,24 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.DashDoc = doc;
             CollectionDockingView.Instance.tabMap.add(tab);
             const iconType: IconProp = Doc.toIcon(doc);
-
             // setup the title element and set its size according to the # of chars in the title.  Show the full title when clicked.
             const titleEle = tab.titleElement[0];
+            const iconWrap = document.createElement("div");
+            const closeWrap = document.createElement("div");
+
+
             titleEle.size = StrCast(doc.title).length + 3;
             titleEle.value = doc.title;
             titleEle.onchange = undoBatch(action((e: any) => {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             }));
+
+            const dragBtnDown = (e: React.PointerEvent) => {
+                setupMoveUpEvents(this, e, e => !e.defaultPrevented && DragManager.StartDocumentDrag([iconWrap], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY), returnFalse, emptyFunction);
+            };
+
+
             if (tab.element[0].children[1].children.length === 1) {
                 const toggle = document.createElement("div");
                 toggle.style.width = "10px";
@@ -94,46 +104,33 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 toggle.style.position = "relative";
                 toggle.style.display = "inline-block";
                 toggle.style.background = "transparent";
-                // toggle.style.borderLeft = "solid 1px black";
                 toggle.onclick = (e: MouseEvent) => {
                     if (tab.contentItem === tab.header.parent.getActiveContentItem()) {
                         tab.DashDoc.activeLayer = tab.DashDoc.activeLayer ? undefined : StyleLayers.Background;
                     }
                 };
-                // tab.element[0].style.borderTopRightRadius = "6px";
-                // tab.element[0].style.borderTopLeftRadius = "6px";
-                const iconWrap = document.createElement("div");
-                const moreWrap = document.createElement("div");
-                const closeWrap = document.createElement("div");
                 iconWrap.className = "lm_iconWrap";
                 iconWrap.id = "lm_iconWrap"
                 closeWrap.className = "lm_iconWrap";
                 closeWrap.id = "lm_closeWrap"
-                moreWrap.className = "lm_iconWrap";
-                moreWrap.id = "lm_moreWrap"
-                let docIcon = <FontAwesomeIcon icon={iconType} />
-                let moreIcon = (
-                    <>
-                        <div className="moreInfoDot"></div>
-                        <div className="moreInfoDot"></div>
-                        <div className="moreInfoDot"></div>
-                    </>
-                )
+                closeWrap.onclick = (e: MouseEvent) => {
+                    tab.header.parent.contentItem.remove();
+                    Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", tab.DashDoc, undefined, true, true);
+                }
+                let docIcon = <FontAwesomeIcon onPointerDown={dragBtnDown} icon={iconType} />
                 let closeIcon = <FontAwesomeIcon icon={"times"} />
                 ReactDOM.render(docIcon, iconWrap);
                 ReactDOM.render(closeIcon, closeWrap);
-                ReactDOM.render(moreIcon, moreWrap);
-                tab.element[0].append(moreWrap);
                 tab.element[0].append(closeWrap);
                 tab.element[0].prepend(iconWrap);
                 tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
                     ({ layer, color }) => {
-                        const textColor = lightOrDark(color) === 'light' ? "black" : "white";
-                        console.log(this.tabColor, textColor);
+                        const textColor = lightOrDark(this.tabColor); //not working with StyleProp.Color
+                        titleEle.style.color = textColor;
                         iconWrap.style.color = textColor;
-                        moreWrap.style.backgroundColor = textColor;
+                        closeWrap.style.color = textColor;
+                        moreInfoDrag.style.backgroundColor = textColor;
                         tab.element[0].style.background = !layer ? color : "dimgrey";
-                        tab.element[0].children[1].style.color = textColor;
                     }, { fireImmediately: true });
                 // ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
             }
@@ -144,13 +141,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     tab.setActive(true);
                 }
             };
-            const dragBtnDown = (e: React.PointerEvent) => {
-                setupMoveUpEvents(this, e, e => !e.defaultPrevented && DragManager.StartDocumentDrag([dragHdl], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY), returnFalse, emptyFunction);
-            };
+
 
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
             titleEle.onpointerdown = action((e: any) => {
-                if (e.target.className !== "lm_close_tab") {
+                if (e.target.className !== "lm_iconWrap") {
                     if (this.view) SelectionManager.SelectView(this.view, false);
                     else this._activated = true;
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
@@ -170,13 +165,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
-            const dragHdl = document.createElement("div");
-            dragHdl.className = "lm_drag_tab";
+            const moreInfoDrag = document.createElement("div");
+            moreInfoDrag.className = "lm_iconWrap";
             tab._disposers.buttonDisposer = reaction(() => this.view, view =>
-                view && [ReactDOM.render(<span className="tabDocView-drag" onPointerDown={dragBtnDown}><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, dragHdl), tab._disposers.buttonDisposer?.()],
+                view && [ReactDOM.render(<span><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, moreInfoDrag), tab._disposers.buttonDisposer?.()],
                 { fireImmediately: true });
-            tab.reactComponents = [dragHdl];
-            tab.closeElement.before(dragHdl);
+            // tab.reactComponents = [moreInfoDrag];
+            // tab.element[0].children[3].before(moreInfoDrag);
 
             // highlight the tab when the tab document is brushed in any part of the UI
             tab._disposers.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {

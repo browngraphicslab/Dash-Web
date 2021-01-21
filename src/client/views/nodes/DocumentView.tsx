@@ -614,8 +614,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
             const zorders = cm.findByDescription("ZOrder...");
             const zorderItems: ContextMenuProps[] = zorders && "subitems" in zorders ? zorders.subitems : [];
-            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt" });
-            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt" });
+            zorderItems.push({ description: "Bring to Front", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false)), icon: "expand-arrows-alt", shortcut: "⇧⌘ ]" });
+            zorderItems.push({ description: "Send to Back", event: () => SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true)), icon: "expand-arrows-alt", shortcut: "⇧⌘ [" });
             zorderItems.push({ description: this.rootDoc._raiseWhenDragged !== false ? "Keep ZIndex when dragged" : "Allow ZIndex to change when dragged", event: undoBatch(action(() => this.rootDoc._raiseWhenDragged = this.rootDoc._raiseWhenDragged === undefined ? false : undefined)), icon: "expand-arrows-alt" });
             !zorders && cm.addItem({ description: "ZOrder...", subitems: zorderItems, icon: "compass" });
 
@@ -625,7 +625,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock", shortcut: "⌘ L" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
                 onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
@@ -654,7 +654,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         if (!Doc.IsSystem(this.rootDoc)) {
-            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView), icon: "users" });
+            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView), icon: "users", shortcut: "⌘ S" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
                 moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -669,7 +669,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
 
         if (this.props.removeDocument && !this.props.Document._stayInCollection && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
-            moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
+            moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times", shortcut: "⌘ D" });
         }
 
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });

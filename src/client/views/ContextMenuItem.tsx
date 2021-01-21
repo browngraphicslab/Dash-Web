@@ -11,6 +11,7 @@ export interface OriginalMenuProps {
     event: (stuff?: any) => void;
     undoable?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
+    shortcut?: string;
     closeMenu?: () => void;
 }
 
@@ -20,6 +21,7 @@ export interface SubmenuProps {
     noexpand?: boolean;
     addDivider?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
+    shortcut?: string;
     closeMenu?: () => void;
 }
 
@@ -93,6 +95,11 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     <div className="contextMenu-description">
                         {this.props.description}
                     </div>
+                    {this.props.shortcut ? (
+                        <div className="contextMenu-shortcut">
+                            {this.props.shortcut}
+                        </div>
+                    ) : null}
                 </div>
             );
         } else if ("subitems" in this.props) {
@@ -126,6 +133,11 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                         {this.props.description}
                         <FontAwesomeIcon icon={"angle-right"} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
+                    {this.props.shortcut ? (
+                        <div className="contextMenu-shortcut">
+                            {this.props.shortcut}
+                        </div>
+                    ) : null}
                     {submenu}
                 </div>
             );
