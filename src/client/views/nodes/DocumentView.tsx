@@ -878,7 +878,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.nativeHeight) {
             return Math.min(this.props.PanelHeight(),
                 this.props.Document._fitWidth ?
-                    Math.max(NumCast(this.props.Document._height), NumCast((this.props.Document.scrollHeight as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
+                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
                     this.nativeHeight * this.nativeScaling
             );
         }

@@ -280,7 +280,7 @@ export namespace Docs {
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, dataField: defaultDataKey },
-                options: { _height: 300 }
+                options: { _height: 300, scrollHeight: 100000, _fitWidth: true }
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
@@ -304,7 +304,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: defaultDataKey },
-                options: { _curPage: 1 }
+                options: { _curPage: 1, _fitWidth: true }
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: defaultDataKey },
@@ -768,7 +768,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -1110,7 +1110,6 @@ export namespace DocUtils {
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Docs.Create.PdfDocument;
-            if (!options._fitWidth) options._fitWidth = true;
             if (!options._width) options._width = 400;
             if (!options._height) options._height = options._width * 1200 / 927;
         }
@@ -1131,7 +1130,7 @@ export namespace DocUtils {
                 });
             }
             ctor = Docs.Create.WebDocument;
-            options = { ...options, _fitWidth: true, _width: 400, _height: 512, title: path, };
+            options = { ...options, _width: 400, _height: 512, title: path, };
         }
         return ctor ? ctor(path, options) : undefined;
     }
