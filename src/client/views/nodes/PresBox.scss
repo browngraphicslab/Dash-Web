@@ -1082,8 +1082,8 @@ $dark-grey: #656565;
 .miniPres {
     cursor: grab;
     position: absolute;
-    right: 10;
-    top: 10;
+    right: -10;
+    top: 0;
     opacity: 0.1;
     transition: all 0.4s;
     color: white;
