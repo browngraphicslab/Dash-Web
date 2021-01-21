@@ -56,7 +56,7 @@ import { RadialMenu } from './nodes/RadialMenu';
 import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { WebBox } from './nodes/WebBox';
 import { OverlayView } from './OverlayView';
-import { PDFMenu } from './pdf/PDFMenu';
+import { AnchorMenu } from './pdf/AnchorMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
@@ -617,7 +617,7 @@ export class MainView extends React.Component {
             <TaskCompletionBox />
             <ContextMenu />
             <RadialMenu />
-            <PDFMenu />
+            <AnchorMenu />
             <MarqueeOptionsMenu />
             <OverlayView />
             <TimelineMenu />

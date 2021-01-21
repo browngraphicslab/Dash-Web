@@ -43,7 +43,6 @@ import { CollectionViewType } from "../CollectionView";
 import { computePivotLayout, computerPassLayout, computerStarburstLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
-import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
@@ -267,8 +266,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     @action
-    internalPdfAnnoDrop(e: Event, annoDragData: DragManager.PdfAnnoDragData, xp: number, yp: number) {
-        const dragDoc = annoDragData.dropDocument;
+    internalPdfAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
+        const dragDoc = annoDragData.dropDocument!;
         const dropPos = [NumCast(dragDoc.x), NumCast(dragDoc.y)];
         dragDoc.x = xp - annoDragData.offset[0] + (NumCast(dragDoc.x) - dropPos[0]);
         dragDoc.y = yp - annoDragData.offset[1] + (NumCast(dragDoc.y) - dropPos[1]);
@@ -299,7 +298,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
-        if (de.complete.annoDragData?.dropDocument && super.onInternalDrop(e, de)) return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
+        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
         if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }
@@ -813,7 +812,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         else if (this.props.active(true)) {
             e.stopPropagation();
             if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else this.zoom(e.clientX, e.clientY, e.deltaY);
+            else if (!this.props.isAnnotationOverlay) this.zoom(e.clientX, e.clientY, e.deltaY);
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
@@ -945,17 +944,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const newAfterFocus = (didFocus: boolean) => {
                 afterFocus && setTimeout(() => {
                     // @ts-ignore
-                    if (afterFocus?.(didFocus || (newPanX !== savedState.px || newPanY !== savedState.py))) {
+                    if (afterFocus?.(!dontCenter && (didFocus || (newPanX !== savedState.px || newPanY !== savedState.py)))) {
                         this.Document._panX = savedState.px;
                         this.Document._panY = savedState.py;
                         this.Document[this.scaleFieldKey] = savedState.s;
                         this.Document._viewTransition = savedState.pt;
                     }
+                    doc.hidden && Doc.UnHighlightDoc(doc);
                 }, newPanX !== savedState.px || newPanY !== savedState.py ? 500 : 0);
                 return false;
             };
             this.props.focus(this.props.Document, undefined, undefined, newAfterFocus, undefined, newDidFocus);
-            Doc.linkFollowHighlight(doc);
+            !doc.hidden && Doc.linkFollowHighlight(doc);
         }
 
     }

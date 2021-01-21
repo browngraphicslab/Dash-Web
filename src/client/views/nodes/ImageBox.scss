@@ -5,6 +5,16 @@
     position: relative;
     transform-origin: top left;
 
+
+    .imageBox-annotationLayer {
+        position: absolute;
+        transform-origin: left top;
+        top: 0;
+        width: 100%;
+        pointer-events: none;
+        mix-blend-mode: multiply; // bcz: makes text fuzzy!
+    }
+
     .imageBox-fader {
         pointer-events: inherit;
     }

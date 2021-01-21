@@ -255,7 +255,7 @@ export class FormattedTextBoxComment {
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = href;
-                            FormattedTextBoxComment.linkDoc = DocListCast(textBox.props.Document.links).find(link => link.anchor1 === textBox.props.Document || link.anchor2 === textBox.props.Document ? link : undefined) || linkDoc;
+                            FormattedTextBoxComment.linkDoc = linkDoc;
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
                             if (anchor !== target && anchor && target) {
