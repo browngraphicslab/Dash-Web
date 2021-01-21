@@ -600,7 +600,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     createBrushButton() {
         const self = this;
-        function onBrushClick(e: React.PointerEvent) {
+        const onBrushClick = (e: React.MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
@@ -622,8 +622,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         //onPointerDown={onBrushClick}
 
         const button = <Tooltip title={<div className="dash-tooltip">style brush</div>} placement="bottom">
-
-            <button className="antimodeMenu-button" style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+            <button className="antimodeMenu-button" onClick={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
                 <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>
         </Tooltip>;
