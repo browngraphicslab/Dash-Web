@@ -83,7 +83,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.clear();
-                    AnchorMenu.Instance.fadeOut(true);
                 }
             },
             { fireImmediately: true });
