@@ -825,10 +825,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "")).map(doc => this.childDataProvider(doc, ""));
             if (measuredDocs.length) {
                 const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
-                    ({
-                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
-                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
-                    })
+                ({
+                    xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
+                    yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
+                })
                     , {
                         xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
                         yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }
@@ -1297,7 +1297,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         const mores = ContextMenu.Instance.findByDescription("More...");
         const moreItems = mores && "subitems" in mores ? mores.subitems : [];
-        moreItems.push({ description: "Export collection", icon: "download", event: async () => Doc.Zip(this.props.Document) });
+        moreItems.push({ description: "Export collection", icon: "download", shortcut: "⌘ E", event: async () => Doc.Zip(this.props.Document) });
         moreItems.push({ description: "Import exported collection", icon: "upload", event: ({ x, y }) => this.importDocument(x, y) });
         !mores && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "eye" });
     }

@@ -12,7 +12,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, lightOrDark, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -33,6 +33,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -52,7 +53,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     @observable private _view: DocumentView | undefined;
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
+    @computed get tabColor() { return this._document?.type === DocumentType.PRES ? "grey" : StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
+    @computed get tabTextColor() { return this._document?.type === DocumentType.PRES ? "black" : StrCast(this._document?._color, StrCast(this._document?.color, DefaultStyleProvider(this._document, undefined, StyleProp.Color))); }
     @computed get renderBounds() {
         const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
         const xbounds = bounds[2] - bounds[0];
@@ -73,15 +75,25 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             tab.contentItem.config.fixed && (tab.contentItem.parent.config.fixed = true);
             tab.DashDoc = doc;
             CollectionDockingView.Instance.tabMap.add(tab);
-
+            const iconType: IconProp = Doc.toIcon(doc);
             // setup the title element and set its size according to the # of chars in the title.  Show the full title when clicked.
             const titleEle = tab.titleElement[0];
+            const iconWrap = document.createElement("div");
+            const closeWrap = document.createElement("div");
+
+
             titleEle.size = StrCast(doc.title).length + 3;
             titleEle.value = doc.title;
             titleEle.onchange = undoBatch(action((e: any) => {
                 titleEle.size = e.currentTarget.value.length + 3;
                 Doc.GetProto(doc).title = e.currentTarget.value;
             }));
+
+            const dragBtnDown = (e: React.PointerEvent) => {
+                setupMoveUpEvents(this, e, e => !e.defaultPrevented && DragManager.StartDocumentDrag([iconWrap], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY), returnFalse, emptyFunction);
+            };
+
+
             if (tab.element[0].children[1].children.length === 1) {
                 const toggle = document.createElement("div");
                 toggle.style.width = "10px";
@@ -91,17 +103,36 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 toggle.style.borderTopRightRadius = "7px";
                 toggle.style.position = "relative";
                 toggle.style.display = "inline-block";
-                toggle.style.background = "gray";
-                toggle.style.borderLeft = "solid 1px black";
+                toggle.style.background = "transparent";
                 toggle.onclick = (e: MouseEvent) => {
                     if (tab.contentItem === tab.header.parent.getActiveContentItem()) {
                         tab.DashDoc.activeLayer = tab.DashDoc.activeLayer ? undefined : StyleLayers.Background;
                     }
                 };
-                tab.element[0].style.borderTopRightRadius = "8px";
-                tab.element[0].children[1].appendChild(toggle);
+                iconWrap.className = "lm_iconWrap";
+                iconWrap.id = "lm_iconWrap"
+                closeWrap.className = "lm_iconWrap";
+                closeWrap.id = "lm_closeWrap"
+                closeWrap.onclick = (e: MouseEvent) => {
+                    tab.header.parent.contentItem.remove();
+                    Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", tab.DashDoc, undefined, true, true);
+                }
+                let docIcon = <FontAwesomeIcon onPointerDown={dragBtnDown} icon={iconType} />
+                let closeIcon = <FontAwesomeIcon icon={"times"} />
+                ReactDOM.render(docIcon, iconWrap);
+                ReactDOM.render(closeIcon, closeWrap);
+                tab.element[0].append(closeWrap);
+                tab.element[0].prepend(iconWrap);
                 tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
-                    ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
+                    ({ layer, color }) => {
+                        const textColor = lightOrDark(this.tabColor); //not working with StyleProp.Color
+                        titleEle.style.color = textColor;
+                        iconWrap.style.color = textColor;
+                        closeWrap.style.color = textColor;
+                        moreInfoDrag.style.backgroundColor = textColor;
+                        tab.element[0].style.background = !layer ? color : "dimgrey";
+                    }, { fireImmediately: true });
+                // ({ layer, color }) => toggle.style.background = !layer ? color : "dimgrey", { fireImmediately: true });
             }
             // shifts the focus to this tab when another tab is dragged over it
             tab.element[0].onmouseenter = (e: MouseEvent) => {
@@ -110,13 +141,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     tab.setActive(true);
                 }
             };
-            const dragBtnDown = (e: React.PointerEvent) => {
-                setupMoveUpEvents(this, e, e => !e.defaultPrevented && DragManager.StartDocumentDrag([dragHdl], new DragManager.DocumentDragData([doc], doc.dropAction as dropActionType), e.clientX, e.clientY), returnFalse, emptyFunction);
-            };
+
 
             // select the tab document when the tab is directly clicked and activate the tab whenver the tab document is selected
             titleEle.onpointerdown = action((e: any) => {
-                if (e.target.className !== "lm_close_tab") {
+                if (e.target.className !== "lm_iconWrap") {
                     if (this.view) SelectionManager.SelectView(this.view, false);
                     else this._activated = true;
                     if (Date.now() - titleEle.lastClick < 1000) titleEle.select();
@@ -130,25 +159,25 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     const toggle = tab.element[0].children[1].children[0] as HTMLInputElement;
                     selected && tab.contentItem !== tab.header.parent.getActiveContentItem() &&
                         UndoManager.RunInBatch(() => tab.header.parent.setActiveContentItem(tab.contentItem), "tab switch");
-                    toggle.style.fontWeight = selected ? "bold" : "";
-                    toggle.style.textTransform = selected ? "uppercase" : "";
+                    // toggle.style.fontWeight = selected ? "bold" : "";
+                    // toggle.style.textTransform = selected ? "uppercase" : "";
                 }));
 
             //attach the selection doc buttons menu to the drag handle
             const stack = tab.contentItem.parent;
-            const dragHdl = document.createElement("div");
-            dragHdl.className = "lm_drag_tab";
+            const moreInfoDrag = document.createElement("div");
+            moreInfoDrag.className = "lm_iconWrap";
             tab._disposers.buttonDisposer = reaction(() => this.view, view =>
-                view && [ReactDOM.render(<span className="tabDocView-drag" onPointerDown={dragBtnDown}><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, dragHdl), tab._disposers.buttonDisposer?.()],
+                view && [ReactDOM.render(<span><CollectionDockingViewMenu views={() => [view]} Stack={stack} /></span>, moreInfoDrag), tab._disposers.buttonDisposer?.()],
                 { fireImmediately: true });
-            tab.reactComponents = [dragHdl];
-            tab.closeElement.before(dragHdl);
+            // tab.reactComponents = [moreInfoDrag];
+            // tab.element[0].children[3].before(moreInfoDrag);
 
             // highlight the tab when the tab document is brushed in any part of the UI
             tab._disposers.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
                 titleEle.value = title;
-                titleEle.style.padding = degree ? 0 : 2;
-                titleEle.style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
+                // titleEle.style.padding = degree ? 0 : 2;
+                // titleEle.style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
             }, { fireImmediately: true });
 
             // clean up the tab when it is closed
@@ -241,9 +270,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         })).observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ selected: this.active(), title: this.tab?.titleElement[0] }),
-            ({ selected, title }) => title && (title.style.backgroundColor = selected ? "white" : ""),
-            { fireImmediately: true });
+        // this._tabReaction = reaction(() => ({ selected: this.active(), title: this.tab?.titleElement[0] }),
+        //     ({ selected, title }) => title && (title.style.backgroundColor = selected ? "white" : ""),
+        //     { fireImmediately: true });
     }
 
     componentWillUnmount() {
@@ -301,9 +330,20 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         const miniHeight = this.PanelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
         const miniLeft = 50 + (NumCast(this._document?._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
+        const zoomPercent = Math.round(NumCast(this._document?._viewScale, 1) * 100);
         const miniSize = this.returnMiniSize();
-        return <>
-            <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
+        const doc = this._document;
+        return <div className="ffMenu">
+            <div className="ffMenuButton" style={{ gridRow: 1, gridColumn: 3, fontSize: 11, fontWeight: 800 }} onPointerDown={action(() => doc ? doc._viewScale = 1 : undefined)}>
+                {zoomPercent}%
+            </div>
+            <div className="ffMenuButton" style={{ gridRow: 1, gridColumn: 2 }} onPointerDown={action(() => doc ? doc["_backgroundGrid-show"] = !doc["_backgroundGrid-show"] : null)}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon={doc ? doc["_backgroundGrid-show"] ? "border-all" : ["far", "square"] : ["far", "square"]} size="lg" />
+            </div>
+            <div className="ffMenuButton" style={{ gridRow: 1, gridColumn: 1 }}>
+                <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+            </div>
+            {/* <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
                 <CollectionFreeFormView
                     Document={this._document!}
                     CollectionView={undefined}
@@ -340,15 +380,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 <div className="miniOverlay" onPointerDown={this.miniDown} >
                     <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
                 </div>
-            </div>
-
-            <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+            </div> */}
+            {/* <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                 <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
                     style={{ background: DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor) }} >
                     <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                 </div>
-            </Tooltip>
-        </>;
+            </Tooltip> */}
+        </div>;
     }
     focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, notFocused?: boolean) => {
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {

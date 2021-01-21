@@ -413,10 +413,10 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                     stack.remove();
                     stack.contentItems.forEach((contentItem: any) => Doc.AddDocToList(CurrentUserUtils.MyRecentlyClosed, "data", contentItem.tab.DashDoc, undefined, true, true));
                 } else {
-                    alert('cant delete the last stack');
+                    alert('Can' + "'" + 't delete the last stack.');
                 }
             }));
-        stack.header?.controlsContainer.find('.lm_popout') //get the close icon
+        stack.header?.controlsContainer.find('.lm_popout') //get the new tab icon
             .off('click') //unbind the current click handler
             .click(action(() => {
                 // stack.config.fixed = !stack.config.fixed;  // force the stack to have a fixed size

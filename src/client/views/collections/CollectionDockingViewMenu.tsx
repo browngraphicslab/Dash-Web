@@ -32,7 +32,7 @@ export class CollectionDockingViewMenu extends React.Component<{ views: () => Do
 
     @observable _tooltipOpen: boolean = false;
     render() {
-        return <Tooltip open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} title={<><div className="dash-tooltip">Tap for toolbar, drag to create alias in another pane</div></>} placement="bottom">
+        return <Tooltip open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} title={<><div className="dash-tooltip">Tap for toolbar</div></>} placement="bottom">
             <span className="dockingViewButtonSelector"
                 onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))}
                 onPointerDown={action(e => {
@@ -40,7 +40,11 @@ export class CollectionDockingViewMenu extends React.Component<{ views: () => Do
                     this._tooltipOpen = false;
                 })} >
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
-                    <FontAwesomeIcon icon={"arrows-alt"} size={"sm"} />
+                    <>
+                        <div className="moreInfoDot"></div>
+                        <div className="moreInfoDot"></div>
+                        <div className="moreInfoDot"></div>
+                    </>
                 </Flyout>
             </span>
         </Tooltip >;
