@@ -399,7 +399,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         const showAdmin = effectiveAcls.every(acl => acl === AclAdmin);
 
         // users in common between all docs
-        const commonKeys = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
+        const commonKeys: string[] = intersection(...docs.map(doc => this.layoutDocAcls ? doc?.[AclSym] && Object.keys(doc[AclSym]) : doc?.[DataSym][AclSym] && Object.keys(doc[DataSym][AclSym])));
 
         const tableEntries = [];
 
@@ -829,6 +829,181 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    @computed get optionsSubMenu() {
+        return <div className="propertiesView-settings" onPointerEnter={action(() => this.inOptions = true)}
+            onPointerLeave={action(() => this.inOptions = false)}>
+            <div className="propertiesView-settings-title"
+                onPointerDown={action(() => this.openOptions = !this.openOptions)}
+                style={{ backgroundColor: this.openOptions ? "black" : "" }}>
+                Options
+                        <div className="propertiesView-settings-title-icon">
+                    <FontAwesomeIcon icon={this.openOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {!this.openOptions ? (null) :
+                <div className="propertiesView-settings-content">
+                    <PropertiesButtons />
+                </div>}
+        </div>;
+    }
+
+    @computed get sharingSubMenu() {
+        return <div className="propertiesView-sharing">
+            <div className="propertiesView-sharing-title"
+                onPointerDown={action(() => this.openSharing = !this.openSharing)}
+                style={{ backgroundColor: this.openSharing ? "black" : "" }}>
+                Sharing {"&"} Permissions
+                        <div className="propertiesView-sharing-title-icon">
+                    <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {!this.openSharing ? (null) :
+                <div className="propertiesView-sharing-content">
+                    <div className="propertiesView-buttonContainer">
+                        {!Doc.UserDoc().noviceMode ? (<div className="propertiesView-acls-checkbox">
+                            <Checkbox
+                                color="primary"
+                                onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
+                                checked={this.layoutDocAcls}
+                            />
+                            <div className="propertiesView-acls-checkbox-text">Layout</div>
+                        </div>) : (null)}
+                        {/* <Tooltip title={<><div className="dash-tooltip">{"Re-distribute sharing settings"}</div></>}>
+                                        <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
+                                            <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
+                                        </button>
+                                    </Tooltip> */}
+                    </div>
+                    {this.sharingTable}
+                </div>}
+        </div>;
+    }
+
+    @computed get filtersSubMenu() {
+        return <div className="propertiesView-sharing">
+            <div className="propertiesView-sharing-title"
+                onPointerDown={action(() => this.openFilters = !this.openFilters)}
+                style={{ backgroundColor: this.openFilters ? "black" : "" }}>
+                Filters
+                        <div className="propertiesView-sharing-title-icon">
+                    <FontAwesomeIcon icon={this.openFilters ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {!this.openFilters ? (null) :
+                <div className="propertiesView-sharing-content">
+                    <DocumentView
+                        Document={Doc.UserDoc().currentFilter as any as Doc}
+                        DataDoc={undefined}
+                        addDocument={undefined}
+                        addDocTab={returnFalse}
+                        pinToPres={emptyFunction}
+                        rootSelected={returnTrue}
+                        removeDocument={returnFalse}
+                        ScreenToLocalTransform={this.getTransform}
+                        PanelWidth={this.docWidth}
+                        PanelHeight={this.docHeight}
+                        renderDepth={0}
+                        scriptContext={CollectionDockingView.Instance.props.Document}
+                        focus={emptyFunction}
+                        styleProvider={DefaultStyleProvider}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                    />
+                </div>}
+        </div>;
+    }
+
+    @computed get inkSubMenu() {
+        return <>
+            {!this.isInk ? (null) :
+                <div className="propertiesView-appearance">
+                    <div className="propertiesView-appearance-title"
+                        onPointerDown={action(() => this.openAppearance = !this.openAppearance)}
+                        style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
+                        Appearance
+                            <div className="propertiesView-appearance-title-icon">
+                            <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
+                        </div>
+                    </div>
+                    {!this.openAppearance ? (null) :
+                        <div className="propertiesView-appearance-content">
+                            {this.appearanceEditor}
+                        </div>}
+                </div>}
+
+            {this.isInk ? <div className="propertiesView-transform">
+                <div className="propertiesView-transform-title"
+                    onPointerDown={action(() => this.openTransform = !this.openTransform)}
+                    style={{ backgroundColor: this.openTransform ? "black" : "" }}>
+                    Transform
+                        <div className="propertiesView-transform-title-icon">
+                        <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
+                    </div>
+                </div>
+                {this.openTransform ? <div className="propertiesView-transform-content">
+                    {this.transformEditor}
+                </div> : null}
+            </div> : null}
+        </>;
+    }
+
+    @computed get fieldsSubMenu() {
+        return <div className="propertiesView-fields">
+            <div className="propertiesView-fields-title"
+                onPointerDown={action(() => this.openFields = !this.openFields)}
+                style={{ backgroundColor: this.openFields ? "black" : "" }}>
+                Fields {"&"} Tags
+                            <div className="propertiesView-fields-title-icon">
+                    <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {!Doc.UserDoc().noviceMode && this.openFields ? <div className="propertiesView-fields-checkbox">
+                {this.fieldsCheckbox}
+                <div className="propertiesView-fields-checkbox-text">Layout</div>
+            </div> : null}
+            {!this.openFields ? (null) :
+                <div className="propertiesView-fields-content">
+                    {Doc.UserDoc().noviceMode ? this.noviceFields : this.expandedField}
+                </div>}
+        </div>;
+    }
+
+    @computed get contextsSubMenu() {
+        return <div className="propertiesView-contexts">
+            <div className="propertiesView-contexts-title"
+                onPointerDown={action(() => this.openContexts = !this.openContexts)}
+                style={{ backgroundColor: this.openContexts ? "black" : "" }}>
+                Contexts
+                        <div className="propertiesView-contexts-title-icon">
+                    <FontAwesomeIcon icon={this.openContexts ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
+        </div>;
+    }
+
+    @computed get layoutSubMenu() {
+        return <div className="propertiesView-layout">
+            <div className="propertiesView-layout-title"
+                onPointerDown={action(() => this.openLayout = !this.openLayout)}
+                style={{ backgroundColor: this.openLayout ? "black" : "" }}>
+                Layout
+                        <div className="propertiesView-layout-title-icon">
+                    <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
+                </div>
+            </div>
+            {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
+        </div>;
+    }
+
+
+
     /**
      * Handles adding and removing members from the sharing panel
      */
@@ -849,8 +1024,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>;
 
         } else {
-            const novice = Doc.UserDoc().noviceMode;
-
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
@@ -863,159 +1036,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                     </div>
-                    <div className="propertiesView-settings" onPointerEnter={action(() => this.inOptions = true)}
-                        onPointerLeave={action(() => this.inOptions = false)}>
-                        <div className="propertiesView-settings-title"
-                            onPointerDown={action(() => this.openOptions = !this.openOptions)}
-                            style={{ backgroundColor: this.openOptions ? "black" : "" }}>
-                            Options
-                        <div className="propertiesView-settings-title-icon">
-                                <FontAwesomeIcon icon={this.openOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {!this.openOptions ? (null) :
-                            <div className="propertiesView-settings-content">
-                                <PropertiesButtons />
-                            </div>}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
-                            onPointerDown={action(() => this.openSharing = !this.openSharing)}
-                            style={{ backgroundColor: this.openSharing ? "black" : "" }}>
-                            Sharing {"&"} Permissions
-                        <div className="propertiesView-sharing-title-icon">
-                                <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {!this.openSharing ? (null) :
-                            <div className="propertiesView-sharing-content">
-                                <div className="propertiesView-buttonContainer">
-                                    {!novice ? (<div className="propertiesView-acls-checkbox">
-                                        <Checkbox
-                                            color="primary"
-                                            onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
-                                            checked={this.layoutDocAcls}
-                                        />
-                                        <div className="propertiesView-acls-checkbox-text">Layout</div>
-                                    </div>) : (null)}
-                                    {/* <Tooltip title={<><div className="dash-tooltip">{"Re-distribute sharing settings"}</div></>}>
-                                        <button onPointerDown={() => SharingManager.Instance.distributeOverCollection(this.selectedDoc!)}>
-                                            <FontAwesomeIcon icon="redo-alt" color="white" size="1x" />
-                                        </button>
-                                    </Tooltip> */}
-                                </div>
-                                {this.sharingTable}
-                            </div>}
-                    </div>
+                    {this.optionsSubMenu}
 
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
-                            onPointerDown={action(() => this.openFilters = !this.openFilters)}
-                            style={{ backgroundColor: this.openFilters ? "black" : "" }}>
-                            Filters
-                        <div className="propertiesView-sharing-title-icon">
-                                <FontAwesomeIcon icon={this.openFilters ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {!this.openFilters ? (null) :
-                            <div className="propertiesView-sharing-content">
-                                <DocumentView
-                                    Document={Doc.UserDoc().currentFilter as any as Doc}
-                                    DataDoc={undefined}
-                                    addDocument={undefined}
-                                    addDocTab={returnFalse}
-                                    pinToPres={emptyFunction}
-                                    rootSelected={returnTrue}
-                                    removeDocument={returnFalse}
-                                    ScreenToLocalTransform={this.getTransform}
-                                    PanelWidth={this.docWidth}
-                                    PanelHeight={this.docHeight}
-                                    renderDepth={0}
-                                    scriptContext={CollectionDockingView.Instance.props.Document}
-                                    focus={emptyFunction}
-                                    styleProvider={DefaultStyleProvider}
-                                    parentActive={returnTrue}
-                                    whenActiveChanged={emptyFunction}
-                                    bringToFront={emptyFunction}
-                                    docFilters={returnEmptyFilter}
-                                    docRangeFilters={returnEmptyFilter}
-                                    searchFilterDocs={returnEmptyDoclist}
-                                    ContainingCollectionView={undefined}
-                                    ContainingCollectionDoc={undefined}
-                                />
-                            </div>}
-                    </div>
+                    {this.sharingSubMenu}
 
-                    {!this.isInk ? (null) :
-                        <div className="propertiesView-appearance">
-                            <div className="propertiesView-appearance-title"
-                                onPointerDown={action(() => this.openAppearance = !this.openAppearance)}
-                                style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
-                                Appearance
-                            <div className="propertiesView-appearance-title-icon">
-                                    <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
-                                </div>
-                            </div>
-                            {!this.openAppearance ? (null) :
-                                <div className="propertiesView-appearance-content">
-                                    {this.appearanceEditor}
-                                </div>}
-                        </div>}
+                    {this.filtersSubMenu}
 
-                    {this.isInk ? <div className="propertiesView-transform">
-                        <div className="propertiesView-transform-title"
-                            onPointerDown={action(() => this.openTransform = !this.openTransform)}
-                            style={{ backgroundColor: this.openTransform ? "black" : "" }}>
-                            Transform
-                        <div className="propertiesView-transform-title-icon">
-                                <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openTransform ? <div className="propertiesView-transform-content">
-                            {this.transformEditor}
-                        </div> : null}
-                    </div> : null}
+                    {this.inkSubMenu}
 
-                    <div className="propertiesView-fields">
-                        <div className="propertiesView-fields-title"
-                            onPointerDown={action(() => this.openFields = !this.openFields)}
-                            style={{ backgroundColor: this.openFields ? "black" : "" }}>
-                            Fields {"&"} Tags
-                            <div className="propertiesView-fields-title-icon">
-                                <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
-                            {this.fieldsCheckbox}
-                            <div className="propertiesView-fields-checkbox-text">Layout</div>
-                        </div> : null}
-                        {!this.openFields ? (null) :
-                            <div className="propertiesView-fields-content">
-                                {novice ? this.noviceFields : this.expandedField}
-                            </div>}
-                    </div>
-                    <div className="propertiesView-contexts">
-                        <div className="propertiesView-contexts-title"
-                            onPointerDown={action(() => this.openContexts = !this.openContexts)}
-                            style={{ backgroundColor: this.openContexts ? "black" : "" }}>
-                            Contexts
-                        <div className="propertiesView-contexts-title-icon">
-                                <FontAwesomeIcon icon={this.openContexts ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
-                    </div>
-                    <div className="propertiesView-layout">
-                        <div className="propertiesView-layout-title"
-                            onPointerDown={action(() => this.openLayout = !this.openLayout)}
-                            style={{ backgroundColor: this.openLayout ? "black" : "" }}>
-                            Layout
-                        <div className="propertiesView-layout-title-icon">
-                                <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
-                    </div>
+                    {this.fieldsSubMenu}
+
+                    {this.contextsSubMenu}
+
+                    {this.layoutSubMenu}
                 </div>;
             }
             if (this.isPres) {
