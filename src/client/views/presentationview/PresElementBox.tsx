@@ -2,11 +2,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
 import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -56,8 +56,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get targetDoc() { return Cast(this.rootDoc.presentationTargetDoc, Doc, null) || this.rootDoc; }
 
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight],
-            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : 0), { fireImmediately: true });
+        let childCount: number = DocListCast(this.rootDoc.data).length;
+        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight, this.rootDoc.presExpandGroup, this.rootDoc._isGroup],
+            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : Number(params[2]) ? childCount * 30 : Number(params[3]) ? 5 : 0), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._heightDisposer?.();
@@ -114,6 +115,31 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 />
                 <div className="presItem-embeddedMask" />
             </div>;
+    }
+
+    @computed get renderGroupSlides() {
+        let childDocs = DocListCast(this.rootDoc.data);
+        const groupSlides = childDocs.map((doc: Doc, ind: number) =>
+            <div className="presItem-groupSlide">
+                <div className="presItem-number">
+                    {`${ind + 1}.`}
+                </div>
+                {/* style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }} */}
+                <div className="presItem-name">
+                    <EditableView
+                        ref={this._titleRef}
+                        editing={undefined}
+                        contents={doc.title}
+                        overflow={'ellipsis'}
+                        GetValue={() => StrCast(doc.title)}
+                        SetValue={this.onSetValue}
+                    />
+                </div>
+            </div>
+        );
+        return (
+            groupSlides
+        );
     }
 
     @computed get duration() {
@@ -290,6 +316,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const presColorBool: boolean = presBoxColor ? (presBoxColor !== "white" && presBoxColor !== "transparent") : false;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
+        const isGroup: boolean = BoolCast(targetDoc._isGroup);
         return (
             <div className={`presItem-container`}
                 key={this.props.Document[Id] + this.indexInPres}
@@ -304,8 +331,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     PresBox.Instance.modifierSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, !e.shiftKey && !e.ctrlKey && !e.metaKey, e.ctrlKey || e.metaKey, e.shiftKey);
                 }}
                 onDoubleClick={action(e => {
-                    this.toggleProperties();
-                    PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, true);
+                    if (isGroup) {
+                        this.rootDoc.presExpandGroup = !this.rootDoc.presExpandGroup;
+                    } else {
+                        this.toggleProperties();
+                        PresBox.Instance.regularSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!, true);
+                    }
                 })}
                 onPointerOver={this.onPointerOver}
                 onPointerLeave={this.onPointerLeave}
@@ -322,7 +353,37 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
-                {miniView ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
+                {isGroup ?
+                    <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "activeGroup" : "group"}`}
+                        style={{
+                            backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
+                            boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
+                        }}>
+                        <div className="presItem-name" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }}>
+                            <EditableView
+                                ref={this._titleRef}
+                                editing={!isSelected ? false : undefined}
+                                contents={activeItem.title}
+                                overflow={'ellipsis'}
+                                GetValue={() => StrCast(activeItem.title)}
+                                SetValue={this.onSetValue}
+                            />
+                        </div>
+                        <div className={"presItem-slideButtons"}>
+                            <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
+                                className={"slideButton"}
+                                onClick={this.removeItem}>
+                                <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
+                            </div></Tooltip>
+                            <div className="group"></div>
+                        </div>
+                        <div className="presItem-groupSlideContainer" style={{ top: 28, height: 'calc(100% - 28px)' }}>
+                            {this.rootDoc.presExpandGroup ? this.renderGroupSlides : (null)}
+                        </div>
+                        <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
+                    </div>
+                    : (null)}
+                {miniView || isGroup ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}
                     style={{
                         backgroundColor: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor),
                         boxShadow: presBoxColor && presBoxColor !== "white" && presBoxColor !== "transparent" ? isSelected ? "0 0 0px 1.5px" + presBoxColor : undefined : undefined
