@@ -764,11 +764,16 @@ export namespace Docs {
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
+            const pdfProto = Prototypes.get(DocumentType.PDF);
+            pdfProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
+            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), options);
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
+            const webProto = Prototypes.get(DocumentType.WEB);
+            webProto.scrollHeight = 100000;  // backward compatibility -- can be removed after db is reset
+            webProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
+            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
