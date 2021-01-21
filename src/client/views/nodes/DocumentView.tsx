@@ -386,9 +386,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         }, console.log);
                         undoBatch(func)();
                     } else if (!Doc.IsSystem(this.props.Document)) {
-                        if (this.props.Document.type === DocumentType.INK) {
-                            InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
-                        } else if (this.props.Document.type !== DocumentType.LABEL) {
+                        if (this.props.Document.type !== DocumentType.LABEL) {
                             UndoManager.RunInBatch(() => {
                                 const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
                                 this.props.addDocTab(fullScreenDoc, "add");
