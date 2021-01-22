@@ -35,7 +35,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     }
 
     private makeMask = () => {
-        this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
         this.props.Document.mixBlendMode = "hard-light";
         this.props.Document.color = "#9b9b9bff";
         //this.props.Document._stayInCollection = true;
@@ -48,6 +47,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     @action
     onControlDown = (e: React.PointerEvent, i: number): void => {
         //TODO:renew points before controlling 
+        InkStrokeProperties.Instance?.control(0.001, 0.001, 1);
         setupMoveUpEvents(this, e, this.onControlMove, this.onControlup, (e) => { });
         this._controlUndo = UndoManager.StartBatch("DocDecs set radius");
         this._prevX = e.clientX;

@@ -186,20 +186,21 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{SelectionManager.Views().length > 1 ? "Pin multiple documents to presentation" : "Pin to presentation"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={
+            <div className="dash-tooltip">{SelectionManager.Views().length > 1 ? "Pin multiple documents to presentation" : "Pin to presentation"}</div>}>
             <div className="documentButtonBar-linker"
                 style={{ color: "white" }}
-                onClick={undoBatch(e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, false)))}>
+                onClick={undoBatch(e => this.props.views().map(view => view && TabDocView.PinDoc(view.props.Document, { setPosition: e.shiftKey ? true : undefined })))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
-            </div></Tooltip>;
+            </div>
+        </Tooltip>;
     }
 
     @undoBatch
     @action
     pinWithView = (targetDoc: Doc) => {
         if (targetDoc) {
-            TabDocView.PinDoc(targetDoc, false);
+            TabDocView.PinDoc(targetDoc);
             const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
             const scrollable: boolean = (targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.RTF || targetDoc.type === DocumentType.WEB || targetDoc._viewType === CollectionViewType.Stacking);
             const pannable: boolean = ((targetDoc.type === DocumentType.COL && targetDoc._viewType === CollectionViewType.Freeform) || targetDoc.type === DocumentType.IMG);

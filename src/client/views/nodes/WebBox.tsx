@@ -689,7 +689,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         height: NumCast(this.scrollHeight, 50),
                         pointerEvents: inactiveLayer ? "none" : undefined
                     }}>
-                        <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                        <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                             renderDepth={this.props.renderDepth + 1}
                             CollectionView={undefined}
                             fieldKey={this.annotationKey}

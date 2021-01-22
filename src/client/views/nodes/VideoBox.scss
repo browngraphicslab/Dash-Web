@@ -15,12 +15,13 @@
         position: absolute;
         height: 20%;
         width: 100%;
-        bottom: -60px;
+        bottom: 0px;
         background: white;
         border: gray solid 1px;
         border-radius: 3px;
         z-index: 1000;
         overflow: hidden;
+        left: 0px;
 
         .audiobox-current {
             width: 1px;
@@ -70,7 +71,7 @@
             }
         }
 
-        .audiobox-marker-container1,
+        .audiobox-marker-timeline,
         .audiobox-marker-minicontainer {
             position: absolute;
             width: 10px;
@@ -115,6 +116,11 @@
                 width: 2px;
                 z-index: 100;
             }
+            
+            // .contentFittingDocumentView-previewDoc {
+            //     width: 100% !important;
+            //     transform: none !important;
+            // }
         }
 
         .audiobox-marker-container1:hover,
@@ -173,14 +179,14 @@
     pointer-events:all;
 }
 
-.timeline-button {
-    position: absolute;
-    bottom: 15px;
-    right: 17%;
-    color: lightgrey;
-    width: 20px;
+// .timeline-button {
+//     position: absolute;
+//     bottom: 35px;
+//     right: 235px;
+//     color: lightgrey;
+//     width: 20px;
 
-}
+// }
 .videoBox-play {
     width: 25px;
     height: 20px;

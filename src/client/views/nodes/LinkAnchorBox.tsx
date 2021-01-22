@@ -77,6 +77,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                     LinkManager.FollowLink(this.rootDoc, anchorContainerDoc, this.props, false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
+                e.stopPropagation();
             }
         } else {
             this._timeout && clearTimeout(this._timeout);

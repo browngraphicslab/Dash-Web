@@ -31,6 +31,7 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { SliderBox } from '../nodes/SliderBox';
 
 export interface TreeViewProps {
     document: Doc;
@@ -378,7 +379,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const expandKey = this.treeViewExpandedView;
         if (["links", "annotations", this.fieldKey].includes(expandKey)) {
-            const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
+            const key = expandKey === "annotations" ? this.fieldKey + "-annotations" : expandKey;
+            const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
             const localAdd = (doc: Doc, addBefore?: Doc, before?: boolean) => {
                 // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
                 // then the modification would be done here
@@ -390,7 +392,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     docs.sort((a, b) => NumCast(a.zIndex) > NumCast(b.zIndex) ? 1 : -1);
                     docs.forEach((d, i) => d.zIndex = i);
                 }
-                const added = Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
+                const added = Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 added && (doc.context = this.doc.context);
                 return added;
             };
@@ -466,6 +468,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             }
         </div>;
     }
+
     @computed get showTitleEditorControl() { return ["*", this._uniqueId, this.props.treeView._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || ""); }
     @computed get headerElements() {
         return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
@@ -567,6 +570,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 parentActive={returnTrue}
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={emptyFunction}
+                cantBrush={this.props.treeView.props.cantBrush}
                 dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
@@ -584,7 +588,10 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
-            {this.headerElements}
+            <div className={"right-buttons-container"}>
+                {this.props.styleProvider?.(this.doc, this.props.treeView.props, StyleProp.Decorations + (Doc.IsSystem(this.props.containingCollection) ? ":afterHeader" : ""))} {/* hide and lock buttons */}
+                {this.headerElements}
+            </div>
         </>;
     }
 
@@ -612,15 +619,17 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     renderEmbeddedDocument = (asText: boolean) => {
-        const panelWidth = asText || StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.expandPanelWidth;
-        const panelHeight = asText ? this.rtfOutlineHeight : StrCast(Doc.LayoutField(this.layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.expandPanelHeight;
+        const layout = StrCast(Doc.LayoutField(this.layoutDoc));
+        const isExpandable = layout.includes(FormattedTextBox.name) || layout.includes(SliderBox.name);
+        const panelWidth = asText || isExpandable ? this.rtfWidth : this.expandPanelWidth;
+        const panelHeight = asText ? this.rtfOutlineHeight : isExpandable ? this.rtfHeight : this.expandPanelHeight;
         return <DocumentView key={this.doc[Id]} ref={action((r: DocumentView | null) => this._dref = r)}
             Document={this.doc}
             DataDoc={undefined}
             PanelWidth={panelWidth}
             PanelHeight={panelHeight}
-            NativeWidth={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
-            NativeHeight={!asText && this.layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+            NativeWidth={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfWidth : undefined}
+            NativeHeight={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfHeight : undefined}
             fitContentsToDoc={true}
             hideTitle={asText}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
@@ -642,6 +651,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
+            cantBrush={this.props.treeView.props.cantBrush}
             bringToFront={returnFalse}
         />;
     }

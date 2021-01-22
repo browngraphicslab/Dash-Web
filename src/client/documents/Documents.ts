@@ -1,4 +1,4 @@
-import { runInAction, action } from "mobx";
+import { action, runInAction } from "mobx";
 import { basename, extname } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
@@ -42,19 +42,19 @@ import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
+import { LinkDescriptionPopup } from "../views/nodes/LinkDescriptionPopup";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { PresBox } from "../views/nodes/PresBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { SliderBox } from "../views/nodes/SliderBox";
+import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
-import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
-import { LinkDescriptionPopup } from "../views/nodes/LinkDescriptionPopup";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -113,6 +113,7 @@ export interface DocumentOptions {
     page?: number;
     description?: string; // added for links
     _viewScale?: number;
+    _overflow?: string;
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
@@ -609,7 +610,7 @@ export namespace Docs {
             proto.links = ComputedField.MakeFunction("links(self)");
 
             viewDoc.author = Doc.CurrentUserEmail;
-            viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
+            viewDoc.type !== DocumentType.LINK && viewDoc.type !== DocumentType.LABEL && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
@@ -1007,10 +1008,10 @@ export namespace DocUtils {
         });
     }
 
-    export let ActiveRecordings: Doc[] = [];
+    export let ActiveRecordings: AudioBox[] = [];
 
     export function MakeLinkToActiveAudio(doc: Doc) {
-        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
+        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d.getAnchor() || d.props.Document }, "audio link", "audio timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string, allowParCollectionLink?: boolean, showPopup?: number[]) {
@@ -1250,14 +1251,13 @@ export namespace DocUtils {
             });
         });
         if (x !== undefined && y !== undefined) {
-            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100 });
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _overflow: "visible" });
             newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
             newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
             newCollection._width = newCollection._height = 110;
             //newCollection.borderRounding = "40px";
             newCollection._jitterRotation = 10;
             newCollection._backgroundColor = "gray";
-            newCollection._overflow = "visible";
             return newCollection;
         }
     }

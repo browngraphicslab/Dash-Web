@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { runInAction } from 'mobx';
-import { Doc, Opt, StrListCast } from "../../fields/Doc";
+import { Doc, Opt, StrListCast, LayoutSym } from "../../fields/Doc";
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
@@ -105,11 +105,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.PRES: docColor = docColor || (darkScheme() ? "#3e3e3e" : "white"); break;
                 case DocumentType.FONTICON: docColor = undefined; break;
                 case DocumentType.RTF: docColor = docColor || (darkScheme() ? "#2d2d2d" : "#f1efeb"); break;
-                case DocumentType.LABEL:
-                case DocumentType.INK: docColor = undefined; break;
+                case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
+                case DocumentType.INK: docColor = doc?.isInkMask ? "rgba(0,0,0,0.7)" : undefined; break;
+                case DocumentType.SLIDER: break;
+                case DocumentType.LABEL: docColor = docColor || (doc?.audioStart !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
                 case DocumentType.COL:
+                    if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;
                     docColor = docColor ? docColor :
                         doc?._isGroup ? "#00000004" : // very faint highlight to show bounds of group
                             (Doc.IsSystem(doc) ? (darkScheme() ? "rgb(62,62,62)" : "lightgrey") : // system docs (seen in treeView) get a grayish background
@@ -135,6 +138,9 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                     return StrCast(doc?.boxShadow,
                         isBackground() || doc?._isGroup || docProps?.LayoutTemplateString ? undefined : // groups have no drop shadow -- they're supposed to be "invisible".  LayoutString's imply collection is being rendered as something else (e.g., title of a Slide)
                             `${darkScheme() ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(doc.boxShadow, "0.2vw 0.2vw 0.8vw")}`);
+
+                case DocumentType.LABEL:
+                    if (doc?.audioStart !== undefined) return "black 2px 2px 1px";
                 default:
                     return doc.z ? `#9c9396  ${StrCast(doc?.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
                         props?.ContainingCollectionDoc?._useClusters && doc.type !== DocumentType.INK ? (`${backgroundCol()} ${StrCast(doc.boxShadow, `0vw 0vw ${(isBackground() ? 100 : 50) / (docProps?.ContentScaling?.() || 1)}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
