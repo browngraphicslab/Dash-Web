@@ -34,6 +34,8 @@
         border: unset;
     }
     .pdfViewerDash-text-selected {
+        position: relative;
+        z-index: -1;
         .textLayer{
            pointer-events: all;
            user-select: text;
@@ -44,12 +46,6 @@
         .textLayer {
             will-change: transform;
         }
-    }
-
-    .pdfViewerDash-dragAnnotationBox {
-        position:absolute;
-        background-color: transparent;
-        opacity: 0.1;
     }
 
     .pdfViewerDash-overlay, .pdfViewerDash-overlay-inking {
@@ -83,11 +79,6 @@
         width: 100%;
         pointer-events: none;
         mix-blend-mode: multiply; // bcz: makes text fuzzy!
-
-        .pdfViewerDash-annotationBox {
-            position: absolute;
-            background-color: rgba(245, 230, 95, 0.616);
-        }
     }
     .pdfViewerDash-waiting {
         width: 70%;
@@ -102,5 +93,4 @@
 
 .pdfViewerDash-interactive {
     pointer-events: all;
-}
-   
+}   

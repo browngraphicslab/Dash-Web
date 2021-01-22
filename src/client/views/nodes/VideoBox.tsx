@@ -225,6 +225,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
+        this._disposers.selection = reaction(() => this.props.isSelected(),
+            selected => {
+                if (!selected) {
+                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                    this._savedAnnotations.clear();
+                }
+            },
+            { fireImmediately: true });
         this._disposers.videoStart = reaction(
             () => this.Document._videoStart,
             (videoStart) => {
@@ -743,17 +751,29 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
+
+    @computed get annotationLayer() {
+        return <div className="imageBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer} />;
+    }
+
+    marqueeDown = action((e: React.PointerEvent) => {
+        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+    })
+
+    finishMarquee = action(() => {
+        this._marqueeing = undefined;
+        this.props.select(true);
+    })
+
     render() {
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
         const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
-        return (<div className="videoBox" onContextMenu={this.specificContextMenu}
+        return (<div className="videoBox" onContextMenu={this.specificContextMenu} ref={this._mainCont}
             style={{
-                width: "100%",
-                height: "100%",
                 pointerEvents: this.props.layerProvider?.(this.layoutDoc) === false ? "none" : undefined,
                 borderRadius
             }} >
-            <div className="videoBox-viewer" >
+            <div className="videoBox-viewer" onPointerDown={this.marqueeDown}>
                 <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                     forceScaling={true}
                     fieldKey={this.annotationKey}
@@ -771,6 +791,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>
+<<<<<<< HEAD
+=======
+            {this.uIButtons}
+            {this.annotationLayer}
+            {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
+                <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocumentWithTimestamp} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+>>>>>>> 10b759d2bd09af3a8e8a4effbc8fd2312dd873d2
         </div >);
     }
 }

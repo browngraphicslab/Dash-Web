@@ -27,6 +27,10 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { StyleProp } from '../StyleProvider';
+import { AnchorMenu } from '../pdf/AnchorMenu';
+import { Dictionary } from 'typescript-collections';
+import { MarqueeAnnotator } from '../MarqueeAnnotator';
+import { Annotation } from '../pdf/Annotation';
 const path = require('path');
 const { Howl } = require('howler');
 
@@ -63,7 +67,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
-    private _pathDisposer?: IReactionDisposer;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
@@ -74,7 +78,15 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     componentDidMount() {
-        this._pathDisposer = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
+        this._disposers.selection = reaction(() => this.props.isSelected(),
+            selected => {
+                if (!selected) {
+                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                    this._savedAnnotations.clear();
+                }
+            },
+            { fireImmediately: true });
+        this._disposers.path = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
             action(({ nativeSize, width }) => {
                 if (!this.layoutDoc._height) {
                     this.layoutDoc._height = width * nativeSize.nativeHeight / nativeSize.nativeWidth;
@@ -84,7 +96,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     componentWillUnmount() {
-        this._pathDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
     @undoBatch
@@ -356,7 +368,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             transform = `translate(-100%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         }
 
-        return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget}>
+        return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget} onPointerDown={this.marqueeDown}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
@@ -402,11 +414,28 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter);
     contentFunc = () => [this.content];
 
+    private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
+    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
+    @observable _marqueeing: number[] | undefined;
+    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @computed get annotationLayer() {
+        return <div className="imageBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer} />;
+    }
+    @action
+    marqueeDown = (e: React.PointerEvent) => {
+        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+    }
+    @action
+    finishMarquee = () => {
+        this._marqueeing = undefined;
+        this.props.select(true);
+    }
+
     render() {
         TraceMobx();
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
         const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / (this.props.scaling?.() || 1)}px` : borderRad;
-        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
+        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu} ref={this._mainCont}
             style={{
                 width: this.props.PanelWidth() ? undefined : `100%`,
                 height: this.props.PanelWidth() ? undefined : `100%`,
@@ -437,6 +466,9 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 whenActiveChanged={this.whenActiveChanged}>
                 {this.contentFunc}
             </CollectionFreeFormView>
+            {this.annotationLayer}
+            {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
+                <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
         </div >);
     }
 }

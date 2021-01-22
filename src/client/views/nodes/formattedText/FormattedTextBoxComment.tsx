@@ -121,7 +121,7 @@ export class FormattedTextBoxComment {
                         }
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _fitWidth: true, _width: 200, _height: 400, useCors: true }), "add:right");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, useCors: true }), "add:right");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
@@ -255,7 +255,7 @@ export class FormattedTextBoxComment {
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = href;
-                            FormattedTextBoxComment.linkDoc = DocListCast(textBox.props.Document.links).find(link => link.anchor1 === textBox.props.Document || link.anchor2 === textBox.props.Document ? link : undefined) || linkDoc;
+                            FormattedTextBoxComment.linkDoc = linkDoc;
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
                             if (anchor !== target && anchor && target) {

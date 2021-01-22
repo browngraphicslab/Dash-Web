@@ -22,7 +22,7 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { PDFMenu } from "./pdf/PDFMenu";
+import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
@@ -261,7 +261,7 @@ export class KeyManager {
                 }
                 break;
             case "c":
-                if (!PDFMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
+                if (!AnchorMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
                     const text = `__DashCloneId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.Views().map(dv => dv.Document[Id]).join(":");

@@ -105,14 +105,14 @@ export namespace DragManager {
         constructor(aborted: boolean, dragData: { [id: string]: any }) {
             this.aborted = aborted;
             this.docDragData = dragData instanceof DocumentDragData ? dragData : undefined;
-            this.annoDragData = dragData instanceof PdfAnnoDragData ? dragData : undefined;
+            this.annoDragData = dragData instanceof AnchorAnnoDragData ? dragData : undefined;
             this.linkDragData = dragData instanceof LinkDragData ? dragData : undefined;
             this.columnDragData = dragData instanceof ColumnDragData ? dragData : undefined;
         }
         linkDocument?: Doc;
         aborted: boolean;
         docDragData?: DocumentDragData;
-        annoDragData?: PdfAnnoDragData;
+        annoDragData?: AnchorAnnoDragData;
         linkDragData?: LinkDragData;
         columnDragData?: ColumnDragData;
     }
@@ -152,19 +152,21 @@ export namespace DragManager {
         }
         colKey: SchemaHeaderField;
     }
-    // used by PDFs to conditionally (if the drop completes) create a text annotation when dragging from the PDF toolbar when a text region has been selected.
+    // used by PDFs,Text,Image,Video,Web to conditionally (if the drop completes) create a text annotation when dragging the annotate button from the AnchorMenu when a text/region selection has been made.
     // this is pretty clunky and should be rethought out using linkDrag or DocumentDrag
-    export class PdfAnnoDragData {
-        constructor(dragDoc: Doc, annotationDoc: Doc, dropDoc: Doc) {
+    export class AnchorAnnoDragData {
+        constructor(dragDoc: Doc, annotationDocCreator: () => Doc, dropDocCreator: () => Doc) {
             this.dragDocument = dragDoc;
-            this.dropDocument = dropDoc;
-            this.annotationDocument = annotationDoc;
+            this.dropDocCreator = dropDocCreator;
+            this.annotationDocCreator = annotationDocCreator;
             this.offset = [0, 0];
         }
         targetContext: Doc | undefined;
         dragDocument: Doc;
-        annotationDocument: Doc;
-        dropDocument: Doc;
+        annotationDocCreator: () => Doc;
+        dropDocCreator: () => Doc;
+        dropDocument?: Doc;
+        annotationDocument?: Doc;
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
@@ -250,7 +252,7 @@ export namespace DragManager {
     }
 
     // drag&drop the pdf annotation anchor which will create a text note  on drop via a dropCompleted() DragOption 
-    export function StartPdfAnnoDrag(eles: HTMLElement[], dragData: PdfAnnoDragData, downX: number, downY: number, options?: DragOptions) {
+    export function StartAnchorAnnoDrag(eles: HTMLElement[], dragData: AnchorAnnoDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options);
     }
 
@@ -353,7 +355,7 @@ export namespace DragManager {
         const xs: number[] = [];
         const ys: number[] = [];
 
-        docsBeingDragged = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof PdfAnnoDragData ? [dragData.dragDocument] : [];
+        docsBeingDragged = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnchorAnnoDragData ? [dragData.dragDocument] : [];
         const elesCont = {
             left: Number.MAX_SAFE_INTEGER,
             top: Number.MAX_SAFE_INTEGER,

@@ -1,18 +1,19 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
 import { Doc, Opt } from "../../../fields/Doc";
 import { returnFalse, setupMoveUpEvents, unimplementedFunction, Utils } from "../../../Utils";
 import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
-import "./PDFMenu.scss";
+import "./AnchorMenu.scss";
+import { SelectionManager } from "../../util/SelectionManager";
 
 @observer
-export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
-    static Instance: PDFMenu;
+export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
+    static Instance: AnchorMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
     private _palette = [
@@ -39,7 +40,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
 
     @observable public _colorBtn = false;
     @observable public Highlighting: boolean = false;
-    @observable public Status: "pdf" | "annotation" | "" = "";
+    @observable public Status: "marquee" | "annotation" | "" = "";
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
     public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
@@ -54,8 +55,16 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     constructor(props: Readonly<{}>) {
         super(props);
 
-        PDFMenu.Instance = this;
-        PDFMenu.Instance._canFade = false;
+        AnchorMenu.Instance = this;
+        AnchorMenu.Instance._canFade = false;
+    }
+
+    _disposer: IReactionDisposer | undefined;
+    componentDidMount() {
+        this._disposer = reaction(() => SelectionManager.Views(),
+            selected => {
+                AnchorMenu.Instance.fadeOut(true);
+            });
     }
 
     pointerDown = (e: React.PointerEvent) => {
@@ -119,7 +128,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     }
 
     render() {
-        const buttons = this.Status === "pdf" ?
+        const buttons = this.Status === "marquee" ?
             [
                 this.highlighter,
 
@@ -144,7 +153,7 @@ export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
                         <FontAwesomeIcon icon="thumbtack" size="lg" />
                     </button>
                 </Tooltip>,
-                // <div key="7" className="pdfMenu-addTag" >
+                // <div key="7" className="anchorMenu-addTag" >
                 //     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                 //     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 // </div>,
