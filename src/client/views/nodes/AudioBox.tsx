@@ -29,6 +29,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./AudioBox.scss";
+import { Id } from "../../../fields/FieldSymbols";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -390,9 +391,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (audioStart === undefined) return this.rootDoc;
         const marker = Docs.Create.LabelDocument({
             title: ComputedField.MakeFunction(`"#" + formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any,
-            useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
-            isLabel: audioEnd === undefined,
-            _autoHeight: true, annotationOn: this.props.Document
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            audioStart,
+            audioEnd,
+            annotationOn: this.props.Document
         });
         if (this.dataDoc[this.annotationKey]) {
             this.dataDoc[this.annotationKey].push(marker);
@@ -571,13 +574,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             <div className="waveform">
                                 {this.waveform}
                             </div>
-                            {drawMarkers.map((d, i) => {
+                            {drawMarkers.map(d => {
                                 const m = d.marker;
                                 const left = NumCast(m.audioStart) / this.audioDuration * timelineContentWidth;
                                 const top = d.level / maxLevel * timelineContentHeight;
                                 const timespan = m.audioEnd === undefined ? 10 / timelineContentWidth * this.audioDuration : NumCast(m.audioEnd) - NumCast(m.audioStart);
                                 return this.layoutDoc.hideMarkers ? (null) :
-                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={i}
+                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={m[Id]}
                                         style={{ left, top, width: `${timespan / this.audioDuration * 100}%`, height: `${1 / maxLevel * 100}%` }}
                                         onClick={e => { this.playFrom(NumCast(m.audioStart), Cast(m.audioEnd, "number", null)); e.stopPropagation(); }} >
                                         {this.renderMarker(m, this.rangeClickScript, this.rangePlayScript,

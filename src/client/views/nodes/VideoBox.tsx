@@ -26,10 +26,13 @@ import { List } from "../../../fields/List";
 import { DocumentView } from "./DocumentView";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
-import { Transform } from "../../util/Transform";
 import { StyleProp } from "../StyleProvider";
 import { computedFn } from "mobx-utils";
 import { DocumentManager } from "../../util/DocumentManager";
+import { Dictionary } from "typescript-collections";
+import { MarqueeAnnotator } from "../MarqueeAnnotator";
+import { Id } from "../../../fields/FieldSymbols";
+import { LabelBox } from "./LabelBox";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -47,16 +50,16 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     static RangePlayScript: ScriptField;
     static LabelPlayScript: ScriptField;
     static heightPercent = 20; // height of timeline in percent of height of videoBox.
-    private _reactionDisposer?: IReactionDisposer;
-    private _youtubeReactionDisposer?: IReactionDisposer;
-    // private _reactionDisposer?: IReactionDisposer;
-    // private _youtubeReactionDisposer?: IReactionDisposer;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
     private _youtubeContentCreated = false;
     private _isResetClick = 0;
+    private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
+    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
+    @observable _marqueeing: number[] | undefined;
+    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     _play: any = null;
     _timeline: Opt<HTMLDivElement>;
     _audioRef = React.createRef<HTMLDivElement>();
@@ -75,7 +78,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @observable _playing = false;
     @observable static _showControls: boolean;
     @computed get videoDuration() { return NumCast(this.dataDoc[this.fieldKey + "-duration"]); }
-    @computed get markerDocs() { return DocListCast(this.dataDoc[this.annotationKey]); }
+    @computed get markerDocs() { return DocListCast(this.dataDoc[this.annotationKey + "-timeline"]).concat(DocListCast(this.dataDoc[this.annotationKey])); }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(VideoBox, fieldKey); }
 
     public get player(): HTMLVideoElement | null {
@@ -87,10 +90,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         VideoBox.Instance = this;
 
         // onClick play scripts
-        VideoBox.RangeScript = VideoBox.RangeScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        VideoBox.LabelScript = VideoBox.LabelScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
-        VideoBox.RangePlayScript = VideoBox.RangePlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        VideoBox.LabelPlayScript = VideoBox.LabelPlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        VideoBox.RangeScript = VideoBox.RangeScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.displayTimecode, this.undisplayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
+        VideoBox.LabelScript = VideoBox.LabelScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.displayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
+        VideoBox.RangePlayScript = VideoBox.RangePlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.displayTimecode, this.undisplayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
+        VideoBox.LabelPlayScript = VideoBox.LabelPlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.displayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
     }
 
     videoLoad = () => {
@@ -240,7 +243,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
                         const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
                         setTimeout(() => this.player && this.Play(), delay);
-                        setTimeout(() => { this.Document._videoStart = undefined; }, 10 + delay);
+                        setTimeout(() => this.Document._videoStart = undefined, 10 + delay);
                     }
                 }
             },
@@ -349,9 +352,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         <source src={field.url.href} type="video/mp4" />
                     Not supported.
                     </video>
-                    {this.uIButtons}
                 </div>
-                {this.renderTimeline}
             </div>;
     }
 
@@ -412,9 +413,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         </div>,
         <div className="timeline-button" key="timeline-button" onPointerDown={this.toggleTimeline} style={{
             position: "absolute",
-            bottom: "41px",
-            right: this.layoutDoc._showTimeline ? "235px" : "155px",
-            color: "lightgrey",
+            bottom: 0,
+            right: 0,
+            zIndex: 1001,
+            color: "white",
+            background: "dimgrey",
             width: "20px"
         }}>
             <FontAwesomeIcon icon={this.layoutDoc._showTimeline ? "eye-slash" : "eye"} style={{ width: "100%" }} />
@@ -557,17 +560,19 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     @action
-    createMarker(audioStart: number, audioEnd?: number) {
+    createMarker(displayTimecode: number, undisplayTimecode?: number) {
         const marker = Docs.Create.LabelDocument({
-            title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: audioEnd === undefined,
-            useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
-            _autoHeight: true, annotationOn: this.props.Document
+            title: ComputedField.MakeFunction(`"#" + formatToTime(self.displayTimecode) + "-" + formatToTime(self.undisplayTimecode)`) as any,
+            useLinkSmallAnchor: true, // bcz: note this also flags that the annotation is not on the video itself, just the timeline
+            hideLinkButton: true,
+            displayTimecode,
+            undisplayTimecode,
+            annotationOn: this.props.Document
         });
-        marker.data = ""; // clears out the label's text so that only its border will display
-        if (this.dataDoc[this.annotationKey]) {
-            this.dataDoc[this.annotationKey].push(marker);
+        if (this.dataDoc[this.annotationKey + "-timeline"]) {
+            this.dataDoc[this.annotationKey + "-timeline"].push(marker);
         } else {
-            this.dataDoc[this.annotationKey] = new List<Doc>([marker]);
+            this.dataDoc[this.annotationKey + "-timeline"] = new List<Doc>([marker]);
         }
     }
 
@@ -609,14 +614,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     // makes sure no markers overlaps each other by setting the correct position and width
-    getLevel = (m: any, placed: { audioStart: number, audioEnd: number, level: number }[]) => {
+    getLevel = (m: any, placed: { videoStart: number, videoEnd: number, level: number }[]) => {
         const timelineContentWidth = this.props.PanelWidth();
-        const x1 = m.audioStart;
-        const x2 = m.audioEnd === undefined ? m.audioStart + 10 / timelineContentWidth * this.videoDuration : m.audioEnd;
+        const x1 = m.displayTimecode;
+        const x2 = m.undisplayTimecode === undefined ? m.displayTimecode + 10 / timelineContentWidth * this.videoDuration : m.undisplayTimecode;
         let max = 0;
         const overlappedLevels = new Set(placed.map(p => {
-            const y1 = p.audioStart;
-            const y2 = p.audioEnd;
+            const y1 = p.videoStart;
+            const y2 = p.videoEnd;
             if ((x1 >= y1 && x1 <= y2) || (x2 >= y1 && x2 <= y2) ||
                 (y1 >= x1 && y1 <= x2) || (y2 >= x1 && y2 <= x2)) {
                 max = Math.max(max, p.level);
@@ -626,23 +631,25 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         let level = max + 1;
         for (let j = max; j >= 0; j--) !overlappedLevels.has(j) && (level = j);
 
-        placed.push({ audioStart: x1, audioEnd: x2, level });
+        placed.push({ videoStart: x1, videoEnd: x2, level });
         return level;
     }
 
     // renders the markers as a document
-    renderInner = computedFn(function (this: VideoBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
+    renderInner = computedFn(function (this: VideoBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number, annotationKey: string) {
         const marker = observable({ view: undefined as any });
         return {
-            marker, view: <DocumentView key="view" {...this.props} ref={action((r: DocumentView | null) => marker.view = r)}
+            marker, view: <DocumentView key="view" {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit} ref={action((r: DocumentView | null) => marker.view = r)}
                 Document={mark}
+                DataDoc={undefined}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
+                LayoutTemplateString={LabelBox.LayoutString("data")}
                 ContainingCollectionDoc={this.props.Document}
-                removeDocument={this.removeDocument}
-                ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x - 4, -y - 3)}
+                removeDocument={(doc: Doc | Doc[]) => this.removeDocument(doc, annotationKey)}
+                ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).translate(-x - 4, -y - 3)}
                 parentActive={(out) => this.props.isSelected(out) || this._isChildActive}
                 whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
                 onClick={script}
@@ -653,8 +660,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         };
     });
 
-    renderMarker = computedFn(function (this: VideoBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
-        const inner = this.renderInner(mark, script, doublescript, x, y, width, height);
+    renderMarker = computedFn(function (this: VideoBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number, annotationKey: string) {
+        const inner = this.renderInner(mark, script, doublescript, x, y, width, height, annotationKey);
         return <>
             {inner.view}
             {!inner.marker.view || !SelectionManager.IsSelected(inner.marker.view) ? (null) :
@@ -667,32 +674,34 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     // returns the timeline
     @computed get renderTimeline() {
-        const rect = this._timeline?.getBoundingClientRect();
         const timelineContentWidth = this.props.PanelWidth();
-        //const timelineContentWidth = this.layoutDoc._showTimeline ? this.props.PanelWidth() * 1.25 : this.props.PanelWidth();
-        //const timelineContentWidth = rect ? rect.width : this.props.PanelWidth();
-        const timelineContentHeight = (this.props.PanelHeight() * VideoBox.heightPercent / 100); // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
-        const overlaps: { audioStart: number, audioEnd: number, level: number }[] = [];
-        const drawMarkers = this.markerDocs.map((m, i) => ({ level: this.getLevel(m, overlaps), marker: m }));
+        const timelineContentHeight = this.props.PanelHeight() * VideoBox.heightPercent / 100;
+        const overlaps: { videoStart: number, videoEnd: number, level: number }[] = [];
+        const drawMarkers: { level: number, marker: Doc }[] = this.markerDocs.map((m, i) => ({ level: this.getLevel(m, overlaps), marker: m }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
         return !this.layoutDoc._showTimeline ? (null) :
-            <div className="audiobox-timeline" ref={this.timelineRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ height: `${VideoBox.heightPercent}%` }}
-                onPointerDown={e => e.button === 0 && !e.ctrlKey && this.onPointerDownTimeline(e)}>
-                {drawMarkers.map((d, i) => {
+            <div className="audiobox-timeline" ref={this.timelineRef} style={{ height: `${VideoBox.heightPercent}%` }}
+                onClick={e => { if (this._isChildActive || this.props.isSelected()) { e.stopPropagation(); e.preventDefault(); } }}
+                onPointerDown={e => {
+                    if (this._isChildActive || this.props.isSelected()) {
+                        e.button === 0 && !e.ctrlKey && this.onPointerDownTimeline(e);
+                    }
+                }}>
+                {drawMarkers.map(d => {
                     const m = d.marker;
-                    const left = NumCast(m.audioStart) / this.videoDuration;
-                    const l = `${NumCast(m.audioStart) / this.videoDuration * 100}%`;
+                    const start = NumCast(m.displayTimecode, NumCast(m.displayTimecode, null));
+                    const left = start / this.videoDuration * timelineContentWidth;
                     const top = d.level / maxLevel * timelineContentHeight;
-                    const timespan = m.audioEnd === undefined ? 10 / timelineContentWidth * this.videoDuration : NumCast(m.audioEnd) - NumCast(m.audioStart);
+                    const timespan = m.undisplayTimecode === undefined ? 10 / timelineContentWidth * this.videoDuration : NumCast(m.undisplayTimecode) - NumCast(m.displayTimecode);
                     return this.layoutDoc.hideMarkers ? (null) :
-                        <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={i}
-                            style={{ left: l, top, width: `${timespan / this.videoDuration * 100}%`, height: `${1 / maxLevel * 100}%` }}
-                            onClick={e => { this.playFrom(NumCast(m.audioStart), Cast(m.audioEnd, "number", null)); e.stopPropagation(); }} >
+                        <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={m[Id]}
+                            style={{ left, top, width: `${timespan / this.videoDuration * 100}%`, height: `${1 / maxLevel * 100}%` }}
+                            onClick={e => { this.playFrom(start, Cast(m.undisplayTimecode, "number", null)); e.stopPropagation(); }} >
                             {this.renderMarker(m, this.rangeClickScript, this.rangePlayScript,
                                 left,
-                                top,
+                                top + (this.props.PanelHeight() - timelineContentHeight),
                                 timelineContentWidth * timespan / this.videoDuration,
-                                timelineContentHeight / maxLevel)}
+                                timelineContentHeight / maxLevel, this.annotationKey + (m.useLinkSmallAnchor ? "-timeline" : ""))}
                         </div>;
                 })}
                 {this.selectionContainer}
@@ -703,13 +712,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     // updates the marker with the new time
     @action
     changeMarker = (m: any, time: any) => {
-        DocListCast(this.dataDoc[this.annotationKey]).filter(marker => this.isSame(marker, m)).forEach(marker =>
-            this._left ? marker.audioStart = time : marker.audioEnd = time);
+        this.markerDocs.filter(marker => this.isSame(marker, m)).forEach(marker =>
+            this._left ? marker.displayTimecode = time : marker.undisplayTimecode = time);
     }
 
     // checks if the two markers are the same with start and end time
     isSame = (m1: any, m2: any) => {
-        return m1.audioStart === m2.audioStart && m1.audioEnd === m2.audioEnd;
+        return m1.displayTimecode === m2.displayTimecode && m1.undisplayTimecode === m2.undisplayTimecode;
     }
 
     // returns the blue container when dragging
@@ -753,17 +762,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
 
     @computed get annotationLayer() {
-        return <div className="imageBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer} />;
+        return <div className="imageBox-annotationLayer" style={{ height: "100%" }} ref={this._annotationLayer} />;
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
         if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
-    })
+    });
 
     finishMarquee = action(() => {
         this._marqueeing = undefined;
         this.props.select(true);
-    })
+    });
 
     render() {
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
@@ -781,7 +790,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     select={emptyFunction}
                     active={this.annotationsActive}
                     scaling={returnOne}
-                    ScreenToLocalTransform={this.screenToLocalTransform}
+                    PanelWidth={() => this.props.PanelWidth() * (this.layoutDoc._showTimeline ? .8 : 1)}
+                    PanelHeight={() => this.props.PanelHeight() * (this.layoutDoc._showTimeline ? .8 : 1)}
+                    ScreenToLocalTransform={() => this.screenToLocalTransform().scale(this.layoutDoc._showTimeline ? 1 / .8 : 1)}
                     whenActiveChanged={this.whenActiveChanged}
                     removeDocument={this.removeDocument}
                     moveDocument={this.moveDocument}
@@ -790,14 +801,12 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     renderDepth={this.props.renderDepth + 1}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
+                {this.uIButtons}
+                {this.annotationLayer}
+                {this.renderTimeline}
+                {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
+                    <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocumentWithTimestamp} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
             </div>
-<<<<<<< HEAD
-=======
-            {this.uIButtons}
-            {this.annotationLayer}
-            {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocumentWithTimestamp} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
->>>>>>> 10b759d2bd09af3a8e8a4effbc8fd2312dd873d2
         </div >);
     }
 }

@@ -152,6 +152,7 @@ export interface DocumentOptions {
     _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    undisplayTimecode?: number; // the time that a document should be hidden
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -227,7 +228,7 @@ export interface DocumentOptions {
     isLabel?: boolean;         // whether the document is a label or not (video / audio)
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     audioStart?: number;       // the time frame where the audio should begin playing
-    audioEnd?: number;         // the time frame where the audio should stop playing  
+    audioEnd?: number;         // the time frame where the audio should stop playing   
     border?: string; //for searchbox
     hovercolor?: string;
 }

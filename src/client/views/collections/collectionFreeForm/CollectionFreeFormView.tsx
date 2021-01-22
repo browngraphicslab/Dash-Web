@@ -196,7 +196,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectView(dv, true));
     }
-    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document._currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) {
+        const dispTime = NumCast(doc.displayTimecode, -1);
+        const endTime = NumCast(doc.undisplayTimecode, dispTime + 1.5);
+        const curTime = NumCast(this.Document._currentTimecode, -1);
+        return dispTime === -1 || (curTime > dispTime && curTime < endTime);
+    }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
