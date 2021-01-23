@@ -410,7 +410,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) &&
                         !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc) &&
                         !this.onClickHandler.script.originalScript.includes("selectMainMenu")) {
-                        UndoManager.RunInBatch(func, "on click");
+                        UndoManager.RunInBatch(() => func().result === true ? this.props.select(false) : "", "on click");
                     } else func();
                 };
                 if (this.onDoubleClickHandler) {
@@ -935,7 +935,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     ContentScale = () => this.nativeScaling;
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
+    screenToLocalTransform = () => {
+        return this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
+    }
 
     componentDidMount() {
         !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);

@@ -604,7 +604,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.fillBrush(self.view.state, self.view.dispatch), "rt brush");
-        }
+        };
 
         let label = "Stored marks: ";
         if (this.brushMarks && this.brushMarks.size > 0) {

@@ -24,11 +24,12 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import "./AudioBox.scss";
 import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
+import "./AudioBox.scss";
+import { Id } from "../../../fields/FieldSymbols";
 
 declare class MediaRecorder {
     // whatever MediaRecorder has
@@ -90,10 +91,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         AudioBox.Instance = this;
 
         // onClick play scripts
-        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeFunction(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeFunction(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
     }
 
     getLinkData(l: Doc) {
@@ -188,18 +189,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // play back the audio from time
     @action
     playOnClick = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
-        DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
         this.playFrom(seekTimeInSeconds, endTime);
+        return true;
     }
 
     // play back the audio from time
     @action
     clickMarker = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
-        if (this.layoutDoc.playOnClick) this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
-        else {
-            DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
-            this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
-        }
+        if (this.layoutDoc.playOnClick) return this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
+        this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
+        return true;
     }
     // play back the audio from time
     @action
@@ -264,6 +263,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " range markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " markers onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " markers onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -364,15 +364,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             setupMoveUpEvents(this, e,
                 action(e => {
                     this._markerEnd = toTimeline(e.clientX - rect.x);
+                    return false;
+                }),
+                action((e, movement) => {
+                    this._markerEnd = toTimeline(e.clientX - rect.x);
                     if (this._markerEnd < this._markerStart) {
                         const tmp = this._markerStart;
                         this._markerStart = this._markerEnd;
                         this._markerEnd = tmp;
                     }
-                    return false;
-                }),
-                action((e, movement) => {
-                    AudioBox.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createMarker(this._markerStart, toTimeline(e.clientX - rect.x));
+                    AudioBox.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createMarker(this._markerStart, this._markerEnd);
                     AudioBox.SelectingRegion = undefined;
                 }),
                 e => {
@@ -388,9 +389,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (audioStart === undefined) return this.rootDoc;
         const marker = Docs.Create.LabelDocument({
             title: ComputedField.MakeFunction(`"#" + formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any,
-            useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
-            isLabel: audioEnd === undefined,
-            _autoHeight: true, annotationOn: this.props.Document
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            audioStart,
+            audioEnd,
+            annotationOn: this.props.Document
         });
         if (this.dataDoc[this.annotationKey]) {
             this.dataDoc[this.annotationKey].push(marker);
@@ -456,7 +459,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     @computed get selectionContainer() {
         return AudioBox.SelectingRegion !== this ? (null) : <div className="audiobox-container" style={{
-            left: `${NumCast(this._markerStart) / this.audioDuration * 100}%`,
+            left: `${Math.min(NumCast(this._markerStart), NumCast(this._markerEnd)) / this.audioDuration * 100}%`,
             width: `${Math.abs(this._markerStart - this._markerEnd) / this.audioDuration * 100}%`, height: "100%", top: "0%"
         }} />;
     }
@@ -501,6 +504,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 Document={mark}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
+                renderDepth={this.props.renderDepth + 1}
                 focus={() => this.playLink(mark)}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
@@ -534,7 +538,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const timelineContentHeight = (this.props.PanelHeight() * AudioBox.heightPercent / 100) * AudioBox.heightPercent / 100; // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
         const overlaps: { audioStart: number, audioEnd: number, level: number }[] = [];
         const drawMarkers = this.markerDocs.map((m, i) => ({ level: this.getLevel(m, overlaps), marker: m }));
-        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 1;
+        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
         return <div className="audiobox-container"
             onContextMenu={this.specificContextMenu}
             onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined}
@@ -569,13 +573,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             <div className="waveform">
                                 {this.waveform}
                             </div>
-                            {drawMarkers.map((d, i) => {
+                            {drawMarkers.map(d => {
                                 const m = d.marker;
                                 const left = NumCast(m.audioStart) / this.audioDuration * timelineContentWidth;
                                 const top = d.level / maxLevel * timelineContentHeight;
                                 const timespan = m.audioEnd === undefined ? 10 / timelineContentWidth * this.audioDuration : NumCast(m.audioEnd) - NumCast(m.audioStart);
                                 return this.layoutDoc.hideMarkers ? (null) :
-                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={i}
+                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={m[Id]}
                                         style={{ left, top, width: `${timespan / this.audioDuration * 100}%`, height: `${1 / maxLevel * 100}%` }}
                                         onClick={e => { this.playFrom(NumCast(m.audioStart), Cast(m.audioEnd, "number", null)); e.stopPropagation(); }} >
                                         {this.renderMarker(m, this.rangeClickScript, this.rangePlayScript,

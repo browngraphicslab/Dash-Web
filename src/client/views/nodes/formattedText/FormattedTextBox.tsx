@@ -230,7 +230,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.rootDoc.title, 0, 0, 100, 100);
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
-            }
+            };
 
             DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, () => this.rootDoc, targetCreator), e.pageX, e.pageY, {
                 dragComplete: e => {

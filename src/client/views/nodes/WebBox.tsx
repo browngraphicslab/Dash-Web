@@ -194,7 +194,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._iframe?.removeEventListener('wheel', this.iframeWheel);
     }
 
-    onUrlDragover = (e: React.DragEvent) => { e.preventDefault(); }
+    onUrlDragover = (e: React.DragEvent) => { e.preventDefault(); };
 
     @undoBatch
     @action
@@ -280,8 +280,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     _ignore = 0;
-    onPreWheel = (e: React.WheelEvent) => { this._ignore = e.timeStamp; }
-    onPrePointer = (e: React.PointerEvent) => { this._ignore = e.timeStamp; }
+    onPreWheel = (e: React.WheelEvent) => { this._ignore = e.timeStamp; };
+    onPrePointer = (e: React.PointerEvent) => { this._ignore = e.timeStamp; };
     onPostPointer = (e: React.PointerEvent) => {
         if (this._ignore !== e.timeStamp) e.stopPropagation();
     }
