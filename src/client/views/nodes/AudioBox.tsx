@@ -504,6 +504,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 Document={mark}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
+                renderDepth={this.props.renderDepth + 1}
                 focus={() => this.playLink(mark)}
                 rootSelected={returnFalse}
                 LayoutTemplate={undefined}
