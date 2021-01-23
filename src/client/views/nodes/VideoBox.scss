@@ -183,14 +183,18 @@
     pointer-events:all;
 }
 
-// .timeline-button {
-//     position: absolute;
-//     bottom: 35px;
-//     right: 235px;
-//     color: lightgrey;
-//     width: 20px;
-
-// }
+.timeline-button {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    z-index: 1010;
+    bottom: 35px;
+    right: 235px;
+    color: white;
+    background: dimgrey;
+    width: 20px;
+    height: 20px;
+}
 .videoBox-play {
     width: 25px;
     height: 20px;

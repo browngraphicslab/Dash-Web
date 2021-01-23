@@ -91,10 +91,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         AudioBox.Instance = this;
 
         // onClick play scripts
-        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeScript(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeScript(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeFunction(`scriptContext.clickMarker(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeFunction(`scriptContext.clickMarker(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.audioStart, this.audioEnd)`, { self: Doc.name, scriptContext: "any" })!;
+        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.audioStart)`, { self: Doc.name, scriptContext: "any" })!;
     }
 
     getLinkData(l: Doc) {
@@ -189,18 +189,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // play back the audio from time
     @action
     playOnClick = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
-        DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
         this.playFrom(seekTimeInSeconds, endTime);
+        return true;
     }
 
     // play back the audio from time
     @action
     clickMarker = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
-        if (this.layoutDoc.playOnClick) this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
-        else {
-            DocumentManager.Instance.getDocumentView(anchorDoc)?.select(false);
-            this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
-        }
+        if (this.layoutDoc.playOnClick) return this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
+        this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
+        return true;
     }
     // play back the audio from time
     @action
