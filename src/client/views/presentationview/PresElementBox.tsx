@@ -121,7 +121,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         let childDocs = DocListCast(this.rootDoc.data);
         const groupSlides = childDocs.map((doc: Doc, ind: number) =>
             <div className="presItem-groupSlide">
-                <div className="presItem-number">
+                <div className="presItem-groupNum">
                     {`${ind + 1}.`}
                 </div>
                 {/* style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105, cursor: isSelected ? 'text' : 'grab' }} */}
@@ -132,7 +132,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         contents={doc.title}
                         overflow={'ellipsis'}
                         GetValue={() => StrCast(doc.title)}
-                        SetValue={this.onSetValue}
+                        SetValue={(value: string) => {
+                            doc.title = !value.trim().length ? "-untitled-" : value;
+                            return true;
+                        }}
                     />
                 </div>
             </div>
@@ -381,6 +384,15 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             {this.rootDoc.presExpandGroup ? this.renderGroupSlides : (null)}
                         </div>
                         <div className="presItem-docName" style={{ maxWidth: showMore ? (toolbarWidth - 195) : toolbarWidth - 105 }}>{activeItem.presPinView ? (<><i>View of </i> {targetDoc.title}</>) : targetDoc.title}</div>
+                        <div className="expandButton"
+                            onClick={e => {
+                                if (isGroup) {
+                                    this.rootDoc.presExpandGroup = !this.rootDoc.presExpandGroup;
+                                }
+                            }}
+                        >
+                            <FontAwesomeIcon icon={"caret-down"} style={{ transform: this.rootDoc.presExpandGroup ? "rotate(180deg)" : "rotate(0deg)" }} />
+                        </div>
                     </div>
                     : (null)}
                 {miniView || isGroup ? (null) : <div ref={miniView ? null : this._dragRef} className={`presItem-slide ${isSelected ? "active" : ""}`}

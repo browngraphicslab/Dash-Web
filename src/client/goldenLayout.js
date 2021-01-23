@@ -2353,7 +2353,7 @@
         this.tabDropdownContainer.hide();
         this.controlsContainer = this.element.find('.lm_controls');
         this.parent = parent;
-        this.parent.on('resize', this._updateTabSizes, this);
+        // this.parent.on('resize', this._updateTabSizes, this);
         this.tabs = [];
         this.activeContentItem = null;
         this.closeButton = null;
@@ -2414,7 +2414,7 @@
             }
 
             this.tabs.splice(index, 0, tab);
-            this._updateTabSizes();
+            // this._updateTabSizes();
         },
 
         /**
@@ -2468,7 +2468,7 @@
                 }
             }
 
-            this._updateTabSizes();
+            // this._updateTabSizes();
             this.parent.emitBubblingEvent('stateChanged');
         },
 
@@ -2549,13 +2549,13 @@
                 tabDropdownLabel,
                 showTabDropdown;
 
-            /**
-             * Dropdown to show additional tabs.
-             */
-            showTabDropdown = lm.utils.fnBind(this._showAdditionalTabsDropdown, this);
-            tabDropdownLabel = this.layoutManager.config.labels.tabDropdown;
-            this.tabDropdownButton = new lm.controls.HeaderButton(this, tabDropdownLabel, 'lm_tabdropdown', showTabDropdown);
-            this.tabDropdownButton.element.hide();
+            // /**
+            //  * Dropdown to show additional tabs.
+            //  */
+            // showTabDropdown = lm.utils.fnBind(this._showAdditionalTabsDropdown, this);
+            // tabDropdownLabel = this.layoutManager.config.labels.tabDropdown;
+            // this.tabDropdownButton = new lm.controls.HeaderButton(this, tabDropdownLabel, 'lm_tabdropdown', showTabDropdown);
+            // this.tabDropdownButton.element.hide();
 
             /**
              * Popout control to launch component in new window.
@@ -2644,111 +2644,111 @@
             }
         },
 
-        /**
-         * Pushes the tabs to the tab dropdown if the available space is not sufficient
-         *
-         * @returns {void}
-         */
-        _updateTabSizes: function (showTabMenu) {
-            if (this.tabs.length === 0) {
-                return;
-            }
+        //     /**
+        //      * Pushes the tabs to the tab dropdown if the available space is not sufficient
+        //      *
+        //      * @returns {void}
+        //      */
+        //     _updateTabSizes: function (showTabMenu) {
+        //         if (this.tabs.length === 0) {
+        //             return;
+        //         }
 
-            //Show the menu based on function argument
-            this.tabDropdownButton.element.toggle(showTabMenu === true);
+        //         //Show the menu based on function argument
+        //         this.tabDropdownButton.element.toggle(showTabMenu === true);
 
-            var size = function (val) {
-                return val ? 'width' : 'height';
-            };
-            this.element.css(size(!this.parent._sided), '');
-            this.element[size(this.parent._sided)](this.layoutManager.config.dimensions.headerHeight);
-            var availableWidth = this.element.outerWidth() - this.controlsContainer.outerWidth() - this._tabControlOffset,
-                cumulativeTabWidth = 0,
-                visibleTabWidth = 0,
-                tabElement,
-                i,
-                j,
-                marginLeft,
-                overlap = 0,
-                tabWidth,
-                tabOverlapAllowance = this.layoutManager.config.settings.tabOverlapAllowance,
-                tabOverlapAllowanceExceeded = false,
-                activeIndex = (this.activeContentItem ? this.tabs.indexOf(this.activeContentItem.tab) : 0),
-                activeTab = this.tabs[activeIndex];
-            if (this.parent._sided)
-                availableWidth = this.element.outerHeight() - this.controlsContainer.outerHeight() - this._tabControlOffset;
-            this._lastVisibleTabIndex = -1;
+        //         var size = function (val) {
+        //             return val ? 'width' : 'height';
+        //         };
+        //         this.element.css(size(!this.parent._sided), '');
+        //         this.element[size(this.parent._sided)](this.layoutManager.config.dimensions.headerHeight);
+        //         var availableWidth = this.element.outerWidth() - this.controlsContainer.outerWidth() - this._tabControlOffset,
+        //             cumulativeTabWidth = 0,
+        //             visibleTabWidth = 0,
+        //             tabElement,
+        //             i,
+        //             j,
+        //             marginLeft,
+        //             overlap = 0,
+        //             tabWidth,
+        //             tabOverlapAllowance = this.layoutManager.config.settings.tabOverlapAllowance,
+        //             tabOverlapAllowanceExceeded = false,
+        //             activeIndex = (this.activeContentItem ? this.tabs.indexOf(this.activeContentItem.tab) : 0),
+        //             activeTab = this.tabs[activeIndex];
+        //         if (this.parent._sided)
+        //             availableWidth = this.element.outerHeight() - this.controlsContainer.outerHeight() - this._tabControlOffset;
+        //         this._lastVisibleTabIndex = -1;
 
-            for (i = 0; i < this.tabs.length; i++) {
-                tabElement = this.tabs[i].element;
+        //         for (i = 0; i < this.tabs.length; i++) {
+        //             tabElement = this.tabs[i].element;
 
-                //Put the tab in the tabContainer so its true width can be checked
-                this.tabsContainer.append(tabElement);
-                tabWidth = tabElement.outerWidth() + parseInt(tabElement.css('margin-right'), 10);
+        //             //Put the tab in the tabContainer so its true width can be checked
+        //             this.tabsContainer.append(tabElement);
+        //             tabWidth = tabElement.outerWidth() + parseInt(tabElement.css('margin-right'), 10);
 
-                cumulativeTabWidth += tabWidth;
+        //             cumulativeTabWidth += tabWidth;
 
-                //Include the active tab's width if it isn't already
-                //This is to ensure there is room to show the active tab
-                if (activeIndex <= i) {
-                    visibleTabWidth = cumulativeTabWidth;
-                } else {
-                    visibleTabWidth = cumulativeTabWidth + activeTab.element.outerWidth() + parseInt(activeTab.element.css('margin-right'), 10);
-                }
+        //             //Include the active tab's width if it isn't already
+        //             //This is to ensure there is room to show the active tab
+        //             if (activeIndex <= i) {
+        //                 visibleTabWidth = cumulativeTabWidth;
+        //             } else {
+        //                 visibleTabWidth = cumulativeTabWidth + activeTab.element.outerWidth() + parseInt(activeTab.element.css('margin-right'), 10);
+        //             }
 
-                // If the tabs won't fit, check the overlap allowance.
-                if (visibleTabWidth > availableWidth) {
+        //             // If the tabs won't fit, check the overlap allowance.
+        //             if (visibleTabWidth > availableWidth) {
 
-                    //Once allowance is exceeded, all remaining tabs go to menu.
-                    if (!tabOverlapAllowanceExceeded) {
+        //                 //Once allowance is exceeded, all remaining tabs go to menu.
+        //                 if (!tabOverlapAllowanceExceeded) {
 
-                        //No overlap for first tab or active tab
-                        //Overlap spreads among non-active, non-first tabs
-                        if (activeIndex > 0 && activeIndex <= i) {
-                            overlap = (visibleTabWidth - availableWidth) / (i - 1);
-                        } else {
-                            overlap = (visibleTabWidth - availableWidth) / i;
-                        }
+        //                     //No overlap for first tab or active tab
+        //                     //Overlap spreads among non-active, non-first tabs
+        //                     if (activeIndex > 0 && activeIndex <= i) {
+        //                         overlap = (visibleTabWidth - availableWidth) / (i - 1);
+        //                     } else {
+        //                         overlap = (visibleTabWidth - availableWidth) / i;
+        //                     }
 
-                        //Check overlap against allowance.
-                        if (overlap < tabOverlapAllowance) {
-                            for (j = 0; j <= i; j++) {
-                                marginLeft = (j !== activeIndex && j !== 0) ? '-' + overlap + 'px' : '';
-                                this.tabs[j].element.css({ 'z-index': i - j, 'margin-left': marginLeft });
-                            }
-                            this._lastVisibleTabIndex = i;
-                            this.tabsContainer.append(tabElement);
-                        } else {
-                            tabOverlapAllowanceExceeded = true;
-                        }
+        //                     //Check overlap against allowance.
+        //                     if (overlap < tabOverlapAllowance) {
+        //                         for (j = 0; j <= i; j++) {
+        //                             marginLeft = (j !== activeIndex && j !== 0) ? '-' + overlap + 'px' : '';
+        //                             this.tabs[j].element.css({ 'z-index': i - j, 'margin-left': marginLeft });
+        //                         }
+        //                         this._lastVisibleTabIndex = i;
+        //                         this.tabsContainer.append(tabElement);
+        //                     } else {
+        //                         tabOverlapAllowanceExceeded = true;
+        //                     }
 
-                    } else if (i === activeIndex) {
-                        //Active tab should show even if allowance exceeded. (We left room.)
-                        tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
-                        this.tabsContainer.append(tabElement);
-                    }
+        //                 } else if (i === activeIndex) {
+        //                     //Active tab should show even if allowance exceeded. (We left room.)
+        //                     tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
+        //                     this.tabsContainer.append(tabElement);
+        //                 }
 
-                    if (tabOverlapAllowanceExceeded && i !== activeIndex) {
-                        if (showTabMenu) {
-                            //Tab menu already shown, so we just add to it.
-                            tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
-                            this.tabDropdownContainer.append(tabElement);
-                        } else {
-                            //We now know the tab menu must be shown, so we have to recalculate everything.
-                            this._updateTabSizes(true);
-                            return;
-                        }
-                    }
+        //                 if (tabOverlapAllowanceExceeded && i !== activeIndex) {
+        //                     if (showTabMenu) {
+        //                         //Tab menu already shown, so we just add to it.
+        //                         tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
+        //                         this.tabDropdownContainer.append(tabElement);
+        //                     } else {
+        //                         //We now know the tab menu must be shown, so we have to recalculate everything.
+        //                         this._updateTabSizes(true);
+        //                         return;
+        //                     }
+        //                 }
 
-                }
-                else {
-                    this._lastVisibleTabIndex = i;
-                    tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
-                    this.tabsContainer.append(tabElement);
-                }
-            }
+        //             }
+        //             else {
+        //                 this._lastVisibleTabIndex = i;
+        //                 tabElement.css({ 'z-index': 'auto', 'margin-left': '' });
+        //                 this.tabsContainer.append(tabElement);
+        //             }
+        //         }
 
-        }
+        //     }
     });
 
 
