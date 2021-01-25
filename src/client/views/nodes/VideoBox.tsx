@@ -28,7 +28,6 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { StyleProp } from "../StyleProvider";
 import { computedFn } from "mobx-utils";
-import { DocumentManager } from "../../util/DocumentManager";
 import { Dictionary } from "typescript-collections";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { Id } from "../../../fields/FieldSymbols";
@@ -78,14 +77,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @observable _playTimer?: NodeJS.Timeout = undefined;
     @observable _fullScreen = false;
     @observable _playing = false;
+    @computed get links() { return DocListCast(this.dataDoc.links); }
     @computed get heightPercent() { return this.layoutDoc._showTimeline ? NumCast(this.layoutDoc._videoTimelineHeightPercent, VideoBox.heightPercent) : 100; }
     @computed get videoDuration() { return NumCast(this.dataDoc[this.fieldKey + "-duration"]); }
     @computed get markerDocs() { return DocListCast(this.dataDoc[this.annotationKey + "-timeline"]).concat(DocListCast(this.dataDoc[this.annotationKey])); }
+
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(VideoBox, fieldKey); }
 
-    public get player(): HTMLVideoElement | null {
-        return this._videoRef;
-    }
+    public get player(): HTMLVideoElement | null { return this._videoRef; }
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
@@ -96,6 +95,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         VideoBox.LabelScript = VideoBox.LabelScript || ScriptField.MakeFunction(`scriptContext.clickMarker(self, this.displayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
         VideoBox.RangePlayScript = VideoBox.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.displayTimecode, this.undisplayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
         VideoBox.LabelPlayScript = VideoBox.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(self, this.displayTimecode)`, { self: Doc.name, scriptContext: "any" })!;
+    }
+
+    getAnchor = () => {
+        return this.createMarker(Cast(this.layoutDoc._currentTimecode, "number", null));
+    }
+
+    choosePath(url: string) {
+        return url.indexOf(window.location.origin) === -1 ? Utils.CorsProxy(url) : url;
     }
 
     videoLoad = () => {
@@ -152,13 +159,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         } catch (e) {
             console.log("Video FullScreen Exception:", e);
         }
-    }
-
-    choosePath(url: string) {
-        if (url.indexOf(window.location.origin) === -1) {
-            return Utils.CorsProxy(url);
-        }
-        return url;
     }
 
     @action public Snapshot() {
@@ -230,6 +230,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     componentDidMount() {
+        this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
+
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
@@ -239,29 +241,19 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             },
             { fireImmediately: true });
         this._disposers.videoStart = reaction(
-            () => this.Document._videoStart,
-            (videoStart) => {
-                if (videoStart !== undefined) {
-                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
-                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
-                        setTimeout(() => this.player && this.Play(), delay);
-                        setTimeout(() => this.Document._videoStart = undefined, 10 + delay);
-                    }
-                }
-            },
+            () => !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? Cast(this.Document._videoStart, "number", null) : undefined,
+            videoStart => videoStart !== undefined && setTimeout(() => {
+                this.player && this.Play();
+                setTimeout(() => this.Document._videoStart = undefined, 10);
+            }, this.player ? 0 : 250), // wait for mainCont and try again to play
             { fireImmediately: true }
         );
         this._disposers.videoStop = reaction(
-            () => this.Document._videoStop,
-            (videoStop) => {
-                if (videoStop !== undefined) {
-                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
-                        const delay = this.player ? 0 : 250; // wait for mainCont and try again to play
-                        setTimeout(() => this.player && this.Pause(), delay);
-                        setTimeout(() => { this.Document._videoStop = undefined; }, 10 + delay);
-                    }
-                }
-            },
+            () => this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc ? Cast(this.Document._videoStop, "number", null) : undefined,
+            videoStop => videoStop !== undefined && setTimeout(() => {
+                this.player && this.Pause();
+                setTimeout(() => this.Document._videoStop = undefined, 10);
+            }, this.player ? 0 : 250), // wait for mainCont and try again to play
             { fireImmediately: true }
         );
         if (this.youtubeVideoId) {
@@ -334,7 +326,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
     }
 
-    // returns the video and timeline 
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
@@ -569,6 +560,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         } else {
             this.dataDoc[this.annotationKey + "-timeline"] = new List<Doc>([marker]);
         }
+        return marker;
     }
 
     // play back the video from time
@@ -628,6 +620,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         return level;
     }
 
+    playLink = (doc: Doc) => {
+        const startTime = NumCast(doc.displayTimecode);
+        const endTime = NumCast(doc.undisplayTimecode, null);
+        if (startTime !== undefined) {
+            this.layoutDoc.playOnSelect && (endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime));
+        }
+    }
     // renders the markers as a document
     renderInner = computedFn(function (this: VideoBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number, annotationKey: string) {
         const marker = observable({ view: undefined as any });
@@ -635,6 +634,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             marker, view: <DocumentView key="view" {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit} ref={action((r: DocumentView | null) => marker.view = r)}
                 Document={mark}
                 DataDoc={undefined}
+                focus={() => this.playLink(mark)}
                 PanelWidth={() => width}
                 PanelHeight={() => height}
                 renderDepth={this.props.renderDepth + 1}
@@ -703,7 +703,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         </div>;
                 })}
                 {this.selectionContainer}
-                <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.videoDuration * 100}%`, pointerEvents: "none" }} />
+                <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+                    style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.videoDuration * 100}%`, pointerEvents: "none" }}
+                />
             </div>;
     }
 
@@ -773,7 +775,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     scaling = () => this.props.scaling?.() || 1;
     panelWidth = () => this.props.PanelWidth() * this.heightPercent / 100;
-    panelHeight = () => this.props.PanelHeight() * this.heightPercent / 100;
+    panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / Doc.NativeAspect(this.rootDoc) : this.props.PanelHeight() * this.heightPercent / 100;
     screenToLocalTransform = () => {
         const offset = (this.props.PanelWidth() - this.panelWidth()) / 2 / this.scaling();
         return this.props.ScreenToLocalTransform().translate(-offset, 0).scale(100 / this.heightPercent);

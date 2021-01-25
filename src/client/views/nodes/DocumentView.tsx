@@ -541,7 +541,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.LayoutTemplateString) return;
+        if (this.props.dontRegisterView || this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return;
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             alert((e.target as any)?.closest?.("*.lm_content") ?
                 "You can't perform this move most likely because you don't have permission to modify the destination." :

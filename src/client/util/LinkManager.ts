@@ -54,7 +54,8 @@ export class LinkManager {
     }, true);
 
     relatedLinker = computedFn(function relatedLinker(this: any, anchor: Doc): Doc[] {
-        return DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).reduce((list, anno) =>
+        const lfield = Doc.LayoutFieldKey(anchor);
+        return DocListCast(anchor[lfield + "-annotations"]).concat(DocListCast(anchor[lfield + "-annotations-timeline"])).reduce((list, anno) =>
             [...list, ...LinkManager.Instance.relatedLinker(anno)],
             LinkManager.Instance.directLinker(anchor).slice());
     }, true);

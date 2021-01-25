@@ -108,14 +108,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return { la1, la2, linkTime };
     }
 
+    getAnchor = () => {
+        return this.createMarker(this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined));
+    }
+
     componentWillUnmount() {
         Object.values(this._disposers).forEach(disposer => disposer?.());
         const ind = DocUtils.ActiveRecordings.indexOf(this);
         ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
-    }
-
-    getAnchor = () => {
-        return this.createMarker(this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined));
     }
 
     @action
