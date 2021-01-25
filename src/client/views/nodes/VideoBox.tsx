@@ -509,6 +509,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     // ref for timeline
     timelineRef = (timeline: HTMLDivElement) => { this._timeline = timeline; }
 
+    _doubleTime: NodeJS.Timeout | undefined;
     // starting the drag event creating a range marker
     @action
     onPointerDownTimeline = (e: React.PointerEvent): void => {
@@ -516,16 +517,23 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         if (rect && e.target !== this._audioRef.current && this.active()) {
             const wasPlaying = this._playing;
             if (this._playing) this.Pause();
+            !wasPlaying && !this._doubleTime && (this._doubleTime = setTimeout(() => {
+                this._doubleTime = undefined;
+                this.player!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.videoDuration;
+            }, 300));
 
             this._markerStart = this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
             VideoBox.SelectingRegion = this;
             setupMoveUpEvents(this, e,
                 action(e => {
                     this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
+                    if (this._doubleTime) {
+                        clearTimeout(this._doubleTime);
+                        this._doubleTime = undefined;
+                    }
                     return false;
                 }),
                 action((e, movement) => {
-                    this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
                     if (this._markerEnd < this._markerStart) {
                         const tmp = this._markerStart;
                         this._markerStart = this._markerEnd;
@@ -535,9 +543,12 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     VideoBox.SelectingRegion = undefined;
                 }),
                 (e, doubleTap) => {
+                    if (this._doubleTime && doubleTap) {
+                        clearTimeout(this._doubleTime);
+                        this._doubleTime = undefined;
+                    }
                     this.props.select(false);
                     e.shiftKey && this.createMarker(this.player!.currentTime);
-                    !wasPlaying && (this.player!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.videoDuration);
                     !wasPlaying && doubleTap && this.Play();
                 }
                 , this.props.isSelected(true) || this._isChildActive);
