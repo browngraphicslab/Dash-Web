@@ -196,7 +196,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // play back the audio from time
     @action
     clickMarker = (anchorDoc: Doc, seekTimeInSeconds: number, endTime: number = this.audioDuration) => {
-        if (this.layoutDoc.playOnClick) return this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
+        if (this.layoutDoc.autoPlay) return this.playOnClick(anchorDoc, seekTimeInSeconds, endTime);
         this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = seekTimeInSeconds);
         return true;
     }
@@ -262,7 +262,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " range markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " markers onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.autoPlay ? "Don't auto play" : "Auto play") + " markers onClick", event: () => this.layoutDoc.autoPlay = !this.layoutDoc.autoPlay, icon: "expand-arrows-alt" });
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
@@ -408,7 +407,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._currMarker = m;
         this._left = left;
         this._timeline?.setPointerCapture(e.pointerId);
-        const toTimeline = (screen_delta: number, width: number) => screen_delta / width * this.audioDuration;
+        const toTimeline = (screen_delta: number, width: number) => Math.max(0, Math.min(this.audioDuration, screen_delta / width * this.audioDuration));
         setupMoveUpEvents(this, e,
             (e) => {
                 const rect = (e.target as any).getBoundingClientRect();
@@ -514,7 +513,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 parentActive={(out) => this.props.isSelected(out) || this._isChildActive}
                 whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
                 onClick={script}
-                onDoubleClick={this.layoutDoc.playOnClick ? undefined : doublescript}
+                onDoubleClick={this.layoutDoc.autoPlay ? undefined : doublescript}
                 ignoreAutoHeight={false}
                 bringToFront={emptyFunction}
                 scriptContext={this} />
