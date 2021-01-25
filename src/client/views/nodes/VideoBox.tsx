@@ -50,6 +50,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     static LabelPlayScript: ScriptField;
     static heightPercent = 60; // height of timeline in percent of height of videoBox.
     private _disposers: { [name: string]: IReactionDisposer } = {};
+    private _doubleTime: NodeJS.Timeout | undefined; // bcz: Hack!  this must be called _doubleTime since setupMoveDragEvents will use that field name
     private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
@@ -507,30 +508,27 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     toggleTimeline = (e: React.PointerEvent) => this.layoutDoc._showTimeline = !this.layoutDoc._showTimeline
 
     // ref for timeline
-    timelineRef = (timeline: HTMLDivElement) => { this._timeline = timeline; }
+    timelineRef = (timeline: HTMLDivElement) => { this._timeline = timeline; };
 
-    _doubleTime: NodeJS.Timeout | undefined;
     // starting the drag event creating a range marker
     @action
     onPointerDownTimeline = (e: React.PointerEvent): void => {
-        const rect = this._timeline?.getBoundingClientRect();// (e.target as any).getBoundingClientRect();
+        const rect = this._timeline?.getBoundingClientRect();
         if (rect && e.target !== this._audioRef.current && this.active()) {
             const wasPlaying = this._playing;
             if (this._playing) this.Pause();
-            !wasPlaying && !this._doubleTime && (this._doubleTime = setTimeout(() => {
-                this._doubleTime = undefined;
-                this.player!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.videoDuration;
-            }, 300));
+            else if (!this._doubleTime) {
+                this._doubleTime = setTimeout(() => {
+                    this._doubleTime = undefined;
+                    this.player!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.videoDuration;
+                }, 300);
+            }
 
             this._markerStart = this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
             VideoBox.SelectingRegion = this;
             setupMoveUpEvents(this, e,
                 action(e => {
                     this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
-                    if (this._doubleTime) {
-                        clearTimeout(this._doubleTime);
-                        this._doubleTime = undefined;
-                    }
                     return false;
                 }),
                 action((e, movement) => {
@@ -543,10 +541,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     VideoBox.SelectingRegion = undefined;
                 }),
                 (e, doubleTap) => {
-                    if (this._doubleTime && doubleTap) {
-                        clearTimeout(this._doubleTime);
-                        this._doubleTime = undefined;
-                    }
                     this.props.select(false);
                     e.shiftKey && this.createMarker(this.player!.currentTime);
                     !wasPlaying && doubleTap && this.Play();
