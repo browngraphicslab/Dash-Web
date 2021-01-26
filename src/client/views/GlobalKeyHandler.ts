@@ -1,3 +1,4 @@
+import { random } from "lodash";
 import { action, observable } from "mobx";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast } from "../../fields/Doc";
@@ -14,6 +15,7 @@ import { DragManager } from "../util/DragManager";
 import { GroupManager } from "../util/GroupManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { SharingManager } from "../util/SharingManager";
+import { SnappingManager } from "../util/SnappingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
@@ -22,13 +24,9 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
+import { StackedTimeline } from "./nodes/StackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
-import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
-import { random } from "lodash";
-import { DocumentView } from "./nodes/DocumentView";
-import { AudioBox } from "./nodes/AudioBox";
-import { VideoBox } from "./nodes/VideoBox";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -123,11 +121,8 @@ export class KeyManager {
                     DragManager.AbortDrag();
                 } else if (CollectionDockingView.Instance.HasFullScreen) {
                     CollectionDockingView.Instance.CloseFullScreen();
-                } else if (VideoBox.SelectingRegion) {
-                    VideoBox.SelectingRegion = undefined;
-                    doDeselect = false;
-                } else if (AudioBox.SelectingRegion) {
-                    AudioBox.SelectingRegion = undefined;
+                } else if (StackedTimeline.SelectingRegion) {
+                    StackedTimeline.SelectingRegion = undefined;
                     doDeselect = false;
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();

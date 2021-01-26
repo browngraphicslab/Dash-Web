@@ -3,7 +3,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import axios from "axios";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { computedFn } from "mobx-utils";
 import Waveform from "react-audio-waveform";
 import { DateField } from "../../../fields/DateField";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
@@ -13,24 +12,19 @@ import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { emptyFunction, formatTime, numberRange, returnFalse, setupMoveUpEvents, Utils, OmitKeys } from "../../../Utils";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { formatTime, numberRange, Utils } from "../../../Utils";
+import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
-import { Scripting } from "../../util/Scripting";
-import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { DocumentView } from "./DocumentView";
+import "./AudioBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
-import "./AudioBox.scss";
-import { Id } from "../../../fields/FieldSymbols";
-import { LabelBox } from "./LabelBox";
-
+import { StackedTimeline } from "./StackedTimeline";
 declare class MediaRecorder {
     // whatever MediaRecorder has
     constructor(e: any);
@@ -48,13 +42,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     static playheadWidth = 30; // width of playhead
     static heightPercent = 80; // height of timeline in percent of height of audioBox.
     static Instance: AudioBox;
-    static RangeScript: ScriptField;
-    static LabelScript: ScriptField;
-    static RangePlayScript: ScriptField;
-    static LabelPlayScript: ScriptField;
 
     _disposers: { [name: string]: IReactionDisposer } = {};
     _ele: HTMLAudioElement | null = null;
+    _audioRef = React.createRef<HTMLDivElement>();
+    _stackedTimeline = React.createRef<StackedTimeline>();
     _recorder: any;
     _recordStart = 0;
     _pauseStart = 0;
@@ -62,16 +54,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _pausedTime = 0;
     _stream: MediaStream | undefined;
     _start: number = 0;
-    _hold: boolean = false;
-    _left: boolean = false;
-    _dragging = false;
     _play: any = null;
-    _audioRef = React.createRef<HTMLDivElement>();
-    _timeline: Opt<HTMLDivElement>;
-    _markerStart: number = 0;
-    _currAnchor: Opt<Doc>;
 
-    @observable static SelectingRegion: AudioBox | undefined = undefined;
     @observable static _scrubTime = 0;
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
@@ -85,26 +69,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get anchorDocs() { return DocListCast(this.dataDoc[this.annotationKey]); }
     @computed get links() { return DocListCast(this.dataDoc.links); }
     @computed get pauseTime() { return this._pauseEnd - this._pauseStart; } // total time paused to update the correct time
+    @computed get heightPercent() { return AudioBox.heightPercent; }
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
         AudioBox.Instance = this;
 
         if (this.duration === undefined) {
-            runInAction(() => {
-                this.Document[this.fieldKey + "-duration"] = this.Document.duration;
-            })
+            runInAction(() => this.Document[this.fieldKey + "-duration"] = this.Document.duration);
         }
-
-        // onClick play scripts
-        AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelScript = AudioBox.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.RangePlayScript = AudioBox.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
-        AudioBox.LabelPlayScript = AudioBox.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
     }
-
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor.audioStart))
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor.audioEnd, defaultVal))
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
@@ -118,7 +92,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     getAnchor = () => {
-        return this.createAnchor(this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined));
+        return this._stackedTimeline.current?.createAnchor(this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined)) || this.rootDoc;
     }
 
     componentWillUnmount() {
@@ -150,7 +124,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._disposers.audioStop = reaction(
             () => this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc ? Cast(this.Document._audioStop, "number", null) : undefined,
             audioStop => audioStop !== undefined && setTimeout(() => {
-                this._audioRef.current && this.pause();
+                this._audioRef.current && this.Pause();
                 setTimeout(() => this.Document._audioStop = undefined, 10);
             }, this._audioRef.current ? 0 : 250), // wait for mainCont and try again to play
             { fireImmediately: true }
@@ -162,8 +136,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const htmlEle = this._ele;
         if (this.audioState !== "recording" && htmlEle) {
             htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc[this.fieldKey + "-duration"] = htmlEle.duration);
-            this.links.map(l => {
-                const { la1, linkTime } = this.getLinkData(l);
+            this.links.map(l => this.getLinkData(l)).forEach(({ la1, la2, linkTime }) => {
                 if (linkTime > NumCast(this.layoutDoc._currentTimecode) && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
                 }
@@ -173,7 +146,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     // pause play back
-    pause = action(() => {
+    Pause = action(() => {
         this._ele!.pause();
         this.audioState = "paused";
     });
@@ -185,20 +158,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // play back the audio from time
     @action
-    playOnClick = (anchorDoc: Doc) => {
-        this.playFrom(this.anchorStart(anchorDoc), this.anchorEnd(anchorDoc, this.duration));
-        return true;
-    }
-
-    // play back the audio from time
-    @action
-    clickAnchor = (anchorDoc: Doc) => {
-        if (this.layoutDoc.autoPlay) return this.playOnClick(anchorDoc);
-        this._ele && (this._ele.currentTime = this.layoutDoc._currentTimecode = this.anchorStart(anchorDoc));
-        return true;
-    }
-    // play back the audio from time
-    @action
     playFrom = (seekTimeInSeconds: number, endTime: number = this.duration) => {
         clearTimeout(this._play);
         if (Number.isNaN(this._ele?.duration)) {
@@ -208,17 +167,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (seekTimeInSeconds > -1) {
                     setTimeout(() => this.playFrom(0), -seekTimeInSeconds * 1000);
                 } else {
-                    this.pause();
+                    this.Pause();
                 }
             } else if (seekTimeInSeconds <= this._ele.duration) {
                 this._ele.currentTime = seekTimeInSeconds;
                 this._ele.play();
                 runInAction(() => this.audioState = "playing");
                 if (endTime !== this.duration) {
-                    this._play = setTimeout(() => this.pause(), (endTime - seekTimeInSeconds) * 1000); // use setTimeout to play a specific duration
+                    this._play = setTimeout(() => this.Pause(), (endTime - seekTimeInSeconds) * 1000); // use setTimeout to play a specific duration
                 }
             } else {
-                this.pause();
+                this.Pause();
             }
         }
     }
@@ -283,9 +242,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     // for play button
-    onPlay = (e: any) => {
+    Play = (e?: any) => {
         this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
-        e.stopPropagation();
+        e?.stopPropagation?.();
     }
 
     // creates a text document for dictation
@@ -302,13 +261,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // ref for updating time
     setRef = (e: HTMLAudioElement | null) => {
         e?.addEventListener("timeupdate", this.timecodeChanged);
-        e?.addEventListener("ended", this.pause);
+        e?.addEventListener("ended", this.Pause);
         this._ele = e;
-    }
-
-    // ref for timeline
-    timelineRef = (timeline: HTMLDivElement) => {
-        this._timeline = timeline;
     }
 
     // returns the path of the audio file
@@ -345,120 +299,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         e.stopPropagation();
     }
 
-    // starting the drag event for anchor resizing
-    @action
-    onPointerDownTimeline = (e: React.PointerEvent): void => {
-        const rect = this._timeline?.getBoundingClientRect();// (e.target as any).getBoundingClientRect();
-        if (rect && e.target !== this._audioRef.current && this.active()) {
-            const wasPaused = this.audioState === "paused";
-            this._ele!.currentTime = this.layoutDoc._currentTimecode = (e.clientX - rect.x) / rect.width * this.duration;
-            wasPaused && this.pause();
-
-            const toTimeline = (screen_delta: number) => screen_delta / rect.width * this.duration;
-            this._markerStart = this._markerEnd = toTimeline(e.clientX - rect.x);
-            AudioBox.SelectingRegion = this;
-            setupMoveUpEvents(this, e,
-                action(e => {
-                    this._markerEnd = toTimeline(e.clientX - rect.x);
-                    return false;
-                }),
-                action((e, movement) => {
-                    this._markerEnd = toTimeline(e.clientX - rect.x);
-                    if (this._markerEnd < this._markerStart) {
-                        const tmp = this._markerStart;
-                        this._markerStart = this._markerEnd;
-                        this._markerEnd = tmp;
-                    }
-                    AudioBox.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createAnchor(this._markerStart, this._markerEnd);
-                    AudioBox.SelectingRegion = undefined;
-                }),
-                e => {
-                    this.props.select(false);
-                    e.shiftKey && this.createAnchor(this._ele!.currentTime);
-                }
-                , this.props.isSelected(true) || this._isChildActive);
-        }
-    }
-
-    @action
-    createAnchor(anchorStartTime?: number, anchorEndTime?: number) {
-        if (anchorStartTime === undefined) return this.rootDoc;
-        const anchor = Docs.Create.LabelDocument({
-            title: ComputedField.MakeFunction(`"#" + formatToTime(self.anchorStartTime) + "-" + formatToTime(self.anchorEndTime)`) as any,
-            useLinkSmallAnchor: true,
-            hideLinkButton: true,
-            anchorStartTime,
-            anchorEndTime,
-            annotationOn: this.props.Document
-        });
-        if (this.dataDoc[this.annotationKey]) {
-            this.dataDoc[this.annotationKey].push(anchor);
-        } else {
-            this.dataDoc[this.annotationKey] = new List<Doc>([anchor]);
-        }
-        return anchor;
-    }
-
-    // starting the drag event for anchor resizing
-    onPointerDown = (e: React.PointerEvent, m: Doc, left: boolean): void => {
-        this._currAnchor = m;
-        this._left = left;
-        this._timeline?.setPointerCapture(e.pointerId);
-        const toTimeline = (screen_delta: number, width: number) => Math.max(0, Math.min(this.duration, screen_delta / width * this.duration));
-        setupMoveUpEvents(this, e,
-            (e) => {
-                const rect = (e.target as any).getBoundingClientRect();
-                this.changeAnchor(this._currAnchor, toTimeline(e.clientX - rect.x, rect.width));
-                return false;
-            },
-            (e) => {
-                const rect = (e.target as any).getBoundingClientRect();
-                this._ele!.currentTime = this.layoutDoc._currentTimecode = toTimeline(e.clientX - rect.x, rect.width);
-                this._timeline?.releasePointerCapture(e.pointerId);
-            },
-            emptyFunction);
-    }
-
-    // updates the anchor with the new time
-    @action
-    changeAnchor = (anchor: Opt<Doc>, time: number) => {
-        anchor && (this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time);
-    }
-
-    // checks if the two anchors are the same with start and end time
-    isSame = (m1: any, m2: any) => {
-        return this.anchorStart(m1) === this.anchorStart(m2) && this.anchorEnd(m1) === this.anchorEnd(m2);
-    }
-
-    // makes sure no anchors overlaps each other by setting the correct position and width
-    getLevel = (m: Doc, placed: { anchorStartTime: number, anchorEndTime: number, level: number }[]) => {
-        const timelineContentWidth = this.props.PanelWidth() - AudioBox.playheadWidth;
-        const x1 = this.anchorStart(m);
-        const x2 = this.anchorEnd(m, x1 + 10 / timelineContentWidth * this.duration);
-        let max = 0;
-        const overlappedLevels = new Set(placed.map(p => {
-            const y1 = p.anchorStartTime;
-            const y2 = p.anchorEndTime;
-            if ((x1 >= y1 && x1 <= y2) || (x2 >= y1 && x2 <= y2) ||
-                (y1 >= x1 && y1 <= x2) || (y2 >= x1 && y2 <= x2)) {
-                max = Math.max(max, p.level);
-                return p.level;
-            }
-        }));
-        let level = max + 1;
-        for (let j = max; j >= 0; j--) !overlappedLevels.has(j) && (level = j);
-
-        placed.push({ anchorStartTime: x1, anchorEndTime: x2, level });
-        return level;
-    }
-
-    @computed get selectionContainer() {
-        return AudioBox.SelectingRegion !== this ? (null) : <div className="audiobox-container" style={{
-            left: `${Math.min(NumCast(this._markerStart), NumCast(this._markerEnd)) / this.duration * 100}%`,
-            width: `${Math.abs(this._markerStart - this._markerEnd) / this.duration * 100}%`, height: "100%", top: "0%"
-        }} />;
-    }
-
     // returns the audio waveform
     @computed get waveform() {
         const audioBuckets = Cast(this.dataDoc.audioBuckets, listSpec("number"), []);
@@ -488,15 +328,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             );
     }
 
-    rangeClickScript = () => AudioBox.RangeScript;
-    labelClickScript = () => AudioBox.LabelScript;
-    rangePlayScript = () => AudioBox.RangePlayScript;
-    labelPlayScript = () => AudioBox.LabelPlayScript;
-
+    playing = () => { return this.audioState === "playing"; }
     playLink = (link: Doc) => {
         if (link.annotationOn === this.rootDoc) {
-            if (this.layoutDoc.playOnSelect) this.playFrom(this.anchorStart(link), this.anchorEnd(link));
-            else this._ele!.currentTime = this.layoutDoc._currentTimecode = this.anchorStart(link);
+            if (this.layoutDoc.playOnSelect) this.playFrom(this._stackedTimeline.current?.anchorStart(link) || 0, this._stackedTimeline.current?.anchorEnd(link));
+            else this._ele!.currentTime = this.layoutDoc._currentTimecode = (this._stackedTimeline.current?.anchorStart(link) || 0);
         }
         else this.links.filter(l => l.anchor1 === link || l.anchor2 === link).forEach(l => {
             const { la1, la2 } = this.getLinkData(l);
@@ -509,50 +345,34 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         });
     }
 
-    renderInner = computedFn(function (this: AudioBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
-        const anchor = observable({ view: undefined as any });
-        return {
-            anchor, view: <DocumentView key="view"  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit} ref={action((r: DocumentView | null) => anchor.view = r)}
-                Document={mark}
-                DataDoc={undefined}
-                PanelWidth={() => width}
-                PanelHeight={() => height}
-                renderDepth={this.props.renderDepth + 1}
-                focus={() => this.playLink(mark)}
-                rootSelected={returnFalse}
-                LayoutTemplate={undefined}
-                LayoutTemplateString={LabelBox.LayoutString("data")}
-                ContainingCollectionDoc={this.props.Document}
-                removeDocument={this.removeDocument}
-                ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x - 4, -y - 3)}
-                parentActive={(out) => this.props.isSelected(out) || this._isChildActive}
-                whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
-                onClick={script}
-                onDoubleClick={this.layoutDoc.autoPlay ? undefined : doublescript}
-                ignoreAutoHeight={false}
-                bringToFront={emptyFunction}
-                scriptContext={this} />
-        };
-    });
-    renderAnchor = computedFn(function (this: AudioBox, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
-        const inner = this.renderInner(mark, script, doublescript, x, y, width, height);
-        return <>
-            {inner.view}
-            {!inner.anchor.view || !SelectionManager.IsSelected(inner.anchor.view) ? (null) :
-                <>
-                    <div key="left" className="left-resizer" onPointerDown={e => this.onPointerDown(e, mark, true)} />
-                    <div key="right" className="resizer" onPointerDown={e => this.onPointerDown(e, mark, false)} />
-                </>}
-        </>;
-    });
+    @computed get renderTimeline() {
+        return <StackedTimeline ref={this._stackedTimeline}
+            Document={this.props.Document}
+            dataDoc={this.dataDoc}
+            anchorProps={this.props}
+            renderDepth={this.props.renderDepth + 1}
+            annotationKey={this.annotationKey}
+            duration={this.duration}
+            playFrom={this.playFrom}
+            setTime={(time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time}
+            playing={this.playing}
+            select={this.props.select}
+            isSelected={this.props.isSelected}
+            whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
+            removeDocument={this.removeDocument}
+            ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(0, -(100 - this.heightPercent) / 200 * this.props.PanelHeight())}
+            isChildActive={() => this._isChildActive}
+            Play={this.Play}
+            Pause={this.Pause}
+            active={this.active}
+            playLink={this.playLink}
+            PanelWidth={this.props.PanelWidth}
+            PanelHeight={() => this.props.PanelHeight() * this.heightPercent / 100 * this.heightPercent / 100}// panelHeight * heightPercent is player height.  * heightPercent is timeline height (as per css inline)
+        />;
+    }
 
     render() {
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
-        const timelineContentWidth = this.props.PanelWidth() - AudioBox.playheadWidth;
-        const timelineContentHeight = (this.props.PanelHeight() * AudioBox.heightPercent / 100) * AudioBox.heightPercent / 100; // panelHeight * heightPercent is player height.   * heightPercent is timeline height (as per css inline)
-        const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
-        const drawAnchors = this.anchorDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
-        const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
         return <div className="audiobox-container"
             onContextMenu={this.specificContextMenu}
             onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined}
@@ -580,38 +400,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 <div className="audiobox-controls" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }} >
                     <div className="audiobox-dictation" />
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
-                        <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        <div className="audiobox-timeline" style={{ height: `${AudioBox.heightPercent}%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
-                            <div className="waveform" >
+                        <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.audioState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
+                        <div className="audiobox-timeline" style={{ height: `100%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
+                            <div className="waveform">
                                 {this.waveform}
                             </div>
                         </div>
-                        <div className="audiobox-timeline" style={{ height: `${AudioBox.heightPercent}%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)` }} ref={this.timelineRef}
-                            onClick={e => { e.stopPropagation(); e.preventDefault(); }}
-                            onPointerDown={e => e.button === 0 && !e.ctrlKey && this.onPointerDownTimeline(e)}>
-                            {drawAnchors.map(d => {
-                                const m = d.anchor;
-                                const start = this.anchorStart(m);
-                                const end = this.anchorEnd(m, start + 10 / timelineContentWidth * this.duration);
-                                const left = start / this.duration * timelineContentWidth;
-                                const top = d.level / maxLevel * timelineContentHeight;
-                                const timespan = end - start;
-                                return this.layoutDoc.hideAnchors ? (null) :
-                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}timeline`} key={m[Id]}
-                                        style={{ left, top, width: `${timespan / this.duration * 100}%`, height: `${1 / maxLevel * 100}%` }}
-                                        onClick={e => { this.playFrom(start, this.anchorEnd(m)); e.stopPropagation(); }} >
-                                        {this.renderAnchor(m, this.rangeClickScript, this.rangePlayScript,
-                                            left + AudioBox.playheadWidth,
-                                            (1 - AudioBox.heightPercent / 100) / 2 * this.props.PanelHeight() + top,
-                                            timelineContentWidth * timespan / this.duration,
-                                            timelineContentHeight / maxLevel)}
-                                    </div>;
-                            })}
-                            {this.selectionContainer}
-                            <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
-                                style={{ left: `${NumCast(this.layoutDoc._currentTimecode) / this.duration * 100}%`, pointerEvents: "none" }}
-                            />
-                        </div>
+                        {this.renderTimeline}
                         {this.audio}
                         <div className="current-time">
                             {formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}
@@ -625,4 +420,3 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         </div>;
     }
 }
-Scripting.addGlobal(function formatToTime(time: number): any { return formatTime(time); });

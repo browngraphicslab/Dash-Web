@@ -341,26 +341,10 @@
 
                     .audiobox-marker {
                         position: relative;
-                        height: 100%;
+                        height: calc(100% - 8px);
                         margin-top: 8px;
                     }
                 }
-            }
-
-            .current-time {
-                position: absolute;
-                font-size: 8;
-                top: 100%;
-                left: 30px;
-                color: white;
-            }
-
-            .total-time {
-                position: absolute;
-                top: 100%;
-                font-size: 8;
-                right: 2px;
-                color: white;
             }
         }
     }
