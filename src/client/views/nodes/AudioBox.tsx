@@ -274,8 +274,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // returns the html audio element
     @computed get audio() {
-        const interactive = this.active() ? "-interactive" : "";
-        return <audio ref={this.setRef} className={`audiobox-control${interactive}`}>
+        return <audio ref={this.setRef} className={`audiobox-control${this.active() ? "-interactive" : ""}`}>
             <source src={this.path} type="audio/mpeg" />
             Not supported.
         </audio>;
