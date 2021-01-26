@@ -151,8 +151,10 @@ export interface DocumentOptions {
     _curPage?: number;
     _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
-    displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    undisplayTimecode?: number; // the time that a document should be hidden
+    _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
+    _timecodeToHide?: number; // the time that a document should be hidden
+    anchorStartTime?: number; // the time when an annotation starts on a timeline (e.g., when an audio anchor starts on an audio/video timeline)
+    anchorEndTime?: number;   // the time when an annotaiton ends on a timeline 
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -227,8 +229,6 @@ export interface DocumentOptions {
     linearViewIsExpanded?: boolean; // is linear view expanded
     isLabel?: boolean;         // whether the document is a label or not (video / audio)
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
-    audioStart?: number;       // the time frame where the audio should begin playing
-    audioEnd?: number;         // the time frame where the audio should stop playing   
     border?: string; //for searchbox
     hovercolor?: string;
 }
@@ -722,8 +722,8 @@ export namespace Docs {
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
+            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc._timecodeToShow;
+            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc._timecodeToShow;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"]);
@@ -1252,7 +1252,7 @@ export namespace DocUtils {
             docList.forEach((d, i) => {
                 d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
                 d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
-                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                d._timecodeToShow = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
             });
         });
         if (x !== undefined && y !== undefined) {

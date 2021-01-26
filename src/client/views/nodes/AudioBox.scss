@@ -159,9 +159,8 @@
             }
 
             .audiobox-timeline {
-                position: relative;
+                position: absolute;
                 width: 100%;
-                background: white;
                 border: gray solid 1px;
                 border-radius: 3px;
                 z-index: 1000;

@@ -81,6 +81,8 @@ export interface ViewBoxAnnotatableProps {
 }
 export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
+        _annotationKey: string = "annotations";
+
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
@@ -120,7 +122,6 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-        _annotationKey: string = "annotations";
         public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound

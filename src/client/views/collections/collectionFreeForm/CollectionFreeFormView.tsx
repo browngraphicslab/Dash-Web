@@ -54,7 +54,7 @@ export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
     _currentTimecode: "number",
-    displayTimecode: "number",
+    _timecodeToShow: "number",
     _currentFrame: "number",
     arrangeInit: ScriptField,
     _useClusters: "boolean",
@@ -197,10 +197,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectView(dv, true));
     }
     public isCurrent(doc: Doc) {
-        const dispTime = NumCast(doc.displayTimecode, -1);
-        const endTime = NumCast(doc.undisplayTimecode, dispTime + 1.5);
+        const dispTime = NumCast(doc._timecodeToShow, -1);
+        const endTime = NumCast(doc._timecodeToHide, dispTime + 1.5);
         const curTime = NumCast(this.Document._currentTimecode, -1);
-        return dispTime === -1 || ((curTime - dispTime) >= -0.1 && curTime <= endTime);
+        return dispTime === -1 || ((curTime - dispTime) >= -1e-4 && curTime <= endTime);
     }
 
     public getActiveDocuments = () => {
