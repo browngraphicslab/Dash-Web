@@ -84,8 +84,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         }
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
+    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart, NumCast(anchor.audioStart))));
+    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, NumCast(anchor.audioEnd, val))));
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
@@ -106,7 +106,11 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     // updates the anchor with the new time
     @action
     changeAnchor = (anchor: Opt<Doc>, time: number) => {
-        anchor && (this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time);
+        if (anchor) {
+            const timelineOnly = Cast(anchor.anchorStartTime, "number", null) !== undefined;
+            if (timelineOnly) this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time;
+            else this._left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
+        }
     }
 
     // checks if the two anchors are the same with start and end time
@@ -288,6 +292,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 onClick={script}
                 onDoubleClick={this.props.Document.autoPlay ? undefined : doublescript}
                 ignoreAutoHeight={false}
+                hideDecorations={true}
                 bringToFront={emptyFunction}
                 scriptContext={this} />
         };

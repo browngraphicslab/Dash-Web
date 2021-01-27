@@ -380,16 +380,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             <span>{"" + formatTime(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
-        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
+        <div className="videoBox-snapshot" key="snap" onClick={this.onSnapshot} >
             <FontAwesomeIcon icon="camera" size="lg" />
         </div>,
-        <div className="timeline-button" key="timeline-button" onPointerDown={action(e => this.layoutDoc._timelineShow = !this.layoutDoc._timelineShow)}
-            style={{
-                transform: `scale(${this.scaling()})`,
-                right: this.scaling() * 10 - 10,
-                bottom: this.scaling() * 10 - 10
-            }}>
-            <FontAwesomeIcon icon={this.layoutDoc._timelineShow ? "eye-slash" : "eye"} style={{ width: "100%" }} />
+        <div className="videoBox-timelineButton" key="timeline" onClick={action(e => this.layoutDoc._timelineShow = !this.layoutDoc._timelineShow)}>
+            <FontAwesomeIcon icon={this.layoutDoc._timelineShow ? "eye-slash" : "eye"} size="lg" />
         </div>,
         VideoBox._showControls ? (null) : [
             // <div className="control-background">
@@ -411,7 +406,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         e.preventDefault();
     }
 
-    onSnapshot = (e: React.PointerEvent) => {
+    onSnapshot = (e: React.MouseEvent) => {
         this.Snapshot();
         e.stopPropagation();
         e.preventDefault();
