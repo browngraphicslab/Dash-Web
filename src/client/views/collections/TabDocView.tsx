@@ -182,12 +182,13 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const presArray: Doc[] = PresBox.Instance?.sortArray();
             const size: number = PresBox.Instance?._selectedArray.size;
             const presSelected: Doc | undefined = presArray && size ? presArray[size - 1] : undefined;
+            const duration = NumCast(doc[`${Doc.LayoutFieldKey(pinDoc)}-duration`], null);
             Doc.AddDocToList(curPres, "data", pinDoc, presSelected);
-            if (!pinProps?.audioRange && (pinDoc.type === DocumentType.AUDIO || pinDoc.type === DocumentType.VID)) {
+            if (!pinProps?.audioRange && duration !== undefined) {
                 pinDoc.mediaStart = "manual";
                 pinDoc.mediaStop = "manual";
                 pinDoc.presStartTime = 0;
-                pinDoc.presEndTime = pinDoc.type === DocumentType.AUDIO ? doc.duration : NumCast(doc["data-duration"]);
+                pinDoc.presEndTime = duration;
             }
             //save position
             if (pinProps?.setPosition || pinDoc.isInkMask) {
@@ -358,7 +359,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     active = () => this._isActive;
     ScreenToLocalTransform = () => {
-        const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont?.children?.[0]?.firstChild as HTMLElement);
+        const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont?.children?.[0] as HTMLElement);
         return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY);
     }
     PanelWidth = () => this._panelWidth;

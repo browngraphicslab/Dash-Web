@@ -54,7 +54,7 @@ export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
     _currentTimecode: "number",
-    displayTimecode: "number",
+    _timecodeToShow: "number",
     _currentFrame: "number",
     arrangeInit: ScriptField,
     _useClusters: "boolean",
@@ -137,11 +137,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
     @computed get cachedCenteringShiftX(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return !this.props.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
+        return this.props.isAnnotationOverlay ? 0 : this.props.PanelWidth() / 2 / this.parentScaling / scaling;  // shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedCenteringShiftY(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return !this.props.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
+        return this.props.isAnnotationOverlay ? 0 : this.props.PanelHeight() / 2 / this.parentScaling / scaling;// shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedGetLocalTransform(): Transform {
         return Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -196,7 +196,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectView(dv, true));
     }
-    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document._currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) {
+        const dispTime = NumCast(doc._timecodeToShow, -1);
+        const endTime = NumCast(doc._timecodeToHide, dispTime + 1.5);
+        const curTime = NumCast(this.Document._currentTimecode, -1);
+        return dispTime === -1 || ((curTime - dispTime) >= -1e-4 && curTime <= endTime);
+    }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);

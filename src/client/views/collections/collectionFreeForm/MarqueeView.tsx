@@ -426,7 +426,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 delete d.x;
                 delete d.y;
                 delete d.activeFrame;
-                delete d.displayTimecode;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                delete d._timecodeToShow;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                delete d._timecodeToHide;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 d.x = dx - this.Bounds.left - this.Bounds.width / 2;
                 d.y = dy - this.Bounds.top - this.Bounds.height / 2;
                 return d;

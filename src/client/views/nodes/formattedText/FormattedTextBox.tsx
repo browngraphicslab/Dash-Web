@@ -230,7 +230,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.rootDoc.title, 0, 0, 100, 100);
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
-            }
+            };
 
             DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, () => this.rootDoc, targetCreator), e.pageX, e.pageY, {
                 dragComplete: e => {
@@ -361,7 +361,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             DocListCast(this.dataDoc.links).map((l, i) => {
                 let la1 = l.anchor1 as Doc;
                 let la2 = l.anchor2 as Doc;
-                this._linkTime = NumCast(la1.audioStart, NumCast(la2.audioStart));
+                this._linkTime = NumCast(la1.anchorStartTime, NumCast(la2.anchorStartTime));
                 audioState = la2.audioState;
                 if (Doc.AreProtosEqual(la2, this.dataDoc)) {
                     la1 = l.anchor2 as Doc;
