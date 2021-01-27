@@ -1651,18 +1651,15 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             const vfTop: number = NumCast(activeItem.presPinViewY);
             const vfWidth: number = 100;
             const vfHeight: number = 100;
-            return (
-                <>
-                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                        <div className='resizers' key={'resizer' + activeItem.id}>
-                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
-                        </div>
-                    </div>}
-                </>
-            );
+            return !this.props.presPinView ? (null) :
+                <div key="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                    <div className='resizers' key={'resizer' + activeItem.id}>
+                        <div className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                    </div>
+                </div>;
         }
     }
 

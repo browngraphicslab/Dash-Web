@@ -310,8 +310,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
-        return !field ? <div>Loading</div> :
-            <div className="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
+        return !field ? <div key="loading">Loading</div> :
+            <div className="container" key="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
                 <div className={`${style}`} style={{ width: "100%", height: "100%", left: "0px" }}>
                     <video key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
                         style={{ height: "100%", width: "auto", display: "flex", margin: "auto" }}
