@@ -59,7 +59,8 @@ export enum CollectionViewType {
     //Staff = "staff",
     Map = "map",
     Grid = "grid",
-    Pile = "pileup"
+    Pile = "pileup",
+    StackedTimeline = "stacked timeline"
 }
 export interface CollectionViewProps extends FieldViewProps {
     isAnnotationOverlay?: boolean;  // is the collection an annotation overlay (eg an overlay on an image/video/etc)

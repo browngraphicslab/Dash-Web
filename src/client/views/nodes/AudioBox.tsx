@@ -9,14 +9,15 @@ import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
-import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { formatTime, numberRange, Utils } from "../../../Utils";
+import { emptyFunction, formatTime, numberRange, Utils } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SnappingManager } from "../../util/SnappingManager";
+import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -24,7 +25,6 @@ import "./AudioBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { StackedTimeline } from "./StackedTimeline";
 declare class MediaRecorder {
     // whatever MediaRecorder has
     constructor(e: any);
@@ -46,7 +46,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _disposers: { [name: string]: IReactionDisposer } = {};
     _ele: HTMLAudioElement | null = null;
     _audioRef = React.createRef<HTMLDivElement>();
-    _stackedTimeline = React.createRef<StackedTimeline>();
+    _stackedTimeline = React.createRef<CollectionStackedTimeline>();
     _recorder: any;
     _recordStart = 0;
     _pauseStart = 0;
@@ -327,30 +327,43 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             );
     }
 
-    playing = () => { return this.audioState === "playing"; }
+    playing = () => this.audioState === "playing";
     playLink = (link: Doc) => {
         if (link.annotationOn === this.rootDoc) {
             if (this.layoutDoc.playOnSelect) this.playFrom(this._stackedTimeline.current?.anchorStart(link) || 0, this._stackedTimeline.current?.anchorEnd(link));
             else this._ele!.currentTime = this.layoutDoc._currentTimecode = (this._stackedTimeline.current?.anchorStart(link) || 0);
         }
-        else this.links.filter(l => l.anchor1 === link || l.anchor2 === link).forEach(l => {
-            const { la1, la2 } = this.getLinkData(l);
-            const startTime = NumCast(la1.anchorStartTime, NumCast(la2.anchorStartTime, null));
-            const endTime = NumCast(la1.anchorEndTime, NumCast(la2.anchorEndTime, null));
-            if (startTime !== undefined) {
-                if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
-                else this._ele!.currentTime = this.layoutDoc._currentTimecode = startTime;
-            }
-        });
+        else {
+            this.links.filter(l => l.anchor1 === link || l.anchor2 === link).forEach(l => {
+                const { la1, la2 } = this.getLinkData(l);
+                const startTime = NumCast(la1.anchorStartTime, NumCast(la2.anchorStartTime, null));
+                const endTime = NumCast(la1.anchorEndTime, NumCast(la2.anchorEndTime, null));
+                if (startTime !== undefined) {
+                    if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
+                    else this._ele!.currentTime = this.layoutDoc._currentTimecode = startTime;
+                }
+            });
+        }
     }
 
     @computed get renderTimeline() {
-        return <StackedTimeline ref={this._stackedTimeline}
+        return <CollectionStackedTimeline ref={this._stackedTimeline}
             Document={this.props.Document}
-            dataDoc={this.dataDoc}
-            anchorProps={this.props}
+            fieldKey={this.annotationKey}
             renderDepth={this.props.renderDepth + 1}
-            annotationKey={this.annotationKey}
+            parentActive={this.props.parentActive}
+            focus={emptyFunction}
+            styleProvider={this.props.styleProvider}
+            docFilters={this.props.docFilters}
+            docRangeFilters={this.props.docRangeFilters}
+            searchFilterDocs={this.props.searchFilterDocs}
+            rootSelected={this.props.rootSelected}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            bringToFront={emptyFunction}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            ContainingCollectionView={this.props.ContainingCollectionView}
+            CollectionView={undefined}
             duration={this.duration}
             playFrom={this.playFrom}
             setTime={(time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time}

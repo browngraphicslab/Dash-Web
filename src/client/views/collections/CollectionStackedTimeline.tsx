@@ -2,27 +2,24 @@ import React = require("react");
 import { action, computed, IReactionDisposer, observable } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { listSpec } from "../../../fields/Schema";
+import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { emptyFunction, formatTime, OmitKeys, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Transform } from "../../util/Transform";
-import "./StackedTimeline.scss";
-import { DocumentView, DocumentViewProps } from "./DocumentView";
-import { LabelBox } from "./LabelBox";
+import { CollectionSubView } from "../collections/CollectionSubView";
+import { DocumentView } from "../nodes/DocumentView";
+import { LabelBox } from "../nodes/LabelBox";
+import "./CollectionStackedTimeline.scss";
 
-export interface StackedTimelineProps {
-    Document: Doc;
-    dataDoc: Doc;
-    anchorProps: DocumentViewProps;
-    renderDepth: number;
-    annotationKey: string;
+type PanZoomDocument = makeInterface<[]>;
+const PanZoomDocument = makeInterface();
+export type CollectionStackedTimelineProps = {
     duration: number;
     Play: () => void;
     Pause: () => void;
@@ -30,19 +27,11 @@ export interface StackedTimelineProps {
     playFrom: (seekTimeInSeconds: number, endTime?: number) => void;
     playing: () => boolean;
     setTime: (time: number) => void;
-    select: (ctrlKey: boolean) => void;
-    isSelected: (outsideReaction: boolean) => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    removeDocument: (doc: Doc | Doc[]) => boolean;
-    ScreenToLocalTransform: () => Transform;
     isChildActive: () => boolean;
-    active: () => boolean;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-}
+};
 
 @observer
-export class StackedTimeline extends React.Component<StackedTimelineProps> {
+export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument, CollectionStackedTimelineProps>(PanZoomDocument) {
     static RangeScript: ScriptField;
     static LabelScript: ScriptField;
     static RangePlayScript: ScriptField;
@@ -60,19 +49,19 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
     _markerStart: number = 0;
     _currAnchor: Opt<Doc>;
 
-    @observable static SelectingRegion: StackedTimeline | undefined = undefined;
+    @observable static SelectingRegion: CollectionStackedTimeline | undefined = undefined;
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
-    @computed get anchorDocs() { return DocListCast(this.props.dataDoc[this.props.annotationKey]); }
+    @computed get anchorDocs() { return this.childDocs; }
     @computed get currentTime() { return NumCast(this.props.Document._currentTimecode); }
 
-    constructor(props: Readonly<StackedTimelineProps>) {
+    constructor(props: any) {
         super(props);
         // onClick play scripts
-        StackedTimeline.RangeScript = StackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        StackedTimeline.LabelScript = StackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        StackedTimeline.RangePlayScript = StackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
-        StackedTimeline.LabelPlayScript = StackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.RangeScript = CollectionStackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.LabelScript = CollectionStackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.RangePlayScript = CollectionStackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.LabelPlayScript = CollectionStackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
     }
 
     // for creating key anchors with key events
@@ -95,14 +84,14 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
         }
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)))
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)))
+    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
+    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
         const linkTime = NumCast(la2.anchorStartTime, NumCast(la1.anchorStartTime));
-        if (Doc.AreProtosEqual(la1, this.props.dataDoc)) {
+        if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
         }
@@ -126,7 +115,7 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
     }
 
     @computed get selectionContainer() {
-        return StackedTimeline.SelectingRegion !== this ? (null) : <div className="audiobox-container" style={{
+        return CollectionStackedTimeline.SelectingRegion !== this ? (null) : <div className="audiobox-container" style={{
             left: `${Math.min(NumCast(this._markerStart), NumCast(this._markerEnd)) / this.props.duration * 100}%`,
             width: `${Math.abs(this._markerStart - this._markerEnd) / this.props.duration * 100}%`, height: "100%", top: "0%"
         }} />;
@@ -146,7 +135,7 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
                 }, 300);
             }
             this._markerStart = this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
-            StackedTimeline.SelectingRegion = this;
+            CollectionStackedTimeline.SelectingRegion = this;
             setupMoveUpEvents(this, e,
                 action(e => {
                     this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
@@ -159,8 +148,8 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
                         this._markerStart = this._markerEnd;
                         this._markerEnd = tmp;
                     }
-                    StackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createAnchor(this._markerStart, this._markerEnd);
-                    StackedTimeline.SelectingRegion = undefined;
+                    CollectionStackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createAnchor(this._markerStart, this._markerEnd);
+                    CollectionStackedTimeline.SelectingRegion = undefined;
                 }),
                 (e, doubleTap) => {
                     this.props.select(false);
@@ -182,10 +171,10 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
             anchorEndTime,
             annotationOn: this.props.Document
         });
-        if (Cast(this.props.dataDoc[this.props.annotationKey], listSpec(Doc), null) !== undefined) {
-            Cast(this.props.dataDoc[this.props.annotationKey], listSpec(Doc), []).push(anchor);
+        if (Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), null) !== undefined) {
+            Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []).push(anchor);
         } else {
-            this.props.dataDoc[this.props.annotationKey] = new List<Doc>([anchor]);
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([anchor]);
         }
         return anchor;
     }
@@ -225,10 +214,10 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
             emptyFunction);
     }
 
-    rangeClickScript = () => StackedTimeline.RangeScript;
-    labelClickScript = () => StackedTimeline.LabelScript;
-    rangePlayScript = () => StackedTimeline.RangePlayScript;
-    labelPlayScript = () => StackedTimeline.LabelPlayScript;
+    rangeClickScript = () => CollectionStackedTimeline.RangeScript;
+    labelClickScript = () => CollectionStackedTimeline.LabelScript;
+    rangePlayScript = () => CollectionStackedTimeline.RangePlayScript;
+    labelPlayScript = () => CollectionStackedTimeline.LabelPlayScript;
 
     // makes sure no anchors overlaps each other by setting the correct position and width
     getLevel = (m: Doc, placed: { anchorStartTime: number, anchorEndTime: number, level: number }[]) => {
@@ -252,10 +241,10 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
         return level;
     }
 
-    renderInner = computedFn(function (this: StackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
+    renderInner = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
         const anchor = observable({ view: undefined as any });
         return {
-            anchor, view: <DocumentView key="view"  {...OmitKeys(this.props.anchorProps, ["NativeWidth", "NativeHeight"]).omit}
+            anchor, view: <DocumentView key="view"  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 ref={action((r: DocumentView | null) => anchor.view = r)}
                 Document={mark}
                 DataDoc={undefined}
@@ -278,7 +267,7 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
                 scriptContext={this} />
         };
     });
-    renderAnchor = computedFn(function (this: StackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
+    renderAnchor = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
         const inner = this.renderInner(mark, script, doublescript, x, y, width, height);
         return <>
             {inner.view}
@@ -329,7 +318,7 @@ export class StackedTimeline extends React.Component<StackedTimelineProps> {
             <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                 style={{ left: `${this.currentTime / this.props.duration * 100}%`, pointerEvents: "none" }}
             />
-        </div>
+        </div>;
     }
 }
 Scripting.addGlobal(function formatToTime(time: number): any { return formatTime(time); });

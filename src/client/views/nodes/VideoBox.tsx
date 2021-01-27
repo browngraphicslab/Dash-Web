@@ -16,6 +16,7 @@ import { Networking } from "../../Network";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CollectionStackedTimeline } from "../collections/CollectionStackedTimeline";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -25,7 +26,6 @@ import { StyleProp } from "../StyleProvider";
 import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { StackedTimeline } from "./StackedTimeline";
 import "./VideoBox.scss";
 const path = require('path');
 
@@ -46,7 +46,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
     private _youtubeContentCreated = false;
-    private _stackedTimeline = React.createRef<StackedTimeline>();
+    private _stackedTimeline = React.createRef<CollectionStackedTimeline>();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _playRegionTimer: any = null;
@@ -72,8 +72,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         VideoBox.Instance = this;
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)))
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)))
+    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
+    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
 
     getAnchor = () => {
         return this._stackedTimeline.current?.createAnchor(Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
@@ -484,12 +484,23 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     // returns the timeline
     @computed get renderTimeline() {
         return <div style={{ width: "100%", height: `${100 - this.heightPercent}%`, position: "absolute" }}>
-            <StackedTimeline ref={this._stackedTimeline}
+            <CollectionStackedTimeline ref={this._stackedTimeline}
                 Document={this.props.Document}
-                dataDoc={this.dataDoc}
-                anchorProps={this.props}
+                fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
-                annotationKey={this.annotationKey + "-timeline"}
+                parentActive={this.props.parentActive}
+                focus={emptyFunction}
+                styleProvider={this.props.styleProvider}
+                docFilters={this.props.docFilters}
+                docRangeFilters={this.props.docRangeFilters}
+                searchFilterDocs={this.props.searchFilterDocs}
+                rootSelected={this.props.rootSelected}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
+                bringToFront={emptyFunction}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                CollectionView={undefined}
                 duration={this.duration}
                 playFrom={this.playFrom}
                 setTime={(time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time}

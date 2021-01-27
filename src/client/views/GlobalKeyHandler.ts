@@ -24,7 +24,7 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { StackedTimeline } from "./nodes/StackedTimeline";
+import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
 
@@ -121,8 +121,8 @@ export class KeyManager {
                     DragManager.AbortDrag();
                 } else if (CollectionDockingView.Instance.HasFullScreen) {
                     CollectionDockingView.Instance.CloseFullScreen();
-                } else if (StackedTimeline.SelectingRegion) {
-                    StackedTimeline.SelectingRegion = undefined;
+                } else if (CollectionStackedTimeline.SelectingRegion) {
+                    CollectionStackedTimeline.SelectingRegion = undefined;
                     doDeselect = false;
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
