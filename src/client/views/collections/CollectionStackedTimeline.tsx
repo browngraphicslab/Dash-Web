@@ -16,6 +16,7 @@ import { CollectionSubView } from "../collections/CollectionSubView";
 import { DocumentView } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
+import { undoBatch } from "../../util/UndoManager";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -164,6 +165,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         }
     }
 
+    @undoBatch
     @action
     createAnchor(anchorStartTime?: number, anchorEndTime?: number) {
         if (anchorStartTime === undefined) return this.props.Document;
