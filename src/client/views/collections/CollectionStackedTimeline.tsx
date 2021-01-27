@@ -58,10 +58,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     constructor(props: any) {
         super(props);
         // onClick play scripts
-        CollectionStackedTimeline.RangeScript = CollectionStackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.LabelScript = CollectionStackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.RangePlayScript = CollectionStackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.LabelPlayScript = CollectionStackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.RangeScript = CollectionStackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.LabelScript = CollectionStackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.RangePlayScript = CollectionStackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.LabelPlayScript = CollectionStackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
     }
 
     // for creating key anchors with key events
@@ -179,20 +179,45 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         return anchor;
     }
 
-    // play back the audio from time
     @action
-    playOnClick = (anchorDoc: Doc) => {
-        this.props.playFrom(this.anchorStart(anchorDoc), this.anchorEnd(anchorDoc, this.props.duration));
+    playOnClick = (anchorDoc: Doc, clientX: number) => {
+        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const endTime = this.anchorEnd(anchorDoc);
+        if (this.layoutDoc.autoPlay) {
+            if (this.props.playing()) this.props.Pause();
+            else this.props.playFrom(seekTimeInSeconds, endTime);
+        } else {
+            if (seekTimeInSeconds < NumCast(this.layoutDoc._currentTimecode) && endTime > NumCast(this.layoutDoc._currentTimecode)) {
+                if (!this.layoutDoc.autoPlay && this.props.playing()) {
+                    this.props.Pause();
+                } else {
+                    this.props.Play();
+                }
+            } else {
+                this.props.playFrom(seekTimeInSeconds, endTime);
+            }
+        }
         return { select: true };
     }
 
-    // play back the audio from time
     @action
-    clickAnchor = (anchorDoc: Doc) => {
-        if (this.props.Document.autoPlay) return this.playOnClick(anchorDoc);
-        this.props.setTime(this.anchorStart(anchorDoc));
+    clickAnchor = (anchorDoc: Doc, clientX: number) => {
+        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const endTime = this.anchorEnd(anchorDoc);
+        if (seekTimeInSeconds < NumCast(this.layoutDoc._currentTimecode) + 1e-4 && endTime > NumCast(this.layoutDoc._currentTimecode) - 1e-4) {
+            if (this.props.playing()) this.props.Pause();
+            else if (this.layoutDoc.autoPlay) this.props.Play();
+            else if (!this.layoutDoc.autoPlay) {
+                const rect = this._timeline?.getBoundingClientRect();
+                rect && this.props.setTime(this.toTimeline(clientX - rect.x, rect.width));
+            }
+        } else {
+            if (this.layoutDoc.autoPlay) this.props.playFrom(seekTimeInSeconds, endTime);
+            else this.props.setTime(seekTimeInSeconds);
+        }
         return { select: true };
     }
+
 
     toTimeline = (screen_delta: number, width: number) => Math.max(0, Math.min(this.props.duration, screen_delta / width * this.props.duration));
     // starting the drag event for anchor resizing
