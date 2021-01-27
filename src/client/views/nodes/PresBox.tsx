@@ -417,15 +417,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             self._dragArray.splice(0, self._dragArray.length, ...dragViewCache);
             self._eleArray.splice(0, self._eleArray.length, ...eleViewCache);
         });
-        const openInTab = () => {
-            collectionDocView ? collectionDocView.props.addDocTab(targetDoc, "") : this.props.addDocTab(targetDoc, ":left");
+        const openInTab = (doc: Doc, finished?: () => void) => {
+            collectionDocView ? collectionDocView.props.addDocTab(doc, "") : this.props.addDocTab(doc, ":left");
             this.layoutDoc.presCollection = targetDoc;
             // this still needs some fixing
             setTimeout(resetSelection, 500);
+            doc !== targetDoc && setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
-            openInTab();
+            openInTab(targetDoc);
         } else if (curDoc.presMovement === PresMovement.Pan && targetDoc) {
             await DocumentManager.Instance.jumpToDocument(targetDoc, false, openInTab, srcContext, undefined, undefined, undefined, includesDoc || tab ? undefined : resetSelection); // documents open in new tab instead of on right
         } else if ((curDoc.presMovement === PresMovement.Zoom || curDoc.presMovement === PresMovement.Jump) && targetDoc) {

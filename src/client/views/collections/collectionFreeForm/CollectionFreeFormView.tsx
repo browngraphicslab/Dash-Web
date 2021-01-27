@@ -931,11 +931,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
-            willZoom && this.setScaleToZoom(layoutdoc, scale);
-            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
-            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
             const newState = HistoryUtil.getState();
-            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            if (!layoutdoc.annotationOn) {
+                willZoom && this.setScaleToZoom(layoutdoc, scale);
+                const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
+                const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
+                newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            }
             HistoryUtil.pushState(newState);
 
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
