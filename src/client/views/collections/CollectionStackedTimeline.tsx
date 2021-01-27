@@ -292,7 +292,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 onClick={script}
                 onDoubleClick={this.props.Document.autoPlay ? undefined : doublescript}
                 ignoreAutoHeight={false}
-                hideDecorations={true}
+                hideResizeHandles={true}
                 bringToFront={emptyFunction}
                 scriptContext={this} />
         };

@@ -613,7 +613,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 }}>
                     {closeIcon}
                     {bounds.r - bounds.x < 100 ? null : titleArea}
-                    {seldoc.props.hideDecorations ? (null) :
+                    {seldoc.props.hideResizeHandles ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                                 <Tooltip key="i" title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">
