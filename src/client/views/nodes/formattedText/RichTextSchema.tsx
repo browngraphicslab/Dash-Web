@@ -136,6 +136,8 @@ export class DashDocView {
                     addDocument={returnFalse}
                     rootSelected={this._textBox.props.isSelected}
                     removeDocument={removeDoc}
+                    layerProvider={this._textBox.props.layerProvider}
+                    styleProvider={this._textBox.props.styleProvider}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={this._textBox.props.addDocTab}
                     pinToPres={returnFalse}
@@ -143,7 +145,6 @@ export class DashDocView {
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}
-                    styleProvider={DefaultStyleProvider}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
