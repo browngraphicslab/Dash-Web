@@ -185,6 +185,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     fieldKey={`${this.props.fieldKey}`}
                     CollectionView={undefined}
                     cantBrush={true}
+                    onChildClick={() => ScriptField.MakeScript("")!}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
