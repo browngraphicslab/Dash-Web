@@ -56,6 +56,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     @observable private activeListType: string = "";
     @observable private activeAlignment: string = "left";
 
+    @observable private brushIsEmpty: boolean = true;
     @observable private brushMarks: Set<Mark> = new Set();
     @observable private showBrushDropdown: boolean = false;
 
@@ -599,12 +600,12 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     createBrushButton() {
         const self = this;
-        const onBrushClick = (e: React.MouseEvent) => {
+        function onBrushClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.fillBrush(self.view.state, self.view.dispatch), "rt brush");
-        };
+        }
 
         let label = "Stored marks: ";
         if (this.brushMarks && this.brushMarks.size > 0) {
@@ -621,7 +622,8 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         //onPointerDown={onBrushClick}
 
         const button = <Tooltip title={<div className="dash-tooltip">style brush</div>} placement="bottom">
-            <button className="antimodeMenu-button" onClick={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+
+            <button className="antimodeMenu-button" style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
                 <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>
         </Tooltip>;
@@ -634,12 +636,13 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} openDropdownOnButton={false} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
     @action
     clearBrush() {
+        RichTextMenu.Instance.brushIsEmpty = true;
         RichTextMenu.Instance.brushMarks = new Set();
     }
 
@@ -647,21 +650,25 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     fillBrush(state: EditorState<any>, dispatch: any) {
         if (!this.view) return;
 
-        if (!Array.from(this.brushMarks.keys()).length) {
+        if (this.brushIsEmpty) {
             const selected_marks = this.getMarksInSelection(this.view.state);
             if (selected_marks.size >= 0) {
                 this.brushMarks = selected_marks;
+                this.brushIsEmpty = !this.brushIsEmpty;
             }
         }
         else {
             const { from, to, $from } = this.view.state.selection;
             if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
-                if (to - from > 0) {
+                if (this.brushMarks && to - from > 0) {
                     this.view.dispatch(this.view.state.tr.removeMark(from, to));
                     Array.from(this.brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
                         this.setMark(mark, this.view!.state, this.view!.dispatch);
                     });
                 }
+            }
+            else {
+                this.brushIsEmpty = !this.brushIsEmpty;
             }
         }
     }
@@ -810,7 +817,8 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
 
-        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} link={true} />;
+        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent}
+            openDropdownOnButton={true} link={true} />;
     }
 
     async getTextLinkTargetTitle() {
@@ -1019,7 +1027,6 @@ interface ButtonDropdownProps {
     openDropdownOnButton?: boolean;
     link?: boolean;
     pdf?: boolean;
-
 }
 
 @observer
@@ -1064,11 +1071,9 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
                 {!this.props.pdf ?
-                    <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.props.openDropdownOnButton ? this.onDropdownClick : undefined}>
+                    <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
                         {this.props.button}
-                        <div style={{ marginTop: "-8.5", position: "relative" }} onPointerDown={!this.props.openDropdownOnButton ? this.onDropdownClick : undefined}>
-                            <FontAwesomeIcon icon="caret-down" size="sm" />
-                        </div>
+                        <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
                     </div>
                     :
                     <>

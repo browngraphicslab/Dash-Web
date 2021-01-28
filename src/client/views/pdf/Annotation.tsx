@@ -67,8 +67,8 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     componentWillUnmount() {
-        this._brushDisposer?.();
-        this._reactionDisposer?.();
+        this._brushDisposer && this._brushDisposer();
+        this._reactionDisposer && this._reactionDisposer();
     }
 
     @undoBatch
@@ -83,8 +83,8 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
             DocListCast(group.annotations).forEach(anno => anno.delete = true);
         }
+
         AnchorMenu.Instance.fadeOut(true);
-        this.props.select(false);
     }
 
     @undoBatch

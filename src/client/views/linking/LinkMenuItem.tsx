@@ -127,10 +127,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @undoBatch
     @action
-    deleteLink = (e: React.PointerEvent): void => {
+    deleteLink = (): void => {
         this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         LinkManager.Instance.deleteLink(this.props.linkDoc);
-        e.stopPropagation();
 
         runInAction(() => {
             LinkDocPreview.LinkInfo = undefined;

@@ -137,6 +137,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                     this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
+                    AnchorMenu.Instance.fadeOut(true);
                 }
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
@@ -388,6 +389,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             } else {
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
+                AnchorMenu.Instance.fadeOut(true);
                 this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });

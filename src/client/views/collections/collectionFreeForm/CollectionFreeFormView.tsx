@@ -54,7 +54,7 @@ export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
     _currentTimecode: "number",
-    _timecodeToShow: "number",
+    displayTimecode: "number",
     _currentFrame: "number",
     arrangeInit: ScriptField,
     _useClusters: "boolean",
@@ -137,11 +137,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
     @computed get cachedCenteringShiftX(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return this.props.isAnnotationOverlay ? 0 : this.props.PanelWidth() / 2 / this.parentScaling / scaling;  // shift so pan position is at center of window for non-overlay collections
+        return !this.props.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedCenteringShiftY(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
-        return this.props.isAnnotationOverlay ? 0 : this.props.PanelHeight() / 2 / this.parentScaling / scaling;// shift so pan position is at center of window for non-overlay collections
+        return !this.props.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedGetLocalTransform(): Transform {
         return Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -196,12 +196,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectView(dv, true));
     }
-    public isCurrent(doc: Doc) {
-        const dispTime = NumCast(doc._timecodeToShow, -1);
-        const endTime = NumCast(doc._timecodeToHide, dispTime + 1.5);
-        const curTime = NumCast(this.Document._currentTimecode, -1);
-        return dispTime === -1 || ((curTime - dispTime) >= -1e-4 && curTime <= endTime);
-    }
+    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document._currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
@@ -931,13 +926,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
+            willZoom && this.setScaleToZoom(layoutdoc, scale);
+            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
+            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
             const newState = HistoryUtil.getState();
-            if (!layoutdoc.annotationOn) {
-                willZoom && this.setScaleToZoom(layoutdoc, scale);
-                const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
-                const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
-                newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-            }
+            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
 
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
@@ -1653,15 +1646,18 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             const vfTop: number = NumCast(activeItem.presPinViewY);
             const vfWidth: number = 100;
             const vfHeight: number = 100;
-            return !this.props.presPinView ? (null) :
-                <div key="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                    <div className='resizers' key={'resizer' + activeItem.id}>
-                        <div className='resizer top-left' onPointerDown={this.onPointerDown}></div>
-                        <div className='resizer top-right' onPointerDown={this.onPointerDown}></div>
-                        <div className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
-                        <div className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
-                    </div>
-                </div>;
+            return (
+                <>
+                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                        <div className='resizers' key={'resizer' + activeItem.id}>
+                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                        </div>
+                    </div>}
+                </>
+            );
         }
     }
 

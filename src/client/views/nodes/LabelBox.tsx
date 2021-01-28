@@ -67,7 +67,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
         const missingParams = params?.filter(p => !this.paramsDoc[p]);
         params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
-        const label = typeof this.rootDoc[this.fieldKey] === "string" ? StrCast(this.rootDoc[this.fieldKey]) : StrCast(this.rootDoc.title);
+        const label = StrCast(this.rootDoc[this.fieldKey], StrCast(this.rootDoc.title));
         return (
             <div className="labelBox-outerDiv"
                 onClick={action(() => this.clicked = !this.clicked)}

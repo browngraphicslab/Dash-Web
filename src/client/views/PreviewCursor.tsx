@@ -49,7 +49,7 @@ export class PreviewCursor extends React.Component<{}> {
                 else if (re.test(plain)) {
                     const url = plain;
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300, useCors: true, x: newPoint[0], y: newPoint[1]
+                        title: url, _fitWidth: true, _width: 500, _height: 300, useCors: true, x: newPoint[0], y: newPoint[1]
                     })))();
                 }
                 else if (plain.startsWith("__DashDocId(") || plain.startsWith("__DashCloneId(")) {

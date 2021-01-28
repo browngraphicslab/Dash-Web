@@ -19,10 +19,10 @@ export const documentSchema = createSchema({
     lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
-    _timecodeToShow: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
-    anchorStartTime: "number",    // the time code where a document activates (eg in Audio or video timelines)
-    anchorEndTime: "number",      // the time code where a document deactivates
+    audioStart: "number",       // the time frame where the audio should begin playing
+    audioEnd: "number",         // the time frame where the audio should stop playing
     markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 
     y: "number",                // y coordinate when in a freeform view 

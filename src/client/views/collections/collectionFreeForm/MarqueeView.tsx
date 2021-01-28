@@ -89,7 +89,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const [x, y] = this.Transform.transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
-                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _fitWidth: true, _width: 400, x, y, _height: 512, _nativeWidth: 850, isAnnotating: false, title: "bing", useCors: true }), "add:right"));
 
             cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
@@ -426,8 +426,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 delete d.x;
                 delete d.y;
                 delete d.activeFrame;
-                delete d._timecodeToShow;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
-                delete d._timecodeToHide;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                delete d.displayTimecode;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 d.x = dx - this.Bounds.left - this.Bounds.width / 2;
                 d.y = dy - this.Bounds.top - this.Bounds.height / 2;
                 return d;
