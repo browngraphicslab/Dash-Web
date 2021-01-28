@@ -462,9 +462,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     onMarqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) {
-            this._marqueeing = [e.clientX, e.clientY];
-        }
+        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     }
 
     @action

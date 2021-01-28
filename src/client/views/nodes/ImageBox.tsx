@@ -1,7 +1,8 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, reaction, IReactionDisposer } from 'mobx';
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../fields/Doc';
+import { Dictionary } from 'typescript-collections';
+import { DataSym, Doc, DocListCast, WidthSym } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -11,7 +12,7 @@ import { ComputedField } from '../../../fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { AudioField, ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnZero, Utils, OmitKeys } from '../../../Utils';
+import { emptyFunction, OmitKeys, returnOne, Utils } from '../../../Utils';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
@@ -22,15 +23,12 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
+import { MarqueeAnnotator } from '../MarqueeAnnotator';
+import { StyleProp } from '../StyleProvider';
 import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { StyleProp } from '../StyleProvider';
-import { AnchorMenu } from '../pdf/AnchorMenu';
-import { Dictionary } from 'typescript-collections';
-import { MarqueeAnnotator } from '../MarqueeAnnotator';
-import { Annotation } from '../pdf/Annotation';
 const path = require('path');
 const { Howl } = require('howler');
 
@@ -423,7 +421,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
     @action
     marqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.props.Document._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     }
     @action
     finishMarquee = () => {

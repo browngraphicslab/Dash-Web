@@ -535,7 +535,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.props.Document._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     });
 
     finishMarquee = action(() => {
