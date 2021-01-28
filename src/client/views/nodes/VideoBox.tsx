@@ -418,11 +418,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     });
 
     onResetDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, (e: PointerEvent) => {
-            this.Seek(Math.max(0, (this.layoutDoc._currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
-            e.stopImmediatePropagation();
-            return false;
-        }, emptyFunction,
+        setupMoveUpEvents(this, e,
+            (e: PointerEvent) => {
+                this.Seek(Math.max(0, (this.layoutDoc._currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
+                e.stopImmediatePropagation();
+                return false;
+            },
+            emptyFunction,
             (e: PointerEvent) => this.layoutDoc._currentTimecode = 0);
     }
 
@@ -441,7 +443,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     addDocWithTimecode(doc: Doc | Doc[]): boolean {
         const docs = doc instanceof Doc ? [doc] : doc;
         const curTime = NumCast(this.layoutDoc._currentTimecode);
-        docs.forEach(doc => doc._timecodeToShow = curTime);
+        docs.forEach(doc => doc._timecodeToHide = (doc._timecodeToShow = curTime) + 1);
         return this.addDocument(doc);
     }
 
@@ -481,44 +483,35 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
     }
 
-    // returns the timeline
+    playing = () => this._playing;
+    isActiveChild = () => this._isChildActive;
+    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    timelineScreenToLocal = () => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight());
+    setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
+    timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;
     @computed get renderTimeline() {
         return <div style={{ width: "100%", transition: this.transition, height: `${100 - this.heightPercent}%`, position: "absolute" }}>
-            <CollectionStackedTimeline ref={this._stackedTimeline}
-                Document={this.props.Document}
+            <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
-                parentActive={this.props.parentActive}
                 startTag={"videoStart"}
                 endTag={"videoEnd"}
                 focus={emptyFunction}
-                styleProvider={this.props.styleProvider}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
-                rootSelected={this.props.rootSelected}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
                 bringToFront={emptyFunction}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                ContainingCollectionView={this.props.ContainingCollectionView}
                 CollectionView={undefined}
                 duration={this.duration}
                 playFrom={this.playFrom}
-                setTime={(time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time}
-                playing={() => this._playing}
-                select={this.props.select}
-                isSelected={this.props.isSelected}
-                whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
+                setTime={this.setAnchorTime}
+                playing={this.playing}
+                whenActiveChanged={this.timelineWhenActiveChanged}
                 removeDocument={this.removeDocument}
-                ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight())}
-                isChildActive={() => this._isChildActive}
+                ScreenToLocalTransform={this.timelineScreenToLocal}
+                isChildActive={this.isActiveChild}
                 Play={this.Play}
                 Pause={this.Pause}
                 active={this.active}
                 playLink={this.playLink}
-                PanelWidth={this.props.PanelWidth}
-                PanelHeight={() => this.props.PanelHeight() * (100 - this.heightPercent) / 100}
+                PanelHeight={this.timelineHeight}
             />
         </div>;
     }
