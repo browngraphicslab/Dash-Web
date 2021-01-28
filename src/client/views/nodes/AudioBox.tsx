@@ -26,13 +26,11 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 declare class MediaRecorder {
-    // whatever MediaRecorder has
-    constructor(e: any);
+    constructor(e: any);  // whatever MediaRecorder has
 }
-export const audioSchema = createSchema({ playOnSelect: "boolean" });
 
-type AudioDocument = makeInterface<[typeof documentSchema, typeof audioSchema]>;
-const AudioDocument = makeInterface(documentSchema, audioSchema);
+type AudioDocument = makeInterface<[typeof documentSchema]>;
+const AudioDocument = makeInterface(documentSchema);
 
 @observer
 export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
@@ -352,6 +350,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             fieldKey={this.annotationKey}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.parentActive}
+            startTag={"audioStart"}
+            endTag={"auidioEnd"}
             focus={emptyFunction}
             styleProvider={this.props.styleProvider}
             docFilters={this.props.docFilters}

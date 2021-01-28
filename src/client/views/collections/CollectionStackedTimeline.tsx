@@ -29,6 +29,8 @@ export type CollectionStackedTimelineProps = {
     playing: () => boolean;
     setTime: (time: number) => void;
     isChildActive: () => boolean;
+    startTag: string;
+    endTag: string;
 };
 
 @observer
@@ -85,13 +87,13 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         }
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart, NumCast(anchor.audioStart))));
-    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, NumCast(anchor.audioEnd, val))));
+    anchorStart = (anchor: Doc) => NumCast(anchor._timecodeToShow, NumCast(anchor[this.props.startTag]));
+    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor._timecodeToHide, NumCast(anchor[this.props.endTag]));
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
-        const linkTime = NumCast(la2.anchorStartTime, NumCast(la1.anchorStartTime));
+        const linkTime = NumCast(la2[this.props.startTag], NumCast(la1[this.props.startTag]));
         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
@@ -108,8 +110,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @action
     changeAnchor = (anchor: Opt<Doc>, time: number) => {
         if (anchor) {
-            const timelineOnly = Cast(anchor.anchorStartTime, "number", null) !== undefined;
-            if (timelineOnly) this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time;
+            const timelineOnly = Cast(anchor[this.props.startTag], "number", null) !== undefined;
+            if (timelineOnly) this._left ? anchor[this.props.startTag] = time : anchor[this.props.endTag] = time;
             else this._left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
         }
     }
@@ -173,10 +175,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
             title: ComputedField.MakeFunction(`"#" + formatToTime(self.anchorStartTime) + "-" + formatToTime(self.anchorEndTime)`) as any,
             useLinkSmallAnchor: true,
             hideLinkButton: true,
-            anchorStartTime,
-            anchorEndTime,
             annotationOn: this.props.Document
         });
+        anchor[this.props.startTag] = anchorStartTime;
+        anchor[this.props.endTag] = anchorEndTime;
         if (Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), null) !== undefined) {
             Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []).push(anchor);
         } else {

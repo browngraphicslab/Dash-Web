@@ -29,11 +29,8 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import "./VideoBox.scss";
 const path = require('path');
 
-export const timeSchema = createSchema({
-    _currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
-});
-type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
-const VideoDocument = makeInterface(documentSchema, timeSchema);
+type VideoDocument = makeInterface<[typeof documentSchema]>;
+const VideoDocument = makeInterface(documentSchema);
 
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
@@ -499,6 +496,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
                 parentActive={this.props.parentActive}
+                startTag={"videoStart"}
+                endTag={"videoEnd"}
                 focus={emptyFunction}
                 styleProvider={this.props.styleProvider}
                 docFilters={this.props.docFilters}
