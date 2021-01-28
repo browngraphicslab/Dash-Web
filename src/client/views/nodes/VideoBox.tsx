@@ -73,9 +73,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         VideoBox.Instance = this;
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
-
     getAnchor = () => {
         return this._stackedTimeline.current?.createAnchor(Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
     }
@@ -534,8 +531,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         </div>;
     }
 
-    contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
-
     @computed get annotationLayer() {
         return <div className="imageBox-annotationLayer" style={{ transition: this.transition, height: `${this.heightPercent}%` }} ref={this._annotationLayer} />;
     }
@@ -549,6 +544,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.props.select(true);
     });
 
+    contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     scaling = () => this.props.scaling?.() || 1;
     panelWidth = () => this.props.PanelWidth() * this.heightPercent / 100;
     panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / Doc.NativeAspect(this.rootDoc) : this.props.PanelHeight() * this.heightPercent / 100;
