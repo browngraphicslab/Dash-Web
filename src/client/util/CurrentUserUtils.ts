@@ -792,7 +792,7 @@ export class CurrentUserUtils {
             doc.currentFilter = new PrefetchProxy(Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
-                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                treeViewTruncateTitleWidth: 90, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
