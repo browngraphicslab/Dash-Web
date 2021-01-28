@@ -81,7 +81,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
-        const linkTime = this._stackedTimeline.current?.anchorStart(la2) || this._stackedTimeline.current?.anchorStart(la1);
+        const linkTime = this._stackedTimeline.current?.anchorStart(la2) || this._stackedTimeline.current?.anchorStart(la1) || 0;
         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
@@ -344,42 +344,35 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
+    isActiveChild = () => this._isChildActive;
+    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    timelineScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-AudioBox.playheadWidth, -(100 - this.heightPercent) / 200 * this.props.PanelHeight());
+    setAnchorTime = (time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time;
+    timelineHeight = () => this.props.PanelHeight() * this.heightPercent / 100 * this.heightPercent / 100; // panelHeight * heightPercent is player height.  * heightPercent is timeline height (as per css inline)
+    timelineWidth = () => this.props.PanelWidth() - AudioBox.playheadWidth;
     @computed get renderTimeline() {
-        return <CollectionStackedTimeline ref={this._stackedTimeline}
-            Document={this.props.Document}
+        return <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
             fieldKey={this.annotationKey}
             renderDepth={this.props.renderDepth + 1}
-            parentActive={this.props.parentActive}
             startTag={"audioStart"}
             endTag={"audioEnd"}
             focus={emptyFunction}
-            styleProvider={this.props.styleProvider}
-            docFilters={this.props.docFilters}
-            docRangeFilters={this.props.docRangeFilters}
-            searchFilterDocs={this.props.searchFilterDocs}
-            rootSelected={this.props.rootSelected}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
             bringToFront={emptyFunction}
-            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-            ContainingCollectionView={this.props.ContainingCollectionView}
             CollectionView={undefined}
             duration={this.duration}
             playFrom={this.playFrom}
-            setTime={(time: number) => this._ele!.currentTime = this.layoutDoc._currentTimecode = time}
+            setTime={this.setAnchorTime}
             playing={this.playing}
-            select={this.props.select}
-            isSelected={this.props.isSelected}
-            whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
+            whenActiveChanged={this.timelineWhenActiveChanged}
             removeDocument={this.removeDocument}
-            ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(0, -(100 - this.heightPercent) / 200 * this.props.PanelHeight())}
-            isChildActive={() => this._isChildActive}
+            ScreenToLocalTransform={this.timelineScreenToLocal}
+            isChildActive={this.isActiveChild}
             Play={this.Play}
             Pause={this.Pause}
             active={this.active}
             playLink={this.playLink}
-            PanelWidth={this.props.PanelWidth}
-            PanelHeight={() => this.props.PanelHeight() * this.heightPercent / 100 * this.heightPercent / 100}// panelHeight * heightPercent is player height.  * heightPercent is timeline height (as per css inline)
+            PanelWidth={this.timelineWidth}
+            PanelHeight={this.timelineHeight}
         />;
     }
 
@@ -413,17 +406,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     <div className="audiobox-dictation" />
                     <div className="audiobox-player" style={{ height: `${AudioBox.heightPercent}%` }} >
                         <div className="audiobox-playhead" style={{ width: AudioBox.playheadWidth }} title={this.audioState === "paused" ? "play" : "pause"} onClick={this.Play}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        <div className="audiobox-timeline" style={{ height: `100%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
+                        <div className="audiobox-timeline" style={{ top: 0, height: `100%`, left: AudioBox.playheadWidth, width: `calc(100% - ${AudioBox.playheadWidth}px)`, background: "white" }}>
                             <div className="waveform">
                                 {this.waveform}
                             </div>
+                            {this.renderTimeline}
                         </div>
-                        {this.renderTimeline}
                         {this.audio}
-                        <div className="current-time">
+                        <div className="audioBox-current-time">
                             {formatTime(Math.round(NumCast(this.layoutDoc._currentTimecode)))}
                         </div>
-                        <div className="total-time">
+                        <div className="audioBox-total-time">
                             {formatTime(Math.round(this.duration))}
                         </div>
                     </div>

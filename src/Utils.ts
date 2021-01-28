@@ -600,11 +600,16 @@ export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement
     return entered;
 }
 
+export function StopEvent(e: React.PointerEvent | React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent, movement: number[]) => any,
+    upEvent: (e: PointerEvent, movement: number[], isClick: boolean) => any,
     clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
     stopMovePropagation: boolean = true
@@ -632,8 +637,9 @@ export function setupMoveUpEvents(
     const _upEvent = (e: PointerEvent): void => {
         (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
         (target as any)._lastTap = Date.now();
-        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY]);
-        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+        const isClick = Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4;
+        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY], isClick);
+        if (isClick) {
             if ((target as any)._doubleTime && (target as any)._doubleTap) {
                 clearTimeout((target as any)._doubleTime);
                 (target as any)._doubleTime = undefined;

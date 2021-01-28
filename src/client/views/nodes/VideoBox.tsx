@@ -7,7 +7,7 @@ import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
-import { createSchema, makeInterface } from "../../../fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { emptyFunction, formatTime, OmitKeys, returnOne, setupMoveUpEvents, Utils } from "../../../Utils";
@@ -86,13 +86,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
     }
 
-    static keyEventsWrapper = (e: KeyboardEvent) => {
-        VideoBox.Instance._stackedTimeline.current?.keyEvents(e);
-    }
-
     @action public Play = (update: boolean = true) => {
-        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
-        document.addEventListener("keydown", VideoBox.keyEventsWrapper, true);
         this._playing = true;
         try {
             update && this.player?.play();
@@ -248,7 +242,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     componentWillUnmount() {
         this.Pause();
         Object.keys(this._disposers).forEach(d => this._disposers[d]?.());
-        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
     }
 
     @action
@@ -535,7 +528,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.props.Document._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     });
 
     finishMarquee = action(() => {

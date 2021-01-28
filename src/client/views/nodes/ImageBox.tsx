@@ -421,7 +421,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
     @action
     marqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.props.Document._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     }
     @action
     finishMarquee = () => {
