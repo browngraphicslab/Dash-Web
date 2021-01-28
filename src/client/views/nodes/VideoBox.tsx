@@ -416,7 +416,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             action((e: PointerEvent) => {
                 this._clicking = false;
                 if (this.active()) {
-                    const local = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
+                    const local = this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).transformPoint(e.clientX, e.clientY);
                     this.layoutDoc._timelineHeightPercent = Math.max(0, Math.min(100, local[1] / this.props.PanelHeight() * 100));
                 }
                 return false;
