@@ -21,8 +21,6 @@ export const documentSchema = createSchema({
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     _timecodeToShow: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
-    anchorStartTime: "number",    // the time code where a document activates (eg in Audio or video timelines)
-    anchorEndTime: "number",      // the time code where a document deactivates
     markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 
     y: "number",                // y coordinate when in a freeform view 

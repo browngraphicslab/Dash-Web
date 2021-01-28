@@ -81,7 +81,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
         let la2 = l.anchor2 as Doc;
-        const linkTime = NumCast(la2.anchorStartTime, NumCast(la1.anchorStartTime));
+        const linkTime = this._stackedTimeline.current?.anchorStart(la2) || this._stackedTimeline.current?.anchorStart(la1);
         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
             la1 = l.anchor2 as Doc;
             la2 = l.anchor1 as Doc;
@@ -334,8 +334,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         else {
             this.links.filter(l => l.anchor1 === link || l.anchor2 === link).forEach(l => {
                 const { la1, la2 } = this.getLinkData(l);
-                const startTime = NumCast(la1.anchorStartTime, NumCast(la2.anchorStartTime, null));
-                const endTime = NumCast(la1.anchorEndTime, NumCast(la2.anchorEndTime, null));
+                const startTime = this._stackedTimeline.current?.anchorStart(la1) || this._stackedTimeline.current?.anchorStart(la2);
+                const endTime = this._stackedTimeline.current?.anchorEnd(la1) || this._stackedTimeline.current?.anchorEnd(la2);
                 if (startTime !== undefined) {
                     if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
                     else this._ele!.currentTime = this.layoutDoc._currentTimecode = startTime;
@@ -351,7 +351,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.parentActive}
             startTag={"audioStart"}
-            endTag={"auidioEnd"}
+            endTag={"audioEnd"}
             focus={emptyFunction}
             styleProvider={this.props.styleProvider}
             docFilters={this.props.docFilters}

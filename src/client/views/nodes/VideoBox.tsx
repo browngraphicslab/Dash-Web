@@ -480,8 +480,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     playLink = (doc: Doc) => {
-        const startTime = NumCast(doc.anchorStartTime, NumCast(doc._timecodeToShow));
-        const endTime = NumCast(doc.anchorEndTime, NumCast(doc._timecodeToHide, null));
+        const startTime = this._stackedTimeline.current?.anchorStart(doc) || 0;
+        const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
             if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
             else this.Seek(startTime);

@@ -88,7 +88,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 
     anchorStart = (anchor: Doc) => NumCast(anchor._timecodeToShow, NumCast(anchor[this.props.startTag]));
-    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor._timecodeToHide, NumCast(anchor[this.props.endTag]));
+    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor._timecodeToHide, NumCast(anchor[this.props.endTag], val));
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
@@ -111,7 +111,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     changeAnchor = (anchor: Opt<Doc>, time: number) => {
         if (anchor) {
             const timelineOnly = Cast(anchor[this.props.startTag], "number", null) !== undefined;
-            if (timelineOnly) this._left ? anchor[this.props.startTag] = time : anchor[this.props.endTag] = time;
+            if (timelineOnly) Doc.SetInPlace(anchor, this._left ? this.props.startTag : this.props.endTag, time, true);
             else this._left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
         }
     }
@@ -177,8 +177,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
             hideLinkButton: true,
             annotationOn: this.props.Document
         });
-        anchor[this.props.startTag] = anchorStartTime;
-        anchor[this.props.endTag] = anchorEndTime;
+        Doc.GetProto(anchor)[this.props.startTag] = anchorStartTime;
+        Doc.GetProto(anchor)[this.props.endTag] = anchorEndTime;
         if (Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), null) !== undefined) {
             Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []).push(anchor);
         } else {
