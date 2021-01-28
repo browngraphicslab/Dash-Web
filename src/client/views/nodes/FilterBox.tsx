@@ -8,7 +8,7 @@ import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { Cast } from "../../../fields/Types";
+import { Cast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -27,6 +27,9 @@ export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import Select from "react-select";
 import { UserOptions } from "../../util/GroupManager";
+import { DocumentViewProps } from "./DocumentView";
+import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
+import { CollectionViewType } from "../collections/CollectionView";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
@@ -206,6 +209,29 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         console.log(this._filterSelected);
     }
 
+    FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+        switch (property.split(":")[0]) {
+            case StyleProp.Decorations:
+                if (doc) {
+                    return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
+                        <>
+                            <div>
+                                <select className="filterBox-treeView-selection">
+                                    <option value="Is" key="Is">Is</option>
+                                    <option value="Is Not" key="Is Not">Is Not</option>
+                                </select>
+                            </div>
+                            <div className="filterBox-treeView-close" onClick={e => this.facetClick(StrCast(doc.title))}>
+                                <FontAwesomeIcon icon={"times"} size="sm" />
+                            </div>
+                        </>;
+                }
+            default: return DefaultStyleProvider(doc, props, property);
+
+        }
+    }
+
+
     render() {
         const facetCollection = this.props.Document;
         const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
@@ -286,7 +312,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.FilteringStyleProvider}
                     scriptContext={this.props.scriptContext}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -297,14 +323,16 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <div className="filterBox-addFilter"> + add a filter</div>
                 </div>
             </Flyout> */}
-            <Select
-                placeholder="Add a filter..."
-                options={options}
-                isMulti={false}
-                onChange={val => this.facetClick((val as UserOptions).value)}
-                value={null}
-                closeMenuOnSelect={false}
-            />
+            <div className="filterBox-select">
+                <Select
+                    placeholder="Add a filter..."
+                    options={options}
+                    isMulti={false}
+                    onChange={val => this.facetClick((val as UserOptions).value)}
+                    value={null}
+                    closeMenuOnSelect={false}
+                />
+            </div>
 
             <div className="filterBox-bottom">
                 <div className="filterBox-select-matched">

@@ -16,6 +16,7 @@ import { DocumentViewProps } from "./nodes/DocumentView";
 import { FieldViewProps } from './nodes/FieldView';
 import "./StyleProvider.scss";
 import "./collections/TreeView.scss";
+import "./nodes/FilterBox.scss";
 import React = require("react");
 import Color = require('color');
 
@@ -207,6 +208,46 @@ export function DashboardStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps 
                         </div>
                         <div className={`styleProvider-treeView-lock${locked ? "-active" : ""}`} onClick={(e) => toggleLock(e, doc)}>
                             <FontAwesomeIcon icon={locked ? "lock" : "unlock"} size="sm" />
+                        </div>
+                    </>;
+            }
+        default: return DefaultStyleProvider(doc, props, property);
+
+    }
+}
+
+function changeFilterBool(e: any, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        //e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "changeFilterBool");
+}
+
+function closeFilter(e: React.MouseEvent, doc: Doc) {
+    UndoManager.RunInBatch(() => runInAction(() => {
+        e.stopPropagation();
+        //doc.lockedPosition = doc.lockedPosition ? undefined : true;
+    }), "closeFilter");
+}
+
+
+/**
+ * add (to treeView) for filtering decorations
+ */
+export function FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+    switch (property.split(":")[0]) {
+        case StyleProp.Decorations:
+            if (doc) {
+                return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
+                    <>
+                        <div>
+                            <select className="filterBox-treeView-selection" onChange={e => changeFilterBool(e, doc)}>
+                                <option value="Is" key="Is">Is</option>
+                                <option value="Is Not" key="Is Not">Is Not</option>
+                            </select>
+                        </div>
+                        <div className="filterBox-treeView-close" onClick={(e) => closeFilter(e, doc)}>
+                            <FontAwesomeIcon icon={"times"} size="sm" />
                         </div>
                     </>;
             }
