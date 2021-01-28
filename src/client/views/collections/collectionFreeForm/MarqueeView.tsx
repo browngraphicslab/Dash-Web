@@ -542,7 +542,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (this._commandExecuted || (e as any).propagationIsStopped) {
             return;
         }
-        if (e.key === "Backspace" || e.key === "Delete" || e.key === "d") {
+        if (e.key === "Backspace" || e.key === "Delete" || (e.key === "d" && (e.metaKey || e.altKey))) {
             this._commandExecuted = true;
             e.stopPropagation();
             (e as any).propagationIsStopped = true;
@@ -555,10 +555,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             e.preventDefault();
             (e as any).propagationIsStopped = true;
             if (e.key === "g") this.collection(e, true);
-            if (e.key === "c" || e.key === "t") this.collection(e);
-            if (e.key === "s" || e.key === "S") this.summary(e);
-            if (e.key === "b") this.background(e);
-            if (e.key === "p") this.pileup(e);
+            if (e.key === "c" || e.key === "C" && (e.metaKey || e.altKey)) this.collection(e);
+            if (e.key === "s" || e.key === "S" && (e.metaKey || e.altKey)) this.summary(e);
+            if (e.key === "b" && (e.metaKey || e.altKey)) this.background(e);
+            if (e.key === "p" && (e.metaKey || e.altKey)) this.pileup(e);
             this.cleanupInteractions(false);
         }
         if (e.key === "r" || e.key === " ") {

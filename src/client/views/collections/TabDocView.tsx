@@ -121,7 +121,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 let closeIcon = <FontAwesomeIcon icon={"times"} />
                 ReactDOM.render(docIcon, iconWrap);
                 ReactDOM.render(closeIcon, closeWrap);
-                tab.element[0].append(closeWrap);
+                // tab.element[0].append(closeWrap);
                 tab.element[0].prepend(iconWrap);
                 tab._disposers.layerDisposer = reaction(() => ({ layer: tab.DashDoc.activeLayer, color: this.tabColor }),
                     ({ layer, color }) => {

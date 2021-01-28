@@ -5,7 +5,7 @@ import { Id } from "../../fields/FieldSymbols";
 import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
-import { Cast, PromiseValue } from "../../fields/Types";
+import { Cast, NumCast, PromiseValue } from "../../fields/Types";
 import { GoogleAuthenticationManager } from "../apis/GoogleAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
@@ -89,23 +89,13 @@ export class KeyManager {
         switch (keyname) {
             case "a": SnappingManager.GetIsDragging() && (DragManager.CanEmbed = true);
                 break;
-            case "u":
-                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
-                    return { stopPropagation: false, preventDefault: false };
-                }
-
-                const ungroupings = SelectionManager.Views().slice();
-                UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
-                SelectionManager.DeselectAll();
-                break;
             case "g":
                 if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
                     return { stopPropagation: false, preventDefault: false };
                 }
 
-                const groupings = SelectionManager.Views().slice();
-                const randomGroup = random(0, 1000);
-                UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
+                const ungroupings = SelectionManager.Views().slice();
+                // UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
                 SelectionManager.DeselectAll();
                 break;
             case " ":
@@ -147,10 +137,18 @@ export class KeyManager {
                 UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
-            case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left"); break;
-            case "arrowright": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right"); break;
-            case "arrowup": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -1)), "nudge up"); break;
-            case "arrowdown": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 1)), "nudge down"); break;
+            case "arrowleft":
+                UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left");
+                break;
+            case "arrowright":
+                UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right");
+                break;
+            case "arrowup":
+                UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -1)), "nudge up");
+                break;
+            case "arrowdown":
+                UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, 1)), "nudge down");
+                break;
         }
 
         return {
@@ -164,6 +162,7 @@ export class KeyManager {
         const preventDefault = false;
 
         switch (keyname) {
+            // move items by 10 px
             case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(-10, 0)), "nudge left"); break;
             case "arrowright": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(10, 0)), "nudge right"); break;
             case "arrowup": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(0, -10)), "nudge up"); break;
@@ -218,23 +217,24 @@ export class KeyManager {
             case "t":
                 PromiseValue(Cast(Doc.UserDoc()["tabs-button-tools"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 break;
-            case "f":
+            case " ": //search
                 SearchBox.Instance._searchFullDB = "My Stuff";
                 SearchBox.Instance.enter(undefined);
                 break;
-            case "o":
+            case "o": //fullscreen
                 const target = SelectionManager.Views()[0];
                 target && CollectionDockingView.OpenFullScreen(target.props.Document);
+                SelectionManager.DeselectAll();
                 break;
             case "r":
                 preventDefault = false;
                 break;
-            case "y":
+            case "y": //redo
                 SelectionManager.DeselectAll();
                 UndoManager.Redo();
                 stopPropagation = false;
                 break;
-            case "z":
+            case "z": //undo
                 SelectionManager.DeselectAll();
                 UndoManager.Undo();
                 stopPropagation = false;
@@ -249,7 +249,7 @@ export class KeyManager {
                 stopPropagation = false;
                 preventDefault = false;
                 break;
-            case "x":
+            case "x": //cut
                 if (SelectionManager.Views().length) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
@@ -260,7 +260,7 @@ export class KeyManager {
                     preventDefault = false;
                 }
                 break;
-            case "c":
+            case "c": //clone
                 if (!AnchorMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
@@ -269,6 +269,22 @@ export class KeyManager {
                     stopPropagation = false;
                 }
                 preventDefault = false;
+                break;
+            case "g": //group or ungroup
+                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+                    return { stopPropagation: false, preventDefault: false };
+                }
+                const childDocs = DocListCast(SelectionManager.Views().slice()[0].Document.data);
+                childDocs && childDocs.forEach(doc => {
+                    const scr = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
+                    doc.x = scr?.[0];
+                    doc.y = scr?.[1];
+                });
+                SelectionManager.Views()[0].props.addDocTab(childDocs as any as Doc, "inParent");
+                SelectionManager.Views()[0].props.ContainingCollectionView?.removeDocument(SelectionManager.Views()[0].props.Document);
+                // const randomGroup = random(0, 1000);
+                // UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
+                SelectionManager.DeselectAll();
                 break;
         }
 
@@ -321,6 +337,12 @@ export class KeyManager {
         switch (keyname) {
             case "z":
                 UndoManager.Redo();
+                break;
+            case "[": //send to back
+                SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true))
+                break;
+            case "]": //bring to front
+                SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false));
                 break;
         }
 

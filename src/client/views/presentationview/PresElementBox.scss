@@ -220,8 +220,6 @@ $slide-active: #5B9FDD;
     grid-template-columns: 100%;
     justify-items: left;
     align-items: center;
-    padding-top: 5px;
-    padding-bottom: 5px;
 }
 
 .presItem-groupSlide {
@@ -273,6 +271,37 @@ $slide-active: #5B9FDD;
     box-shadow: 0 0 0px 1.5px $dark-blue;
 }
 
-// .presItem-slide:hover {
-//     background: $slide-hover;
-// }
+.expandButton {
+    cursor: pointer;
+    position: absolute;
+    border-radius: 100px;
+    bottom: 0;
+    left: -18;
+    z-index: 300;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    font-size: 12px;
+    justify-self: center;
+    align-self: center;
+    background-color: #92adb9;
+    color: white;
+    justify-content: center;
+    align-items: center;
+    transition: 0.2s;
+    margin-right: 3px;
+}
+
+.expandButton:hover {
+    background-color: rgba(0, 0, 0, 1);
+    transform: scale(1.2);
+}
+
+.presItem-groupNum {
+    color: #d5dce2;
+    position: absolute;
+    left: -15px;
+    top: 1;
+    font-weight: 600;
+    font-size: 12;
+}
