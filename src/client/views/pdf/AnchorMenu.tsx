@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
 import { Doc, Opt } from "../../../fields/Doc";
@@ -9,6 +9,7 @@ import { returnFalse, setupMoveUpEvents, unimplementedFunction, Utils } from "..
 import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
 import "./AnchorMenu.scss";
+import { SelectionManager } from "../../util/SelectionManager";
 
 @observer
 export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -56,6 +57,14 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
 
         AnchorMenu.Instance = this;
         AnchorMenu.Instance._canFade = false;
+    }
+
+    _disposer: IReactionDisposer | undefined;
+    componentDidMount() {
+        this._disposer = reaction(() => SelectionManager.Views(),
+            selected => {
+                AnchorMenu.Instance.fadeOut(true);
+            });
     }
 
     pointerDown = (e: React.PointerEvent) => {

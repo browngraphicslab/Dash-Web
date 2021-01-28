@@ -268,7 +268,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 }
                             });
                         } else {
-                            this.addDocument(Docs.Create.WebDocument(href, { ...options, _fitWidth: true, title: href }));
+                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
                         this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: StrCast(Doc.UserDoc().showTitle), _width: 100, _height: 25 }));
@@ -385,7 +385,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
                         ...options,
-                        _fitWidth: true,
                         title: uriList.split("#annotations:")[0],
                         _width: 400,
                         _height: 512,

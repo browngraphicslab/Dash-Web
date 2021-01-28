@@ -579,6 +579,10 @@ export function setupMoveUpEvents(
 
     const _moveEvent = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
+            if ((target as any)._doubleTime) {
+                clearTimeout((target as any)._doubleTime);
+                (target as any)._doubleTime = undefined;
+            }
             if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
                 [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
                 document.removeEventListener("pointermove", _moveEvent);
@@ -595,6 +599,10 @@ export function setupMoveUpEvents(
         (target as any)._lastTap = Date.now();
         upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY]);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+            if ((target as any)._doubleTime && (target as any)._doubleTap) {
+                clearTimeout((target as any)._doubleTime);
+                (target as any)._doubleTime = undefined;
+            }
             clickEvent(e, (target as any)._doubleTap);
         }
         document.removeEventListener("pointermove", _moveEvent);
