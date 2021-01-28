@@ -172,7 +172,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     createAnchor(anchorStartTime?: number, anchorEndTime?: number) {
         if (anchorStartTime === undefined) return this.props.Document;
         const anchor = Docs.Create.LabelDocument({
-            title: ComputedField.MakeFunction(`"#" + formatToTime(self.anchorStartTime) + "-" + formatToTime(self.anchorEndTime)`) as any,
+            title: ComputedField.MakeFunction(`"#" + formatToTime(self["${this.props.startTag}"]) + "-" + formatToTime(self["${this.props.endTag}"])`) as any,
             useLinkSmallAnchor: true,
             hideLinkButton: true,
             annotationOn: this.props.Document
