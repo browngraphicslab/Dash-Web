@@ -385,13 +385,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                             scriptContext: this.props.scriptContext,
                             thisContainer: this.props.ContainingCollectionDoc,
                             documentView: this.props.DocumentView,
+                            clientX: e.clientX,
+                            clientY: e.clientY,
                             shiftKey: e.shiftKey
                         }, console.log);
-                        undoBatch(func)();
+                        UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
                     } else if (!Doc.IsSystem(this.props.Document)) {
-                        if (this.props.Document.type === DocumentType.INK) {
-                            InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
-                        } else if (this.props.Document.type !== DocumentType.LABEL) {
+                        if (this.props.Document.type !== DocumentType.LABEL) {
                             UndoManager.RunInBatch(() => {
                                 const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
                                 this.props.addDocTab(fullScreenDoc, "add");
@@ -403,19 +403,23 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 const shiftKey = e.shiftKey;
+                const clientX = e.clientX;
+                const clientY = e.clientY;
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this.props.DocumentView,
+                    clientX: clientX,
+                    clientY: clientY,
                     shiftKey
                 }, console.log);
                 const clickFunc = () => {
                     if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) &&
                         !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc) &&
                         !this.onClickHandler.script.originalScript.includes("selectMainMenu")) {
-                        UndoManager.RunInBatch(func, "on click");
+                        UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on click");
                     } else func();
                 };
                 if (this.onDoubleClickHandler) {
@@ -546,7 +550,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.LayoutTemplateString) return;
+        if (this.props.dontRegisterView || this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return;
         if (this.props.Document === CurrentUserUtils.ActiveDashboard) {
             alert((e.target as any)?.closest?.("*.lm_content") ?
                 "You can't perform this move most likely because you don't have permission to modify the destination." :
@@ -897,7 +901,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         if (this.nativeHeight) {
             return Math.min(this.props.PanelHeight(),
                 this.props.Document._fitWidth ?
-                    Math.max(NumCast(this.props.Document._height), NumCast((this.props.Document.scrollHeight as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
+                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
                     this.nativeHeight * this.nativeScaling
             );
         }
@@ -956,7 +960,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     ContentScale = () => this.nativeScaling;
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
+    screenToLocalTransform = () => {
+        return this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
+    }
 
     componentDidMount() {
         !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);

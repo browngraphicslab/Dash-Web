@@ -163,13 +163,13 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
                 const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100);
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
-            }
+            };
             const anchorCreator = () => {
                 const annoDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
                 annoDoc.isLinkButton = true; // prevents link button from showing up --- maybe not a good thing?
                 this.props.addDocument(annoDoc);
                 return annoDoc;
-            }
+            };
             DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, anchorCreator, targetCreator), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && e.annoDragData.annotationDocument && e.annoDragData.dropDocument && !e.linkDocument) {

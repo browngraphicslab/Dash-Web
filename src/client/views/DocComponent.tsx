@@ -81,6 +81,8 @@ export interface ViewBoxAnnotatableProps {
 }
 export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
+        _annotationKey: string = "annotations";
+
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
@@ -120,11 +122,10 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-        _annotationKey: string = "annotations";
         public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound
-        removeDocument(doc: Doc | Doc[]): boolean {
+        removeDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
             const indocs = doc instanceof Doc ? [doc] : doc;
             const docs = indocs.filter(doc => effectiveAcl === AclEdit || effectiveAcl === AclAdmin || GetEffectiveAcl(doc) === AclAdmin);
@@ -132,13 +133,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 const docs = doc instanceof Doc ? [doc] : doc;
                 docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
                 const targetDataDoc = this.dataDoc;
-                const value = DocListCast(targetDataDoc[this.annotationKey]);
+                const value = DocListCast(targetDataDoc[annotationKey ?? this.annotationKey]);
                 const toRemove = value.filter(v => docs.includes(v));
 
                 if (toRemove.length !== 0) {
                     const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
-                        Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey + "-annotations", doc);
+                        Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     });
                     return true;

@@ -59,7 +59,8 @@ export enum CollectionViewType {
     //Staff = "staff",
     Map = "map",
     Grid = "grid",
-    Pile = "pileup"
+    Pile = "pileup",
+    StackedTimeline = "stacked timeline"
 }
 export interface CollectionViewProps extends FieldViewProps {
     isAnnotationOverlay?: boolean;  // is the collection an annotation overlay (eg an overlay on an image/video/etc)
@@ -158,14 +159,14 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                             const pushpin = Docs.Create.FontIconDocument({
                                 title: "pushpin", label: "",
                                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
-                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
                             });
                             pushpin.isPushpin = true;
                             Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
                             Doc.SetInPlace(doc, "annotationOn", undefined, true);
                             Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
                             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                            doc.displayTimecode = undefined;
+                            doc._timecodeToShow = undefined;
                         }
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;

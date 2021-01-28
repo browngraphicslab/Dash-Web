@@ -232,14 +232,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const duration: number = NumCast(activeItem.presEndTime) - NumCast(activeItem.presStartTime);
         if (targetDoc.type === DocumentType.AUDIO) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._audioStart = NumCast(activeItem.presStartTime);
+            targetDoc._triggerAudio = NumCast(activeItem.presStartTime);
             this._mediaTimer = [setTimeout(() => targetDoc._audioStop = true, duration * 1000), targetDoc];
         } else if (targetDoc.type === DocumentType.VID) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._videoStop = true;
+            targetDoc._triggerVideoStop = true;
             setTimeout(() => targetDoc._currentTimecode = NumCast(activeItem.presStartTime), 10);
-            setTimeout(() => targetDoc._videoStart = true, 20);
-            this._mediaTimer = [setTimeout(() => targetDoc._videoStop = true, (duration * 1000) + 20), targetDoc];
+            setTimeout(() => targetDoc._triggerVideo = true, 20);
+            this._mediaTimer = [setTimeout(() => targetDoc._triggerVideoStop = true, (duration * 1000) + 20), targetDoc];
         }
     }
 
@@ -249,7 +249,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             targetDoc._audioStop = true;
         } else if (targetDoc.type === DocumentType.VID) {
             if (this._mediaTimer && this._mediaTimer[1] === targetDoc) clearTimeout(this._mediaTimer[0]);
-            targetDoc._videoStop = true;
+            targetDoc._triggerVideoStop = true;
         }
     }
 
@@ -714,9 +714,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (audio) {
                     audio.mediaStart = "manual";
                     audio.mediaStop = "manual";
-                    audio.presStartTime = NumCast(doc.audioStart);
-                    audio.presEndTime = NumCast(doc.audioEnd);
-                    audio.presDuration = NumCast(doc.audioEnd) - NumCast(doc.audioStart);
+                    audio.presStartTime = NumCast(doc.anchorStartTime);
+                    audio.presEndTime = NumCast(doc.anchorEndTime);
+                    audio.presDuration = NumCast(doc.anchorEndTime) - NumCast(doc.anchorStartTime);
                     TabDocView.PinDoc(audio, { audioRange: true });
                     setTimeout(() => this.removeDocument(doc), 0);
                     return false;
@@ -1477,6 +1477,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get mediaOptionsDropdown() {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
+        const duration = Math.round(NumCast(activeItem[`${Doc.LayoutFieldKey(activeItem)}-duration`]) * 10);
         const mediaStopDocInd: number = NumCast(activeItem.mediaStopDoc);
         const mediaStopDocStr: string = mediaStopDocInd ? mediaStopDocInd + ". " + this.childDocs[mediaStopDocInd - 1].title : "";
         if (activeItem && targetDoc) {
@@ -1521,7 +1522,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     </div>
                                 </div>
                                 <div className="multiThumb-slider">
-                                    <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presEndTime)}
+                                    <input type="range" step="0.1" min="0" max={duration / 10} value={NumCast(activeItem.presEndTime)}
                                         style={{ gridColumn: 1, gridRow: 1 }}
                                         className={`toolbar-slider ${"end"}`}
                                         id="toolbar-slider"
@@ -1545,7 +1546,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             e.stopPropagation();
                                             activeItem.presEndTime = Number(e.target.value);
                                         }} />
-                                    <input type="range" step="0.1" min="0" max={activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} value={NumCast(activeItem.presStartTime)}
+                                    <input type="range" step="0.1" min="0" max={duration / 10} value={NumCast(activeItem.presStartTime)}
                                         style={{ gridColumn: 1, gridRow: 1 }}
                                         className={`toolbar-slider ${"start"}`}
                                         id="toolbar-slider"
@@ -1573,7 +1574,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className={`slider-headers ${activeItem.presMovement === PresMovement.Pan || activeItem.presMovement === PresMovement.Zoom ? "" : "none"}`}>
                                     <div className="slider-text">0 s</div>
                                     <div className="slider-text"></div>
-                                    <div className="slider-text">{activeItem.type === DocumentType.AUDIO ? Math.round(NumCast(activeItem.duration) * 10) / 10 : Math.round(NumCast(activeItem["data-duration"]) * 10) / 10} s</div>
+                                    <div className="slider-text">{duration / 10} s</div>
                                 </div>
                             </div>
                             <div className="ribbon-final-box">

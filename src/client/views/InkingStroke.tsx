@@ -6,7 +6,7 @@ import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { makeInterface } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
-import { setupMoveUpEvents } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { Scripting } from "../util/Scripting";
@@ -87,6 +87,11 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         }
     }
 
+    onPointerDown = (e: React.PointerEvent) => {
+        this.props.isSelected(true) && setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e: PointerEvent, doubleTap: boolean | undefined) => {
+            doubleTap && InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = true);
+        }));
+    }
 
     public static MaskDim = 50000;
     render() {
@@ -196,6 +201,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
                     overflow: "visible",
                 }}
+                onPointerDown={this.onPointerDown}
                 onContextMenu={() => {
                     const cm = ContextMenu.Instance;
                     if (cm) {

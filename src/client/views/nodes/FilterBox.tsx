@@ -106,7 +106,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-        const targetDoc = CollectionDockingView.Instance.props.Document;
+        const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
@@ -234,15 +234,15 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     render() {
         const facetCollection = this.props.Document;
-        const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
-            {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-                <input className="filterBox-flyout-facet-check" type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
-                <span className="checkmark" />
-                {facet}
-            </label>)}
-        </div>;
+        // const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
+        //     {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+        //         <input className="filterBox-flyout-facet-check" type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
+        //         <span className="checkmark" />
+        //         {facet}
+        //     </label>)}
+        // </div>;
 
-        const attributes = this.activeAttributes;
+        // const attributes = this.activeAttributes;
 
         // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
         const options = this._allFacets.map(facet => ({ value: facet, label: facet }));

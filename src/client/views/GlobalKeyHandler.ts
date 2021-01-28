@@ -1,3 +1,4 @@
+import { random } from "lodash";
 import { action, observable } from "mobx";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast } from "../../fields/Doc";
@@ -14,6 +15,7 @@ import { DragManager } from "../util/DragManager";
 import { GroupManager } from "../util/GroupManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { SharingManager } from "../util/SharingManager";
+import { SnappingManager } from "../util/SnappingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
@@ -22,8 +24,8 @@ import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
+import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
-import { SnappingManager } from "../util/SnappingManager";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
 import { DocumentView } from "./nodes/DocumentView";
@@ -123,8 +125,8 @@ export class KeyManager {
                     DragManager.AbortDrag();
                 } else if (CollectionDockingView.Instance.HasFullScreen) {
                     CollectionDockingView.Instance.CloseFullScreen();
-                } else if (AudioBox.SelectingRegion) {
-                    AudioBox.SelectingRegion = undefined;
+                } else if (CollectionStackedTimeline.SelectingRegion) {
+                    CollectionStackedTimeline.SelectingRegion = undefined;
                     doDeselect = false;
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
