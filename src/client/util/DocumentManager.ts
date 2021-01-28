@@ -191,8 +191,8 @@ export class DocumentManager {
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
-                    if (targetDoc.displayTimecode) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
-                        targetDocContext._currentTimecode = targetDoc.displayTimecode;
+                    if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
+                        targetDocContext._currentTimecode = targetDoc.anchorTimecodeToShow;
                         finished?.();
                     } else { // no timecode means we need to find the context view and focus on our target
                         const findView = (delay: number) => {

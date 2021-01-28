@@ -57,7 +57,7 @@ export class Uploader extends React.Component<ImageUploadProps> {
                                 doc = Docs.Create.VideoDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
                                 // Case 2: File is a PDF document
                             } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, _fitWidth: true, title: name });
+                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
                                 // Case 3: File is another document type (most likely Image)
                             } else {
                                 doc = Docs.Create.ImageDocument(path, { _nativeWidth: defaultNativeImageDim, _width: 400, title: name });
