@@ -183,14 +183,15 @@
     pointer-events:all;
 }
 
-.timeline-button {
+.videoBox-timelineButton {
     position: absolute;
     display: flex;
     align-items: center;
     z-index: 1010;
-    bottom: 35px;
-    right: 235px;
+    bottom: 5px;
+    right: 5px;
     color: white;
+    cursor: pointer;
     background: dimgrey;
     width: 20px;
     height: 20px;

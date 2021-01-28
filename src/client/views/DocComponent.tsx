@@ -131,7 +131,10 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const docs = indocs.filter(doc => effectiveAcl === AclEdit || effectiveAcl === AclAdmin || GetEffectiveAcl(doc) === AclAdmin);
             if (docs.length) {
                 const docs = doc instanceof Doc ? [doc] : doc;
-                docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
+                docs.map(doc => {
+                    Doc.SetInPlace(doc, "isPushpin", undefined, true);
+                    Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                });
                 const targetDataDoc = this.dataDoc;
                 const value = DocListCast(targetDataDoc[annotationKey ?? this.annotationKey]);
                 const toRemove = value.filter(v => docs.includes(v));

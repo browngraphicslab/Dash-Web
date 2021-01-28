@@ -1302,6 +1302,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.endUndoTypingBatch();
         this.unhighlightSearchTerms();
         this._editorView?.destroy();
+        RichTextMenu.Instance?.TextView === this && RichTextMenu.Instance.updateMenu(undefined, undefined, undefined);
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
     }
 

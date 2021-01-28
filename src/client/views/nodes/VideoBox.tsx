@@ -55,16 +55,17 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @observable _marqueeing: number[] | undefined;
     @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @observable _screenCapture = false;
-    @observable _visible: boolean = false;
+    @observable _clicking = false;
     @observable _forceCreateYouTubeIFrame = false;
     @observable _playTimer?: NodeJS.Timeout = undefined;
     @observable _fullScreen = false;
     @observable _playing = false;
     @computed get links() { return DocListCast(this.dataDoc.links); }
-    @computed get heightPercent() { return this.layoutDoc._timelineShow ? NumCast(this.layoutDoc._videoTimelineHeightPercent, VideoBox.heightPercent) : 100; }
+    @computed get heightPercent() { return NumCast(this.layoutDoc._timelineHeightPercent, 100); }
     @computed get duration() { return NumCast(this.dataDoc[this.fieldKey + "-duration"]); }
     @computed get anchorDocs() { return DocListCast(this.dataDoc[this.annotationKey + "-timeline"]).concat(DocListCast(this.dataDoc[this.annotationKey])); }
 
+    private get transition() { return this._clicking ? "left 0.5s, width 0.5s, height 0.5s" : ""; }
     public get player(): HTMLVideoElement | null { return this._videoRef; }
 
     constructor(props: Readonly<FieldViewProps>) {
@@ -310,8 +311,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
-        return !field ? <div>Loading</div> :
-            <div className="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
+        return !field ? <div key="loading">Loading</div> :
+            <div className="container" key="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
                 <div className={`${style}`} style={{ width: "100%", height: "100%", left: "0px" }}>
                     <video key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
                         style={{ height: "100%", width: "auto", display: "flex", margin: "auto" }}
@@ -380,16 +381,11 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             <span>{"" + formatTime(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
-        <div className="videoBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
+        <div className="videoBox-snapshot" key="snap" onClick={this.onSnapshot} >
             <FontAwesomeIcon icon="camera" size="lg" />
         </div>,
-        <div className="timeline-button" key="timeline-button" onPointerDown={action(e => this.layoutDoc._timelineShow = !this.layoutDoc._timelineShow)}
-            style={{
-                transform: `scale(${this.scaling()})`,
-                right: this.scaling() * 10 - 10,
-                bottom: this.scaling() * 10 - 10
-            }}>
-            <FontAwesomeIcon icon={this.layoutDoc._timelineShow ? "eye-slash" : "eye"} style={{ width: "100%" }} />
+        <div className="videoBox-timelineButton" key="timeline" onPointerDown={this.onTimelineHdlDown} style={{ bottom: `${100 - this.heightPercent}%` }}>
+            <FontAwesomeIcon icon={"eye"} size="lg" />
         </div>,
         VideoBox._showControls ? (null) : [
             // <div className="control-background">
@@ -411,11 +407,28 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         e.preventDefault();
     }
 
-    onSnapshot = (e: React.PointerEvent) => {
+    onSnapshot = (e: React.MouseEvent) => {
         this.Snapshot();
         e.stopPropagation();
         e.preventDefault();
     }
+
+    onTimelineHdlDown = action((e: React.PointerEvent) => {
+        this._clicking = true;
+        setupMoveUpEvents(this, e,
+            action((e: PointerEvent) => {
+                this._clicking = false;
+                if (this.active()) {
+                    const local = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
+                    this.layoutDoc._timelineHeightPercent = Math.max(0, Math.min(100, local[1] / this.props.PanelHeight() * 100));
+                }
+                return false;
+            }), emptyFunction,
+            () => {
+                this.layoutDoc._timelineHeightPercent = this.heightPercent !== 100 ? 100 : VideoBox.heightPercent;
+                setTimeout(action(() => this._clicking = false), 500);
+            }, this.active(), this.active());
+    });
 
     onResetDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, (e: PointerEvent) => {
@@ -483,7 +496,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     // returns the timeline
     @computed get renderTimeline() {
-        return <div style={{ width: "100%", height: `${100 - this.heightPercent}%`, position: "absolute" }}>
+        return <div style={{ width: "100%", transition: this.transition, height: `${100 - this.heightPercent}%`, position: "absolute" }}>
             <CollectionStackedTimeline ref={this._stackedTimeline}
                 Document={this.props.Document}
                 fieldKey={this.annotationKey}
@@ -524,7 +537,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
 
     @computed get annotationLayer() {
-        return <div className="imageBox-annotationLayer" style={{ height: `${this.heightPercent}%` }} ref={this._annotationLayer} />;
+        return <div className="imageBox-annotationLayer" style={{ transition: this.transition, height: `${this.heightPercent}%` }} ref={this._annotationLayer} />;
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
@@ -553,7 +566,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 borderRadius
             }} >
             <div className="videoBox-viewer" onPointerDown={this.marqueeDown} >
-                <div style={{ position: "absolute", width: this.panelWidth(), height: this.panelHeight(), top: 0, left: `${(100 - this.heightPercent) / 2}%` }}>
+                <div style={{ position: "absolute", transition: this.transition, width: this.panelWidth(), height: this.panelHeight(), top: 0, left: `${(100 - this.heightPercent) / 2}%` }}>
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                         fieldKey={this.annotationKey}
                         isAnnotationOverlay={true}

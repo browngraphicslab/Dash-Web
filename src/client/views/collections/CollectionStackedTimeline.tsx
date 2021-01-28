@@ -16,6 +16,7 @@ import { CollectionSubView } from "../collections/CollectionSubView";
 import { DocumentView } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
+import { undoBatch } from "../../util/UndoManager";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -58,10 +59,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     constructor(props: any) {
         super(props);
         // onClick play scripts
-        CollectionStackedTimeline.RangeScript = CollectionStackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.LabelScript = CollectionStackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.RangePlayScript = CollectionStackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
-        CollectionStackedTimeline.LabelPlayScript = CollectionStackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this)`, { self: Doc.name, scriptContext: "any" })!;
+        CollectionStackedTimeline.RangeScript = CollectionStackedTimeline.RangeScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.LabelScript = CollectionStackedTimeline.LabelScript || ScriptField.MakeFunction(`scriptContext.clickAnchor(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.RangePlayScript = CollectionStackedTimeline.RangePlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
+        CollectionStackedTimeline.LabelPlayScript = CollectionStackedTimeline.LabelPlayScript || ScriptField.MakeFunction(`scriptContext.playOnClick(this, clientX)`, { self: Doc.name, scriptContext: "any", clientX: "number" })!;
     }
 
     // for creating key anchors with key events
@@ -84,8 +85,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         }
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
+    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart, NumCast(anchor.audioStart))));
+    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, NumCast(anchor.audioEnd, val))));
 
     getLinkData(l: Doc) {
         let la1 = l.anchor1 as Doc;
@@ -106,7 +107,11 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     // updates the anchor with the new time
     @action
     changeAnchor = (anchor: Opt<Doc>, time: number) => {
-        anchor && (this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time);
+        if (anchor) {
+            const timelineOnly = Cast(anchor.anchorStartTime, "number", null) !== undefined;
+            if (timelineOnly) this._left ? anchor.anchorStartTime = time : anchor.anchorEndTime = time;
+            else this._left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
+        }
     }
 
     // checks if the two anchors are the same with start and end time
@@ -160,6 +165,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         }
     }
 
+    @undoBatch
     @action
     createAnchor(anchorStartTime?: number, anchorEndTime?: number) {
         if (anchorStartTime === undefined) return this.props.Document;
@@ -179,20 +185,45 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         return anchor;
     }
 
-    // play back the audio from time
     @action
-    playOnClick = (anchorDoc: Doc) => {
-        this.props.playFrom(this.anchorStart(anchorDoc), this.anchorEnd(anchorDoc, this.props.duration));
+    playOnClick = (anchorDoc: Doc, clientX: number) => {
+        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const endTime = this.anchorEnd(anchorDoc);
+        if (this.layoutDoc.autoPlay) {
+            if (this.props.playing()) this.props.Pause();
+            else this.props.playFrom(seekTimeInSeconds, endTime);
+        } else {
+            if (seekTimeInSeconds < NumCast(this.layoutDoc._currentTimecode) && endTime > NumCast(this.layoutDoc._currentTimecode)) {
+                if (!this.layoutDoc.autoPlay && this.props.playing()) {
+                    this.props.Pause();
+                } else {
+                    this.props.Play();
+                }
+            } else {
+                this.props.playFrom(seekTimeInSeconds, endTime);
+            }
+        }
         return { select: true };
     }
 
-    // play back the audio from time
     @action
-    clickAnchor = (anchorDoc: Doc) => {
-        if (this.props.Document.autoPlay) return this.playOnClick(anchorDoc);
-        this.props.setTime(this.anchorStart(anchorDoc));
+    clickAnchor = (anchorDoc: Doc, clientX: number) => {
+        const seekTimeInSeconds = this.anchorStart(anchorDoc);
+        const endTime = this.anchorEnd(anchorDoc);
+        if (seekTimeInSeconds < NumCast(this.layoutDoc._currentTimecode) + 1e-4 && endTime > NumCast(this.layoutDoc._currentTimecode) - 1e-4) {
+            if (this.props.playing()) this.props.Pause();
+            else if (this.layoutDoc.autoPlay) this.props.Play();
+            else if (!this.layoutDoc.autoPlay) {
+                const rect = this._timeline?.getBoundingClientRect();
+                rect && this.props.setTime(this.toTimeline(clientX - rect.x, rect.width));
+            }
+        } else {
+            if (this.layoutDoc.autoPlay) this.props.playFrom(seekTimeInSeconds, endTime);
+            else this.props.setTime(seekTimeInSeconds);
+        }
         return { select: true };
     }
+
 
     toTimeline = (screen_delta: number, width: number) => Math.max(0, Math.min(this.props.duration, screen_delta / width * this.props.duration));
     // starting the drag event for anchor resizing
@@ -263,6 +294,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 onClick={script}
                 onDoubleClick={this.props.Document.autoPlay ? undefined : doublescript}
                 ignoreAutoHeight={false}
+                hideResizeHandles={true}
                 bringToFront={emptyFunction}
                 scriptContext={this} />
         };
