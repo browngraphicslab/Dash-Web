@@ -500,9 +500,9 @@ export function addStyleSheet(styleType: string = "text/css") {
     const sheets = document.head.appendChild(style);
     return (sheets as any).sheet;
 }
-export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+export function addStyleSheetRule(sheet: any, selector: any, css: any, selectorPrefix = ".") {
     const propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
-    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+    return sheet.insertRule(selectorPrefix + selector + "{" + propText + "}", sheet.cssRules.length);
 }
 export function removeStyleSheetRule(sheet: any, rule: number) {
     if (sheet.rules.length) {

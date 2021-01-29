@@ -66,6 +66,7 @@ import { SubCollectionViewProps } from '../../collections/CollectionSubView';
 import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
+import { DocumentManager } from '../../../util/DocumentManager';
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -338,6 +339,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this._editorView.updateState(EditorState.fromJSON(this.config, json));
                 }
             }
+            if (window.getSelection()?.isCollapsed) AnchorMenu.Instance.fadeOut(true);
         }
     }
 
@@ -550,10 +552,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         return ret;
     }
-    static _highlights: string[] = ["Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
+    static _highlights: string[] = ["Audio Tags", "Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
 
     updateHighlights = () => {
         clearStyleSheetRules(FormattedTextBox._userStyleSheet);
+        if (FormattedTextBox._highlights.indexOf("Audio Tags") === -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "audiotag", { display: "none" }, "");
+        }
         if (FormattedTextBox._highlights.indexOf("Text from Others") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-remote", { background: "yellow" });
         }
@@ -625,8 +630,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
-        const noviceHighlighting = ["My Text", "Text from Others"];
-        const expertHighlighting = ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"];
+        const noviceHighlighting = ["Audio Tags", "My Text", "Text from Others"];
+        const expertHighlighting = [...noviceHighlighting, "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"];
         (Doc.UserDoc().noviceMode ? noviceHighlighting : expertHighlighting).forEach(option =>
             highlighting.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -1303,6 +1308,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 if (anchor instanceof Doc) {
                     const audiodoc = anchor.annotationOn as Doc;
                     audiodoc._triggerAudio = Number(time);
+                    !DocumentManager.Instance.getDocumentView(audiodoc) && this.props.addDocTab(audiodoc, "add:bottom");
                 }
             });
         }
