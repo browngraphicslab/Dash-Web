@@ -60,7 +60,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @computed get links() { return DocListCast(this.dataDoc.links); }
     @computed get heightPercent() { return NumCast(this.layoutDoc._timelineHeightPercent, 100); }
     @computed get duration() { return NumCast(this.dataDoc[this.fieldKey + "-duration"]); }
-    @computed get anchorDocs() { return DocListCast(this.dataDoc[this.annotationKey + "-timeline"]).concat(DocListCast(this.dataDoc[this.annotationKey])); }
 
     private get transition() { return this._clicking ? "left 0.5s, width 0.5s, height 0.5s" : ""; }
     public get player(): HTMLVideoElement | null { return this._videoRef; }
@@ -71,7 +70,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     getAnchor = () => {
-        return this._stackedTimeline.current?.createAnchor(Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
     }
 
     choosePath(url: string) {

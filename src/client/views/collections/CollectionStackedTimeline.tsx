@@ -148,20 +148,20 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
 
     @undoBatch
     @action
-    createAnchor(anchorStartTime?: number, anchorEndTime?: number) {
-        if (anchorStartTime === undefined) return this.props.Document;
+    static createAnchor(rootDoc: Doc, dataDoc: Doc, fieldKey: string, startTag: string, endTag: string, anchorStartTime?: number, anchorEndTime?: number) {
+        if (anchorStartTime === undefined) return rootDoc;
         const anchor = Docs.Create.LabelDocument({
-            title: ComputedField.MakeFunction(`"#" + formatToTime(self["${this.props.startTag}"]) + "-" + formatToTime(self["${this.props.endTag}"])`) as any,
+            title: ComputedField.MakeFunction(`"#" + formatToTime(self["${startTag}"]) + "-" + formatToTime(self["${endTag}"])`) as any,
             useLinkSmallAnchor: true,
             hideLinkButton: true,
-            annotationOn: this.props.Document
+            annotationOn: rootDoc
         });
-        Doc.GetProto(anchor)[this.props.startTag] = anchorStartTime;
-        Doc.GetProto(anchor)[this.props.endTag] = anchorEndTime;
-        if (Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), null) !== undefined) {
-            Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []).push(anchor);
+        Doc.GetProto(anchor)[startTag] = anchorStartTime;
+        Doc.GetProto(anchor)[endTag] = anchorEndTime;
+        if (Cast(dataDoc[fieldKey], listSpec(Doc), null) !== undefined) {
+            Cast(dataDoc[fieldKey], listSpec(Doc), []).push(anchor);
         } else {
-            this.dataDoc[this.props.fieldKey] = new List<Doc>([anchor]);
+            dataDoc[fieldKey] = new List<Doc>([anchor]);
         }
         return anchor;
     }

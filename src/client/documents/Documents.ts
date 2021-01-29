@@ -720,8 +720,6 @@ export namespace Docs {
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc._timecodeToShow;
-            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc._timecodeToShow;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"]);

@@ -99,10 +99,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
-    private _first: Boolean = true;
     private _recordingStart: number = 0;
-    private _currentTime: number = 0;
-    private _linkTime: number | null = null;
     private _pause: boolean = false;
     private _animatingScroll: number = 0; // hack to prevent scroll values from being written to document when scroll is animating
 
@@ -356,24 +353,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     // for inserting timestamps 
     insertTime = () => {
-        let audioState;
-        if (this._first) {
-            DocListCast(this.dataDoc.links).map((l, i) => {
-                let la1 = l.anchor1 as Doc;
-                let la2 = l.anchor2 as Doc;
-                this._linkTime = NumCast(la1.audioStart, NumCast(la2.audioStart));
-                audioState = la2.audioState;
-                if (Doc.AreProtosEqual(la2, this.dataDoc)) {
-                    la1 = l.anchor2 as Doc;
-                    la2 = l.anchor1 as Doc;
-                    audioState = la1.audioState;
-                }
-            });
-        }
-        this._currentTime = Date.now();
-        let time;
-        this._linkTime ? time = this.formatTime(Math.round(this._linkTime + this._currentTime / 1000 - this._recordingStart / 1000)) : time = null;
-
+        let linkTime;
+        DocListCast(this.dataDoc.links).forEach((l, i) => {
+            const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
+            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") linkTime = NumCast(anchor.audioStart);
+        });
         if (this._editorView) {
             const state = this._editorView.state;
             const now = Date.now();
@@ -388,13 +372,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             }
-            if (time && audioState === "recording") {
-                let value = "";
+
+            const path = (this._editorView.state.selection.$from as any).path;
+            if (linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
+                const time = this.formatTime(Math.round(linkTime + Date.now() / 1000 - this._recordingStart / 1000));
                 this._break = false;
-                value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
+                const value = (this.layoutDoc._timeStampOnEnter ? "" : "\n") + "[" + time + "]";
                 const from = state.selection.from;
-                const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-                this._editorView.dispatch(this._editorView.state.tr.insertText(value));
+                const para = this._editorView.state.schema.nodes.paragraph.create();
+                const replaced = this._editorView.state.tr.insertText(value).addMark(from, from + value.length + 1, mark).insert(from + value.length, para);
+                this._editorView.dispatch(replaced.setSelection(new TextSelection(replaced.doc.resolve(from + value.length + 1))));
             }
         }
     }
