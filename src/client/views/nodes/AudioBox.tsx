@@ -43,7 +43,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     _disposers: { [name: string]: IReactionDisposer } = {};
     _ele: HTMLAudioElement | null = null;
-    _audioRef = React.createRef<HTMLDivElement>();
     _stackedTimeline = React.createRef<CollectionStackedTimeline>();
     _recorder: any;
     _recordStart = 0;
@@ -105,26 +104,26 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
         this.audioState = this.path ? "paused" : undefined;
 
-        this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
+        //this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
 
         this._disposers.triggerAudio = reaction(
             () => !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerAudio, null) : undefined,
             start => start !== undefined && setTimeout(() => {
-                this._audioRef.current && this.playFrom(start);
+                this.playFrom(start);
                 setTimeout(() => {
                     this.Document._currentTimecode = start;
                     this.Document._triggerAudio = undefined;
                 }, 10);
-            }, this._audioRef.current ? 0 : 250), // wait for mainCont and try again to play
+            }), // wait for mainCont and try again to play
             { fireImmediately: true }
         );
 
         this._disposers.audioStop = reaction(
             () => this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc ? Cast(this.Document._audioStop, "number", null) : undefined,
             audioStop => audioStop !== undefined && setTimeout(() => {
-                this._audioRef.current && this.Pause();
+                this.Pause();
                 setTimeout(() => this.Document._audioStop = undefined, 10);
-            }, this._audioRef.current ? 0 : 250), // wait for mainCont and try again to play
+            }), // wait for mainCont and try again to play
             { fireImmediately: true }
         );
     }

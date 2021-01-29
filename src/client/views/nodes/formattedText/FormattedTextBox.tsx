@@ -343,20 +343,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     pause = () => this._pause = true;
 
-    formatTime = (time: number) => {
-        const hours = Math.floor(time / 60 / 60);
-        const minutes = Math.floor(time / 60) - (hours * 60);
-        const seconds = time % 60;
-
-        return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-    }
-
     // for inserting timestamps 
     insertTime = () => {
         let linkTime;
+        let linkAnchor;
         DocListCast(this.dataDoc.links).forEach((l, i) => {
             const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
-            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") linkTime = NumCast(anchor.audioStart);
+            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
+                linkTime = NumCast(anchor.audioStart);
+                linkAnchor = anchor;
+            }
         });
         if (this._editorView) {
             const state = this._editorView.state;
@@ -374,14 +370,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
 
             const path = (this._editorView.state.selection.$from as any).path;
-            if (linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
-                const time = this.formatTime(Math.round(linkTime + Date.now() / 1000 - this._recordingStart / 1000));
+            if (linkAnchor && linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
+                const time = linkTime + Date.now() / 1000 - this._recordingStart / 1000;
                 this._break = false;
-                const value = (this.layoutDoc._timeStampOnEnter ? "" : "\n") + "[" + time + "]";
                 const from = state.selection.from;
-                const para = this._editorView.state.schema.nodes.paragraph.create();
-                const replaced = this._editorView.state.tr.insertText(value).addMark(from, from + value.length + 1, mark).insert(from + value.length, para);
-                this._editorView.dispatch(replaced.setSelection(new TextSelection(replaced.doc.resolve(from + value.length + 1))));
+                const value = this._editorView.state.schema.nodes.audiotag.create({ timeCode: time, audioId: linkAnchor[Id] });
+                const replaced = this._editorView.state.tr.insert(from - 1, value);
+                this._editorView.dispatch(replaced.setSelection(new TextSelection(replaced.doc.resolve(from + 1))));
             }
         }
     }
@@ -1299,6 +1294,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     _break = false;
     _collapsed = false;
     onPointerDown = (e: React.PointerEvent): void => {
+        if ((e.target as any).tagName === "AUDIOTAG") {
+            e.preventDefault();
+            e.stopPropagation();
+            const time = (e.target as any)?.dataset?.timecode || 0;
+            const audioid = (e.target as any)?.dataset?.audioid || 0;
+            DocServer.GetRefField(audioid).then(anchor => {
+                if (anchor instanceof Doc) {
+                    const audiodoc = anchor.annotationOn as Doc;
+                    audiodoc._triggerAudio = Number(time);
+                }
+            });
+        }
         if (this._recording && !e.ctrlKey && e.button === 0) {
             this.stopDictation(true);
             this._break = true;
