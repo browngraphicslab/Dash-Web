@@ -818,9 +818,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             e.stopPropagation();
             e.preventDefault();
             if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else
-                // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
-                this.zoom(e.clientX, e.clientY, e.deltaY);
+            else this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }

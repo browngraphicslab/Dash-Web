@@ -612,10 +612,20 @@ export function setupMoveUpEvents(
     upEvent: (e: PointerEvent, movement: number[], isClick: boolean) => any,
     clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
-    stopMovePropagation: boolean = true
+    stopMovePropagation: boolean = true,
+    noDoubleTapTimeout?: () => void
 ) {
+    const doubleTapTimeout = 300;
+    (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < doubleTapTimeout);
+    (target as any)._lastTap = Date.now();
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
+    if (!(target as any)._doubleTime && noDoubleTapTimeout) {
+        (target as any)._doubleTime = setTimeout(() => {
+            noDoubleTapTimeout?.();
+            (target as any)._doubleTime = undefined;
+        }, doubleTapTimeout);
+    }
 
     const _moveEvent = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
@@ -633,10 +643,7 @@ export function setupMoveUpEvents(
         (target as any)._lastY = e.clientY;
         stopMovePropagation && e.stopPropagation();
     };
-    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
-        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
-        (target as any)._lastTap = Date.now();
         const isClick = Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4;
         upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY], isClick);
         if (isClick) {

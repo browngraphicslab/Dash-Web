@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, observable } from "mobx";
+import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, Opt } from "../../../fields/Doc";
@@ -41,7 +41,6 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     static RangePlayScript: ScriptField;
     static LabelPlayScript: ScriptField;
 
-    private _doubleTime: NodeJS.Timeout | undefined; // bcz: Hack!  this must be called _doubleTime since setupMoveDragEvents will use that field name
     private _timeline: HTMLDivElement | null = null;
     private _markerStart: number = 0;
     @observable _markerEnd: number = 0;
@@ -66,10 +65,9 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 
     componentDidMount() { document.addEventListener("keydown", this.keyEvents, true); }
-    @action
     componentWillUnmount() {
         document.removeEventListener("keydown", this.keyEvents, true);
-        if (CollectionStackedTimeline.SelectingRegion === this) CollectionStackedTimeline.SelectingRegion = undefined;
+        if (CollectionStackedTimeline.SelectingRegion === this) runInAction(() => CollectionStackedTimeline.SelectingRegion = undefined);
     }
 
     anchorStart = (anchor: Doc) => NumCast(anchor._timecodeToShow, NumCast(anchor[this.props.startTag]));
@@ -116,19 +114,13 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         if (rect && this.props.active()) {
             const wasPlaying = this.props.playing();
             if (wasPlaying) this.props.Pause();
-            else if (!this._doubleTime) {
-                this._doubleTime = setTimeout(() => {
-                    this._doubleTime = undefined;
-                    this.props.setTime((clientX - rect.x) / rect.width * this.duration);
-                }, 300); // 300ms is double-tap timeout
-            }
             const wasSelecting = CollectionStackedTimeline.SelectingRegion === this;
-            if (!wasSelecting) {
-                this._markerStart = this._markerEnd = this.toTimeline(clientX - rect.x, rect.width);
-                CollectionStackedTimeline.SelectingRegion = this;
-            }
             setupMoveUpEvents(this, e,
                 action(e => {
+                    if (!wasSelecting && CollectionStackedTimeline.SelectingRegion !== this) {
+                        this._markerStart = this._markerEnd = this.toTimeline(clientX - rect.x, rect.width);
+                        CollectionStackedTimeline.SelectingRegion = this;
+                    }
                     this._markerEnd = this.toTimeline(e.clientX - rect.x, rect.width);
                     return false;
                 }),
@@ -149,7 +141,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                     e.shiftKey && this.createAnchor(this.currentTime);
                     !wasPlaying && doubleTap && this.props.Play();
                 },
-                this.props.isSelected(true) || this.props.isChildActive());
+                this.props.isSelected(true) || this.props.isChildActive(), undefined,
+                () => !wasPlaying && this.props.setTime((clientX - rect.x) / rect.width * this.duration));
         }
     }
 
@@ -219,13 +212,13 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         const newTime = (e: PointerEvent) => {
             const rect = (e.target as any).getBoundingClientRect();
             return this.toTimeline(e.clientX - rect.x, rect.width);
-        }
+        };
         const changeAnchor = (anchor: Doc, left: boolean, time: number) => {
             const timelineOnly = Cast(anchor[this.props.startTag], "number", null) !== undefined;
             if (timelineOnly) Doc.SetInPlace(anchor, left ? this.props.startTag : this.props.endTag, time, true);
             else left ? anchor._timecodeToShow = time : anchor._timecodeToHide = time;
             return false;
-        }
+        };
         setupMoveUpEvents(this, e,
             (e) => changeAnchor(anchor, left, newTime(e)),
             (e) => {
