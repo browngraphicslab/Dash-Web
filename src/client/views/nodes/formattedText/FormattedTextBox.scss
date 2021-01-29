@@ -20,6 +20,10 @@ audiotag {
     font-size: 4px; 
     background: lightblue;
 }
+audiotag:hover {
+    transform: scale(2);
+    transform-origin: bottom center;
+}
 
 .formattedTextBox-cont {
     touch-action: none;
