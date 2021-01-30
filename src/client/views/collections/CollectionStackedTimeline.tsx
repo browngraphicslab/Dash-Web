@@ -135,8 +135,9 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                         this._markerStart = this._markerEnd;
                         this._markerEnd = tmp;
                     }
-                    if (!isClick) {
-                        CollectionStackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15) && CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag);
+                    if (!isClick && CollectionStackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15)) {
+                        CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag,
+                            this._markerStart, this._markerEnd);
                     }
                     (!isClick || !wasSelecting) && (CollectionStackedTimeline.SelectingRegion = undefined);
                 }),
