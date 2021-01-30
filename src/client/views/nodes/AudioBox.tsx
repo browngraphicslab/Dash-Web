@@ -326,15 +326,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     playing = () => this.audioState === "playing";
     playLink = (link: Doc) => {
+        const stack = this._stackedTimeline.current;
         if (link.annotationOn === this.rootDoc) {
-            if (this.layoutDoc.playOnSelect) this.playFrom(this._stackedTimeline.current?.anchorStart(link) || 0, this._stackedTimeline.current?.anchorEnd(link));
-            else this._ele!.currentTime = this.layoutDoc._currentTimecode = (this._stackedTimeline.current?.anchorStart(link) || 0);
+            if (this.layoutDoc.playOnSelect) this.playFrom(stack?.anchorStart(link) || 0, stack?.anchorEnd(link));
+            else this._ele!.currentTime = this.layoutDoc._currentTimecode = (stack?.anchorStart(link) || 0);
         }
         else {
             this.links.filter(l => l.anchor1 === link || l.anchor2 === link).forEach(l => {
                 const { la1, la2 } = this.getLinkData(l);
-                const startTime = this._stackedTimeline.current?.anchorStart(la1) || this._stackedTimeline.current?.anchorStart(la2);
-                const endTime = this._stackedTimeline.current?.anchorEnd(la1) || this._stackedTimeline.current?.anchorEnd(la2);
+                const startTime = stack?.anchorStart(la1) || stack?.anchorStart(la2);
+                const endTime = stack?.anchorEnd(la1) || stack?.anchorEnd(la2);
                 if (startTime !== undefined) {
                     if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
                     else this._ele!.currentTime = this.layoutDoc._currentTimecode = startTime;

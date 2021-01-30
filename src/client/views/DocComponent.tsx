@@ -74,6 +74,7 @@ export interface ViewBoxAnnotatableProps {
     fieldKey: string;
     layerProvider?: (doc: Doc) => boolean;
     active: () => boolean;
+    select: (isCtrlPressed: boolean) => void;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     rootSelected: (outsideReaction?: boolean) => boolean;
@@ -145,6 +146,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                         Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     });
+                    this.props.select(false);
                     return true;
                 }
             }

@@ -36,7 +36,7 @@ export const nodes: { [index: string]: NodeSpec } = {
                     "data-audioid": node.attrs.audioId,
                 },
                 formatAudioTime(node.attrs.timeCode.toString())
-            ]
+            ];
         },
         parseDOM: [
             {

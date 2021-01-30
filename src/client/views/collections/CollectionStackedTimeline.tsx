@@ -2,7 +2,7 @@ import React = require("react");
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc, Opt, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec, makeInterface } from "../../../fields/Schema";
@@ -31,6 +31,7 @@ export type CollectionStackedTimelineProps = {
     isChildActive: () => boolean;
     startTag: string;
     endTag: string;
+    fieldKeySuffix?: string;
 };
 
 @observer
@@ -46,7 +47,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @observable _markerEnd: number = 0;
 
     get duration() { return this.props.duration; }
-    @computed get anchorDocs() { return this.childDocs; }
+    @computed get anchorDocs() { return this.props.fieldKeySuffix ? this.childDocs.concat(...DocListCast(this.rootDoc[this.props.fieldKey + this.props.fieldKeySuffix])) : this.childDocs; }
     @computed get currentTime() { return NumCast(this.layoutDoc._currentTimecode); }
     @computed get selectionContainer() {
         return CollectionStackedTimeline.SelectingRegion !== this ? (null) : <div className="collectionStackedTimeline-selector" style={{
@@ -71,7 +72,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     }
 
     anchorStart = (anchor: Doc) => NumCast(anchor._timecodeToShow, NumCast(anchor[this.props.startTag]));
-    anchorEnd = (anchor: Doc, val: any = null) => NumCast(anchor._timecodeToHide, NumCast(anchor[this.props.endTag], val));
+    anchorEnd = (anchor: Doc, val: any = null) => {
+        const endVal = NumCast(anchor[this.props.endTag], val);
+        return NumCast(anchor._timecodeToHide, endVal === undefined ? null : endVal);
+    }
     toTimeline = (screen_delta: number, width: number) => Math.max(0, Math.min(this.duration, screen_delta / width * this.duration));
     rangeClickScript = () => CollectionStackedTimeline.RangeScript;
     labelClickScript = () => CollectionStackedTimeline.LabelScript;
@@ -88,7 +92,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                         this._markerStart = this._markerEnd = this.currentTime;
                         CollectionStackedTimeline.SelectingRegion = this;
                     } else {
-                        this.createAnchor(this._markerStart, this.currentTime);
+                        CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag, this.currentTime);
                         CollectionStackedTimeline.SelectingRegion = undefined;
                     }
             }
@@ -132,13 +136,13 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                         this._markerEnd = tmp;
                     }
                     if (!isClick) {
-                        CollectionStackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15) && this.createAnchor(this._markerStart, this._markerEnd);
+                        CollectionStackedTimeline.SelectingRegion === this && (Math.abs(movement[0]) > 15) && CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag);
                     }
                     (!isClick || !wasSelecting) && (CollectionStackedTimeline.SelectingRegion = undefined);
                 }),
                 (e, doubleTap) => {
                     this.props.select(false);
-                    e.shiftKey && this.createAnchor(this.currentTime);
+                    e.shiftKey && CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.props.fieldKey, this.props.startTag, this.props.endTag, this.currentTime);
                     !wasPlaying && doubleTap && this.props.Play();
                 },
                 this.props.isSelected(true) || this.props.isChildActive(), undefined,

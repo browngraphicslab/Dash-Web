@@ -70,7 +70,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     getAnchor = () => {
-        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
     }
 
     choosePath(url: string) {
@@ -167,7 +167,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
+            const retitled = StrCast(this.rootDoc.title).replace(/[ -\.]/g, "");
+            const filename = path.basename(encodeURIComponent("snapshot" + retitled + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) =>
                 returnedFilename && this.createRealSummaryLink(returnedFilename));
         }
@@ -179,14 +180,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
-            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), isLinkButton: true,
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
         Doc.SetNativeHeight(Doc.GetProto(imageSummary), Doc.NativeHeight(this.layoutDoc));
-        imageSummary.isLinkButton = true;
         this.props.addDocument?.(imageSummary);
-        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
+        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.getAnchor() }, "video snapshot");
     }
 
     @action
@@ -495,6 +495,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 renderDepth={this.props.renderDepth + 1}
                 startTag={"videoStart"}
                 endTag={"videoEnd"}
+                fieldKeySuffix={"-timeline"}
                 focus={emptyFunction}
                 bringToFront={emptyFunction}
                 CollectionView={undefined}
@@ -536,6 +537,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const offset = (this.props.PanelWidth() - this.panelWidth()) / 2 / this.scaling();
         return this.props.ScreenToLocalTransform().translate(-offset, 0).scale(100 / this.heightPercent);
     }
+    marqueeFitScaling = () => (this.props.scaling?.() || 1) * this.heightPercent / 100;
+    marqueeOffset = () => [this.panelWidth() / 2 * (1 - this.heightPercent / 100) / (this.heightPercent / 100), 0];
 
     render() {
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
@@ -570,7 +573,16 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 {this.annotationLayer}
                 {this.renderTimeline}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                    <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocWithTimecode} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                    <MarqueeAnnotator
+                        rootDoc={this.rootDoc}
+                        down={this._marqueeing}
+                        scaling={this.marqueeFitScaling}
+                        containerOffset={this.marqueeOffset}
+                        addDocument={this.addDocWithTimecode}
+                        finishMarquee={this.finishMarquee}
+                        savedAnnotations={this._savedAnnotations}
+                        annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current}
+                    />}
             </div>
         </div >);
     }
