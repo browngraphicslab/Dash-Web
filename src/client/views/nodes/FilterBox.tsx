@@ -8,7 +8,7 @@ import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { Cast } from "../../../fields/Types";
+import { Cast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero, returnTrue } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -27,6 +27,9 @@ export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import Select from "react-select";
 import { UserOptions } from "../../util/GroupManager";
+import { DocumentViewProps } from "./DocumentView";
+import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
+import { CollectionViewType } from "../collections/CollectionView";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
@@ -64,11 +67,16 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_")) || noviceFields.includes(key) || !Doc.UserDoc().noviceMode).sort();
     }
 
+
     /**
      * The current attributes selected to filter based on
      */
     @computed get activeAttributes() {
         return DocListCast(this.dataDoc[this.props.fieldKey]);
+    }
+
+    @computed get currentFacets() {
+        return this.activeAttributes.map(attribute => StrCast(attribute.title));
     }
 
     gatherFieldValues(dashboard: Doc, facetKey: string) {
@@ -103,28 +111,67 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         });
         return { strings: Array.from(valueSet.keys()), rtFields };
     }
+<<<<<<< HEAD
     /**
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
         const targetDoc = CollectionDockingView.Instance.props.Document; //SelectionManager.Views()[0].Document; 
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
+=======
+
+    public static removeFilter = (filterName: string) => {
+        console.log("remove filter");
+        const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
+        const filterDoc = Doc.UserDoc().currentFilter as any as Doc;
+        const attributes = DocListCast(filterDoc["data"]);
+        const found = attributes.findIndex(doc => doc.title === filterName);
+>>>>>>> 5b0a4a154a6e68139d3d7e462ca421d3fbbdd224
         if (found !== -1) {
-            (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
+            (filterDoc["data"] as List<Doc>).splice(found, 1);
             const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
             if (docFilter) {
                 let index: number;
-                while ((index = docFilter.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+                while ((index = docFilter.findIndex(item => item.split(":")[0] === filterName)) !== -1) {
                     docFilter.splice(index, 1);
                 }
             }
             const docRangeFilters = Cast(targetDoc._docRangeFilters, listSpec("string"));
             if (docRangeFilters) {
                 let index: number;
-                while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+                while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === filterName)) !== -1) {
                     docRangeFilters.splice(index, 3);
                 }
             }
+        }
+    }
+
+    /**
+     * Responds to clicking the check box in the flyout menu
+     */
+    facetClick = (facetHeader: string) => {
+
+        console.log("facetClick: " + facetHeader);
+        console.log(this.props.fieldKey);
+
+        const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
+        const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
+        if (found !== -1) {
+            // (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
+            // const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
+            // if (docFilter) {
+            //     let index: number;
+            //     while ((index = docFilter.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+            //         docFilter.splice(index, 1);
+            //     }
+            // }
+            // const docRangeFilters = Cast(targetDoc._docRangeFilters, listSpec("string"));
+            // if (docRangeFilters) {
+            //     let index: number;
+            //     while ((index = docRangeFilters.findIndex(item => item.split(":")[0] === facetHeader)) !== -1) {
+            //         docRangeFilters.splice(index, 3);
+            //     }
+            // }
         } else {
             const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
@@ -220,6 +267,29 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         console.log(Doc.UserDoc().savedFilters);
     }
 
+    FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
+        switch (property.split(":")[0]) {
+            case StyleProp.Decorations:
+                if (doc) {
+                    return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
+                        <>
+                            <div>
+                                <select className="filterBox-treeView-selection">
+                                    <option value="Is" key="Is">Is</option>
+                                    <option value="Is Not" key="Is Not">Is Not</option>
+                                </select>
+                            </div>
+                            <div className="filterBox-treeView-close" onClick={e => FilterBox.removeFilter(StrCast(doc.title))}>
+                                <FontAwesomeIcon icon={"times"} size="sm" />
+                            </div>
+                        </>;
+                }
+            default: return DefaultStyleProvider(doc, props, property);
+
+        }
+    }
+
+
     render() {
         const facetCollection = this.props.Document;
         // const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
@@ -233,6 +303,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         // const attributes = this.activeAttributes;
 
         // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
+<<<<<<< HEAD
         const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
         // console.log(this.props.Document);
         // console.log(Doc.UserDoc().currentFilter);
@@ -244,6 +315,9 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 testing flyout
             </div>
         </>;
+=======
+        const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
+>>>>>>> 5b0a4a154a6e68139d3d7e462ca421d3fbbdd224
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
@@ -310,7 +384,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     treeViewHideHeaderFields={true}
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
-                    styleProvider={this.props.styleProvider}
+                    styleProvider={this.FilteringStyleProvider}
                     scriptContext={this.props.scriptContext}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -321,14 +395,16 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <div className="filterBox-addFilter"> + add a filter</div>
                 </div>
             </Flyout> */}
-            <Select
-                placeholder="Add a filter..."
-                options={options}
-                isMulti={false}
-                onChange={val => this.facetClick((val as UserOptions).value)}
-                value={null}
-                closeMenuOnSelect={false}
-            />
+            <div className="filterBox-select">
+                <Select
+                    placeholder="Add a filter..."
+                    options={options}
+                    isMulti={false}
+                    onChange={val => this.facetClick((val as UserOptions).value)}
+                    value={null}
+                    closeMenuOnSelect={false}
+                />
+            </div>
 
             <div className="filterBox-bottom">
                 <div className="filterBox-select-matched">

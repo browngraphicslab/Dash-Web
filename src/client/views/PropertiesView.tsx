@@ -28,7 +28,7 @@ import { PresBox } from "./nodes/PresBox";
 import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
-import { DefaultStyleProvider } from "./StyleProvider";
+import { DefaultStyleProvider, FilteringStyleProvider } from "./StyleProvider";
 import { FilterBox } from "./nodes/FilterBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
