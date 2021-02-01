@@ -522,7 +522,7 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
+            // { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
@@ -790,7 +790,7 @@ export class CurrentUserUtils {
         doc.currentFilter === undefined;
         if (doc.currentFilter === undefined) {
             doc.currentFilter = new PrefetchProxy(Docs.Create.FilterDocument({
-                title: "FilterDoc", _height: 500,
+                title: `FilterDoc(${(doc.filterDocCount as number)++})`, _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
@@ -999,6 +999,8 @@ export class CurrentUserUtils {
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
+        doc.savedFilters = new List<Doc>();
+        doc.filterDocCount = 0;
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupImportSidebar(doc);
@@ -1009,7 +1011,6 @@ export class CurrentUserUtils {
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId, linkDatabaseId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
-        // doc.savedFilters = new List<Doc>();
 
         setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 

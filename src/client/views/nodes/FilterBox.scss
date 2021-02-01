@@ -27,11 +27,11 @@
     }
 }
 
-.filterBox-bottom {
-    // position: fixed;
-    // bottom: 0;
-    // width: 100%;
-}
+// .filterBox-bottom {
+    //     // position: fixed;
+    //     // bottom: 0;
+    //     // width: 100%;
+    // }
 
 
 .filterBox-saveBookmark {
@@ -44,6 +44,7 @@
     margin: 8px;
     display: flex;
     font-size: 11px;
+    cursor: pointer;
 
     &:hover {
         background-color: white;
