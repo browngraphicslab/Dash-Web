@@ -290,6 +290,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
 
+    suppressChildClick = () => ScriptField.MakeScript("")!;
     render() {
         const facetCollection = this.props.Document;
         // const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
@@ -303,8 +304,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         // const attributes = this.activeAttributes;
 
         // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
-<<<<<<< HEAD
-        const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+        // const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
         // console.log(this.props.Document);
         // console.log(Doc.UserDoc().currentFilter);
         console.log(this.yPos);
@@ -315,9 +315,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 testing flyout
             </div>
         </>;
-=======
         const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
->>>>>>> 5b0a4a154a6e68139d3d7e462ca421d3fbbdd224
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
@@ -357,9 +355,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 <CollectionTreeView
                     Document={facetCollection}
                     DataDoc={Doc.GetProto(facetCollection)}
-                    fieldKey={`${this.props.fieldKey}`}
+                    fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
                     cantBrush={true}
+                    onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}

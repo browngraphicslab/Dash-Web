@@ -10,138 +10,8 @@
     .inkingCanvas-paths-markers {
         opacity : 0.4; // we shouldn't have to do this, but since chrome crawls to a halt with z-index unset in videoBox-content, this is a workaround
     }
-
-    .audiobox-timeline {
-        position: absolute;
-        width: 100%;
+    .collectionStackedTimeline {
         background: beige;
-        border: gray solid 1px;
-        border-radius: 3px;
-        z-index: 1000;
-        overflow: hidden;
-        bottom: 0;
-
-        .audiobox-current {
-            width: 1px;
-            height: 100%;
-            background-color: red;
-            position: absolute;
-            top: 0px;
-        }
-
-        .audiobox-container {
-            position: absolute;
-            width: 10px;
-            top: 2.5%;
-            height: 0px;
-            background: lightblue;
-            border-radius: 5px;
-            // box-shadow: black 2px 2px 1px;
-            opacity: 0.3;
-            z-index: 500;
-            border-style: solid;
-            border-color: darkblue;
-            border-width: 1px;
-        }
-
-        .audiobox-marker-timeline,
-        .audiobox-marker-minicontainer {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            top: 2.5%;
-            border-radius: 50%;
-            box-shadow: black 2px 2px 1px;
-            overflow: visible;
-            cursor: pointer;
-
-            .left-resizer {
-                background: dimgrey;     
-            }
-            .resizer {
-                background: dimgrey;
-            }
-            .audiobox-marker {
-                position: relative;
-                height: 100%;
-                // height: calc(100% - 15px);
-                width: 100%;
-                //margin-top: 15px;
-            }
-
-            .audio-marker:hover {
-                border: orange 2px solid;
-            }
-        }
-
-        .audiobox-marker-timeline,
-        .audiobox-marker-minicontainer {
-            position: absolute;
-            width: 10px;
-            height: 90%;
-            top: 2.5%;
-            border-radius: 5px;
-            box-shadow: black 2px 2px 1px;
-
-            .audiobox-marker {
-                position: relative;
-                height: calc(100% - 15px);
-                margin-top: 15px;
-            }
-
-            .audio-marker:hover {
-                border: orange 2px solid;
-            }
-
-            .resizer {
-                position: absolute;
-                top: 0;
-                right: 0;
-                pointer-events: all;
-                cursor: ew-resize;
-                height: 100%;
-                width: 10px;
-                z-index: 100;
-            }
-
-            .click {
-                position: relative;
-                height: 100%;
-                width: 100%;
-                z-index: 100;
-            }
-
-            .left-resizer {
-                position: absolute;
-                left: 0;
-                top: 0;
-                cursor: ew-resize;
-                height: 100%;
-                width: 10px;
-                z-index: 100;
-            }
-            
-            // .contentFittingDocumentView-previewDoc {
-            //     width: 100% !important;
-            //     transform: none !important;
-            // }
-        }
-
-        .audiobox-marker-container1:hover,
-        .audiobox-marker-minicontainer:hover {
-            opacity: 0.8;
-        }
-
-        .audiobox-marker-minicontainer {
-            width: 5px;
-            border-radius: 1px;
-
-            .audiobox-marker {
-                position: relative;
-                height: calc(100% - 8px);
-                margin-top: 8px;
-            }
-        }
     }
 }
 
@@ -183,14 +53,15 @@
     pointer-events:all;
 }
 
-.timeline-button {
+.videoBox-timelineButton {
     position: absolute;
     display: flex;
     align-items: center;
     z-index: 1010;
-    bottom: 35px;
-    right: 235px;
+    bottom: 5px;
+    right: 5px;
     color: white;
+    cursor: pointer;
     background: dimgrey;
     width: 20px;
     height: 20px;

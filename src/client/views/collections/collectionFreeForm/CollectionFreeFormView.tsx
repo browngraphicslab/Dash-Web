@@ -816,8 +816,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         else if (this.props.active(true)) {
             e.stopPropagation();
+            e.preventDefault();
             if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else if (!this.props.isAnnotationOverlay) this.zoom(e.clientX, e.clientY, e.deltaY);
+            else this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
@@ -929,14 +931,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         } else {
             const layoutdoc = Doc.Layout(doc);
-            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
+            const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
-            willZoom && this.setScaleToZoom(layoutdoc, scale);
-            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
-            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
             const newState = HistoryUtil.getState();
-            newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
-            HistoryUtil.pushState(newState);
+            let newPanX = savedState.px;
+            let newPanY = savedState.py;
+            if (!layoutdoc.annotationOn) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
+                willZoom && this.setScaleToZoom(layoutdoc, scale);
+                newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
+                newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
+                newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+                HistoryUtil.pushState(newState);
+            }
 
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
@@ -1651,18 +1657,15 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             const vfTop: number = NumCast(activeItem.presPinViewY);
             const vfWidth: number = 100;
             const vfHeight: number = 100;
-            return (
-                <>
-                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                        <div className='resizers' key={'resizer' + activeItem.id}>
-                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
-                        </div>
-                    </div>}
-                </>
-            );
+            return !this.props.presPinView ? (null) :
+                <div key="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                    <div className='resizers' key={'resizer' + activeItem.id}>
+                        <div className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                        <div className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                    </div>
+                </div>;
         }
     }
 
