@@ -111,14 +111,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         });
         return { strings: Array.from(valueSet.keys()), rtFields };
     }
-<<<<<<< HEAD
-    /**
-     * Responds to clicking the check box in the flyout menu
-     */
-    facetClick = (facetHeader: string) => {
-        const targetDoc = CollectionDockingView.Instance.props.Document; //SelectionManager.Views()[0].Document; 
-        const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
-=======
 
     public static removeFilter = (filterName: string) => {
         console.log("remove filter");
@@ -126,7 +118,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const filterDoc = Doc.UserDoc().currentFilter as any as Doc;
         const attributes = DocListCast(filterDoc["data"]);
         const found = attributes.findIndex(doc => doc.title === filterName);
->>>>>>> 5b0a4a154a6e68139d3d7e462ca421d3fbbdd224
         if (found !== -1) {
             (filterDoc["data"] as List<Doc>).splice(found, 1);
             const docFilter = Cast(targetDoc._docFilters, listSpec("string"));
