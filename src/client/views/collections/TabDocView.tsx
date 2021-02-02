@@ -33,6 +33,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
+import { MainView } from '../MainView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -279,7 +280,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
             case "inPlace":
             case "add":
-            default: return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
+            default: runInAction(() => MainView.Instance.LightboxDoc = doc);
+                if (MainView.Instance.LightboxDoc) return true;
+                return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }
 

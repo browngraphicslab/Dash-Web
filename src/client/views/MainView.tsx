@@ -68,6 +68,7 @@ export class MainView extends React.Component {
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
     @observable public LastButton: Opt<Doc>;
+    @observable public LightboxDoc: Opt<Doc>;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -593,6 +594,44 @@ export class MainView extends React.Component {
             </div>;
     }
 
+    lightboxWidth = () => window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2;
+    lightboxHeight = () => window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2;
+    @computed get lightboxView() {
+        return !this.LightboxDoc ? (null) :
+            <div className="mainView-lightBoxFrame" onPointerDown={action(() => this.LightboxDoc = undefined)}  >
+                <div className="mainView-lightBoxContents" style={{
+                    left: Math.min(window.innerWidth / 4, 200),
+                    top: Math.min(window.innerHeight / 4, 100),
+                    width: window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2,
+                    height: window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2
+                }}>
+                    <DocumentView
+                        Document={this.LightboxDoc}
+                        DataDoc={undefined}
+                        addDocument={undefined}
+                        addDocTab={this.addDocTabFunc}
+                        pinToPres={emptyFunction}
+                        rootSelected={returnTrue}
+                        removeDocument={undefined}
+                        styleProvider={DefaultStyleProvider}
+                        ScreenToLocalTransform={Transform.Identity}
+                        PanelWidth={this.lightboxWidth}
+                        PanelHeight={this.lightboxHeight}
+                        focus={emptyFunction}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
+                        docRangeFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                        renderDepth={0} />
+                </div>
+            </div>;
+    }
+
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)} ref={this._mainViewRef}>
             {this.inkResources}
@@ -621,7 +660,8 @@ export class MainView extends React.Component {
             <TimelineMenu />
             {this.snapLines}
             <div className="mainView-webRef" ref={this.makeWebRef} />
-        </div >);
+            {this.lightboxView}
+        </div>);
     }
 
     makeWebRef = (ele: HTMLDivElement) => {

@@ -114,6 +114,7 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
+                MainView.Instance.LightboxDoc = undefined;
 
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
