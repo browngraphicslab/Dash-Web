@@ -67,12 +67,14 @@ import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 import { DocumentManager } from '../../../util/DocumentManager';
+var translateGoogleApi = require("translate-google-api")
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
     hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
     xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
     yMargin?: number;
+    noSidebar?: boolean;
     dontSelectOnLoad?: boolean; // suppress selecting the text box when loaded
 }
 export const GoogleRef = "googleDocId";
@@ -94,7 +96,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
-    private _applyingChange: boolean = false;
+    private _applyingChange: string = "";
     private _searchIndex = 0;
     private _cachedLinks: Doc[] = [];
     private _undoTyping?: UndoManager.Batch;
@@ -246,6 +248,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(Math.min(coordsT.left, coordsB.left), Math.max(coordsT.bottom, coordsB.bottom));
     }
 
+    _lastText = "";
     dispatchTransaction = (tx: Transaction) => {
         let timeStamp;
         clearTimeout(timeStamp);
@@ -296,8 +299,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             };
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
-                if (!this._applyingChange && removeSelection(json) !== removeSelection(curProto?.Data)) {
-                    this._applyingChange = true;
+                if (this._applyingChange !== this.fieldKey && removeSelection(json) !== removeSelection(curProto?.Data)) {
+                    this._applyingChange = this.fieldKey;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || json.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (removeSelection(json) !== removeSelection(curLayout?.Data)) {
@@ -325,7 +328,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                         unchanged = false;
                     }
-                    this._applyingChange = false;
+                    this._applyingChange = "";
                     if (!unchanged) {
                         this.updateTitle();
                         this.tryUpdateHeight();
@@ -931,16 +934,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             () => {
                 if (!this.dataDoc || !this.layoutDoc) return undefined;
                 if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey]) {
-                    return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
+                    return { data: Cast(this.dataDoc[this.props.fieldKey], RichTextField, null), str: StrCast(this.dataDoc[this.props.fieldKey]) };
                 }
-                return Cast(this.layoutDoc[this.props.fieldKey], RichTextField, null)?.Data;
+                return { data: Cast(this.layoutDoc[this.props.fieldKey], RichTextField, null), str: StrCast(this.layoutDoc[this.props.fieldKey]) };
             },
             incomingValue => {
-                if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
-                    const updatedState = JSON.parse(incomingValue);
-                    if (JSON.stringify(this._editorView.state.toJSON()) !== JSON.stringify(updatedState)) {
-                        this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
-                        this.tryUpdateHeight();
+                if (this._editorView && this._applyingChange !== this.fieldKey) {
+                    if (incomingValue?.data) {
+                        const updatedState = JSON.parse(incomingValue.data.Data);
+                        if (JSON.stringify(this._editorView.state.toJSON()) !== JSON.stringify(updatedState)) {
+                            this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
+                            this.tryUpdateHeight();
+                        }
+                    } else if (incomingValue?.str) {
+                        selectAll(this._editorView!.state, tx => this._editorView?.dispatch(tx.insertText(incomingValue.str)));
                     }
                 }
             },
@@ -1541,6 +1548,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         FormattedTextBox.LiveTextUndo?.end();
         FormattedTextBox.LiveTextUndo = undefined;
+
+        const state = this._editorView!.state;
+        const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
+        if (!this.fieldKey.includes("translation") && curText.endsWith(" ") && curText !== this._lastText) {
+            try {
+                translateGoogleApi(curText, { from: "en", to: "es", }).then(result => {
+                    this.dataDoc[this.fieldKey + "-translation"] = result[0];
+                });
+            } catch (e) {
+                console.log(e.message);
+            }
+            this._lastText = curText;
+        }
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1636,7 +1656,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarHandle() {
         const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.author).length;
-        return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
+        return this.props.noSidebar || (!this.props.isSelected() && !(annotated && !this.sidebarWidth())) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
                 style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightblue" : this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor) }}
                 onPointerDown={this.sidebarDown}
@@ -1670,12 +1690,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             ScreenToLocalTransform: this.sidebarScreenToLocal,
             renderDepth: this.props.renderDepth + 1,
         };
-        return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
+        return this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                 style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
+                <FormattedTextBox
+                    {...collectionProps}
+                    noSidebar={true}
+                    fieldKey={`${this.fieldKey}-translation`}
+                />
+                {/* {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
                     <CollectionFreeFormView {...collectionProps} /> :
-                    <CollectionStackingView {...collectionProps} />}
+                    <CollectionStackingView {...collectionProps} />} */}
             </div>;
     }
 
