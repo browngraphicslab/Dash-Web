@@ -604,7 +604,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: KeyManager.Instance.ShiftPressed || this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.Views().length > 1 ? 900 : 0,
+                display: SelectionManager.Views().length <= 1 ? "none" : undefined
             }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>

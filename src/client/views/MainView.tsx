@@ -59,7 +59,7 @@ import { AnchorMenu } from './pdf/AnchorMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp } from './StyleProvider';
+import { DefaultStyleProvider, StyleProp, DefaultLayerProvider } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -596,6 +596,7 @@ export class MainView extends React.Component {
 
     lightboxWidth = () => window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2;
     lightboxHeight = () => window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2;
+    lightboxScreenToLocal = () => new Transform(-Math.min(window.innerWidth / 4, 200), -Math.min(window.innerHeight / 4, 100), 1);
     @computed get lightboxView() {
         return !this.LightboxDoc ? (null) :
             <div className="mainView-lightBoxFrame" onPointerDown={action(() => this.LightboxDoc = undefined)}  >
@@ -614,7 +615,8 @@ export class MainView extends React.Component {
                         rootSelected={returnTrue}
                         removeDocument={undefined}
                         styleProvider={DefaultStyleProvider}
-                        ScreenToLocalTransform={Transform.Identity}
+                        layerProvider={DefaultLayerProvider(this.LightboxDoc)}
+                        ScreenToLocalTransform={this.lightboxScreenToLocal}
                         PanelWidth={this.lightboxWidth}
                         PanelHeight={this.lightboxHeight}
                         focus={emptyFunction}

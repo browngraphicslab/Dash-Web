@@ -67,7 +67,7 @@ import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 import { DocumentManager } from '../../../util/DocumentManager';
-var translateGoogleApi = require("translate-google-api")
+const translateGoogleApi = require("translate-google-api")
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -1551,14 +1551,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const state = this._editorView!.state;
         const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
-        if (!this.fieldKey.includes("translation") && curText.endsWith(" ") && curText !== this._lastText) {
+        if (this.layoutDoc.sidebarViewType === "translation" && !this.fieldKey.includes("translation") && curText.endsWith(" ") && curText !== this._lastText) {
             try {
-                translateGoogleApi(curText, { from: "en", to: "es", }).then(result => {
-                    this.dataDoc[this.fieldKey + "-translation"] = result[0];
+                translateGoogleApi(curText, { from: "en", to: "es", }).then((result1: any) => {
+                    setTimeout(() => translateGoogleApi(result1[0], { from: "es", to: "en", }).then((result: any) => {
+                        this.dataDoc[this.fieldKey + "-translation"] = result1 + "\r\n\r\n" + result[0];
+                    }), 1000);
                 });
-            } catch (e) {
-                console.log(e.message);
-            }
+            } catch (e) { console.log(e.message); }
             this._lastText = curText;
         }
     }
@@ -1693,14 +1693,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                 style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                <FormattedTextBox
-                    {...collectionProps}
-                    noSidebar={true}
-                    fieldKey={`${this.fieldKey}-translation`}
-                />
-                {/* {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
-                    <CollectionFreeFormView {...collectionProps} /> :
-                    <CollectionStackingView {...collectionProps} />} */}
+                {this.layoutDoc.sidebarViewType === "translation" ?
+                    <FormattedTextBox {...collectionProps} noSidebar={true} fieldKey={`${this.fieldKey}-translation`} /> :
+                    this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
+                        <CollectionFreeFormView {...collectionProps} /> :
+                        <CollectionStackingView {...collectionProps} />}
             </div>;
     }
 
