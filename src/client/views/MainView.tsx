@@ -601,8 +601,17 @@ export class MainView extends React.Component {
     lightboxFuture: (Opt<Doc>)[] = [];
     @computed get lightboxView() {
         if (this.lightboxHistory.lastElement() !== this.LightboxDoc) this.lightboxHistory.push(this.LightboxDoc);
+        let downx = 0, downy = 0;
         return !this.LightboxDoc ? (null) :
-            <div className="mainView-lightBox-frame" onClick={action(() => this.LightboxDoc = undefined)}  >
+            <div className="mainView-lightBox-frame"
+                onPointerDown={e => { downx = e.clientX; downy = e.clientY; }}
+                onClick={action(e => {
+                    if (Math.abs(downx - e.clientX) < 4 && Math.abs(downy - e.clientY) < 4) {
+                        this.lightboxHistory = [];
+                        this.lightboxFuture = [];
+                        this.LightboxDoc = undefined;
+                    }
+                })}  >
                 <div className="mainView-lightBox-contents" style={{
                     left: Math.min(window.innerWidth / 4, 200),
                     top: Math.min(window.innerHeight / 4, 100),
@@ -633,7 +642,7 @@ export class MainView extends React.Component {
                         ContainingCollectionDoc={undefined}
                         renderDepth={0} />
                 </div>
-                <div style={{ position: "absolute", width: Math.min(window.innerWidth / 4, 200) }}>
+                <div style={{ position: "absolute", display: this.LightboxDoc && this.lightboxHistory.length ? "" : "none", width: Math.min(window.innerWidth / 4, 200) }}>
                     <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
                         onClick={action(e => {
                             e.stopPropagation();
@@ -643,7 +652,7 @@ export class MainView extends React.Component {
                         <FontAwesomeIcon icon={"chevron-left"} size="3x" />
                     </div>
                 </div>
-                <div style={{ position: "absolute", left: window.innerWidth - Math.min(window.innerWidth / 4, 200), width: Math.min(window.innerWidth / 4, 200) }}>
+                <div style={{ position: "absolute", display: this.LightboxDoc && this.lightboxFuture.length ? "" : "none", left: window.innerWidth - Math.min(window.innerWidth / 4, 200), width: Math.min(window.innerWidth / 4, 200) }}>
                     <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
                         onClick={action(e => {
                             e.stopPropagation();
