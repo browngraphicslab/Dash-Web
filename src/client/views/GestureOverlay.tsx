@@ -607,7 +607,7 @@ export class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (!CollectionFreeFormViewChrome.Instance._keepMode) {
+                if (!CollectionFreeFormViewChrome.Instance._keepPrimitiveMode) {
                     this.InkShape = "";
                 }
             }
@@ -654,9 +654,9 @@ export class GestureOverlay extends Touchable {
             this._points = [];
         }
         //get out of ink mode after each stroke=
-        if (CollectionFreeFormViewChrome.Instance && !CollectionFreeFormViewChrome.Instance?._keepMode) {
+        if (CollectionFreeFormViewChrome.Instance && !CollectionFreeFormViewChrome.Instance?._keepPrimitiveMode) {
             Doc.SetSelectedTool(InkTool.None);
-            CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
+            CollectionFreeFormViewChrome.Instance._selectedPrimitive = CollectionFreeFormViewChrome.Instance._shapesPrimNum;
             SetActiveArrowStart("none");
             GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
             SetActiveArrowEnd("none");

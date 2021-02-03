@@ -5,7 +5,7 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
-import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -15,7 +15,6 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { WebField } from "../../../fields/URLField";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
@@ -549,17 +548,13 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get dataField() {
         return this.document[this.props.docView.LayoutFieldKey + (this.props.isOverlay ? "-annotations" : "")];
     }
-    @computed get childDocs() {
-        return DocListCast(this.dataField);
-    }
-
-    @computed get selectedDocumentView() {
-        return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;
-    }
+    @computed get childDocs() { return DocListCast(this.dataField); }
+    @computed get selectedDocumentView() { return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined; }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
         return this.selectedDoc?.type === DocumentType.RTF || (RichTextMenu.Instance?.view as any) ? true : false;
     }
+    @computed get webBoxUrl() { return this.selectedDocumentView?.ComponentView?.url?.(); }
 
     @undoBatch
     @action
@@ -591,20 +586,17 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     private _draw = ["∿", "⎯", "→", "↔︎", "ロ", "O"];
     private _head = ["", "", "", "arrow", "", ""];
     private _end = ["", "", "arrow", "arrow", "", ""];
-    private _shape = ["", "line", "line", "line", "rectangle", "circle"];
+    private _shapePrims = ["", "line", "line", "line", "rectangle", "circle"];
     private _title = ["pen", "line", "line with arrow", "line with double arrows", "square", "circle",];
     private _faName = ["pen-fancy", "minus", "long-arrow-alt-right", "arrows-alt-h", "square", "circle"];
-    @observable _shapesNum = this._shape.length;
-    @observable _selected = this._shapesNum;
-
-    @observable _keepMode = false;
+    @observable _selectedPrimitive = this._shapePrims.length;
+    @observable _keepPrimitiveMode = false; // for whether primitive selection enters a one-shot or persistent mode
 
     @observable _colorBtn = false;
     @observable _widthBtn = false;
     @observable _fillBtn = false;
 
-    @action
-    clearKeep() { this._selected = this._shapesNum; }
+    @action clearKeepPrimitiveMode() { this._selectedPrimitive = this._shapePrims.length; }
 
     @action
     changeColor = (color: string, type: string) => {
@@ -636,17 +628,17 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
     @computed get drawButtons() {
         const func = action((i: number, keep: boolean) => {
-            this._keepMode = keep;
-            if (this._selected !== i) {
-                this._selected = i;
+            this._keepPrimitiveMode = keep;
+            if (this._selectedPrimitive !== i) {
+                this._selectedPrimitive = i;
                 Doc.SetSelectedTool(InkTool.Pen);
                 SetActiveArrowStart(this._head[i]);
                 SetActiveArrowEnd(this._end[i]);
                 SetActiveBezierApprox("300");
 
-                GestureOverlay.Instance.InkShape = this._shape[i];
+                GestureOverlay.Instance.InkShape = this._shapePrims[i];
             } else {
-                this._selected = this._shapesNum;
+                this._selectedPrimitive = this._shapePrims.length;
                 Doc.SetSelectedTool(InkTool.None);
                 SetActiveArrowStart("");
                 SetActiveArrowEnd("");
@@ -660,7 +652,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     <button className="antimodeMenu-button"
                         onPointerDown={() => func(i, false)}
                         onDoubleClick={() => func(i, true)}
-                        style={{ backgroundColor: i === this._selected ? "525252" : "", fontSize: "20" }}>
+                        style={{ backgroundColor: i === this._selectedPrimitive ? "525252" : "", fontSize: "20" }}>
                         <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
                     </button>
                 </Tooltip>)}
@@ -729,120 +721,35 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
-    onUrlDrop = (e: React.DragEvent) => {
+    onWebUrlDrop = (e: React.DragEvent) => {
         const { dataTransfer } = e;
         const html = dataTransfer.getData("text/html");
         const uri = dataTransfer.getData("text/uri-list");
-        const url = uri || html || this._url;
+        const url = uri || html || this.webBoxUrl || "";
         const newurl = url.startsWith(window.location.origin) ?
-            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
-        this.submitURL(newurl);
+            url.replace(window.location.origin, this.webBoxUrl?.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitWebUrl(newurl);
         e.stopPropagation();
     }
-    onUrlDragover = (e: React.DragEvent) => {
-        e.preventDefault();
-    }
-
-    @computed get _url() {
-        return this.selectedDoc?.data instanceof WebField ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : Field.toString(this.selectedDoc?.data as Field);
-    }
-
-    set _url(value) {
-        if (this.selectedDoc) {
-            Doc.GetProto(this.selectedDoc).data = new WebField(value);
-            Doc.SetInPlace(this.selectedDoc, "title", value, true);
-            const annots = Doc.GetProto(this.selectedDoc)["data-annotations-" + this.urlHash(value)];
-            Doc.GetProto(this.selectedDoc)["data-annotations"] = annots instanceof ObjectField ? ObjectField.MakeCopy(annots) : new List<Doc>([]);
-        }
-    }
-
-    @action
-    submitURL = (url: string) => {
-        if (!url.startsWith("http")) url = "http://" + url;
-        try {
-            const selectedDoc = this.selectedDoc;
-            if (selectedDoc) {
-                const URLy = new URL(url);
-                const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
-                const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
-                const annos = DocListCast(selectedDoc["data-annotations"]);
-                if (Field.toString(selectedDoc.data as Field) === Field.toString(new WebField(URLy))) {
-                    Doc.GetProto(selectedDoc).data = new WebField(new URL("http://cs.brown.edu/~avd"));
-                    setTimeout(action(() => Doc.GetProto(selectedDoc).data = new WebField(URLy)), 100);
-                } else {
-                    if (url) {
-                        Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(annos);
-                        if (history === undefined) {
-                            selectedDoc["data-history"] = new List<string>([this._url]);
-                        } else {
-                            history.push(this._url);
-                        }
-                        this.props.docView.props.Document._scrollTop = 0;
-                        future && (future.length = 0);
-                    }
-                    this._url = url;
-                }
-            }
-        } catch (e) {
-            console.log("WebBox URL error:" + url);
-        }
-    }
-
-    urlHash(s: string) {
-        return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
-    }
-
-    onValueKeyDown = async (e: React.KeyboardEvent) => {
-        e.key === "Enter" && this.submitURL(this._keyInput.current!.value);
+    onWebUrlValueKeyDown = (e: React.KeyboardEvent) => {
+        e.key === "Enter" && this.submitWebUrl(this._keyInput.current!.value);
         e.stopPropagation();
     }
-
-    @action
-    forward = () => {
-        const selectedDoc = this.selectedDoc;
-        if (selectedDoc) {
-            const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
-            const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
-            if (future?.length) {
-                history?.push(this._url);
-                Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(selectedDoc["data-annotations"]));
-                const newurl = future.pop()!;
-                Doc.GetProto(selectedDoc).data = new WebField(new URL(this._url = newurl));
-                Doc.GetProto(selectedDoc)["data-annotations"] = new List<Doc>(DocListCast(selectedDoc["data-annotations-" + this.urlHash(newurl)]));
-            }
-        }
-    }
-
-    @action
-    back = () => {
-        const selectedDoc = this.selectedDoc;
-        if (selectedDoc) {
-            const future = Cast(selectedDoc["data-future"], listSpec("string"), null);
-            const history = Cast(selectedDoc["data-history"], listSpec("string"), null);
-            if (history?.length) {
-                if (future === undefined) selectedDoc["data-future"] = new List<string>([this._url]);
-                else future.push(this._url);
-                Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(selectedDoc["data-annotations"]));
-                const newurl = history.pop()!;
-                Doc.GetProto(selectedDoc).data = new WebField(new URL(this._url = newurl));
-                Doc.GetProto(selectedDoc)["data-annotations"] = new List<Doc>(DocListCast(selectedDoc["data-annotations-" + this.urlHash(newurl)]));
-            }
-        }
-    }
+    submitWebUrl = (url: string) => this.selectedDocumentView?.ComponentView?.submitURL?.(url);
+    webUrlForward = () => this.selectedDocumentView?.ComponentView?.forward?.();
+    webUrlBack = () => this.selectedDocumentView?.ComponentView?.back?.();
 
     private _keyInput = React.createRef<HTMLInputElement>();
 
     @computed get urlEditor() {
         return (
-            <div className="webBox-buttons"
-                onDrop={this.onUrlDrop}
-                onDragOver={this.onUrlDragover} style={{ display: "flex" }}>
-                <input className="webpage-urlInput" key={this._url}
+            <div className="collectionMenu-webUrlButtons" onDrop={this.onWebUrlDrop} onDragOver={e => e.preventDefault()} >
+                <input className="collectionMenu-urlInput" key={this.webBoxUrl}
                     placeholder="ENTER URL"
-                    defaultValue={this._url}
-                    onDrop={this.onUrlDrop}
-                    onDragOver={this.onUrlDragover}
-                    onKeyDown={this.onValueKeyDown}
+                    defaultValue={this.webBoxUrl}
+                    onDrop={this.onWebUrlDrop}
+                    onDragOver={e => e.preventDefault()}
+                    onKeyDown={this.onWebUrlValueKeyDown}
                     onClick={(e) => {
                         this._keyInput.current!.select();
                         e.stopPropagation();
@@ -850,13 +757,13 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     ref={this._keyInput}
                 />
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", maxWidth: "250px", }}>
-                    <button className="submitUrl" onClick={() => this.submitURL(this._keyInput.current!.value)} onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
+                    <button className="submitUrl" onClick={() => this.submitWebUrl(this._keyInput.current!.value)} onDragOver={e => e.stopPropagation()} onDrop={this.onWebUrlDrop}>
                         GO
                     </button>
-                    <button className="submitUrl" onClick={this.back}>
+                    <button className="submitUrl" onClick={this.webUrlBack}>
                         <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
                     </button>
-                    <button className="submitUrl" onClick={this.forward}>
+                    <button className="submitUrl" onClick={this.webUrlForward}>
                         <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
                     </button>
                 </div>

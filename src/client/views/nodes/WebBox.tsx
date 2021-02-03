@@ -25,7 +25,6 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { Annotation } from "../pdf/Annotation";
-import { AnchorMenu } from "../pdf/AnchorMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
@@ -57,6 +56,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) !== "enabled"; }
     set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
     get webpage() { return this._iframe?.contentDocument?.children[0]; }
+    url = () => this._url;
 
     constructor(props: any) {
         super(props);
@@ -76,8 +76,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     href = (typeof (ele.href) === "string" ? ele.href : ele.href?.baseVal) || ele.parentElement?.href || href;
                 }
                 if (href) {
-                    this._url = href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin);
-                    this.submitURL();
+                    this.submitURL(href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin));
                 }
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
@@ -149,7 +148,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }));
         }
     }
+
+    getAnchor = () => this.rootDoc;
+
+
     async componentDidMount() {
+        this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
+
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
         runInAction(() => this._url = urlField?.url.toString() || "");
 
@@ -194,21 +199,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._iframe?.removeEventListener('wheel', this.iframeWheel);
     }
 
-    onUrlDragover = (e: React.DragEvent) => { e.preventDefault(); };
-
-    @undoBatch
-    @action
-    onUrlDrop = (e: React.DragEvent) => {
-        const { dataTransfer } = e;
-        const html = dataTransfer.getData("text/html");
-        const uri = dataTransfer.getData("text/uri-list");
-        const url = uri || html || this._url;
-        this._url = url.startsWith(window.location.origin) ?
-            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
-        this.submitURL();
-        e.stopPropagation();
-    }
-
     @action
     forward = () => {
         const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
@@ -218,7 +208,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
             this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+            return true;
         }
+        return false;
     }
 
     @action
@@ -231,7 +223,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
             this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+            return true;
         }
+        return false;
     }
 
     urlHash(s: string) {
@@ -239,10 +233,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     @action
-    submitURL = () => {
-        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
+    submitURL = (newUrl: string) => {
+        if (!newUrl.startsWith("http")) newUrl = "http://" + newUrl;
         try {
-            const URLy = new URL(this._url);
             const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
             const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
             const annos = DocListCast(this.dataDoc[this.annotationKey]);
@@ -250,23 +243,19 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             if (url) {
                 if (history === undefined) {
                     this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
-
                 } else {
                     history.push(url);
                 }
+                this.layoutDoc._scrollTop = 0;
                 future && (future.length = 0);
                 this.dataDoc[this.annotationKey + "-" + this.urlHash(url)] = new List<Doc>(annos);
             }
-            this.dataDoc[this.fieldKey] = new WebField(URLy);
+            this._url = newUrl;
+            this.dataDoc[this.fieldKey] = new WebField(new URL(newUrl));
             this.dataDoc[this.annotationKey] = new List<Doc>([]);
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
         }
-    }
-
-    onValueKeyDown = async (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") this.submitURL();
-        e.stopPropagation();
     }
 
     editToggleBtn() {

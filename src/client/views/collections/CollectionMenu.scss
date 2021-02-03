@@ -315,6 +315,13 @@
     }
 }
 
+.collectionMenu-webUrlButtons {
+    margin-left: 44;
+    background: lightGray;
+    width: 100%;
+    display: flex;
+}
+
 .webBox-urlEditor {
     position: relative;
     opacity: 0.9;
@@ -354,7 +361,7 @@
     }
 }
 
-.webpage-urlInput {
+.collectionMenu-urlInput {
     padding: 12px 10px 11px 10px;
     border: 0px;
     color: black;
