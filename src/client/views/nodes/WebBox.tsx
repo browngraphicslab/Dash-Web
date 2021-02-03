@@ -256,6 +256,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
         }
+        return true;
     }
 
     editToggleBtn() {

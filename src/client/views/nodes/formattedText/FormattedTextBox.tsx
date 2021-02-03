@@ -67,7 +67,7 @@ import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 import { DocumentManager } from '../../../util/DocumentManager';
-const translateGoogleApi = require("translate-google-api")
+const translateGoogleApi = require("translate-google-api");
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -947,7 +947,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             this.tryUpdateHeight();
                         }
                     } else if (incomingValue?.str) {
-                        selectAll(this._editorView!.state, tx => this._editorView?.dispatch(tx.insertText(incomingValue.str)));
+                        selectAll(this._editorView.state, tx => this._editorView?.dispatch(tx.insertText(incomingValue.str)));
                     }
                 }
             },

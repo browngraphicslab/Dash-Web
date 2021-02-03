@@ -25,7 +25,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { EditableView } from "../EditableView";
 import { GestureOverlay } from "../GestureOverlay";
-import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
+import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth, ActiveArrowStart, ActiveArrowEnd } from "../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
 import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
@@ -591,12 +591,19 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     private _faName = ["pen-fancy", "minus", "long-arrow-alt-right", "arrows-alt-h", "square", "circle"];
     @observable _selectedPrimitive = this._shapePrims.length;
     @observable _keepPrimitiveMode = false; // for whether primitive selection enters a one-shot or persistent mode
-
     @observable _colorBtn = false;
     @observable _widthBtn = false;
     @observable _fillBtn = false;
 
     @action clearKeepPrimitiveMode() { this._selectedPrimitive = this._shapePrims.length; }
+    @action primCreated() {
+        if (!this._keepPrimitiveMode) { //get out of ink mode after each stroke=
+            Doc.SetSelectedTool(InkTool.None);
+            this._selectedPrimitive = this._shapePrims.length;
+            SetActiveArrowStart("none");
+            SetActiveArrowEnd("none");
+        }
+    }
 
     @action
     changeColor = (color: string, type: string) => {
