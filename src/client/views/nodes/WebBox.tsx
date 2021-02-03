@@ -36,13 +36,12 @@ const WebDocument = makeInterface(documentSchema);
 
 @observer
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
-    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _outerRef = React.createRef<HTMLDivElement>();
+    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
     @observable private _marqueeing: number[] | undefined;
@@ -52,11 +51,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _iframe: HTMLIFrameElement | null = null;
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
 
-    get scrollHeight() { return this.webpage?.scrollHeight || 1000; }
     get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) !== "enabled"; }
     set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
+    get scrollHeight() { return this.webpage?.scrollHeight || 1000; }
     get webpage() { return this._iframe?.contentDocument?.children[0]; }
-    url = () => this._url;
 
     constructor(props: any) {
         super(props);
@@ -64,6 +62,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             Doc.SetNativeWidth(this.dataDoc, Doc.NativeWidth(this.dataDoc) || 850);
             Doc.SetNativeHeight(this.dataDoc, Doc.NativeHeight(this.dataDoc) || this.Document[HeightSym]() / this.Document[WidthSym]() * 850);
         }
+        this._annotationKey = this._annotationKey + "-" + this.urlHash(this._url);
     }
 
     iframeLoaded = action((e: any) => {
@@ -128,7 +127,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
     }
 
-    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
     iframeWheel = (e: any) => {
         if (this._forceSmoothScrollUpdate && e.target?.children) {
             this.webpage && setTimeout(action(() => {
@@ -150,7 +148,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     getAnchor = () => this.rootDoc;
-
 
     async componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
@@ -205,9 +202,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
         if (future.length) {
             history.push(this._url);
-            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
-            this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+            this._annotationKey = this.fieldKey + "-annotations-" + this.urlHash(this._url);
             return true;
         }
         return false;
@@ -220,9 +216,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (history.length) {
             if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
             else future.push(this._url);
-            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
-            this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+            this._annotationKey = this.fieldKey + "-annotations-" + this.urlHash(this._url);
             return true;
         }
         return false;
@@ -238,7 +233,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         try {
             const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
             const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
-            const annos = DocListCast(this.dataDoc[this.annotationKey]);
             const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
             if (url) {
                 if (history === undefined) {
@@ -248,11 +242,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 }
                 this.layoutDoc._scrollTop = 0;
                 future && (future.length = 0);
-                this.dataDoc[this.annotationKey + "-" + this.urlHash(url)] = new List<Doc>(annos);
             }
             this._url = newUrl;
+            this._annotationKey = this.fieldKey + "-annotations-" + this.urlHash(this._url);
             this.dataDoc[this.fieldKey] = new WebField(new URL(newUrl));
-            this.dataDoc[this.annotationKey] = new List<Doc>([]);
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
         }
@@ -270,15 +263,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     _ignore = 0;
-    onPreWheel = (e: React.WheelEvent) => { this._ignore = e.timeStamp; };
-    onPrePointer = (e: React.PointerEvent) => { this._ignore = e.timeStamp; };
-    onPostPointer = (e: React.PointerEvent) => {
-        if (this._ignore !== e.timeStamp) e.stopPropagation();
-    }
-
-    onPostWheel = (e: React.WheelEvent) => {
-        if (this._ignore !== e.timeStamp) e.stopPropagation();
-    }
+    onPreWheel = (e: React.WheelEvent) => this._ignore = e.timeStamp;
+    onPrePointer = (e: React.PointerEvent) => this._ignore = e.timeStamp;
+    onPostPointer = (e: React.PointerEvent) => this._ignore !== e.timeStamp && e.stopPropagation();
+    onPostWheel = (e: React.WheelEvent) => this._ignore !== e.timeStamp && e.stopPropagation();
 
     onLongPressDown = (e: React.PointerEvent) => {
         this._pressX = e.clientX;
@@ -388,8 +376,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
     }
-
-    //const href = "https://brown365-my.sharepoint.com/personal/bcz_ad_brown_edu/_layouts/15/Doc.aspx?sourcedoc={31aa3178-4c21-4474-b367-877d0a7135e4}&action=embedview&wdStartOn=1";
 
     @computed
     get urlContent() {
@@ -508,7 +494,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
                             addDocument={this.addDocument}
-                            setPreviewCursor={this.setPreviewCursor}
                             select={emptyFunction}
                             active={this.active}
                             whenActiveChanged={this.whenActiveChanged}>
