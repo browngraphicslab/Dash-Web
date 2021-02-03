@@ -597,10 +597,13 @@ export class MainView extends React.Component {
     lightboxWidth = () => window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2;
     lightboxHeight = () => window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2;
     lightboxScreenToLocal = () => new Transform(-Math.min(window.innerWidth / 4, 200), -Math.min(window.innerHeight / 4, 100), 1);
+    lightboxHistory: (Opt<Doc>)[] = [];
+    lightboxFuture: (Opt<Doc>)[] = [];
     @computed get lightboxView() {
+        if (this.lightboxHistory.lastElement() !== this.LightboxDoc) this.lightboxHistory.push(this.LightboxDoc);
         return !this.LightboxDoc ? (null) :
-            <div className="mainView-lightBoxFrame" onPointerDown={action(() => this.LightboxDoc = undefined)}  >
-                <div className="mainView-lightBoxContents" style={{
+            <div className="mainView-lightBox-frame" onClick={action(() => this.LightboxDoc = undefined)}  >
+                <div className="mainView-lightBox-contents" style={{
                     left: Math.min(window.innerWidth / 4, 200),
                     top: Math.min(window.innerHeight / 4, 100),
                     width: window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2,
@@ -629,6 +632,25 @@ export class MainView extends React.Component {
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                         renderDepth={0} />
+                </div>
+                <div style={{ position: "absolute", width: Math.min(window.innerWidth / 4, 200) }}>
+                    <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
+                        onClick={action(e => {
+                            e.stopPropagation();
+                            if (this.lightboxHistory.lastElement() !== this.lightboxFuture.lastElement()) this.lightboxFuture.push(this.lightboxHistory.pop());
+                            this.LightboxDoc = this.lightboxHistory.lastElement();
+                        })}>
+                        <FontAwesomeIcon icon={"chevron-left"} size="3x" />
+                    </div>
+                </div>
+                <div style={{ position: "absolute", left: window.innerWidth - Math.min(window.innerWidth / 4, 200), width: Math.min(window.innerWidth / 4, 200) }}>
+                    <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
+                        onClick={action(e => {
+                            e.stopPropagation();
+                            this.LightboxDoc = this.lightboxFuture.pop();
+                        })}>
+                        <FontAwesomeIcon icon={"chevron-right"} size="3x" />
+                    </div>
                 </div>
             </div>;
     }
