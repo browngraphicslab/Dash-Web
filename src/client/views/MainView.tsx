@@ -662,7 +662,8 @@ export class MainView extends React.Component {
                     <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
                         onClick={action(e => {
                             e.stopPropagation();
-                            if (this.lightboxHistory.lastElement() !== this.lightboxFuture.lastElement()) this.lightboxFuture.push(this.lightboxHistory.pop());
+                            const popped = this.lightboxHistory.pop();
+                            if (this.lightboxHistory.lastElement() !== this.lightboxFuture.lastElement()) this.lightboxFuture.push(popped);
                             this.LightboxDoc = this.lightboxHistory.lastElement();
                         })}>
                         <FontAwesomeIcon icon={"chevron-left"} size="3x" />
