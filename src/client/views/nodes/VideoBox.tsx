@@ -574,6 +574,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 {this.renderTimeline}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                     <MarqueeAnnotator
+                        scrollTop={0}
                         rootDoc={this.rootDoc}
                         down={this._marqueeing}
                         scaling={this.marqueeFitScaling}

@@ -509,7 +509,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 </div>
                 {this.annotationLayer}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                    <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                    <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={NumCast(this.rootDoc._scrollTop)} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
             </div >
             {this.props.isSelected() ? this.editToggleBtn() : null}
         </div>);

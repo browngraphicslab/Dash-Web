@@ -20,6 +20,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 export interface MarqueeAnnotatorProps {
     rootDoc: Doc;
     down: number[];
+    scrollTop: number;
     scaling?: () => number;
     containerOffset?: () => number[];
     mainCont: HTMLDivElement;
@@ -73,7 +74,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             const containerOffset = this.props.containerOffset?.() || [0, 0];
             const mainAnnoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
             if (anno.style.left) mainAnnoDoc.x = (parseInt(anno.style.left) - containerOffset[0]) / scale;
-            if (anno.style.top) mainAnnoDoc.y = (parseInt(anno.style.top) - containerOffset[1] + NumCast(this.props.rootDoc._scrollTop)) / scale;
+            if (anno.style.top) mainAnnoDoc.y = (parseInt(anno.style.top) - containerOffset[1]) / scale + NumCast(this.props.scrollTop);
             if (anno.style.height) mainAnnoDoc._height = parseInt(anno.style.height) / scale;
             if (anno.style.width) mainAnnoDoc._width = parseInt(anno.style.width) / scale;
             mainAnnoDoc.group = mainAnnoDoc;
