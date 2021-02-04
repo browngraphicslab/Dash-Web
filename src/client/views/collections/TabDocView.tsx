@@ -12,7 +12,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils, returnEmptyDoclist, emptyPath } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -314,6 +314,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     parentActive={returnFalse}
+                    docViewPath={emptyPath}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
@@ -334,6 +335,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     styleProvider={TabDocView.miniStyleProvider}
+                    layerProvider={undefined}
                     addDocTab={this.addDocTab}
                     pinToPres={TabDocView.PinDoc}
                     docFilters={CollectionDockingView.Instance.docFilters}
@@ -408,6 +410,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 parentActive={this.active}
                 whenActiveChanged={emptyFunction}
                 focus={this.focusFunc}
+                docViewPath={emptyPath}
                 bringToFront={emptyFunction}
                 pinToPres={TabDocView.PinDoc} />
                 {this._document._viewType !== CollectionViewType.Freeform ? (null) :

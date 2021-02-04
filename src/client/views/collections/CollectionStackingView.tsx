@@ -207,6 +207,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             PanelWidth={width}
             PanelHeight={height}
             styleProvider={styleProvider}
+            layerProvider={this.props.layerProvider}
+            docViewPath={this.props.docViewPath}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}

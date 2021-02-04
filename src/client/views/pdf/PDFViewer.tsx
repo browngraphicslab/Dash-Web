@@ -150,8 +150,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
                         const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
                         const duration = durationStr ? Number(durationStr[1]) : 1000;
-                        setTimeout(() => this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(scrollY || 0)), delay);
-                        setTimeout(() => { this.Document._scrollTop = scrollY; this.Document._scrollY = undefined; }, duration + delay);
+                        setTimeout(() => this.Document._scrollY = undefined, duration + delay);
+                        setTimeout(() => this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(scrollY || 0), () => this.layoutDoc._scrollTop = scrollY), delay);
                     }
                 }
             },
@@ -518,8 +518,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     showInfo = action((anno: Opt<Doc>) => this._overlayAnnoInfo = anno);
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
-    panelWidth = () => (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
-    panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
+    panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
+    panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     @computed get overlayLayer() {
         return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`}
             style={{
@@ -531,8 +531,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 isAnnotationOverlay={true}
                 fieldKey={this.annotationKey}
                 setPreviewCursor={this.setPreviewCursor}
-                PanelHeight={this.panelWidth}
-                PanelWidth={this.panelHeight}
+                PanelHeight={this.panelHeight}
+                PanelWidth={this.panelWidth}
                 dropAction={"alias"}
                 select={emptyFunction}
                 active={this.annotationsActive}

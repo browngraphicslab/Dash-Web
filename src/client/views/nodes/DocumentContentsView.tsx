@@ -207,7 +207,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
         return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc || GetEffectiveAcl(this.layoutDoc) === AclPrivate) ? (null) :
             <ObserverJsxParser
                 key={42}
-                blacklistedAttrs={[]}
+                blacklistedAttrs={emptyPath}
                 renderInWrapper={false}
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,

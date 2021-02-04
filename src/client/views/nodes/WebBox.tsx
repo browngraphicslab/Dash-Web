@@ -92,12 +92,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 const duration = durationStr ? Number(durationStr[1]) : 1000;
                 if (scrollY !== undefined) {
                     this._forceSmoothScrollUpdate = true;
-                    this.layoutDoc._scrollY = undefined;
+                    setTimeout(() => this.layoutDoc._scrollY = undefined, duration);
+                    setTimeout(() => this.webpage && smoothScroll(duration, this.webpage as any as HTMLElement, Math.abs(scrollY || 0)), delay);
                     setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollY || 0), () => this.layoutDoc._scrollTop = scrollY), delay);
                 }
                 if (scrollX !== undefined) {
                     this._forceSmoothScrollUpdate = true;
-                    this.layoutDoc._scrollX = undefined;
+                    setTimeout(() => this.layoutDoc._scrollX = undefined, duration);
+                    setTimeout(() => this.webpage && smoothScroll(duration, this.webpage as any as HTMLElement, Math.abs(scrollX || 0)), delay);
                     setTimeout(() => this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollX || 0), () => this.layoutDoc._scrollLeft = scrollX), delay);
                 }
             },
@@ -108,6 +110,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
                 const duration = durationStr ? Number(durationStr[1]) : 1000;
                 if (scrollTop !== this._outerRef.current?.scrollTop && scrollTop !== undefined && this._forceSmoothScrollUpdate) {
+                    this.webpage!.scrollTop = scrollTop;
                     this._outerRef.current && smoothScroll(duration, this._outerRef.current, Math.abs(scrollTop || 0), () => this._forceSmoothScrollUpdate = true);
                 } else this._forceSmoothScrollUpdate = true;
             },
@@ -447,6 +450,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this.props.select(true);
     }
 
+    panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
+    panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
@@ -490,6 +495,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             fieldKey={this.annotationKey}
                             isAnnotationOverlay={true}
                             scaling={returnOne}
+                            PanelWidth={this.panelWidth}
+                            PanelHeight={this.panelHeight}
                             ScreenToLocalTransform={this.scrollXf}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}

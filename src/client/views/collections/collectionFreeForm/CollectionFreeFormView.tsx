@@ -904,13 +904,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
-            const annotOn = Cast(doc.annotationOn, Doc) as Doc;
+            // only consider the document to be an annotation if it's an annotation on this collection's document (ignore annotations on some other document that are somehow being focused on here)
+            const annotOn = Doc.AreProtosEqual(doc.annotationOn as Doc, this.props.Document) ? Cast(doc.annotationOn, Doc) as Doc : undefined;
             let delay = 1000;
             if (!annotOn) {
                 !dontCenter && this.props.focus(doc);
                 afterFocus && setTimeout(afterFocus, delay);
             } else {
-                const contextHgt = NumCast(annotOn._height);
+                const contextHgt = this.props.PanelHeight();
                 const curScroll = NumCast(this.props.Document._scrollTop);
                 let scrollTo = curScroll;
                 if (curScroll + contextHgt < NumCast(doc.y)) {
@@ -922,7 +923,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     this.props.Document._scrollPreviewY = this.props.Document._scrollY = scrollTo;
                     delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
                     !dontCenter && this.props.focus(this.props.Document);
-                    afterFocus && setTimeout(afterFocus, delay);
+                    afterFocus && setTimeout(() => afterFocus?.(delay ? true : false), delay);
                 } else {
                     !dontCenter && delay && this.props.focus(this.props.Document);
                     afterFocus?.(!dontCenter && delay ? true : false);
@@ -988,6 +989,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
             parentActive: this.parentActive,
+            docViewPath: this.props.docViewPath,
             DataDoc: childData,
             Document: childLayout,
             ContainingCollectionView: this.props.CollectionView,
@@ -1005,6 +1007,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
+            layerProvider: this.props.layerProvider,
             freezeDimensions: this.props.childFreezeDimensions,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             bringToFront: this.bringToFront,

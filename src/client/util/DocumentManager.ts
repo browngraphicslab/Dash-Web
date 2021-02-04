@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, runInAction } from 'mobx';
 import { Doc, DocListCast, DocListCastAsync, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { Cast, NumCast } from '../../fields/Types';
@@ -9,6 +9,7 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
+import { MainView } from '../views/MainView';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -116,6 +117,7 @@ export class DocumentManager {
         // heuristic to return the "best" documents first:
         //   choose an exact match over an alias match
         //   choose documents that have a PanelWidth() over those that don't (the treeview documents have no panelWidth)
+        docViews.map(view => view.docViewPath.includes(MainView.Instance.lightboxDocView.current!) && view.props.Document === toFind && toReturn.push(view));
         docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document === toFind && toReturn.push(view));
         docViews.map(view => view.props.PanelWidth() <= 1 && view.props.Document === toFind && toReturn.push(view));
         docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
@@ -139,7 +141,10 @@ export class DocumentManager {
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void,
     ): Promise<void> => {
-        const getFirstDocView = DocumentManager.Instance.getFirstDocumentView;
+        const getFirstDocView = (toFind: Doc, originatingDoc?: Doc) => {
+            const docView = DocumentManager.Instance.getFirstDocumentView(toFind, originatingDoc);
+            return (!MainView.Instance.LightboxDoc || docView?.docViewPath.includes(MainView.Instance.lightboxDocView.current!)) ? docView : undefined;
+        }
         const focusAndFinish = () => { finished?.(); return false; };
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
@@ -214,8 +219,14 @@ export class DocumentManager {
                         findView(0);
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
-                    createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
-                        () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished));
+                    const finishFunc = () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
+                    if (MainView.Instance.LightboxDoc) {
+                        runInAction(() => MainView.Instance.LightboxDoc = annotatedDoc ? annotatedDoc : targetDoc);
+                        setTimeout(() => finishFunc, 250);
+                    } else {
+                        createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
+                            finishFunc);
+                    }
                 }
             }
         }

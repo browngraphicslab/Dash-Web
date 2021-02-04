@@ -62,8 +62,9 @@ export interface DocumentViewSharedProps {
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
-    styleProvider?: StyleProviderFunc;
+    docViewPath: DocumentView[];
+    layerProvider: undefined | ((doc: Doc, assign?: boolean) => boolean);
+    styleProvider: Opt<StyleProviderFunc>;
     focus: DocFocusFunc;
     docFilters: () => string[];
     docRangeFilters: () => string[];
@@ -113,6 +114,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (ctrlPressed: boolean) => void;
     DocumentView: any;
+    viewPath: DocumentView[];
 }
 
 @observer
@@ -720,6 +722,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 height: this.headerMargin ? `calc(100% - ${this.headerMargin}px)` : undefined,
             }}>
             <DocumentContentsView key={1} {...this.props}
+                docViewPath={this.props.viewPath}
                 setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
@@ -875,6 +878,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     get allLinks() { return this.docView?.allLinks || []; }
     get LayoutFieldKey() { return this.docView?.LayoutFieldKey || "layout"; }
 
+    @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath, this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
     @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
     @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
@@ -965,6 +969,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         const internalProps = {
             ...this.props,
             DocumentView: this,
+            viewPath: this.docViewPath,
             PanelWidth: this.PanelWidth,
             PanelHeight: this.PanelHeight,
             NativeWidth: this.NativeWidth,

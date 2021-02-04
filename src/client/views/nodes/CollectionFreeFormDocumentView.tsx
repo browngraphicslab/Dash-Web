@@ -23,7 +23,7 @@ import React = require("react");
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
     sizeProvider?: (doc: Doc, replica: string) => { width: number, height: number } | undefined;
-    layerProvider?: (doc: Doc, assign?: boolean) => boolean;
+    layerProvider: ((doc: Doc, assign?: boolean) => boolean) | undefined
     zIndex?: number;
     highlight?: boolean;
     jitterRotation: number;
@@ -162,6 +162,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             ...this.props,
             CollectionFreeFormDocumentView: this.returnThis,
             styleProvider: this.styleProvider,
+            layerProvider: this.props.layerProvider,
             ScreenToLocalTransform: this.screenToLocalTransform,
             PanelWidth: this.panelWidth,
             PanelHeight: this.panelHeight,

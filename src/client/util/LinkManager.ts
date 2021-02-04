@@ -147,7 +147,7 @@ export class LinkManager {
                     doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
-                    if (MainView.Instance.LightboxDoc) {
+                    if (MainView.Instance.LightboxDoc && doc.annotationOn !== MainView.Instance.LightboxDoc) { // following a link should replace an existing lightboxDoc unless the target is an annotation on the lightbox document
                         runInAction(() => MainView.Instance.LightboxDoc = (target.annotationOn as Doc) ?? target);
                         finished?.();
                     } else {

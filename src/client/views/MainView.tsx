@@ -13,7 +13,7 @@ import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils, emptyPath } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -248,6 +248,9 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
+            docViewPath={emptyPath}
+            layerProvider={undefined}
+            styleProvider={undefined}
             rootSelected={returnTrue}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
@@ -336,6 +339,9 @@ export class MainView extends React.Component {
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
+                        docViewPath={emptyPath}
+                        layerProvider={undefined}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
                         ScreenToLocalTransform={this.mainContainerXf}
@@ -344,7 +350,6 @@ export class MainView extends React.Component {
                         renderDepth={0}
                         scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={emptyFunction}
-                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -373,8 +378,10 @@ export class MainView extends React.Component {
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
+                docViewPath={emptyPath}
                 focus={emptyFunction}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -476,11 +483,13 @@ export class MainView extends React.Component {
                     dropAction={"alias"}
                     parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}
+                    docViewPath={emptyPath}
                     moveDocument={this.moveButtonDoc}
                     CollectionView={undefined}
                     addDocument={this.addButtonDoc}
@@ -547,12 +556,14 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                docViewPath={emptyPath}
                 parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -573,6 +584,8 @@ export class MainView extends React.Component {
                     ContainingCollectionDoc={undefined}
                     Document={DocumentLinksButton.invisibleWebDoc}
                     dropAction={"move"}
+                    layerProvider={undefined}
+                    styleProvider={undefined}
                     isSelected={returnFalse}
                     select={returnFalse}
                     rootSelected={returnFalse}
@@ -585,6 +598,7 @@ export class MainView extends React.Component {
                     active={returnFalse}
                     whenActiveChanged={returnFalse}
                     focus={returnFalse}
+                    docViewPath={emptyPath}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
                     docFilters={returnEmptyFilter}
@@ -599,6 +613,7 @@ export class MainView extends React.Component {
     lightboxScreenToLocal = () => new Transform(-Math.min(window.innerWidth / 4, 200), -Math.min(window.innerHeight / 4, 100), 1);
     lightboxHistory: (Opt<Doc>)[] = [];
     lightboxFuture: (Opt<Doc>)[] = [];
+    lightboxDocView = React.createRef<DocumentView>();
     @computed get lightboxView() {
         if (this.lightboxHistory.lastElement() !== this.LightboxDoc) this.lightboxHistory.push(this.LightboxDoc);
         let downx = 0, downy = 0;
@@ -618,13 +633,14 @@ export class MainView extends React.Component {
                     width: window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2,
                     height: window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2
                 }}>
-                    <DocumentView
+                    <DocumentView ref={this.lightboxDocView}
                         Document={this.LightboxDoc}
                         DataDoc={undefined}
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
+                        docViewPath={emptyPath}
                         removeDocument={undefined}
                         styleProvider={DefaultStyleProvider}
                         layerProvider={DefaultLayerProvider(this.LightboxDoc)}
@@ -710,9 +726,12 @@ export class MainView extends React.Component {
                             Document={invisibleDoc}
                             dropAction={"move"}
                             isSelected={returnFalse}
+                            docViewPath={emptyPath}
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}
+                            layerProvider={undefined}
+                            styleProvider={undefined}
                             addDocTab={returnFalse}
                             pinToPres={returnFalse}
                             ScreenToLocalTransform={Transform.Identity}
