@@ -319,7 +319,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const presColorBool: boolean = presBoxColor ? (presBoxColor !== "white" && presBoxColor !== "transparent") : false;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
-        const isGroup: boolean = BoolCast(targetDoc._isGroup);
+        console.log(targetDoc._viewType);
+        const isGroup: boolean = BoolCast(targetDoc._isGroup) || targetDoc._viewType === 'tree';
         return (
             <div className={`presItem-container`}
                 key={this.props.Document[Id] + this.indexInPres}

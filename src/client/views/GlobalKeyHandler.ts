@@ -1,7 +1,7 @@
 import { random } from "lodash";
 import { action, observable } from "mobx";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
@@ -27,6 +27,8 @@ import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
+import { Docs, DocumentOptions } from "../documents/Documents";
+import { DocumentManager } from "../util/DocumentManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -273,14 +275,48 @@ export class KeyManager {
                 if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
                     return { stopPropagation: false, preventDefault: false };
                 }
-                const childDocs = DocListCast(SelectionManager.Views().slice()[0].Document.data);
-                childDocs && childDocs.forEach(doc => {
-                    const scr = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
-                    doc.x = scr?.[0];
-                    doc.y = scr?.[1];
-                });
-                SelectionManager.Views()[0].props.addDocTab(childDocs as any as Doc, "inParent");
-                SelectionManager.Views()[0].props.ContainingCollectionView?.removeDocument(SelectionManager.Views()[0].props.Document);
+                let maxX: number = 0;
+                let minX = 100000000;
+                let maxY = 0;
+                let minY = 100000000;
+                let width: number = maxX - minX;
+                let height: number = maxY - minY;
+                let docList: Doc[] = [];
+                if (SelectionManager.Views().slice().length > 1) { //GROUP
+                    SelectionManager.Views().forEach(dv => {
+                        const doc = dv.Document;
+                        if (NumCast(doc.x) + NumCast(doc._width) > maxX) maxX = NumCast(doc.x) + NumCast(doc._width);
+                        if (NumCast(doc.y) + NumCast(doc._height) > maxY) maxY = NumCast(doc.x) + NumCast(doc._width);
+                        if (NumCast(doc.x) < minX) minX = NumCast(doc.x);
+                        if (NumCast(doc.y) < minY) minY = NumCast(doc.x);
+                        width = maxX - minX;
+                        height = maxY - minY;
+                        const dx = NumCast(doc.x);
+                        const dy = NumCast(doc.y);
+                        delete doc.x;
+                        delete doc.y;
+                        delete doc.activeFrame;
+                        delete doc._timecodeToShow;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                        delete doc._timecodeToHide;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                        doc.x = dx - minX - width / 2;
+                        doc.y = dy - minY - height / 2;
+                        docList.push(doc);
+                    });
+                    SelectionManager.Views()[0].props.ContainingCollectionView?.removeDocument?.(docList);
+                    const newCollection = this.getCollection(docList, [], true, width, height, minX, minY);
+                    console.log("newCollection: " + newCollection, newCollection.title);
+                    SelectionManager.Views()[0].props.ContainingCollectionView?.addDocument?.(newCollection);
+                } else if (SelectionManager.Views().slice().length == 1) { //UNGROUP (if length = 1 and collection)
+                    const childDocs = DocListCast(SelectionManager.Views().slice()[0].Document.data);
+                    childDocs && childDocs.forEach(doc => {
+                        const scr = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
+                        doc.x = scr?.[0];
+                        doc.y = scr?.[1];
+                    });
+                    SelectionManager.Views()[0].props.ContainingCollectionView?.removeDocument(SelectionManager.Views()[0].props.Document);
+                    SelectionManager.Views()[0].props.ContainingCollectionView?.addDocument?.(childDocs);
+                }
+
                 // const randomGroup = random(0, 1000);
                 // UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");
                 SelectionManager.DeselectAll();
@@ -291,6 +327,24 @@ export class KeyManager {
             stopPropagation: stopPropagation,
             preventDefault: preventDefault
         };
+    });
+
+    getCollection = action((selected: Doc[], layers: string[], makeGroup: Opt<boolean>, colWidth: number, colHeight: number, colX: number, colY: number) => {
+        const newCollection = ((doc: Doc) => {
+            Doc.GetProto(doc).data = new List<Doc>(selected);
+            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
+            doc._panX = doc._panY = 0;
+            return doc;
+        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newCollection.system = undefined;
+        newCollection.layers = new List<string>(layers);
+        newCollection._width = colWidth;
+        newCollection._height = colHeight;
+        newCollection._isGroup = makeGroup;
+        newCollection.x = colX;
+        newCollection.y = colY;
+        selected.forEach(d => d.context = newCollection);
+        return newCollection;
     });
 
     public paste(e: ClipboardEvent) {
@@ -338,7 +392,7 @@ export class KeyManager {
                 UndoManager.Redo();
                 break;
             case "[": //send to back
-                SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true))
+                SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, true));
                 break;
             case "]": //bring to front
                 SelectionManager.Views().forEach(dv => dv.props.bringToFront(dv.rootDoc, false));
