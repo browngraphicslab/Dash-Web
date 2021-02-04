@@ -426,7 +426,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.layoutDoc.presCollection = targetDoc;
             // this still needs some fixing
             setTimeout(resetSelection, 500);
-            doc !== targetDoc && setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
+            doc !== targetDoc && setTimeout(finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
@@ -1883,7 +1883,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} selected
-                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && (targetDoc._viewType === 'freeform' || targetDoc._viewType === 'tree')) || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ borderTop: 'solid 1px darkgrey', display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-toggle" style={{ backgroundColor: activeItem.presProgressivize ? PresColor.LightBlue : "" }} onClick={this.progressivizeChild}>Contents</div>
                                 <div className="ribbon-toggle" style={{ opacity: activeItem.presProgressivize ? 1 : 0.4, backgroundColor: targetDoc.editProgressivize ? PresColor.LightBlue : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>

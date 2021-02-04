@@ -1267,6 +1267,10 @@ export namespace DocUtils {
         }
     }
 
+    export function groupDocuments(docList: Doc[], options: { family: string;[key: string]: any }) {
+
+    }
+
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {

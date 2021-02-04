@@ -56,7 +56,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     @computed get targetDoc() { return Cast(this.rootDoc.presentationTargetDoc, Doc, null) || this.rootDoc; }
 
     componentDidMount() {
-        let childCount: number = DocListCast(this.rootDoc.data).length;
+        const childCount: number = DocListCast(this.rootDoc.data).length;
         this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight, this.rootDoc.presExpandGroup, this.rootDoc._isGroup],
             params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : Number(params[2]) ? childCount * 30 : Number(params[3]) ? 5 : 0), { fireImmediately: true });
     }
@@ -118,7 +118,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     @computed get renderGroupSlides() {
-        let childDocs = DocListCast(this.rootDoc.data);
+        const childDocs = DocListCast(this.rootDoc.data);
         const groupSlides = childDocs.map((doc: Doc, ind: number) =>
             <div className="presItem-groupSlide">
                 <div className="presItem-groupNum">
@@ -319,8 +319,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const presColorBool: boolean = presBoxColor ? (presBoxColor !== "white" && presBoxColor !== "transparent") : false;
         const targetDoc: Doc = this.targetDoc;
         const activeItem: Doc = this.rootDoc;
-        console.log(targetDoc._viewType);
-        const isGroup: boolean = BoolCast(targetDoc._isGroup) || targetDoc._viewType === 'tree';
+        const isGroup: boolean = BoolCast(targetDoc._isGroup);
         return (
             <div className={`presItem-container`}
                 key={this.props.Document[Id] + this.indexInPres}
