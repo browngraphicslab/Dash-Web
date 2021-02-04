@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             !StrListCast(d.layers).includes(StyleLayers.Background) && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
-        this.updateGroupBounds();
+        DocUtils.updateGroupBounds(this.props.Document);
 
         (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
         return true;

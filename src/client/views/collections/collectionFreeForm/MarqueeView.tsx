@@ -347,25 +347,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) => {
-        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
-            Doc.GetProto(doc).data = new List<Doc>(selected);
-            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
-            doc._panX = doc._panY = 0;
-            return doc;
-        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
-        newCollection.system = undefined;
-        newCollection.layers = new List<string>(layers);
-        newCollection._width = this.Bounds.width;
-        newCollection._height = this.Bounds.height;
-        newCollection._isGroup = makeGroup;
-        newCollection.x = this.Bounds.left;
-        newCollection.y = this.Bounds.top;
-        selected.forEach(d => d.context = newCollection);
-        this.hideMarquee();
-        return newCollection;
-    });
-
     @action
     pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const selected = this.marqueeSelect(false);
@@ -434,7 +415,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }));
             this.props.removeDocument?.(selected);
         }
-        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined, [], group);
+        const newCollection = DocUtils.getCollection(selected, [this.Bounds.width, this.Bounds.height, this.Bounds.left, this.Bounds.top], (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined, [], group);
         this.props.addDocument?.(newCollection);
         this.props.selectDocuments([newCollection]);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -531,7 +512,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], undefined, [StyleLayers.Background], undefined);
+        const newCollection = DocUtils.getCollection([], [this.Bounds.width, this.Bounds.height, this.Bounds.left, this.Bounds.top], undefined, [StyleLayers.Background], undefined);
         this.props.addDocument?.(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();

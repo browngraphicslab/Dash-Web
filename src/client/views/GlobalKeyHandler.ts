@@ -27,6 +27,7 @@ import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
+import { DocUtils } from "../documents/Documents";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -87,15 +88,6 @@ export class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "a": SnappingManager.GetIsDragging() && (DragManager.CanEmbed = true);
-                break;
-            case "g":
-                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
-                    return { stopPropagation: false, preventDefault: false };
-                }
-
-                const ungroupings = SelectionManager.Views().slice();
-                // UndoManager.RunInBatch(() => ungroupings.map(dv => dv.layoutDoc.group = undefined), "ungroup");
-                SelectionManager.DeselectAll();
                 break;
             case " ":
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
@@ -274,13 +266,14 @@ export class KeyManager {
                 if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
                     return { stopPropagation: false, preventDefault: false };
                 }
-                const childDocs = DocListCast(SelectionManager.Views().slice()[0].Document.data);
-                childDocs && childDocs.forEach(doc => {
+                const selected = DocListCast(SelectionManager.Views().slice()[0].Document.data);
+                selected && selected.forEach(doc => {
                     const scr = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
                     doc.x = scr?.[0];
                     doc.y = scr?.[1];
                 });
-                SelectionManager.Views()[0].props.addDocTab(childDocs as any as Doc, "inParent");
+                const newCollection = DocUtils.getCollection(selected, [], undefined, [], true);
+                SelectionManager.Views()[0].props.ContainingCollectionView?.addDocument?.(newCollection);
                 SelectionManager.Views()[0].props.ContainingCollectionView?.removeDocument(SelectionManager.Views()[0].props.Document);
                 // const randomGroup = random(0, 1000);
                 // UndoManager.RunInBatch(() => groupings.map(dv => dv.layoutDoc.group = randomGroup), "group");

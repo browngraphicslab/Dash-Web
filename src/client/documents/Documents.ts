@@ -15,7 +15,7 @@ import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } 
 import { SharingPermissions } from "../../fields/util";
 import { MessageStore } from "../../server/Message";
 import { Upload } from "../../server/SharedMediaTypes";
-import { OmitKeys, Utils } from "../../Utils";
+import { aggregateBounds, OmitKeys, Utils } from "../../Utils";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { DocServer } from "../DocServer";
 import { Networking } from "../Network";
@@ -35,6 +35,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { DocumentView } from "../views/nodes/DocumentView";
 import { FilterBox } from "../views/nodes/FilterBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
@@ -1263,8 +1264,44 @@ export namespace DocUtils {
         }
     }
 
-    export function groupDocuments(docList: Doc[], options: { family: string;[key: string]: any }) {
+    // boundOptions[]: [0]width, [1]height, [2]left, [3]top
+    export function getCollection(selected: Doc[], boundOptions: number[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) {
+        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
+            Doc.GetProto(doc).data = new List<Doc>(selected);
+            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
+            doc._panX = doc._panY = 0;
+            return doc;
+        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newCollection.system = undefined;
+        newCollection.layers = new List<string>(layers);
+        newCollection._width = boundOptions[0];
+        newCollection._height = boundOptions[1];
+        newCollection._isGroup = makeGroup;
+        newCollection.x = boundOptions[2];
+        newCollection.y = boundOptions[3];
+        selected.forEach(d => d.context = newCollection);
+        return newCollection;
+    }
 
+    export function updateGroupBounds(doc: Doc) {
+        if (!doc._isGroup) return;
+        const childDocs = DocListCast(doc.data);
+        const zoomScaling = 1;
+        const clist = childDocs.map(cd => ({ x: NumCast(cd.x), y: NumCast(cd.y), width: cd[WidthSym](), height: cd[HeightSym]() }));
+        const cbounds = aggregateBounds(clist, 0, 0);
+        const c = [NumCast(doc.x) + doc[WidthSym]() / 2, NumCast(doc.y) + doc[HeightSym]() / 2];
+        const p = [NumCast(doc._panX), NumCast(doc._panY)];
+        const pbounds = {
+            x: (cbounds.x - p[0]) * zoomScaling + c[0], y: (cbounds.y - p[1]) * zoomScaling + c[1],
+            r: (cbounds.r - p[0]) * zoomScaling + c[0], b: (cbounds.b - p[1]) * zoomScaling + c[1]
+        };
+
+        doc._width = (pbounds.r - pbounds.x);
+        doc._height = (pbounds.b - pbounds.y);
+        doc._panX = (cbounds.r + cbounds.x) / 2;
+        doc._panY = (cbounds.b + cbounds.y) / 2;
+        doc.x = pbounds.x;
+        doc.y = pbounds.y;
     }
 
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
