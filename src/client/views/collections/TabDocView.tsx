@@ -33,7 +33,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { MainView } from '../MainView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -291,10 +291,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     // adds a tab to the layout based on the locaiton parameter which can be:
-    //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab, 
+    //  close[:{left,right,top,bottom}]  - e.g., "close" will close the tab, "close:left" will close the left tab,
     //  add[:{left,right,top,bottom}] - e.g., "add" will add a tab to the current stack, "add:right" will add a tab on the right
-    //  replace[:{left,right,top,bottom,<any string>}] - e.g., "replace" will replace the current stack contents, 
-    //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name, 
+    //  replace[:{left,right,top,bottom,<any string>}] - e.g., "replace" will replace the current stack contents,
+    //                                  "replace:right" - will replace the stack on the right named "right" if it exists, or create a stack on the right with that name,
     //                                   "replace:monkeys" - will replace any tab that has the label 'monkeys', or a tab with that label will be created by default on the right
     //  inPlace - will add the document to any collection along the path from the document to the docking view that has a field isInPlaceContainer. if none is found, inPlace adds a tab to current stack
     addDocTab = (doc: Doc, location: string) => {
@@ -308,7 +308,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
             case "inPlace":
             case "add":
-            default: return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
+            default: runInAction(() => MainView.Instance.LightboxDoc = doc);
+                if (MainView.Instance.LightboxDoc) return true;
+                return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }
 

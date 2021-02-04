@@ -104,6 +104,7 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
+                MainView.Instance.LightboxDoc = undefined;
 
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
@@ -122,7 +123,7 @@ export class KeyManager {
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
-                CollectionFreeFormViewChrome.Instance?.clearKeep();
+                CollectionFreeFormViewChrome.Instance?.clearKeepPrimitiveMode();
                 window.getSelection()?.empty();
                 document.body.focus();
                 break;

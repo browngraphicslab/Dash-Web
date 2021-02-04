@@ -106,13 +106,15 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
-    onLinkButtonUp = (e: PointerEvent): void => {
+    onLinkButtonUp = action((e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
         LinkManager.FollowLink(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
+        LinkDocPreview.LinkInfo = undefined;
+        DocumentLinksButton.EditLink = undefined;
 
         e.stopPropagation();
-    }
+    });
 
     onLinkButtonMoved = async (e: PointerEvent) => {
         if (this._drag.current !== null && Math.abs((e.clientX - this._downX) * (e.clientX - this._downX) + (e.clientY - this._downY) * (e.clientY - this._downY)) > 5) {

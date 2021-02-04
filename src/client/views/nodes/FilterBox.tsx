@@ -158,7 +158,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
         return script ? () => script : undefined;
     }
-
+    suppressChildClick = () => ScriptField.MakeScript("")!;
     render() {
         const facetCollection = this.props.Document;
         const flyout = <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
@@ -182,9 +182,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 <CollectionTreeView
                     Document={facetCollection}
                     DataDoc={Doc.GetProto(facetCollection)}
-                    fieldKey={`${this.props.fieldKey}`}
+                    fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
                     cantBrush={true}
+                    onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}

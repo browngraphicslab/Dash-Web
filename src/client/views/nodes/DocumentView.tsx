@@ -44,6 +44,13 @@ import React = require("react");
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
+export interface DocComponentView {
+    getAnchor: () => Doc;
+    back?: () => boolean;
+    forward?: () => boolean;
+    url?: () => string;
+    submitURL?: (url: string) => boolean;
+}
 export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
@@ -51,7 +58,7 @@ export interface DocumentViewSharedProps {
     fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
-    setContentView?: (view: { getAnchor: () => Doc }) => any;
+    setContentView?: (view: DocComponentView) => any;
     CollectionFreeFormDocumentView?: () => CollectionFreeFormDocumentView;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -122,6 +129,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     private _timeout: NodeJS.Timeout | undefined;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    _componentView: Opt<DocComponentView>;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     private get topMost() { return this.props.renderDepth === 0; }
@@ -701,10 +709,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
     makeLink = () => this.props.DocumentView.LinkBeingCreated; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
-    setContentView = (view: { getAnchor: () => Doc }) => this._componentView = view;
+    setContentView = (view: { getAnchor: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
-    _componentView: { getAnchor: () => Doc } | undefined;
     @computed get contents() {
         TraceMobx();
         return <div className="documentView-contentsView"
@@ -864,6 +871,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     get dataDoc() { return this.docView?.dataDoc || this.Document; }
     get finalLayoutKey() { return this.docView?.finalLayoutKey || "layout"; }
     get ContentDiv() { return this.docView?.ContentDiv; }
+    get ComponentView() { return this.docView?._componentView; }
     get allLinks() { return this.docView?.allLinks || []; }
     get LayoutFieldKey() { return this.docView?.LayoutFieldKey || "layout"; }
 

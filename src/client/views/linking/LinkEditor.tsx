@@ -4,7 +4,6 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { DateCast, StrCast } from "../../../fields/Types";
-import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
 import './LinkEditor.scss';
@@ -21,31 +20,41 @@ interface LinkEditorProps {
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @observable description = StrCast(LinkManager.currentLink?.description);
+    @observable relationship = StrCast(LinkManager.currentLink?.linkRelationship);
     @observable openDropdown: boolean = false;
     @observable showInfo: boolean = false;
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
     @observable private buttonColor: string = "";
-
+    @observable private relationshipButtonColor: string = "";
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
-    @undoBatch @action
+    @undoBatch
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         this.props.showLinks();
     }
 
-    @undoBatch @action
-    setDescripValue = (value: string) => {
+    @undoBatch
+    setRelationshipValue = action((value: string) => {
+        if (LinkManager.currentLink) {
+            LinkManager.currentLink.linkRelationship = value;
+            this.relationshipButtonColor = "rgb(62, 133, 55)";
+            setTimeout(action(() => this.relationshipButtonColor = ""), 750);
+            return true;
+        }
+    });
+
+    @undoBatch
+    setDescripValue = action((value: string) => {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
             this.buttonColor = "rgb(62, 133, 55)";
             setTimeout(action(() => this.buttonColor = ""), 750);
             return true;
         }
-    }
+    });
 
-    @action
     onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             this.setDescripValue(this.description);
@@ -53,22 +62,48 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         }
     }
 
-    @action
-    onDown = () => {
-        this.setDescripValue(this.description);
+    onRelationshipKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            this.setRelationshipValue(this.relationship);
+            document.getElementById('input')?.blur();
+        }
     }
 
-    @action
-    handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.description = e.target.value;
-    }
+    onDown = () => this.setDescripValue(this.description);
+    onRelationshipDown = () => this.setRelationshipValue(this.description);
 
+    @action
+    handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { this.description = e.target.value; }
+    @action
+    handleRelationshipChange = (e: React.ChangeEvent<HTMLInputElement>) => { this.relationship = e.target.value; }
+
+    @computed
+    get editRelationship() {
+        return <div className="linkEditor-description">
+            <div className="linkEditor-description-label">Link Relationship:</div>
+            <div className="linkEditor-description-input">
+                <div className="linkEditor-description-editing">
+                    <input
+                        style={{ width: "100%" }}
+                        id="input"
+                        value={this.relationship}
+                        placeholder={"enter link label"}
+                        // color={"rgb(88, 88, 88)"}
+                        onKeyDown={this.onRelationshipKey}
+                        onChange={this.handleRelationshipChange}
+                    ></input>
+                </div>
+                <div className="linkEditor-description-add-button"
+                    style={{ background: this.relationshipButtonColor }}
+                    onPointerDown={this.onRelationshipDown}>Set</div>
+            </div>
+        </div>;
+    }
 
     @computed
     get editDescription() {
         return <div className="linkEditor-description">
-            <div className="linkEditor-description-label">
-                Link Label:</div>
+            <div className="linkEditor-description-label">Link Description:</div>
             <div className="linkEditor-description-input">
                 <div className="linkEditor-description-editing">
                     <input
@@ -84,13 +119,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <div className="linkEditor-description-add-button"
                     style={{ background: this.buttonColor }}
                     onPointerDown={this.onDown}>Set</div>
-            </div></div>;
+            </div>
+        </div>;
     }
 
     @action
-    changeDropdown = () => {
-        this.openDropdown = !this.openDropdown;
-    }
+    changeDropdown = () => { this.openDropdown = !this.openDropdown; }
 
     @undoBatch
     changeFollowBehavior = action((follow: string) => {
@@ -101,8 +135,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @computed
     get followingDropdown() {
         return <div className="linkEditor-followingDropdown">
-            <div className="linkEditor-followingDropdown-label">
-                Follow Behavior:</div>
+            <div className="linkEditor-followingDropdown-label">Follow Behavior:</div>
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header"
                     onPointerDown={this.changeDropdown}>
@@ -157,9 +190,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     @action
-    changeInfo = () => {
-        this.showInfo = !this.showInfo;
-    }
+    changeInfo = () => { this.showInfo = !this.showInfo; }
 
     render() {
         const destination = LinkManager.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
@@ -186,8 +217,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         {DateCast(this.props.linkDoc.creationDate).toString()}</div> : null}</div>
                 </div> : null}
 
-                <div>{this.editDescription}</div>
-                <div>{this.followingDropdown}</div>
+                {this.editDescription}
+                {this.editRelationship}
+                {this.followingDropdown}
             </div>
 
         );

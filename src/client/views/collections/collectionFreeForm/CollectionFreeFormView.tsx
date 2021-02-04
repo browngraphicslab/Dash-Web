@@ -816,8 +816,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         else if (this.props.active(true)) {
             e.stopPropagation();
+            e.preventDefault();
             if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else if (!this.props.isAnnotationOverlay) this.zoom(e.clientX, e.clientY, e.deltaY);
+            else this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
@@ -929,16 +931,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         } else {
             const layoutdoc = Doc.Layout(doc);
-            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
-            const newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
-            const newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
-            const newState = HistoryUtil.getState();
-            if (!layoutdoc.annotationOn) {
-                willZoom && this.setScaleToZoom(layoutdoc, scale);
+            const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
 
+            const newState = HistoryUtil.getState();
+            let newPanX = savedState.px;
+            let newPanY = savedState.py;
+            if (!layoutdoc.annotationOn) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
+                willZoom && this.setScaleToZoom(layoutdoc, scale);
+                newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
+                newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
                 newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+                HistoryUtil.pushState(newState);
             }
-            HistoryUtil.pushState(newState);
 
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...

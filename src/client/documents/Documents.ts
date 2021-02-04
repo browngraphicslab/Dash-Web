@@ -153,8 +153,6 @@ export interface DocumentOptions {
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
     _timecodeToHide?: number; // the time that a document should be hidden
-    anchorStartTime?: number; // the time when an annotation starts on a timeline (e.g., when an audio anchor starts on an audio/video timeline)
-    anchorEndTime?: number;   // the time when an annotaiton ends on a timeline 
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -722,8 +720,6 @@ export namespace Docs {
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc._timecodeToShow;
-            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc._timecodeToShow;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "creationDate", "author"]);

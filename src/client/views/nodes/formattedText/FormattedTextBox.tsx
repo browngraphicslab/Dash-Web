@@ -66,12 +66,15 @@ import { SubCollectionViewProps } from '../../collections/CollectionSubView';
 import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
+import { DocumentManager } from '../../../util/DocumentManager';
+const translateGoogleApi = require("translate-google-api");
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
     hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
     xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
     yMargin?: number;
+    noSidebar?: boolean;
     dontSelectOnLoad?: boolean; // suppress selecting the text box when loaded
 }
 export const GoogleRef = "googleDocId";
@@ -93,16 +96,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
-    private _applyingChange: boolean = false;
+    private _applyingChange: string = "";
     private _searchIndex = 0;
     private _cachedLinks: Doc[] = [];
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
-    private _first: Boolean = true;
     private _recordingStart: number = 0;
-    private _currentTime: number = 0;
-    private _linkTime: number | null = null;
     private _pause: boolean = false;
     private _animatingScroll: number = 0; // hack to prevent scroll values from being written to document when scroll is animating
 
@@ -248,6 +248,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(Math.min(coordsT.left, coordsB.left), Math.max(coordsT.bottom, coordsB.bottom));
     }
 
+    _lastText = "";
     dispatchTransaction = (tx: Transaction) => {
         let timeStamp;
         clearTimeout(timeStamp);
@@ -298,8 +299,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             };
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
-                if (!this._applyingChange && removeSelection(json) !== removeSelection(curProto?.Data)) {
-                    this._applyingChange = true;
+                if (this._applyingChange !== this.fieldKey && removeSelection(json) !== removeSelection(curProto?.Data)) {
+                    this._applyingChange = this.fieldKey;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || json.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (removeSelection(json) !== removeSelection(curLayout?.Data)) {
@@ -327,7 +328,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                         unchanged = false;
                     }
-                    this._applyingChange = false;
+                    this._applyingChange = "";
                     if (!unchanged) {
                         this.updateTitle();
                         this.tryUpdateHeight();
@@ -341,39 +342,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this._editorView.updateState(EditorState.fromJSON(this.config, json));
                 }
             }
+            if (window.getSelection()?.isCollapsed) AnchorMenu.Instance.fadeOut(true);
         }
     }
 
     pause = () => this._pause = true;
 
-    formatTime = (time: number) => {
-        const hours = Math.floor(time / 60 / 60);
-        const minutes = Math.floor(time / 60) - (hours * 60);
-        const seconds = time % 60;
-
-        return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-    }
-
     // for inserting timestamps 
     insertTime = () => {
-        let audioState;
-        if (this._first) {
-            DocListCast(this.dataDoc.links).map((l, i) => {
-                let la1 = l.anchor1 as Doc;
-                let la2 = l.anchor2 as Doc;
-                this._linkTime = NumCast(la1.anchorStartTime, NumCast(la2.anchorStartTime));
-                audioState = la2.audioState;
-                if (Doc.AreProtosEqual(la2, this.dataDoc)) {
-                    la1 = l.anchor2 as Doc;
-                    la2 = l.anchor1 as Doc;
-                    audioState = la1.audioState;
-                }
-            });
-        }
-        this._currentTime = Date.now();
-        let time;
-        this._linkTime ? time = this.formatTime(Math.round(this._linkTime + this._currentTime / 1000 - this._recordingStart / 1000)) : time = null;
-
+        let linkTime;
+        let linkAnchor;
+        DocListCast(this.dataDoc.links).forEach((l, i) => {
+            const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
+            if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
+                linkTime = NumCast(anchor.audioStart);
+                linkAnchor = anchor;
+            }
+        });
         if (this._editorView) {
             const state = this._editorView.state;
             const now = Date.now();
@@ -388,13 +373,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             }
-            if (time && audioState === "recording") {
-                let value = "";
+
+            const path = (this._editorView.state.selection.$from as any).path;
+            if (linkAnchor && linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
+                const time = linkTime + Date.now() / 1000 - this._recordingStart / 1000;
                 this._break = false;
-                value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
                 const from = state.selection.from;
-                const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-                this._editorView.dispatch(this._editorView.state.tr.insertText(value));
+                const value = this._editorView.state.schema.nodes.audiotag.create({ timeCode: time, audioId: linkAnchor[Id] });
+                const replaced = this._editorView.state.tr.insert(from - 1, value);
+                this._editorView.dispatch(replaced.setSelection(new TextSelection(replaced.doc.resolve(from + 1))));
             }
         }
     }
@@ -568,10 +555,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         return ret;
     }
-    static _highlights: string[] = ["Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
+    static _highlights: string[] = ["Audio Tags", "Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
 
     updateHighlights = () => {
         clearStyleSheetRules(FormattedTextBox._userStyleSheet);
+        if (FormattedTextBox._highlights.indexOf("Audio Tags") === -1) {
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "audiotag", { display: "none" }, "");
+        }
         if (FormattedTextBox._highlights.indexOf("Text from Others") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-remote", { background: "yellow" });
         }
@@ -643,8 +633,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         !Doc.UserDoc().noviceMode && changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         const highlighting: ContextMenuProps[] = [];
-        const noviceHighlighting = ["My Text", "Text from Others"];
-        const expertHighlighting = ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"];
+        const noviceHighlighting = ["Audio Tags", "My Text", "Text from Others"];
+        const expertHighlighting = [...noviceHighlighting, "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"];
         (Doc.UserDoc().noviceMode ? noviceHighlighting : expertHighlighting).forEach(option =>
             highlighting.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -944,16 +934,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             () => {
                 if (!this.dataDoc || !this.layoutDoc) return undefined;
                 if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey]) {
-                    return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
+                    return { data: Cast(this.dataDoc[this.props.fieldKey], RichTextField, null), str: StrCast(this.dataDoc[this.props.fieldKey]) };
                 }
-                return Cast(this.layoutDoc[this.props.fieldKey], RichTextField, null)?.Data;
+                return { data: Cast(this.layoutDoc[this.props.fieldKey], RichTextField, null), str: StrCast(this.layoutDoc[this.props.fieldKey]) };
             },
             incomingValue => {
-                if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
-                    const updatedState = JSON.parse(incomingValue);
-                    if (JSON.stringify(this._editorView.state.toJSON()) !== JSON.stringify(updatedState)) {
-                        this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
-                        this.tryUpdateHeight();
+                if (this._editorView && this._applyingChange !== this.fieldKey) {
+                    if (incomingValue?.data) {
+                        const updatedState = JSON.parse(incomingValue.data.Data);
+                        if (JSON.stringify(this._editorView.state.toJSON()) !== JSON.stringify(updatedState)) {
+                            this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
+                            this.tryUpdateHeight();
+                        }
+                    } else if (incomingValue?.str) {
+                        selectAll(this._editorView.state, tx => this._editorView?.dispatch(tx.insertText(incomingValue.str)));
                     }
                 }
             },
@@ -1312,6 +1306,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     _break = false;
     _collapsed = false;
     onPointerDown = (e: React.PointerEvent): void => {
+        if ((e.target as any).tagName === "AUDIOTAG") {
+            e.preventDefault();
+            e.stopPropagation();
+            const time = (e.target as any)?.dataset?.timecode || 0;
+            const audioid = (e.target as any)?.dataset?.audioid || 0;
+            DocServer.GetRefField(audioid).then(anchor => {
+                if (anchor instanceof Doc) {
+                    const audiodoc = anchor.annotationOn as Doc;
+                    audiodoc._triggerAudio = Number(time);
+                    !DocumentManager.Instance.getDocumentView(audiodoc) && this.props.addDocTab(audiodoc, "add:bottom");
+                }
+            });
+        }
         if (this._recording && !e.ctrlKey && e.button === 0) {
             this.stopDictation(true);
             this._break = true;
@@ -1541,6 +1548,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         FormattedTextBox.LiveTextUndo?.end();
         FormattedTextBox.LiveTextUndo = undefined;
+
+        const state = this._editorView!.state;
+        const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
+        if (this.layoutDoc.sidebarViewType === "translation" && !this.fieldKey.includes("translation") && curText.endsWith(" ") && curText !== this._lastText) {
+            try {
+                translateGoogleApi(curText, { from: "en", to: "es", }).then((result1: any) => {
+                    setTimeout(() => translateGoogleApi(result1[0], { from: "es", to: "en", }).then((result: any) => {
+                        this.dataDoc[this.fieldKey + "-translation"] = result1 + "\r\n\r\n" + result[0];
+                    }), 1000);
+                });
+            } catch (e) { console.log(e.message); }
+            this._lastText = curText;
+        }
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1636,7 +1656,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarHandle() {
         const annotated = DocListCast(this.dataDoc[this.annotationKey]).filter(d => d?.author).length;
-        return !this.props.isSelected() && !(annotated && !this.sidebarWidth()) ? (null) :
+        return this.props.noSidebar || (!this.props.isSelected() && !(annotated && !this.sidebarWidth())) ? (null) :
             <div className="formattedTextBox-sidebar-handle"
                 style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightblue" : this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor) }}
                 onPointerDown={this.sidebarDown}
@@ -1670,12 +1690,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             ScreenToLocalTransform: this.sidebarScreenToLocal,
             renderDepth: this.props.renderDepth + 1,
         };
-        return !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
+        return this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                 style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                {this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
-                    <CollectionFreeFormView {...collectionProps} /> :
-                    <CollectionStackingView {...collectionProps} />}
+                {this.layoutDoc.sidebarViewType === "translation" ?
+                    <FormattedTextBox {...collectionProps} noSidebar={true} fieldKey={`${this.fieldKey}-translation`} /> :
+                    this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
+                        <CollectionFreeFormView {...collectionProps} /> :
+                        <CollectionStackingView {...collectionProps} />}
             </div>;
     }
 

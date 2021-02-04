@@ -7,6 +7,8 @@ import { LinkDocPreview } from "../views/nodes/LinkDocPreview";
 import { CreateViewFunc, DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
+import { MainView } from "../views/MainView";
+import { runInAction } from "mobx";
 
 /* 
  * link doc: 
@@ -145,11 +147,16 @@ export class LinkManager {
                     doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
-                    const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                    containerDoc._currentTimecode = targetTimecode;
-                    const targetContext = await target?.context as Doc;
-                    const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+                    if (MainView.Instance.LightboxDoc) {
+                        runInAction(() => MainView.Instance.LightboxDoc = (target.annotationOn as Doc) ?? target);
+                        finished?.();
+                    } else {
+                        const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
+                        containerDoc._currentTimecode = targetTimecode;
+                        const targetContext = await target?.context as Doc;
+                        const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                        DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+                    }
                 } else {
                     finished?.();
                 }

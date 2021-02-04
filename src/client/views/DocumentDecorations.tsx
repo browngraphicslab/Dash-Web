@@ -26,6 +26,7 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
+import { MainView } from './MainView';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -171,8 +172,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     alias.x = -alias[WidthSym]() / 2;
                     alias.y = -alias[HeightSym]() / 2;
                     CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
-                } else {    // open same document in new tab
+                } else if (e.altKey) {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
+                } else {
+                    runInAction(() => MainView.Instance.LightboxDoc = selectedDocs[0].props.Document);
                 }
             }
         }
@@ -601,7 +604,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: KeyManager.Instance.ShiftPressed || this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.Views().length > 1 ? 900 : 0,
+                display: SelectionManager.Views().length <= 1 ? "none" : undefined
             }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>

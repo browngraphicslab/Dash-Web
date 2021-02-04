@@ -32,10 +32,6 @@ export class GestureOverlay extends Touchable {
     @observable public InkShape: string = "";
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
-    @observable public SavedFill?: string;
-    @observable public SavedArrowStart: string = "none";
-    @observable public SavedArrowEnd: string = "none";
-    @observable public SavedDash: String = "0";
     @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
@@ -607,7 +603,7 @@ export class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (!CollectionFreeFormViewChrome.Instance._keepMode) {
+                if (!CollectionFreeFormViewChrome.Instance._keepPrimitiveMode) {
                     this.InkShape = "";
                 }
             }
@@ -653,15 +649,7 @@ export class GestureOverlay extends Touchable {
         } else {
             this._points = [];
         }
-        //get out of ink mode after each stroke=
-        if (CollectionFreeFormViewChrome.Instance && !CollectionFreeFormViewChrome.Instance?._keepMode) {
-            Doc.SetSelectedTool(InkTool.None);
-            CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
-            SetActiveArrowStart("none");
-            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-            SetActiveArrowEnd("none");
-            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
-        }
+        CollectionFreeFormViewChrome.Instance.primCreated();
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
@@ -969,13 +957,9 @@ Scripting.addGlobal(function setPen(width: any, color: any, fill: any, arrowStar
         SetActiveInkColor(color);
         GestureOverlay.Instance.SavedWidth = ActiveInkWidth();
         SetActiveInkWidth(width);
-        GestureOverlay.Instance.SavedFill = ActiveFillColor();
         SetActiveFillColor(fill);
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
         SetActiveArrowStart(arrowStart);
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
         SetActiveArrowStart(arrowEnd);
-        GestureOverlay.Instance.SavedDash = ActiveDash();
         SetActiveDash(dash);
     });
 });

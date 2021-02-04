@@ -3,7 +3,6 @@ import v5 = require("uuid/v5");
 import { ColorState } from 'react-color';
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import Color = require('color');
 
 export namespace Utils {
     export let DRAG_THRESHOLD = 4;
@@ -501,9 +500,9 @@ export function addStyleSheet(styleType: string = "text/css") {
     const sheets = document.head.appendChild(style);
     return (sheets as any).sheet;
 }
-export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+export function addStyleSheetRule(sheet: any, selector: any, css: any, selectorPrefix = ".") {
     const propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
-    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+    return sheet.insertRule(selectorPrefix + selector + "{" + propText + "}", sheet.cssRules.length);
 }
 export function removeStyleSheetRule(sheet: any, rule: number) {
     if (sheet.rules.length) {
@@ -550,6 +549,49 @@ export function simulateMouseClick(element: Element | null | undefined, x: numbe
         }));
 }
 
+export function lightOrDark(color: any) {
+
+    // Variables for red, green, blue values
+    var r, g, b, hsp;
+
+    // Check the format of the color, HEX or RGB?
+    if (color.match(/^rgb/)) {
+
+        // If RGB --> store the red, green, blue values in separate variables
+        color = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/);
+
+        r = color[1];
+        g = color[2];
+        b = color[3];
+    }
+    else {
+
+        // If hex --> Convert it to RGB: http://gist.github.com/983661
+        color = +("0x" + color.slice(1).replace(
+            color.length < 5 && /./g, '$&$&'));
+
+        r = color >> 16;
+        g = color >> 8 & 255;
+        b = color & 255;
+    }
+
+    // HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
+    hsp = Math.sqrt(
+        0.299 * (r * r) +
+        0.587 * (g * g) +
+        0.114 * (b * b)
+    );
+
+    // Using the HSP value, determine whether the color is light or dark
+    if (hsp > 127.5) {
+        return 'light';
+    }
+    else {
+
+        return 'dark';
+    }
+}
+
 export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {
     let entered = false;
     for (let child = document.elementFromPoint(x, y); !entered && child; child = child.parentElement) {
@@ -558,24 +600,32 @@ export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement
     return entered;
 }
 
-export function lightOrDark(color: any) {
-    const col = Color(color).rgb();
-    const colsum = (col.red() + col.green() + col.blue());
-    if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
-    return "white";
+export function StopEvent(e: React.PointerEvent | React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
 }
 
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent, movement: number[]) => any,
+    upEvent: (e: PointerEvent, movement: number[], isClick: boolean) => any,
     clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
-    stopMovePropagation: boolean = true
+    stopMovePropagation: boolean = true,
+    noDoubleTapTimeout?: () => void
 ) {
+    const doubleTapTimeout = 300;
+    (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < doubleTapTimeout);
+    (target as any)._lastTap = Date.now();
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
+    if (!(target as any)._doubleTime && noDoubleTapTimeout) {
+        (target as any)._doubleTime = setTimeout(() => {
+            noDoubleTapTimeout?.();
+            (target as any)._doubleTime = undefined;
+        }, doubleTapTimeout);
+    }
 
     const _moveEvent = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
@@ -593,12 +643,10 @@ export function setupMoveUpEvents(
         (target as any)._lastY = e.clientY;
         stopMovePropagation && e.stopPropagation();
     };
-    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
-        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
-        (target as any)._lastTap = Date.now();
-        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY]);
-        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+        const isClick = Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4;
+        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY], isClick);
+        if (isClick) {
             if ((target as any)._doubleTime && (target as any)._doubleTap) {
                 clearTimeout((target as any)._doubleTime);
                 (target as any)._doubleTime = undefined;
