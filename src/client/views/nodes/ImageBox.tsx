@@ -222,7 +222,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) return url.href;  //Why is this here
 
         const ext = path.extname(url.href);
-        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.props.PanelWidth() < 100 ? "_s" : "_m";
+        const scrSize = this.props.ScreenToLocalTransform().inverse().transformDirection(this.nativeSize.nativeWidth, this.nativeSize.nativeHeight);
+        this._curSuffix = this.props.renderDepth < 1 ? "_o" : scrSize[0] < 100 ? "_s" : scrSize[0] < 400 || !this.props.isSelected() ? "_m" : "_o";
         return url.href.replace(ext, this._curSuffix + ext);
     }
 
