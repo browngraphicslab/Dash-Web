@@ -401,7 +401,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         if (this.props.Document.type !== DocumentType.LABEL) {
                             UndoManager.RunInBatch(() => {
                                 const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
-                                this.props.addDocTab(fullScreenDoc, "add");
+                                this.props.addDocTab(fullScreenDoc, "lightbox");
                             }, "double tap");
                             SelectionManager.DeselectAll();
                         }

@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../fields/Doc";
 import { NumCast } from "../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, emptyPath } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { DocumentView } from "./nodes/DocumentView";
 import "./Palette.scss";
@@ -50,7 +50,9 @@ export default class Palette extends React.Component<PaletteProps> {
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
                             focus={emptyFunction}
+                            docViewPath={emptyPath}
                             styleProvider={returnEmptyString}
+                            layerProvider={undefined}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}

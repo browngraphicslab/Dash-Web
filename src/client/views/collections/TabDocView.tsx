@@ -34,6 +34,7 @@ import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
 import { MainView } from '../MainView';
+import { LightboxView } from '../LightboxView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -278,10 +279,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
+            case "lightbox": return runInAction(() => LightboxView.LightboxDoc = doc) ? true : false;
             case "inPlace":
             case "add":
-            default: runInAction(() => MainView.Instance.LightboxDoc = doc);
-                if (MainView.Instance.LightboxDoc) return true;
+            default:
                 return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }

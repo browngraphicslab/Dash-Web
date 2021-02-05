@@ -4,7 +4,7 @@ import wiki from "wikijs";
 import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, emptyPath } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
@@ -111,7 +111,10 @@ export class LinkDocPreview extends React.Component<Props> {
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
-                styleProvider={this.props.docprops?.styleProvider} />;
+                styleProvider={this.props.docprops?.styleProvider}
+                layerProvider={this.props.docprops?.layerProvider}
+                docViewPath={emptyPath}
+            />;
     }
 
     render() {

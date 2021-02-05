@@ -1,14 +1,14 @@
+import { runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";
-import { DocFocusFunc, DocumentViewSharedProps } from "../views/nodes/DocumentView";
+import { LightboxView } from "../views/LightboxView";
+import { DocumentViewSharedProps } from "../views/nodes/DocumentView";
 import { FormattedTextBoxComment } from "../views/nodes/formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "../views/nodes/LinkDocPreview";
 import { CreateViewFunc, DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
-import { MainView } from "../views/MainView";
-import { runInAction } from "mobx";
 
 /* 
  * link doc: 
@@ -147,8 +147,8 @@ export class LinkManager {
                     doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
-                    if (MainView.Instance.LightboxDoc && doc.annotationOn !== MainView.Instance.LightboxDoc) { // following a link should replace an existing lightboxDoc unless the target is an annotation on the lightbox document
-                        runInAction(() => MainView.Instance.LightboxDoc = (target.annotationOn as Doc) ?? target);
+                    if (LightboxView.LightboxDoc && doc.annotationOn !== LightboxView.LightboxDoc) { // following a link should replace an existing lightboxDoc unless the target is an annotation on the lightbox document
+                        runInAction(() => LightboxView.LightboxDoc = (target.annotationOn as Doc) ?? target);
                         finished?.();
                     } else {
                         const containerDoc = (await Cast(target.annotationOn, Doc)) || target;

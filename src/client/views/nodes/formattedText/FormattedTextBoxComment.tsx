@@ -8,7 +8,7 @@ import * as ReactDOM from 'react-dom';
 import wiki from "wikijs";
 import { Doc, DocCastAsync, DocListCast, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, Utils } from "../../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, Utils, emptyPath } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { DocumentType } from "../../../documents/DocumentTypes";
@@ -22,6 +22,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import { schema } from "./schema_rts";
 import React = require("react");
+import { DefaultStyleProvider } from "../../StyleProvider";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -298,6 +299,9 @@ export class FormattedTextBoxComment {
                                             Document={target}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}
+                                            styleProvider={DefaultStyleProvider}
+                                            layerProvider={undefined}
+                                            docViewPath={emptyPath}
                                             ScreenToLocalTransform={Transform.Identity}
                                             parentActive={returnFalse}
                                             addDocument={returnFalse}

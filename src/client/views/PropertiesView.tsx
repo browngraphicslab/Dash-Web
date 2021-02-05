@@ -11,7 +11,7 @@ import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { denormalizeEmail, GetEffectiveAcl, SharingPermissions } from "../../fields/util";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, emptyPath } from "../../Utils";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DocumentManager } from "../util/DocumentManager";
 import { SelectionManager } from "../util/SelectionManager";
@@ -270,6 +270,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
+                    docViewPath={emptyPath}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}

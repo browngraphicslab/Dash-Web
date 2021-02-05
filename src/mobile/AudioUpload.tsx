@@ -12,7 +12,7 @@ import { Doc } from '../fields/Doc';
 import { listSpec } from '../fields/Schema';
 import { Cast, FieldValue } from '../fields/Types';
 import { nullAudio } from '../fields/URLField';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from '../Utils';
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, emptyPath } from '../Utils';
 import "./ImageUpload.scss";
 import { MobileInterface } from './MobileInterface';
 import React = require('react');
@@ -94,7 +94,9 @@ export class AudioUpload extends React.Component {
                         PanelHeight={() => 400}
                         renderDepth={0}
                         focus={emptyFunction}
+                        layerProvider={undefined}
                         styleProvider={() => "rgba(0,0,0,0)"}
+                        docViewPath={emptyPath}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}

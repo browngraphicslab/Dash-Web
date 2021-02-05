@@ -1,7 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { TREE_BULLET_WIDTH } from '../globalCssVariables.scss';
 import { DataSym, Doc, DocListCast, DocListCastOrNull, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -10,7 +9,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -21,17 +20,18 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { EditableView } from "../EditableView";
+import { TREE_BULLET_WIDTH } from '../globalCssVariables.scss';
 import { DocumentView, DocumentViewProps, StyleProviderFunc } from '../nodes/DocumentView';
 import { FieldViewProps } from '../nodes/FieldView';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { RichTextMenu } from '../nodes/formattedText/RichTextMenu';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { SliderBox } from '../nodes/SliderBox';
 import { StyleProp, testDocProps } from '../StyleProvider';
 import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
-import { SliderBox } from '../nodes/SliderBox';
 
 export interface TreeViewProps {
     document: Doc;
@@ -549,6 +549,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 Document={this.doc}
                 DataDoc={undefined}
                 styleProvider={this.titleStyleProvider}
+                layerProvider={undefined}
+                docViewPath={emptyPath}
                 treeViewDoc={this.props.treeView.props.Document}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
@@ -639,6 +641,8 @@ export class TreeView extends React.Component<TreeViewProps> {
             renderDepth={this.props.renderDepth + 1}
             rootSelected={returnTrue}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
+            layerProvider={undefined}
+            docViewPath={emptyPath}
             docFilters={returnEmptyFilter}
             docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}

@@ -23,10 +23,10 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { InkStrokeProperties } from './InkStrokeProperties';
+import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
-import { MainView } from './MainView';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -175,7 +175,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 } else if (e.altKey) {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
                 } else {
-                    runInAction(() => MainView.Instance.LightboxDoc = selectedDocs[0].props.Document);
+                    runInAction(() => LightboxView.LightboxDoc = selectedDocs[0].props.Document);
                 }
             }
         }

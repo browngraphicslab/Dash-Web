@@ -8,7 +8,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents, emptyPath } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -886,6 +886,8 @@ export class GestureOverlay extends Touchable {
                 PanelHeight={this.return300}
                 renderDepth={0}
                 styleProvider={returnEmptyString}
+                layerProvider={undefined}
+                docViewPath={emptyPath}
                 focus={emptyFunction}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}

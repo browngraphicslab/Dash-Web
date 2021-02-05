@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, Field, Opt } from '../../../fields/Doc';
-import { emptyFunction, returnFalse, returnOne, returnZero, returnEmptyFilter, returnEmptyDoclist } from '../../../Utils';
+import { emptyFunction, returnFalse, returnOne, returnZero, returnEmptyFilter, returnEmptyDoclist, emptyPath } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
@@ -12,6 +12,7 @@ import { KeyValueBox } from './KeyValueBox';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
+import { DefaultStyleProvider } from '../StyleProvider';
 
 // Represents one row in a key value plane
 
@@ -58,6 +59,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             docFilters: returnEmptyFilter,
             docRangeFilters: returnEmptyFilter,
             searchFilterDocs: returnEmptyDoclist,
+            styleProvider: DefaultStyleProvider,
+            layerProvider: undefined,
+            docViewPath: emptyPath,
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
             fieldKey: this.props.keyName,
