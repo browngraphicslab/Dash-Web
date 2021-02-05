@@ -13,7 +13,7 @@ import { DefaultStyleProvider } from './StyleProvider';
 interface LightboxViewProps {
     PanelWidth: number;
     PanelHeight: number;
-    minBorder: number[];
+    maxBorder: number[];
 }
 
 @observer
@@ -23,14 +23,14 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     public static LightboxFuture: (Opt<Doc>)[] = [];
     public static LightboxDocView = React.createRef<DocumentView>();
     public LightboxDocView = React.createRef<DocumentView>();
-    lightboxWidth = () => this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.minBorder[0]) * 2;
-    lightboxHeight = () => this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.minBorder[1]) * 2;
-    lightboxScreenToLocal = () => new Transform(-Math.min(this.props.PanelWidth / 4, this.props.minBorder[0]), -Math.min(this.props.PanelHeight / 4, this.props.minBorder[1]), 1);
+    lightboxWidth = () => this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]) * 2;
+    lightboxHeight = () => this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]) * 2;
+    lightboxScreenToLocal = () => new Transform(-Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), -Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]), 1);
     navBtn = (left: Opt<number>, icon: string, display: () => string, click: (e: React.MouseEvent) => void) => {
         return <div className="lightboxView-navBtn-frame" style={{
             display: display(),
             left,
-            width: Math.min(this.props.PanelWidth / 4, this.props.minBorder[0])
+            width: Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0])
         }}>
             <div className="lightboxView-navBtn" style={{ top: this.props.PanelHeight / 2 - 12.50 }}
                 onClick={click}>
@@ -40,6 +40,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     }
 
     render() {
+        console.log("ph = " + this.props.PanelHeight);
         if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxDoc) LightboxView.LightboxHistory.push(LightboxView.LightboxDoc);
         let downx = 0, downy = 0;
         return !LightboxView.LightboxDoc ? (null) :
@@ -53,10 +54,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     }
                 })}  >
                 <div className="lightboxView-contents" style={{
-                    left: Math.min(this.props.PanelWidth / 4, this.props.minBorder[0]),
-                    top: Math.min(this.props.PanelHeight / 4, this.props.minBorder[1]),
-                    width: this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.minBorder[0]) * 2,
-                    height: this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.minBorder[1]) * 2
+                    left: Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]),
+                    top: Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]),
+                    width: this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]) * 2,
+                    height: this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]) * 2
                 }}>
                     <DocumentView ref={this.LightboxDocView}
                         Document={LightboxView.LightboxDoc}
@@ -91,7 +92,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxFuture.lastElement()) LightboxView.LightboxFuture.push(popped);
                         LightboxView.LightboxDoc = LightboxView.LightboxHistory.lastElement();
                     }))}
-                {this.navBtn(this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.minBorder[0]), "chevron-right",
+                {this.navBtn(this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), "chevron-right",
                     () => LightboxView.LightboxDoc && LightboxView.LightboxFuture.length ? "" : "none",
                     action(e => {
                         e.stopPropagation();

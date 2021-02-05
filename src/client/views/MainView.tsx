@@ -67,8 +67,9 @@ const _global = (window /* browser */ || global /* node */) as any;
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
-    private _mainViewRef = React.createRef<HTMLDivElement>();
     @observable public LastButton: Opt<Doc>;
+    @observable private _windowWidth: number = 0;
+    @observable private _windowHeight: number = 0;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -609,7 +610,11 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)} ref={this._mainViewRef}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}
+            onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)}
+            ref={r => {
+                r && new _global.ResizeObserver(action(() => { this._windowWidth = r.getBoundingClientRect().width; this._windowHeight = r.getBoundingClientRect().height; })).observe(r);
+            }}>
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />
@@ -636,7 +641,7 @@ export class MainView extends React.Component {
             <TimelineMenu />
             {this.snapLines}
             <div className="mainView-webRef" ref={this.makeWebRef} />
-            <LightboxView PanelWidth={this._panelWidth} PanelHeight={this._panelHeight} minBorder={[200, 100]} />
+            <LightboxView PanelWidth={this._windowWidth} PanelHeight={this._windowHeight} maxBorder={[200, 100]} />
         </div>);
     }
 
