@@ -493,7 +493,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
                 if (docs.length) {
                     LightboxView.LightboxDoc = docs[0];
-                    LightboxView.LightboxFuture = docs;
+                    LightboxView.LightboxFuture = docs.slice(1);
                 }
             })}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
