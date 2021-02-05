@@ -22,6 +22,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: "block+"
     },
 
+    paragraph: ParagraphNodeSpec,
+
     audiotag: {
         group: "block",
         attrs: {
@@ -63,8 +65,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM: () => ["footnote", 0],
         parseDOM: [{ tag: "footnote" }]
     },
-
-    paragraph: ParagraphNodeSpec,
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
