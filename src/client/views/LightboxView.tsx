@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable } from 'mobx';
+import { action, observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -22,10 +22,11 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     public static LightboxHistory: (Opt<Doc>)[] = [];
     public static LightboxFuture: (Opt<Doc>)[] = [];
     public static LightboxDocView = React.createRef<DocumentView>();
-    public LightboxDocView = React.createRef<DocumentView>();
-    lightboxWidth = () => this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]) * 2;
-    lightboxHeight = () => this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]) * 2;
-    lightboxScreenToLocal = () => new Transform(-Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), -Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]), 1);
+    @computed get leftBorder() { return Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]); }
+    @computed get topBorder() { return Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]); }
+    lightboxWidth = () => this.props.PanelWidth - this.leftBorder * 2;
+    lightboxHeight = () => this.props.PanelHeight - this.topBorder * 2;
+    lightboxScreenToLocal = () => new Transform(-this.leftBorder, -this.topBorder, 1);
     navBtn = (left: Opt<number>, icon: string, display: () => string, click: (e: React.MouseEvent) => void) => {
         return <div className="lightboxView-navBtn-frame" style={{
             display: display(),
@@ -40,7 +41,6 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     }
 
     render() {
-        console.log("ph = " + this.props.PanelHeight);
         if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxDoc) LightboxView.LightboxHistory.push(LightboxView.LightboxDoc);
         let downx = 0, downy = 0;
         return !LightboxView.LightboxDoc ? (null) :
@@ -54,12 +54,12 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     }
                 })}  >
                 <div className="lightboxView-contents" style={{
-                    left: Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]),
-                    top: Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]),
-                    width: this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]) * 2,
-                    height: this.props.PanelHeight - Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]) * 2
+                    left: this.leftBorder,
+                    top: this.topBorder,
+                    width: this.lightboxWidth(),
+                    height: this.lightboxHeight()
                 }}>
-                    <DocumentView ref={this.LightboxDocView}
+                    <DocumentView ref={LightboxView.LightboxDocView}
                         Document={LightboxView.LightboxDoc}
                         DataDoc={undefined}
                         addDocument={undefined}
@@ -69,7 +69,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         docViewPath={emptyPath}
                         removeDocument={undefined}
                         styleProvider={DefaultStyleProvider}
-                        layerProvider={undefined}
+                        layerProvider={returnTrue}
                         ScreenToLocalTransform={this.lightboxScreenToLocal}
                         PanelWidth={this.lightboxWidth}
                         PanelHeight={this.lightboxHeight}
