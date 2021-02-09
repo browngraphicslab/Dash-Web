@@ -23,8 +23,6 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBoxComment } from "../nodes/formattedText/FormattedTextBoxComment";
-import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { Annotation } from "./Annotation";
 import { AnchorMenu } from "./AnchorMenu";
 import "./PDFViewer.scss";
@@ -88,6 +86,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _coverPath: any;
     private _lastSearch = false;
     private _viewerIsSetup = false;
+    private _ignoreScroll = false;
+    private _smoothScrolling = true;
 
     @computed get allAnnotations() {
         return DocUtils.FilterDocs(DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]), this.props.docFilters(), this.props.docRangeFilters(), undefined);
@@ -119,12 +119,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         runInAction(() => this._showWaiting = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        if (this._mainCont.current) {
-            this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0;
-            const observer = new _global.ResizeObserver(action((entries: any) => this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0)));
-            observer.observe(this._mainCont.current);
-            this._mainCont.current.addEventListener("scroll", (e) => (e.target as any).scrollLeft = 0);
-        }
+        this._mainCont.current?.addEventListener("scroll", e => (e.target as any).scrollLeft = 0);
 
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
@@ -141,36 +136,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 (SelectionManager.Views().length === 1) && this.setupPdfJsViewer();
             },
             { fireImmediately: true });
-        this._disposers.scrollY = reaction(
-            () => this.Document._scrollY,
-            (scrollY) => {
-                if (scrollY !== undefined) {
-                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    if (this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
-                        const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
-                        const durationStr = StrCast(this.Document._viewTransition).match(/([0-9]*)ms/);
-                        const duration = durationStr ? Number(durationStr[1]) : 1000;
-                        setTimeout(() => this.Document._scrollY = undefined, duration + delay);
-                        setTimeout(() => this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(scrollY || 0), () => this.layoutDoc._scrollTop = scrollY), delay);
-                    }
-                }
-            },
-            { fireImmediately: true }
-        );
-        this._disposers.scrollPreviewY = reaction(
-            () => Cast(this.Document._scrollPreviewY, "number", null),
-            (scrollY) => {
-                if (scrollY !== undefined) {
-                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
-                    if (this.props.renderDepth === -1 && scrollY >= 0) {
-                        if (!this._mainCont.current) setTimeout(() => this._mainCont.current && smoothScroll(1000, this._mainCont.current, scrollY || 0));
-                        else smoothScroll(1000, this._mainCont.current, scrollY || 0);
-                        this.Document._scrollPreviewY = undefined;
-                    }
-                }
-            },
-            { fireImmediately: true }
-        );
         this._disposers.curPage = reaction(
             () => this.Document._curPage,
             (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
@@ -212,6 +177,19 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
     }
 
+    // scrolls to focus on a nested annotation document.  if this is part a link preview then it will jump to the scroll location,
+    // otherwise it will scroll smoothly.
+    scrollFocus = (doc: Doc, smooth: boolean) => {
+        const mainCont = this._mainCont.current;
+        if (mainCont) {
+            if (smooth) {
+                smoothScroll(500, mainCont, NumCast(doc.y));
+            } else {
+                mainCont.scrollTop = NumCast(doc.y);
+            }
+        }
+    }
+
     @action
     setupPdfJsViewer = async () => {
         if (this._viewerIsSetup) return;
@@ -219,14 +197,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._showWaiting = true;
         this.props.setPdfViewer(this);
         await this.initialLoad();
-
-        this._disposers.scrollTop = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => {
-                if (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) {
-                    (this._mainCont.current.scrollTop = stop);
-                }
-            },
-            { fireImmediately: true });
 
         this._disposers.filterScript = reaction(
             () => Cast(this.Document.filterScript, ScriptField),
@@ -242,13 +212,40 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this.createPdfViewer();
     }
 
-    pagesinit = action(() => {
+    pagesinit = () => {
         if (this._pdfViewer._setDocumentViewerElement.offsetParent) {
-            this._pdfViewer.currentScaleValue = this._zoomed = 1;
+            runInAction(() => this._pdfViewer.currentScaleValue = this._zoomed = 1);
             this.gotoPage(this.Document._curPage || 1);
         }
         document.removeEventListener("pagesinit", this.pagesinit);
-    });
+        var quickScroll: string | undefined = "";
+        this._disposers.scroll = reaction(
+            () => NumCast(this.Document._scrollTop),
+            (pos) => {
+                if (!this._ignoreScroll) {
+                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
+                    const viewTrans = quickScroll ?? StrCast(this.Document._viewTransition);
+                    const delay = this._mainCont.current ? 0 : 250; // wait for mainCont and try again to scroll
+                    const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
+                    const durationSecStr = viewTrans.match(/([0-9.]*)s/);
+                    const duration = durationMiliStr ? Number(durationMiliStr[1]) : durationSecStr ? Number(durationSecStr[1]) * 1000 : 0;
+                    if (duration) {
+                        this._smoothScrolling = true;
+                        setTimeout(() => {
+                            this._mainCont.current && smoothScroll(duration, this._mainCont.current, Math.abs(pos || 0));
+                            setTimeout(() => this._smoothScrolling = false, duration);
+                        }, delay);
+                    } else {
+                        this._smoothScrolling = true;
+                        this._mainCont.current?.scrollTo({ top: Math.abs(pos || 0) });
+                        this._smoothScrolling = false;
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
+        quickScroll = undefined;
+    }
 
     createPdfViewer() {
         if (!this._mainCont.current) { // bcz: I don't think this is ever triggered or needed
@@ -302,29 +299,18 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
-    scrollToFrame = (duration: number, top: number) => {
-        this._mainCont.current && smoothScroll(duration, this._mainCont.current, top);
-    }
-
-    @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = (this.props.PanelHeight() / this.contentScaling) / 2;
-            this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
+            this.scrollFocus(scrollToAnnotation, true);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
     }
 
-    pageDelay: any;
-    @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
-            this.pageDelay && clearTimeout(this.pageDelay);
-            this.pageDelay = setTimeout(() => {
-                this.Document._scrollY === undefined && this._mainCont.current && (this.layoutDoc._scrollTop = this._mainCont.current.scrollTop);
-                this.pageDelay = undefined;
-                //this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
-            }, 1000);
+        if (this._mainCont.current && !this._smoothScrolling) {
+            this._ignoreScroll = true;
+            this.layoutDoc._scrollTop = this._mainCont.current.scrollTop;
+            this._ignoreScroll = false;
         }
     }
 

@@ -22,7 +22,7 @@ export const marks: { [index: string]: MarkSpec } = {
     // element.
     linkAnchor: {
         attrs: {
-            allLinks: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
+            allAnchors: { default: [] as { href: string, title: string, anchorId: string }[] },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -31,17 +31,23 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { allLinks: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.dataset.targetids }], location: dom.getAttribute("location"), };
+                return {
+                    allAnchors: [{ href: dom.getAttribute("shref"), title: dom.getAttribute("title"), anchorId: dom.getAttribute("class") }],
+                    location: dom.getAttribute("location"),
+                };
             }
         }],
         toDOM(node: any) {
-            const targetids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
-            const targethrefs = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.href, "");
-            const linkids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
+            const targethrefs = node.attrs.allAnchors.reduce((p: string, item: { href: string, title: string, anchorId: string }) => p ? p + " " + item.href : item.href, "");
+            const anchorids = node.attrs.allAnchors.reduce((p: string, item: { href: string, title: string, anchorId: string }) => p ? p + " " + item.anchorId : item.anchorId, "");
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allLinks[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", {
+                    ...node.attrs,
+                    class: "prosemirror-attribution",
+                    href: node.attrs.allAnchors[0].href,
+                }, node.attrs.title], ["br"]] :
                 //node.attrs.allLinks.length === 1 ?
-                ["a", { ...node.attrs, class: linkids, "data-targetids": targetids, "data-targethrefs": targethrefs, title: `${node.attrs.title}`, href: node.attrs.allLinks[0]?.href, style: `text-decoration: ${linkids === " " ? "underline" : undefined}` }, 0];
+                ["a", { ...node.attrs, class: anchorids, "data-targethrefs": targethrefs, title: node.attrs.title, href: node.attrs.allAnchors[0]?.href, style: `text-decoration: "underline"` }, 0];
             // ["div", { class: "prosemirror-anchor" },
             //     ["span", { class: "prosemirror-linkBtn" },
             //         ["a", { ...node.attrs, class: linkids, "data-targetids": targetids, title: `${node.attrs.title}` }, 0],

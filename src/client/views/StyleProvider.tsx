@@ -12,7 +12,7 @@ import { SnappingManager } from '../util/SnappingManager';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionViewType } from './collections/CollectionView';
 import { MainView } from './MainView';
-import { DocumentViewProps } from "./nodes/DocumentView";
+import { DocumentViewProps, DocumentView } from "./nodes/DocumentView";
 import { FieldViewProps } from './nodes/FieldView';
 import "./StyleProvider.scss";
 import React = require("react");
@@ -111,6 +111,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
+                case DocumentType.WEB:
+                case DocumentType.PDF:
                 case DocumentType.VID: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.COL:
                     if (StrCast(Doc.LayoutField(doc)).includes("SliderBox")) break;

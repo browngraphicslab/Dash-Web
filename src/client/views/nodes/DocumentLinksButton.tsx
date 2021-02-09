@@ -58,8 +58,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                             // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
                             // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
                             dropEv.linkDragData?.linkDropCallback?.(dropEv as { linkDocument: Doc }); // bcz: typescript can't figure out that this is valid even though we tested dropEv.linkDocument above
-                            runInAction(() => this.props.View.LinkBeingCreated = dropEv.linkDocument);
-                            setTimeout(action(() => this.props.View.LinkBeingCreated = undefined), 0);
                         }
                         linkDrag?.end();
                     },
@@ -118,7 +116,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     DocumentLinksButton.AnnotationId = undefined;
                 } else if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
                     const sourceDoc = DocumentLinksButton.StartLink;
-                    const targetDoc = this.props.View.props.Document;
+                    const targetDoc = this.props.View.ComponentView?.getAnchor?.() || this.props.View.Document;
                     const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, "long drag");
 
                     LinkManager.currentLink = linkDoc;
@@ -163,15 +161,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             endLink = endLinkView?.docView?._componentView?.getAnchor?.() || endLink;
             startLink = DocumentLinksButton.StartLinkView?.docView?._componentView?.getAnchor?.() || startLink;
             const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag", undefined, undefined, true);
-            // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
-            if (endLinkView) {
-                endLinkView.LinkBeingCreated = linkDoc;
-                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = linkDoc);
-                setTimeout(action(() => {
-                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView.LinkBeingCreated = undefined);
-                    endLinkView.LinkBeingCreated = undefined;
-                }), 0);
-            }
+
             LinkManager.currentLink = linkDoc;
 
             if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) { // if linking from a Hypothes.is annotation

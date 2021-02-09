@@ -227,7 +227,7 @@ export class FormattedTextBoxComment {
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             child = child || (nbef && state.selection.$from.nodeBefore);
             const mark = child ? findLinkMark(child.marks) : undefined;
-            const href = forceUrl || (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allLinks.find((item: { href: string }) => item.href)?.href;
+            const href = forceUrl || (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allAnchors.find((item: { href: string }) => item.href)?.href;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
                 try {
                     ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
@@ -250,18 +250,16 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
                 }
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    const anchorDoc = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     FormattedTextBoxComment.tooltipText.textContent = "target not found...";
                     (FormattedTextBoxComment.tooltipText as any).href = "";
-                    docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
-                        if (linkDoc instanceof Doc) {
+                    anchorDoc && DocServer.GetRefField(anchorDoc).then(async anchor => {
+                        if (anchor instanceof Doc) {
+                            const linkDoc = DocListCast(anchor.links)[0];
                             (FormattedTextBoxComment.tooltipText as any).href = href;
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
-                            const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
-                            if (anchor !== target && anchor && target) {
-                                target._scrollPreviewY = NumCast(anchor?.y);
-                            }
+                            const targetanchor = LinkManager.getOppositeAnchor(linkDoc, anchor);
+                            const target = targetanchor?.annotationOn ? await DocCastAsync(targetanchor.annotationOn) : targetanchor;
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 
@@ -295,7 +293,7 @@ export class FormattedTextBoxComment {
                                         </div>
                                     </div>
                                     <div className="FormattedTextBoxComment-preview-wrapper">
-                                        <DocumentView
+                                        <DocumentView ref={(r) => targetanchor && target !== targetanchor && r?.focus(targetanchor)}
                                             Document={target}
                                             moveDocument={returnFalse}
                                             rootSelected={returnFalse}

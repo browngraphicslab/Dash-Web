@@ -40,12 +40,15 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { LinkDocPreview } from "./LinkDocPreview";
+import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor: () => Doc;
+    scrollFocus?: (doc: Doc, smooth: boolean) => void;
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
@@ -373,6 +376,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => {
+        this._componentView?.scrollFocus?.(doc, !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc); // bcz: smooth parameter should really be passed into focus() instead of inferred here
+        return this.props.focus(doc, willZoom, scale, afterFocus, dontCenter, focused);
+    }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
@@ -710,7 +717,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    makeLink = () => this.props.DocumentView.LinkBeingCreated; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
     setContentView = (view: { getAnchor: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -729,9 +735,9 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 contentsActive={this.setContentsActive}
                 parentActive={this.parentActive}
                 ScreenToLocalTransform={this.screenToLocal}
-                makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
                 onClick={this.onClickFunc}
+                focus={this.focus}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {this.hideLinkButton ? (null) :
@@ -865,7 +871,6 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     public ContentRef = React.createRef<HTMLDivElement>();
 
-    @observable LinkBeingCreated: Opt<Doc>;  // see DocumentLinksButton for explanation of how this works
     @observable public docView: DocumentViewInternal | undefined | null;
 
     get Document() { return this.props.Document; }
@@ -907,6 +912,9 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => {
+        return this.docView?.focus(doc, willZoom, scale, afterFocus, dontCenter, focused);
+    }
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
             return undefined;

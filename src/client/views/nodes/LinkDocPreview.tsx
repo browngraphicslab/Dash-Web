@@ -26,6 +26,7 @@ export class LinkDocPreview extends React.Component<Props> {
     @observable public static LinkInfo: Opt<{ linkDoc?: Doc; linkSrc: Doc; href?: string; Location: number[], docprops: DocumentViewSharedProps }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
+    _linkTarget: Opt<Doc>;
     _editRef = React.createRef<HTMLDivElement>();
 
     @action
@@ -58,17 +59,13 @@ export class LinkDocPreview extends React.Component<Props> {
                 runInAction(() => this._toolTipText = "external => " + this.props.href);
             }
         } else if (linkDoc && linkSrc) {
-            const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), linkSrc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
-            const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
+            const anchor1 = linkDoc.anchor1 as Doc;
+            const anchor2 = linkDoc.anchor2 as Doc;
+            this._linkTarget = Doc.AreProtosEqual(anchor1, linkSrc) || Doc.AreProtosEqual(anchor1.annotationOn as Doc, linkSrc) ? anchor2 : anchor1;
+            const target = this._linkTarget?.annotationOn ? await DocCastAsync(this._linkTarget.annotationOn) : this._linkTarget;
             runInAction(() => {
                 this._toolTipText = "";
                 LinkDocPreview.TargetDoc = this._targetDoc = target;
-                if (this._targetDoc) {
-                    this._targetDoc._scrollToPreviewLinkID = linkDoc?.[Id];
-                    if (anchor !== this._targetDoc && anchor) {
-                        this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
-                    }
-                }
             });
         }
     }
@@ -89,7 +86,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 </div>
             </div>
             :
-            <DocumentView
+            <DocumentView ref={r => this._linkTarget !== this._targetDoc && this._linkTarget && r?.focus(this._linkTarget)}
                 Document={this._targetDoc}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}

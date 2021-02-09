@@ -149,7 +149,8 @@ export class DocumentManager {
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             if (finalDocView) {
-                finalDocView.layoutDoc.scrollToLinkID = linkDoc?.[Id];
+                const parent = targetDoc?.annotationOn as Doc;
+                if (parent) finalDocView.layoutDoc.scrollToAnchorID = targetDoc?.[Id];
                 Doc.linkFollowHighlight(finalDocView.props.Document);
             }
         };
@@ -159,7 +160,7 @@ export class DocumentManager {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
-                first.props.focus(annotatedDoc, false);
+                first.focus(targetDoc, false);
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
@@ -190,7 +191,6 @@ export class DocumentManager {
                 highlight();
             } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
-                targetDocContext._scrollY = targetDocContext._scrollPreviewY = NumCast(targetDocContext._scrollTop, 0);  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
@@ -208,7 +208,7 @@ export class DocumentManager {
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                if (targetDoc.layout) {
+                                if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
                                     Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                                 }

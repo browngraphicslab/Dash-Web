@@ -271,12 +271,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     @action
-    internalPdfAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
+    internalAnchorAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
         const dragDoc = annoDragData.dropDocument!;
         const dropPos = [NumCast(dragDoc.x), NumCast(dragDoc.y)];
         dragDoc.x = xp - annoDragData.offset[0] + (NumCast(dragDoc.x) - dropPos[0]);
         dragDoc.y = yp - annoDragData.offset[1] + (NumCast(dragDoc.y) - dropPos[1]);
-        annoDragData.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
         this.bringToFront(dragDoc);
         return true;
     }
@@ -303,7 +302,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
-        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
+        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData, xp, yp);
         if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }
@@ -920,7 +919,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     scrollTo = Math.max(0, NumCast(doc.y) - 50);
                 }
                 if (curScroll !== scrollTo || this.props.Document._viewTransition) {
-                    this.props.Document._scrollPreviewY = this.props.Document._scrollY = scrollTo;
                     delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
                     !dontCenter && this.props.focus(this.props.Document);
                     afterFocus && setTimeout(() => afterFocus?.(delay ? true : false), delay);

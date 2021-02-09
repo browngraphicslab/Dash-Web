@@ -26,10 +26,7 @@ export const documentSchema = createSchema({
     y: "number",                // y coordinate when in a freeform view 
     z: "number",                // z "coordinate" - non-zero specifies the overlay layer of a freeformview
     zIndex: "number",           // zIndex of a document in a freeform view
-    _scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    _scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    _scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
-    _scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
+    _scrollTop: "number",       // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
     "_backgroundGrid-spacing": "number", // the size of the grid for collection views
@@ -117,7 +114,7 @@ export const collectionSchema = createSchema({
     childLayoutTemplate: Doc, // layout template to use to render children of a collecion
     childLayoutString: "string", //layout string to use to render children of a collection
     childClickedOpenTemplateView: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to read this value and apply template)
-    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
+    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links scrollToAnchorID: "string",   // id of anchor being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToAnchorID should be set to undefined by this doc after it sets up its scroll,etc.
     onChildClick: ScriptField, // script to run for each child when its clicked
     onChildDoubleClick: ScriptField, // script to run for each child when its clicked
     onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view
