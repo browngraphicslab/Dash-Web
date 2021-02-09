@@ -1,14 +1,13 @@
 import { action, observable, runInAction } from 'mobx';
 import { Doc, DocListCast, DocListCastAsync, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
-import { Cast, NumCast } from '../../fields/Types';
+import { Cast, NumCast, StrCast } from '../../fields/Types';
 import { returnFalse } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
 import { DocumentView } from '../views/nodes/DocumentView';
-import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
@@ -16,32 +15,28 @@ export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: (
 export class DocumentManager {
 
     //global holds all of the nodes (regardless of which collection they're in)
-    @observable
-    public DocumentViews: DocumentView[] = [];
-    @observable LinkedDocumentViews: { a: DocumentView, b: DocumentView, l: Doc }[] = [];
+    @observable public DocumentViews: DocumentView[] = [];
+    @observable public LinkedDocumentViews: { a: DocumentView, b: DocumentView, l: Doc }[] = [];
 
-    // singleton instance
     private static _instance: DocumentManager;
-
-    // create one and only one instance of NodeManager
-    public static get Instance(): DocumentManager {
-        return this._instance || (this._instance = new this());
-    }
+    public static get Instance(): DocumentManager { return this._instance || (this._instance = new this()); }
 
     //private constructor so no other class can create a nodemanager
-    private constructor() {
-    }
+    private constructor() { }
 
     @action
     public AddView = (view: DocumentView) => {
-        const linksList = DocListCast(view.props.Document.links);
-        linksList.forEach(link => {
-            const linkToDoc = link && LinkManager.getOppositeAnchor(link, view.props.Document);
-            linkToDoc && DocumentManager.Instance.DocumentViews.filter(dv => Doc.AreProtosEqual(dv.props.Document, linkToDoc)).forEach(dv => {
-                if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== view.props.LayoutTemplateString) {
-                    this.LinkedDocumentViews.push({ a: dv, b: view, l: link });
-                }
-            });
+        DocListCast(view.rootDoc.links).forEach(link => {
+            const whichOtherAnchor = view.props.LayoutTemplateString?.includes("anchor2") ? "anchor1" : "anchor2";
+            const otherDoc = link && (link[whichOtherAnchor] as Doc);
+            const otherDocAnno = otherDoc?.type === DocumentType.TEXTANCHOR ? otherDoc.annotationOn as Doc : undefined;
+            otherDoc && DocumentManager.Instance.DocumentViews.
+                filter(dv => Doc.AreProtosEqual(dv.rootDoc, otherDoc) || Doc.AreProtosEqual(dv.rootDoc, otherDocAnno)).
+                forEach(otherView => {
+                    if (otherView.rootDoc.type !== DocumentType.LINK || otherView.props.LayoutTemplateString !== view.props.LayoutTemplateString) {
+                        this.LinkedDocumentViews.push({ a: whichOtherAnchor === "anchor1" ? otherView : view, b: whichOtherAnchor === "anchor1" ? view : otherView, l: link });
+                    }
+                });
         });
         this.DocumentViews.push(view);
     }
@@ -56,13 +51,13 @@ export class DocumentManager {
     public getDocumentViewsById(id: string) {
         const toReturn: DocumentView[] = [];
         DocumentManager.Instance.DocumentViews.map(view => {
-            if (view.props.Document[Id] === id) {
+            if (view.rootDoc[Id] === id) {
                 toReturn.push(view);
             }
         });
         if (toReturn.length === 0) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                const doc = view.props.Document.proto;
+                const doc = view.rootDoc.proto;
                 if (doc && doc[Id] && doc[Id] === id) {
                     toReturn.push(view);
                 }
@@ -82,14 +77,14 @@ export class DocumentManager {
 
         for (const pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
+                if (view.rootDoc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
                     return;
                 }
             });
             if (!toReturn) {
                 DocumentManager.Instance.DocumentViews.map(view => {
-                    const doc = view.props.Document.proto;
+                    const doc = view.rootDoc.proto;
                     if (doc && doc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                         toReturn = view;
                     }
@@ -107,7 +102,7 @@ export class DocumentManager {
     }
 
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
-        const views = this.getDocumentViews(toFind).filter(view => view.props.Document !== originatingDoc);
+        const views = this.getDocumentViews(toFind).filter(view => view.rootDoc !== originatingDoc);
         return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
@@ -117,11 +112,11 @@ export class DocumentManager {
         // heuristic to return the "best" documents first:
         //   choose an exact match over an alias match
         //   choose documents that have a PanelWidth() over those that don't (the treeview documents have no panelWidth)
-        docViews.map(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!) && view.props.Document === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() <= 1 && view.props.Document === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() <= 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+        docViews.map(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!) && view.rootDoc === toFind && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() > 1 && view.rootDoc === toFind && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() <= 1 && view.rootDoc === toFind && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() > 1 && view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() <= 1 && view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
 
         return toReturn;
     }
@@ -151,7 +146,7 @@ export class DocumentManager {
             if (finalDocView) {
                 const parent = targetDoc?.annotationOn as Doc;
                 if (parent) finalDocView.layoutDoc.scrollToAnchorID = targetDoc?.[Id];
-                Doc.linkFollowHighlight(finalDocView.props.Document);
+                Doc.linkFollowHighlight(finalDocView.rootDoc);
             }
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
@@ -159,16 +154,16 @@ export class DocumentManager {
         if (annotatedDoc && annotatedDoc !== originatingDoc?.context && !targetDoc?.isPushpin) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
-                annotatedDoc = first.props.Document;
+                annotatedDoc = first.rootDoc;
                 first.focus(targetDoc, false);
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
             const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
             if (originatingDoc?.isPushpin) {
-                docView.props.focus(docView.props.Document, willZoom, undefined, (didFocus: boolean) => {
-                    if (!didFocus || docView.props.Document.hidden) {
-                        docView.props.Document.hidden = !docView.props.Document.hidden;
+                docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => {
+                    if (!didFocus || docView.rootDoc.hidden) {
+                        docView.rootDoc.hidden = !docView.rootDoc.hidden;
                     }
                     return focusAndFinish();
                 }, sameContext, false);// don't want to focus the container if the source and target are in the same container, so pass 'sameContext' for dontCenter parameter
@@ -176,9 +171,9 @@ export class DocumentManager {
             }
             else {
                 docView.select(false);
-                docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
+                docView.rootDoc.hidden && (docView.rootDoc.hidden = undefined);
                 // @ts-ignore
-                docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish, sameContext, false);
+                docView.props.focus(docView.rootDoc, willZoom, undefined, focusAndFinish, sameContext, false);
             }
             highlight();
         } else {
@@ -193,7 +188,7 @@ export class DocumentManager {
                 const targetDocContextView = getFirstDocView(targetDocContext);
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
-                    targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
+                    targetDocContextView.props.focus(targetDocContextView.rootDoc, willZoom);
 
                     // now find the target document within the context
                     if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
@@ -207,7 +202,7 @@ export class DocumentManager {
                                 highlight();
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
-                                if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
+                                if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);
                                 if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
                                     Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target

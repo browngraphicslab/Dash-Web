@@ -134,7 +134,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 </div>}
             </div>
         );
-        return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`}
             onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
             onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
                 docprops: this.props,

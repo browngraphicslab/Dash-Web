@@ -789,7 +789,7 @@ export namespace Docs {
         }
 
         export function TextanchorDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), document, { targetDropAction: "move", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {

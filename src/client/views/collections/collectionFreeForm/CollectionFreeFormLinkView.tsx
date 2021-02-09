@@ -41,44 +41,41 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
         setTimeout(action(() => (!LinkDocs.length || !linkDoc.linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
         if (!linkDoc.linkAutoMove) return;
-        const acont = A.props.Document.type === DocumentType.LINK ? A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
-        const bcont = B.props.Document.type === DocumentType.LINK ? B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
-        const adiv = (acont.length ? acont[0] : A.ContentDiv);
-        const bdiv = (bcont.length ? bcont[0] : B.ContentDiv);
+        const acont = A.rootDoc.type === DocumentType.LINK ? A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+        const bcont = B.rootDoc.type === DocumentType.LINK ? B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+        const adiv = acont.length ? acont[0] : A.ContentDiv;
+        const bdiv = bcont.length ? bcont[0] : B.ContentDiv;
         const a = adiv.getBoundingClientRect();
         const b = bdiv.getBoundingClientRect();
         const { left: aleft, top: atop, width: awidth, height: aheight } = adiv.parentElement!.getBoundingClientRect();
         const { left: bleft, top: btop, width: bwidth, height: bheight } = bdiv.parentElement!.getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(aleft, atop, awidth, aheight, bleft, btop, bwidth, bheight, a.left + a.width / 2, a.top + a.height / 2);
         const bpt = Utils.closestPtBetweenRectangles(bleft, btop, bwidth, bheight, aleft, atop, awidth, aheight, apt.point.x, apt.point.y);
-        const afield = A.props.LayoutTemplateString?.indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
-        const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
         // really hacky stuff to make the LinkAnchorBox display where we want it to:
-        //   if there's an element in the DOM with a classname containing the link's id and a data-targetids attribute containing the other end of the link, 
+        //   if there's an element in the DOM with a classname containing a link anchor's id, 
         //   then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
         //   otherwise, we just use the computed nearest point on the document boundary to the target Document
-        const linkEles = Array.from(window.document.getElementsByClassName(linkDoc[Id]));
-        const targetAhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[afield] as Doc)[Id]));
-        const targetBhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes((linkDoc[bfield] as Doc)[Id]));
+        const targetAhyperlink = Array.from(window.document.getElementsByClassName((linkDoc.anchor1 as Doc)[Id])).lastElement();
+        const targetBhyperlink = Array.from(window.document.getElementsByClassName((linkDoc.anchor2 as Doc)[Id])).lastElement();
         if ((!targetAhyperlink && !a.width) || (!targetBhyperlink && !b.width)) return;
-        if (!targetBhyperlink) {
-            A.rootDoc[afield + "_x"] = (apt.point.x - aleft) / awidth * 100;
-            A.rootDoc[afield + "_y"] = (apt.point.y - atop) / aheight * 100;
-        } else {
-            const m = targetBhyperlink.getBoundingClientRect();
-            const mp = A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-            A.rootDoc[afield + "_x"] = Math.min(1, mp[0] / A.props.PanelWidth()) * 100;
-            A.rootDoc[afield + "_y"] = Math.min(1, mp[1] / A.props.PanelHeight()) * 100;
-        }
         if (!targetAhyperlink) {
-            B.rootDoc[bfield + "_x"] = (bpt.point.x - bleft) / bwidth * 100;
-            B.rootDoc[bfield + "_y"] = (bpt.point.y - btop) / bheight * 100;
+            linkDoc.anchor1_x = (apt.point.x - aleft) / awidth * 100;
+            linkDoc.anchor1_y = (apt.point.y - atop) / aheight * 100;
         } else {
             const m = targetAhyperlink.getBoundingClientRect();
+            const mp = A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
+            linkDoc.anchor1_x = Math.min(1, mp[0] / A.props.PanelWidth()) * 100;
+            linkDoc.anchor1_y = Math.min(1, mp[1] / A.props.PanelHeight()) * 100;
+        }
+        if (!targetBhyperlink) {
+            linkDoc.anchor2_x = (bpt.point.x - bleft) / bwidth * 100;
+            linkDoc.anchor2_y = (bpt.point.y - btop) / bheight * 100;
+        } else {
+            const m = targetBhyperlink.getBoundingClientRect();
             const mp = B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-            B.rootDoc[bfield + "_x"] = Math.min(1, mp[0] / B.props.PanelWidth()) * 100;
-            B.rootDoc[bfield + "_y"] = Math.min(1, mp[1] / B.props.PanelHeight()) * 100;
+            linkDoc.anchor2_x = Math.min(1, mp[0] / B.props.PanelWidth()) * 100;
+            linkDoc.anchor2_y = Math.min(1, mp[1] / B.props.PanelHeight()) * 100;
         }
     }
 
@@ -162,8 +159,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;
         const pt1norm = clipped ? [0, 0] : [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
         const pt2norm = clipped ? [0, 0] : [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
-        const aActive = A.isSelected() || Doc.IsBrushed(A.props.Document);
-        const bActive = B.isSelected() || Doc.IsBrushed(B.props.Document);
+        const aActive = A.isSelected() || Doc.IsBrushed(A.rootDoc);
+        const bActive = B.isSelected() || Doc.IsBrushed(B.rootDoc);
 
         const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(LinkDocs[0].linkOffsetX);
         const textY = (pt1[1] + pt2[1]) / 2 + NumCast(LinkDocs[0].linkOffsetY);

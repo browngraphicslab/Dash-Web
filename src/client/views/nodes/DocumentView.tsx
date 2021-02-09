@@ -759,18 +759,19 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (this.props.LayoutTemplateString?.includes(LinkAnchorBox.name)) return null;
         if (this.layoutDoc.presBox || this.rootDoc.type === DocumentType.LINK || this.props.dontRegisterView) return (null);
 
-        const filtered = DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
-        return filtered.map((d, i) =>
+        // need to use allLinks for RTF since embedded linked text anchors are not rendered with DocumentViews.  All other documents render their anchors with nested DocumentViews so we just need to render the directLinks here
+        const filtered = DocUtils.FilterDocs(this.rootDoc.type === DocumentType.RTF ? this.allLinks : this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden);
+        return filtered.map((link, i) =>
             <div className="documentView-anchorCont" key={i + 1}>
                 <DocumentView {...this.props}
-                    Document={d}
+                    Document={link}
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     dontRegisterView={false}
                     styleProvider={this.anchorStyleProvider}
                     removeDocument={this.hideLinkAnchor}
                     LayoutTemplate={undefined}
-                    LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
+                    LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(link, this.rootDoc)}`)} />
             </div >);
     }
 
