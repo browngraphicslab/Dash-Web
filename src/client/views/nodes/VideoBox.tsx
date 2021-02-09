@@ -211,7 +211,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             },
             { fireImmediately: true });
         this._disposers.triggerVideo = reaction(
-            () => !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerVideo, null) : undefined,
+            () => !LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerVideo, null) : undefined,
             time => time !== undefined && setTimeout(() => {
                 this.player && this.Play();
                 setTimeout(() => this.Document._triggerVideo = undefined, 10);
@@ -219,7 +219,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             { fireImmediately: true }
         );
         this._disposers.triggerStop = reaction(
-            () => this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc ? NumCast(this.Document._triggerVideoStop, null) : undefined,
+            () => this.props.renderDepth !== -1 && !LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc ? NumCast(this.Document._triggerVideoStop, null) : undefined,
             stop => stop !== undefined && setTimeout(() => {
                 this.player && this.Pause();
                 setTimeout(() => this.Document._triggerVideoStop = undefined, 10);

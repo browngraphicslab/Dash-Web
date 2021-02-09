@@ -377,7 +377,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => {
-        this._componentView?.scrollFocus?.(doc, !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc); // bcz: smooth parameter should really be passed into focus() instead of inferred here
+        this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc); // bcz: smooth parameter should really be passed into focus() instead of inferred here
         return this.props.focus(doc, willZoom, scale, afterFocus, dontCenter, focused);
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {

@@ -33,16 +33,16 @@ interface DocumentLinksButtonProps {
 @observer
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
-
     @observable public static StartLink: Doc | undefined;
     @observable public static StartLinkView: DocumentView | undefined;
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
-    @observable public static EditLink: DocumentView | undefined;
+    @observable public static LinkEditorDocView: DocumentView | undefined;
 
     @observable public static invisibleWebDoc: Opt<Doc>;
     public static invisibleWebRef = React.createRef<HTMLDivElement>();
 
+    @action public static ClearLinkEditor() { DocumentLinksButton.LinkEditorDocView = undefined; }
     @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
         if (this.props.InMenu && this.props.StartLink) {
@@ -83,7 +83,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     DocumentLinksButton.StartLinkView = this.props.View;
                 }
             } else if (!this.props.InMenu) {
-                DocumentLinksButton.EditLink = this.props.View;
+                DocumentLinksButton.LinkEditorDocView = this.props.View;
             }
         }));
     }
@@ -103,7 +103,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
             //action(() => Doc.BrushDoc(this.props.View.Document));
         } else if (!this.props.InMenu) {
-            DocumentLinksButton.EditLink = this.props.View;
+            DocumentLinksButton.LinkEditorDocView = this.props.View;
         }
     }
 
@@ -264,7 +264,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     {this.linkButtonInner}
                 </Tooltip>
                 :
-                !DocumentLinksButton.EditLink && !this.props.InMenu ?
+                !DocumentLinksButton.LinkEditorDocView && !this.props.InMenu ?
                     <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                         {this.linkButtonInner}
                     </Tooltip>

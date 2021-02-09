@@ -13,49 +13,28 @@ import React = require("react");
 interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
-    docprops: DocumentViewSharedProps;
 }
 
 @observer
 export class LinkMenu extends React.Component<Props> {
-
-    @observable private _editingLink?: Doc;
-    @observable private _linkMenuRef = React.createRef<HTMLDivElement>();
     private _editorRef = React.createRef<HTMLDivElement>();
+    @observable _editingLink?: Doc;
+    @observable _linkMenuRef = React.createRef<HTMLDivElement>();
 
-    //@observable private _numLinks: number = 0;
+    @computed get position() {
+        return ((dv) => ({ x: dv?.left || 0, y: dv?.top || 0, r: dv?.right || 0, b: dv?.bottom || 0 }))(this.props.docView.getBounds());
+    }
 
-    // @computed get overflow() {
-    //     if (this._numLinks) {
-    //         return "scroll";
-    //     }
-    //     return "auto";
-    // }
+    componentDidMount() { document.addEventListener("pointerdown", this.onPointerDown); }
+    componentWillUnmount() { document.removeEventListener("pointerdown", this.onPointerDown); }
 
-    @action
-    onClick = (e: PointerEvent) => {
-
-        LinkDocPreview.LinkInfo = undefined;
-
-
-        if (this._linkMenuRef && !this._linkMenuRef.current?.contains(e.target as any)) {
-            if (this._editorRef && !this._editorRef.current?.contains(e.target as any)) {
-                DocumentLinksButton.EditLink = undefined;
-            }
+    onPointerDown = (e: PointerEvent) => {
+        LinkDocPreview.Clear();
+        if (this._linkMenuRef && this._editorRef &&
+            !this._linkMenuRef.current?.contains(e.target as any) &&
+            !this._editorRef.current?.contains(e.target as any)) {
+            DocumentLinksButton.ClearLinkEditor();
         }
-    }
-    @action
-    componentDidMount() {
-        this._editingLink = undefined;
-        document.addEventListener("pointerdown", this.onClick);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.onClick);
-    }
-
-    clearAllLinks = () => {
-        LinkManager.Instance.deleteAllLinksOnAnchor(this.props.docView.props.Document);
     }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
@@ -66,32 +45,23 @@ export class LinkMenu extends React.Component<Props> {
                 sourceDoc={this.props.docView.props.Document}
                 group={group[1]}
                 groupType={group[0]}
-                showEditor={action(linkDoc => this._editingLink = linkDoc)}
-                docprops={this.props.docprops} />);
+                showEditor={action(linkDoc => this._editingLink = linkDoc)} />);
 
         return linkItems.length ? linkItems : [<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>];
     }
 
-    @computed
-    get position() {
-        const docView = this.props.docView.getBounds();
-        return { x: docView?.left || 0, y: docView?.top || 0, r: docView?.right || 0, b: docView?.bottom || 0 };
-    }
-
     render() {
         const sourceDoc = this.props.docView.props.Document;
-        const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
-        return <div className="linkMenu" style={{ left: this.position.x, top: this.props.docView.topMost ? undefined : this.position.b + 15, bottom: this.props.docView.topMost ? 20 : undefined }} ref={this._linkMenuRef} >
-            {!this._editingLink ?
-                <div className="linkMenu-list" >
-                    {this.renderAllGroups(groups)}
-                </div> :
+        return <div className="linkMenu" ref={this._linkMenuRef}
+            style={{ left: this.position.x, top: this.props.docView.topMost ? undefined : this.position.b + 15, bottom: this.props.docView.topMost ? 20 : undefined }}
+        >
+            {this._editingLink ?
                 <div className="linkMenu-listEditor">
-                    <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
-                        showLinks={action(() => this._editingLink = undefined)} />
-                </div>
-            }
-
+                    <LinkEditor sourceDoc={sourceDoc} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)} />
+                </div> :
+                <div className="linkMenu-list" >
+                    {this.renderAllGroups(LinkManager.Instance.getRelatedGroupedLinks(sourceDoc))}
+                </div>}
         </div>;
     }
 }

@@ -1215,7 +1215,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const scrollRef = self._scrollRef.current;
                     if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
                         const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
-                        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc) {
+                        if (!LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc) {
                             scrollPos && smoothScroll(500, scrollRef, scrollPos);
                         } else {
                             scrollRef.scrollTo({ top: scrollPos });
@@ -1601,7 +1601,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
     }
     onScroll = (ev: React.UIEvent) => {
-        if (!LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && this._scrollRef.current) {
+        if (!LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc && this._scrollRef.current) {
             this._ignoreScroll = true;
             this.layoutDoc._scrollTop = this._scrollRef.current.scrollTop;
             this._ignoreScroll = false;

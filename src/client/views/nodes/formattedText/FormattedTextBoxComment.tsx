@@ -136,8 +136,6 @@ export class FormattedTextBoxComment {
     @undoBatch
     deleteLink = action(() => {
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
-        LinkDocPreview.LinkInfo = undefined;
-        DocumentLinksButton.EditLink = undefined;
         FormattedTextBoxComment.Hide();
     });
 
@@ -158,6 +156,7 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
     }
 
+    @action
     static showCommentbox(set: string, view: EditorView, nbef: number) {
         const state = view.state;
         if (set !== "none") {
@@ -171,6 +170,13 @@ export class FormattedTextBoxComment {
             const left = Math.max((start.left + end.left) / 2, start.left + 3);
             FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
             FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
+            // const props = FormattedTextBoxComment.textBox?.props.docViewPath.lastElement().props;
+            // props && (LinkDocPreview.SetLinkInfo({
+            //     docprops: props,
+            //     linkSrc: props.Document,
+            //     linkDoc: FormattedTextBoxComment.linkDoc,
+            //     Location: [start.left, start.top + 25]
+            // });
         }
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = set);
     }

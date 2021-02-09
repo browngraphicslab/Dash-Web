@@ -851,7 +851,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     // TODO: should check for valid URL
     @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
-        ((this.view as any)?.TextView as FormattedTextBox).makeLinkAnchor(undefined, "onRadd:rightight", "", target);
+        ((this.view as any)?.TextView as FormattedTextBox).makeLinkAnchor(undefined, "onRadd:rightight", target, target);
     }
 
     @undoBatch

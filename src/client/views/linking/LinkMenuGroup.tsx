@@ -3,7 +3,7 @@ import { Doc } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { Cast } from "../../../fields/Types";
 import { LinkManager } from "../../util/LinkManager";
-import { DocumentView, DocumentViewSharedProps } from "../nodes/DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import './LinkMenu.scss';
 import { LinkMenuItem } from "./LinkMenuItem";
 import React = require("react");
@@ -13,14 +13,11 @@ interface LinkMenuGroupProps {
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
-    docprops: DocumentViewSharedProps;
     docView: DocumentView;
 }
 
 @observer
 export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
-
-    private _drag = React.createRef<HTMLDivElement>();
     private _menuRef = React.createRef<HTMLDivElement>();
 
     render() {
@@ -31,7 +28,6 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={linkDoc[Id]}
                     groupType={this.props.groupType}
-                    docprops={this.props.docprops}
                     docView={this.props.docView}
                     linkDoc={linkDoc}
                     sourceDoc={this.props.sourceDoc}
@@ -43,11 +39,9 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
         return (
             <div className="linkMenu-group" ref={this._menuRef}>
-
                 <div className="linkMenu-group-name">
-                    <p ref={this._drag} className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
+                    <p className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
                 </div>
-
                 <div className="linkMenu-group-wrapper">
                     {groupItems}
                 </div>

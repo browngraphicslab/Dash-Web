@@ -22,7 +22,10 @@ interface Props {
 }
 @observer
 export class LinkDocPreview extends React.Component<Props> {
-    static TargetDoc: Doc | undefined;
+    @action public static Clear() { LinkDocPreview.LinkInfo = undefined; }
+    @action public static SetLinkInfo(info: { linkDoc?: Doc; linkSrc: Doc; href?: string; Location: number[], docprops: DocumentViewSharedProps }) {
+        LinkDocPreview.LinkInfo = info;
+    }
     @observable public static LinkInfo: Opt<{ linkDoc?: Doc; linkSrc: Doc; href?: string; Location: number[], docprops: DocumentViewSharedProps }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
@@ -30,28 +33,13 @@ export class LinkDocPreview extends React.Component<Props> {
     _editRef = React.createRef<HTMLDivElement>();
 
     @action
-    onContextMenu = (e: React.MouseEvent) => {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
-        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
-    }
-
-    @action.bound
-    async followDefault() {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        this._targetDoc && LinkManager.FollowLink(this.props.linkDoc, this._targetDoc, this.props.docprops, false);
-    }
-    componentWillUnmount() { LinkDocPreview.TargetDoc = undefined; }
+    componentWillUnmount() { LinkDocPreview.LinkInfo = undefined; }
 
     componentDidUpdate() { this.updatePreview(); }
     componentDidMount() { this.updatePreview(); }
     async updatePreview() {
         const linkDoc = this.props.linkDoc;
         const linkSrc = this.props.linkSrc;
-        LinkDocPreview.TargetDoc = undefined;
         if (this.props.href) {
             if (this.props.href.startsWith("https://en.wikipedia.org/wiki/")) {
                 wiki().page(this.props.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(action(summary => this._toolTipText = summary.substring(0, 500))));
@@ -65,7 +53,7 @@ export class LinkDocPreview extends React.Component<Props> {
             const target = this._linkTarget?.annotationOn ? await DocCastAsync(this._linkTarget.annotationOn) : this._linkTarget;
             runInAction(() => {
                 this._toolTipText = "";
-                LinkDocPreview.TargetDoc = this._targetDoc = target;
+                this._targetDoc = target;
             });
         }
     }
@@ -119,9 +107,11 @@ export class LinkDocPreview extends React.Component<Props> {
             style={{
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width() + 16, height: this.height() + 16,
-                zIndex: 1000,
+                zIndex: 2004,
+                pointerEvents: "none",
                 backgroundColor: "lightblue",
-                border: "8px solid white", borderRadius: "7px",
+                border: "8px solid white",
+                borderRadius: "7px",
                 boxShadow: "3px 3px 1.5px grey",
                 borderBottom: "8px solid white", borderRight: "8px solid white"
             }}>
