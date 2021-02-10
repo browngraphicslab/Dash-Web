@@ -1,19 +1,19 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Tooltip } from '@material-ui/core';
-import { action, computed, observable, runInAction } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
-import { Doc, DocCastAsync, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from '../../DocServer';
 import { Docs } from "../../documents/Documents";
 import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
+import { undoBatch } from '../../util/UndoManager';
 import { DocumentView, DocumentViewSharedProps } from "./DocumentView";
 import './LinkDocPreview.scss';
 import React = require("react");
-import { undoBatch } from '../../util/UndoManager';
 
 interface LinkDocPreviewProps {
     linkDoc?: Doc;
