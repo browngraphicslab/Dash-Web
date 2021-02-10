@@ -177,6 +177,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
             if (allFoundLinkAnchors.length) {
                 this._editorView.dispatch(removeMarkWithAttrs(state.tr, 0, state.doc.nodeSize - 2, state.schema.marks.linkAnchor, { allAnchors: allFoundLinkAnchors }));
+
+                this.setupEditor(this.config, this.fieldKey);
             }
         }
     }
@@ -186,6 +188,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const state = this._editorView?.state;
         if (state && this._editorView) {
             this._editorView.dispatch(removeMarkWithAttrs(state.tr, state.selection.from, state.selection.to, state.schema.marks.link, { allAnchors }));
+            this.setupEditor(this.config, this.fieldKey);
         }
     }
 
@@ -1233,7 +1236,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            // !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1376,6 +1378,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     onFocused = (e: React.FocusEvent): void => {
         FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
+        //applyDevTools.applyDevTools(this._editorView);
 
         // see if we need to preserve the insertion point
         const prosediv = this.ProseRef?.children?.[0] as any;

@@ -137,7 +137,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`}
             onPointerLeave={LinkDocPreview.Clear}
             onPointerEnter={e => LinkDocPreview.SetLinkInfo({
-                docprops: this.props,
+                docProps: this.props,
                 linkSrc: linkSource,
                 linkDoc: this.rootDoc,
                 showHeader: true,

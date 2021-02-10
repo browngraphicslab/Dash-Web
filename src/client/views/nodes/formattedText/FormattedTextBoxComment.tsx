@@ -1,9 +1,7 @@
 import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, DocListCast } from "../../../../fields/Doc";
-import { Utils } from "../../../../Utils";
-import { DocServer } from "../../../DocServer";
+import { Doc } from "../../../../fields/Doc";
 import { LinkDocPreview } from "../LinkDocPreview";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
@@ -37,54 +35,51 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
 export class FormattedTextBoxComment {
     static tooltip: HTMLElement;
     static tooltipText: HTMLElement;
-    static start: number;
-    static end: number;
-    static mark: Mark;
+    static startUserMarkRegion: number;
+    static endUserMarkRegion: number;
+    static userMark: Mark;
     static textBox: FormattedTextBox | undefined;
 
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
-            FormattedTextBoxComment.tooltip = document.createElement("div");
-            FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
-            FormattedTextBoxComment.tooltip.style.display = "none";
-            FormattedTextBoxComment.tooltipText = document.createElement("div");
-            FormattedTextBoxComment.tooltipText.className = "FormattedTextBox-tooltipText";
-            FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
-            FormattedTextBoxComment.tooltip.onpointerdown = (e: PointerEvent) => {
-                const textBox = FormattedTextBoxComment.textBox;
-                false && FormattedTextBoxComment.start !== undefined && textBox?.adoptAnnotation(
-                    FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
+            const tooltip = FormattedTextBoxComment.tooltip = document.createElement("div");
+            const tooltipText = FormattedTextBoxComment.tooltipText = document.createElement("div");
+            tooltip.className = "FormattedTextBox-tooltip";
+            tooltipText.className = "FormattedTextBox-tooltipText";
+            tooltip.style.display = "none";
+            tooltip.appendChild(tooltipText);
+            tooltip.onpointerdown = (e: PointerEvent) => {
+                const { textBox, startUserMarkRegion, endUserMarkRegion, userMark } = FormattedTextBoxComment;
+                false && startUserMarkRegion !== undefined && textBox?.adoptAnnotation(startUserMarkRegion, endUserMarkRegion, userMark);
                 e.stopPropagation();
                 e.preventDefault();
             };
-            document.getElementById("root")?.appendChild(FormattedTextBoxComment.tooltip);
+            document.getElementById("root")?.appendChild(tooltip);
         }
     }
     public static Hide() {
         FormattedTextBoxComment.textBox = undefined;
         FormattedTextBoxComment.tooltip.style.display = "none";
     }
-    public static SetState(textBox: any, start: number, end: number, mark: Mark) {
+    public static saveMarkRegion(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
-        FormattedTextBoxComment.start = start;
-        FormattedTextBoxComment.end = end;
-        FormattedTextBoxComment.mark = mark;
+        FormattedTextBoxComment.startUserMarkRegion = start;
+        FormattedTextBoxComment.endUserMarkRegion = end;
+        FormattedTextBoxComment.userMark = mark;
         FormattedTextBoxComment.tooltip.style.display = "";
     }
 
-    static showCommentbox(set: string, view: EditorView, nbef: number) {
+    static showCommentbox(view: EditorView, nbef: number) {
         const state = view.state;
-        if (set !== "none") {
-            // These are in screen coordinates
-            const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
-            // The box in which the tooltip is positioned, to use as base
-            const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
-            // Find a center-ish x position from the selection endpoints (when crossing lines, end may be more to the left)
-            const left = Math.max((start.left + end.left) / 2, start.left + 3);
-            FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
-            FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
-        }
-        FormattedTextBoxComment.tooltip.style.display = set;
+        // These are in screen coordinates
+        const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
+        // The box in which the tooltip is positioned, to use as base
+        const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
+        // Find a center-ish x position from the selection endpoints (when crossing lines, end may be more to the left)
+        const left = Math.max((start.left + end.left) / 2, start.left + 3);
+        FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
+        FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
+        FormattedTextBoxComment.tooltip.style.display = "";
     }
 
     static update(view: EditorView, lastState?: EditorState, hrefs: string = "") {
@@ -96,7 +91,6 @@ export class FormattedTextBoxComment {
     static setupPreview(view: EditorView, textBox: FormattedTextBox, hrefs?: string[]) {
         const state = view.state;
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
-        var hide = true;
         if (state.selection.$from) {
             const nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
             const naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
@@ -105,43 +99,26 @@ export class FormattedTextBoxComment {
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             const mark = child && findOtherUserMark(child.marks);
             if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
-                FormattedTextBoxComment.SetState(textBox, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
+                FormattedTextBoxComment.saveMarkRegion(textBox, state.selection.$from.pos - nbef, state.selection.$from.pos + naft, mark);
             }
             if (mark && child && ((nbef && naft) || !noselection)) {
                 FormattedTextBoxComment.tooltipText.textContent = mark.attrs.userid + " on " + (new Date(mark.attrs.modified * 1000)).toLocaleString();
-                FormattedTextBoxComment.showCommentbox("", view, nbef);
-                hide = false;
-            }
+                FormattedTextBoxComment.showCommentbox(view, nbef);
+            } else FormattedTextBoxComment.Hide();
         }
+
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
-        if (hide && state.selection.$from) {
+        if (state.selection.$from && hrefs) {
             const nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
             const naft = findEndOfMark(state.selection.$from, view, findLinkMark) || nbef;
-            let child: any = null;
-            state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any) => !child && node.marks.length && (child = node));
-            child = child || (nbef && state.selection.$from.nodeBefore);
-            const mark = child ? findLinkMark(child.marks) : undefined;
-            const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allAnchors.find((item: { href: string }) => item.href)?.href;
-            if ((href && child && nbef && naft && mark?.attrs.showPreview)) {
-                const showPreview = (link?: Doc) => {
-                    return LinkDocPreview.SetLinkInfo({
-                        docprops: textBox.props.docViewPath.lastElement().props,
-                        linkSrc: textBox.props.Document,
-                        linkDoc: link,
-                        location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - nbef)),
-                        hrefs,
-                        showHeader: true
-                    });
-                }
-                const anchorDoc = href.indexOf(Utils.prepend("/doc/")) === 0 ? href.replace(Utils.prepend("/doc/"), "").split("?")[0] : undefined;
-                if (anchorDoc) {
-                    DocServer.GetRefField(anchorDoc).then(anchor => anchor instanceof Doc && showPreview(DocListCast(anchor.links)[0]));
-                } else if (hrefs?.length) {
-                    showPreview()
-                }
-            }
+            nbef && naft && LinkDocPreview.SetLinkInfo({
+                docProps: textBox.props,
+                linkSrc: textBox.rootDoc,
+                location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - nbef)),
+                hrefs,
+                showHeader: true
+            });
         }
-        if (hide) FormattedTextBoxComment.Hide();
     }
 
     destroy() { }

@@ -140,7 +140,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={LinkDocPreview.Clear}
                         onPointerEnter={e => this.props.linkDoc && LinkDocPreview.SetLinkInfo({
-                            docprops: this.props.docView.props,
+                            docProps: this.props.docView.props,
                             linkSrc: this.props.sourceDoc,
                             linkDoc: this.props.linkDoc,
                             showHeader: false,

@@ -23,7 +23,6 @@ export const marks: { [index: string]: MarkSpec } = {
     linkAnchor: {
         attrs: {
             allAnchors: { default: [] as { href: string, title: string, anchorId: string }[] },
-            showPreview: { default: true },
             location: { default: null },
             title: { default: null },
             docref: { default: false } // flags whether the linked text comes from a document within Dash.  If so, an attribution label is appended after the text
@@ -32,8 +31,8 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
                 return {
-                    allAnchors: [{ href: dom.getAttribute("shref"), title: dom.getAttribute("title"), anchorId: dom.getAttribute("class") }],
                     location: dom.getAttribute("location"),
+                    title: dom.getAttribute("title")
                 };
             }
         }],
@@ -47,7 +46,7 @@ export const marks: { [index: string]: MarkSpec } = {
                     href: node.attrs.allAnchors[0].href,
                 }, node.attrs.title], ["br"]] :
                 //node.attrs.allLinks.length === 1 ?
-                ["a", { ...node.attrs, class: anchorids, "data-targethrefs": targethrefs, title: node.attrs.title, href: node.attrs.allAnchors[0]?.href, style: `text-decoration: "underline"` }, 0];
+                ["a", { class: anchorids, "data-targethrefs": targethrefs, title: node.attrs.title, location: node.attrs.location, style: `text-decoration: underline` }, 0];
             // ["div", { class: "prosemirror-anchor" },
             //     ["span", { class: "prosemirror-linkBtn" },
             //         ["a", { ...node.attrs, class: linkids, "data-targetids": targetids, title: `${node.attrs.title}` }, 0],
