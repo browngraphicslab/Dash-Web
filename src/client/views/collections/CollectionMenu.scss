@@ -6,7 +6,7 @@
     display: inline-flex;
     width: 100%;
     opacity: 0.9;
-    z-index: 9001;
+    z-index: 901;
     transition: top .5s;
     background: #323232;
     color: white;
@@ -30,7 +30,7 @@
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
         overflow: visible;
-        z-index: 9001;
+        z-index: 901;
         border: unset;
 
         .collectionViewBaseChrome {
@@ -325,7 +325,7 @@
 .webBox-urlEditor {
     position: relative;
     opacity: 0.9;
-    z-index: 9001;
+    z-index: 901;
     transition: top .5s;
 
     .urlEditor {

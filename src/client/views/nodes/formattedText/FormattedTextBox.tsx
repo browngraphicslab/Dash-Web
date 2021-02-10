@@ -66,6 +66,7 @@ import { StyleProp } from '../../StyleProvider';
 import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 import { DocumentManager } from '../../../util/DocumentManager';
+import { LightboxView } from '../../LightboxView';
 const translateGoogleApi = require("translate-google-api");
 
 export interface FormattedTextBoxProps {
@@ -1244,7 +1245,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             (this._editorView as any).TextView = this;
         }
 
-        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
+        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad && (!LightboxView.LightboxDoc || this.props.docViewPath.includes(LightboxView.LightboxDocView.current!));
         if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad && this.isActiveTab(this.ProseRef)) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);

@@ -489,7 +489,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;
     @computed get renderTimeline() {
-        return <div style={{ width: "100%", transition: this.transition, height: `${100 - this.heightPercent}%`, position: "absolute" }}>
+        return <div className="videoBox-stackPanel" style={{ transition: this.transition, height: `${100 - this.heightPercent}%` }}>
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
