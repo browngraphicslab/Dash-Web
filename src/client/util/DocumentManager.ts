@@ -101,22 +101,28 @@ export class DocumentManager {
         return this.getDocumentViewById(toFind[Id], preferredCollection);
     }
 
+    public getLightboxDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
+        const docViews = DocumentManager.Instance.DocumentViews;
+        const views: DocumentView[] = [];
+        docViews.map(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!) && view.rootDoc === toFind && views.push(view));
+        return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
+    }
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const views = this.getDocumentViews(toFind).filter(view => view.rootDoc !== originatingDoc);
         return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
-        const docViews = DocumentManager.Instance.DocumentViews;
+        const docViews = DocumentManager.Instance.DocumentViews.filter(view => !view.docViewPath.includes(LightboxView.LightboxDocView.current!));
+        const lightboxViews = DocumentManager.Instance.DocumentViews.filter(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!));
 
         // heuristic to return the "best" documents first:
+        //   choose a document in the lightbox first
         //   choose an exact match over an alias match
-        //   choose documents that have a PanelWidth() over those that don't (the treeview documents have no panelWidth)
-        docViews.map(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!) && view.rootDoc === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() > 1 && view.rootDoc === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() <= 1 && view.rootDoc === toFind && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() > 1 && view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
-        docViews.map(view => view.props.PanelWidth() <= 1 && view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
+        lightboxViews.map(view => view.rootDoc === toFind && toReturn.push(view));
+        lightboxViews.map(view => view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
+        docViews.map(view => view.rootDoc === toFind && toReturn.push(view));
+        docViews.map(view => view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
 
         return toReturn;
     }

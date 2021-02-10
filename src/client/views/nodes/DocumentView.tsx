@@ -116,7 +116,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
     NativeHeight: () => number;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (ctrlPressed: boolean) => void;
-    DocumentView: any;
+    DocumentView: () => DocumentView;
     viewPath: () => DocumentView[];
 }
 
@@ -154,7 +154,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @computed get docContents() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents); }
     @computed get headerMargin() { return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
     @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.props.isSelected() ? ":selected" : "")); }
-    @computed get finalLayoutKey() { return StrCast(this.props.Document.layoutKey, "layout"); }
+    @computed get finalLayoutKey() { return StrCast(this.Document.layoutKey, "layout"); }
     @computed get nativeWidth() { return this.props.NativeWidth(); }
     @computed get nativeHeight() { return this.props.NativeHeight(); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
@@ -346,7 +346,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
             const ffview = this.props.CollectionFreeFormDocumentView;
-            ffview && runInAction(() => (ffview().props.CollectionFreeFormView.ChildDrag = this.props.DocumentView));
+            ffview && runInAction(() => (ffview().props.CollectionFreeFormView.ChildDrag = this.props.DocumentView()));
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.ContentScale).transformDirection(x - left, y - top);
@@ -398,7 +398,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                             self: this.rootDoc,
                             scriptContext: this.props.scriptContext,
                             thisContainer: this.props.ContainingCollectionDoc,
-                            documentView: this.props.DocumentView,
+                            documentView: this.props.DocumentView(),
                             clientX: e.clientX,
                             clientY: e.clientY,
                             shiftKey: e.shiftKey
@@ -424,7 +424,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
-                    documentView: this.props.DocumentView,
+                    documentView: this.props.DocumentView(),
                     clientX: clientX,
                     clientY: clientY,
                     shiftKey
@@ -461,7 +461,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this.props.DocumentView, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                if (SelectionManager.IsSelected(this.props.DocumentView(), true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
                 // TODO: check here for panning/inking
             }
             return;
@@ -476,7 +476,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this.props.DocumentView, true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                if (SelectionManager.IsSelected(this.props.DocumentView(), true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -599,7 +599,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e && this.rootDoc._hideContextMenu && Doc.UserDoc().noviceMode) {
             e.preventDefault();
             e.stopPropagation();
-            !this.props.isSelected(true) && SelectionManager.SelectView(this.props.DocumentView, false);
+            !this.props.isSelected(true) && SelectionManager.SelectView(this.props.DocumentView(), false);
         }
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (e) {
@@ -678,7 +678,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         if (!Doc.IsSystem(this.rootDoc)) {
-            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView), icon: "users" });
+            (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
                 moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -708,7 +708,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
         if (!this.topMost) e?.stopPropagation(); // DocumentViews should stop propagation of this event
         cm.displayMenu((e?.pageX || pageX || 0) - 15, (e?.pageY || pageY || 0) - 15);
-        !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView, false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
+        !this.props.isSelected(true) && setTimeout(() => SelectionManager.SelectView(this.props.DocumentView(), false), 300); // on a mac, the context menu is triggered on mouse down, but a YouTube video becaomes interactive when selected which means that the context menu won't show up.  by delaying the selection until hopefully after the pointer up, the context menu will appear.
     }
 
     rootSelected = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
@@ -741,7 +741,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {this.hideLinkButton ? (null) :
-                <DocumentLinksButton View={this.props.DocumentView} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+                <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
         </div>;
     }
 
@@ -782,7 +782,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const captionView = !showCaption ? (null) :
-            <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
+            <div className="documentView-captionWrapper"
+                style={{
+                    backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]),
+                    color: StrCast(this.layoutDoc["caption-color"])
+                }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
                     yMargin={10}
                     xMargin={10}
@@ -963,6 +967,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     ContentScale = () => this.nativeScaling;
+    selfView = () => this;
     screenToLocalTransform = () => {
         return this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
     }
@@ -978,7 +983,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         TraceMobx();
         const internalProps = {
             ...this.props,
-            DocumentView: this,
+            DocumentView: this.selfView,
             viewPath: this.docViewPathFunc,
             PanelWidth: this.PanelWidth,
             PanelHeight: this.PanelHeight,

@@ -1719,7 +1719,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 <div className={`formattedTextBox-cont`} ref={this._ref}
                     style={{
                         overflow: this.layoutDoc._autoHeight ? "hidden" : undefined,
-                        width: "100%",
                         height: this.props.height || (this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined),
                         background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor)),
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.Color)),
