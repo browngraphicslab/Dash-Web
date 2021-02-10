@@ -115,7 +115,6 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
-                LightboxView.LightboxDoc = undefined;
 
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
@@ -129,7 +128,10 @@ export class KeyManager {
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
                 }
-                doDeselect && SelectionManager.DeselectAll();
+                if (doDeselect) {
+                    SelectionManager.DeselectAll();
+                    LightboxView.LightboxDoc = undefined;
+                }
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();

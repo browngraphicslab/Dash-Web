@@ -640,7 +640,7 @@ export class MainView extends React.Component {
             <TimelineMenu />
             {this.snapLines}
             <div className="mainView-webRef" ref={this.makeWebRef} />
-            <LightboxView PanelWidth={this._windowWidth} PanelHeight={this._windowHeight} maxBorder={[200, 100]} />
+            <LightboxView PanelWidth={this._windowWidth} PanelHeight={this._windowHeight} maxBorder={[200, 50]} />
         </div>);
     }
 

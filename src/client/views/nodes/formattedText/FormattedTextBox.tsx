@@ -614,6 +614,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const bounds = this.CurrentDiv.getBoundingClientRect();
         this.layoutDoc._sidebarWidthPercent = "" + 100 * Math.max(0, (1 - (e.clientX - bounds.left) / bounds.width)) + "%";
         this.layoutDoc._showSidebar = this.layoutDoc._sidebarWidthPercent !== "0%";
+        e.preventDefault();
         return false;
     }
     @undoBatch
