@@ -6,7 +6,7 @@ import { documentSchema } from '../../../../fields/documentSchemas';
 import { List } from '../../../../fields/List';
 import { makeInterface } from '../../../../fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
-import { returnFalse, emptyPath } from '../../../../Utils';
+import { returnFalse, emptyPath, returnEmptyDoclist } from '../../../../Utils';
 import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
@@ -218,7 +218,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             DataDoc={layout.resolvedDataDoc as Doc}
             styleProvider={this.props.styleProvider}
             layerProvider={undefined}
-            docViewPath={emptyPath}
+            docViewPath={returnEmptyDoclist}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}

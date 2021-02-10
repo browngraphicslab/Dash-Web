@@ -145,7 +145,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
                             rootSelected={returnFalse}
                             styleProvider={this.props.docProps?.styleProvider}
                             layerProvider={this.props.docProps?.layerProvider}
-                            docViewPath={emptyPath}
+                            docViewPath={returnEmptyDoclist}
                             ScreenToLocalTransform={Transform.Identity}
                             parentActive={returnFalse}
                             addDocument={returnFalse}

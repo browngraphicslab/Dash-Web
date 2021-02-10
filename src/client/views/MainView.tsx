@@ -249,7 +249,7 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
-            docViewPath={emptyPath}
+            docViewPath={returnEmptyDoclist}
             layerProvider={undefined}
             styleProvider={undefined}
             rootSelected={returnTrue}
@@ -340,7 +340,7 @@ export class MainView extends React.Component {
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
-                        docViewPath={emptyPath}
+                        docViewPath={returnEmptyDoclist}
                         layerProvider={undefined}
                         styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
@@ -379,7 +379,7 @@ export class MainView extends React.Component {
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
@@ -490,7 +490,7 @@ export class MainView extends React.Component {
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     moveDocument={this.moveButtonDoc}
                     CollectionView={undefined}
                     addDocument={this.addButtonDoc}
@@ -564,7 +564,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -599,7 +599,7 @@ export class MainView extends React.Component {
                     active={returnFalse}
                     whenActiveChanged={returnFalse}
                     focus={returnFalse}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
                     docFilters={returnEmptyFilter}
@@ -657,7 +657,7 @@ export class MainView extends React.Component {
                             Document={invisibleDoc}
                             dropAction={"move"}
                             isSelected={returnFalse}
-                            docViewPath={emptyPath}
+                            docViewPath={returnEmptyDoclist}
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}

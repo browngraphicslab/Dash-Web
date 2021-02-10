@@ -872,7 +872,7 @@ export class GestureOverlay extends Touchable {
                 renderDepth={0}
                 styleProvider={returnEmptyString}
                 layerProvider={undefined}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}

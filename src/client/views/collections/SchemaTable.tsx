@@ -573,7 +573,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         DataDoc={this._showDataDoc}
                         styleProvider={DefaultStyleProvider}
                         layerProvider={undefined}
-                        docViewPath={emptyPath}
+                        docViewPath={returnEmptyDoclist}
                         freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}

@@ -133,7 +133,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionView={undefined}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}

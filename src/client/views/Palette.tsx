@@ -50,7 +50,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
                             focus={emptyFunction}
-                            docViewPath={emptyPath}
+                            docViewPath={returnEmptyDoclist}
                             styleProvider={returnEmptyString}
                             layerProvider={undefined}
                             parentActive={returnTrue}

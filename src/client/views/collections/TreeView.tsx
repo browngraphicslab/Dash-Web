@@ -550,7 +550,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 DataDoc={undefined}
                 styleProvider={this.titleStyleProvider}
                 layerProvider={undefined}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 treeViewDoc={this.props.treeView.props.Document}
                 addDocument={undefined}
                 addDocTab={this.props.addDocTab}
@@ -642,7 +642,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             rootSelected={returnTrue}
             styleProvider={asText ? this.titleStyleProvider : this.embeddedStyleProvider}
             layerProvider={undefined}
-            docViewPath={emptyPath}
+            docViewPath={returnEmptyDoclist}
             docFilters={returnEmptyFilter}
             docRangeFilters={returnEmptyFilter}
             searchFilterDocs={returnEmptyDoclist}

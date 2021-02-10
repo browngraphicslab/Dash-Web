@@ -194,7 +194,7 @@ export class OverlayView extends React.Component {
                     focus={emptyFunction}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

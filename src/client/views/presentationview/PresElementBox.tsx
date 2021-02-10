@@ -7,7 +7,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, emptyPath } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, emptyPath, returnEmptyDoclist } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -93,7 +93,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     styleProvider={this.styleProvider}
                     layerProvider={this.props.layerProvider}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}

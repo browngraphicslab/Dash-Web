@@ -315,7 +315,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     parentActive={returnFalse}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
@@ -411,7 +411,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 parentActive={this.active}
                 whenActiveChanged={emptyFunction}
                 focus={this.focusFunc}
-                docViewPath={emptyPath}
+                docViewPath={returnEmptyDoclist}
                 bringToFront={emptyFunction}
                 pinToPres={TabDocView.PinDoc} />
                 {this._document._viewType !== CollectionViewType.Freeform ? (null) :

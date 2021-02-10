@@ -61,7 +61,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             searchFilterDocs: returnEmptyDoclist,
             styleProvider: DefaultStyleProvider,
             layerProvider: undefined,
-            docViewPath: emptyPath,
+            docViewPath: returnEmptyDoclist,
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
             fieldKey: this.props.keyName,

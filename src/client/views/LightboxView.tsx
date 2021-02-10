@@ -66,7 +66,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         rootSelected={returnTrue}
-                        docViewPath={emptyPath}
+                        docViewPath={returnEmptyDoclist}
                         removeDocument={undefined}
                         styleProvider={DefaultStyleProvider}
                         layerProvider={returnTrue}

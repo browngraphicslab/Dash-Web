@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, emptyPath, returnFalse, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, setupMoveUpEvents, returnEmptyDoclist } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
@@ -415,7 +415,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     searchFilterDocs={this.searchFilterDocs}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
-                    docViewPath={emptyPath}
+                    docViewPath={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
