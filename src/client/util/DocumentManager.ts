@@ -149,14 +149,10 @@ export class DocumentManager {
         const focusAndFinish = () => { finished?.(); return false; };
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
-            if (finalDocView) {
-                const parent = targetDoc?.annotationOn as Doc;
-                if (parent) finalDocView.layoutDoc.scrollToAnchorID = targetDoc?.[Id];
-                Doc.linkFollowHighlight(finalDocView.rootDoc);
-            }
+            finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
-        let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
+        let annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
         if (annotatedDoc && annotatedDoc !== originatingDoc?.context && !targetDoc?.isPushpin) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
@@ -184,8 +180,8 @@ export class DocumentManager {
             highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
-            const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc)) ? docContext : undefined;
-            const targetDocContext = annotatedDoc || contextDoc;
+            const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc) || Doc.AreProtosEqual(doc, annotatedDoc)) ? docContext : undefined;
+            const targetDocContext = contextDoc || annotatedDoc;
 
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));

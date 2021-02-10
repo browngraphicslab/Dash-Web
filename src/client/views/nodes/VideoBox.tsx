@@ -70,7 +70,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     getAnchor = () => {
-        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
+        const timecode = Cast(this.layoutDoc._currentTimecode, "number", null);
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", timecode ? timecode : undefined) || this.rootDoc;
     }
 
     choosePath(url: string) {

@@ -114,7 +114,7 @@ export const collectionSchema = createSchema({
     childLayoutTemplate: Doc, // layout template to use to render children of a collecion
     childLayoutString: "string", //layout string to use to render children of a collection
     childClickedOpenTemplateView: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to read this value and apply template)
-    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links scrollToAnchorID: "string",   // id of anchor being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToAnchorID should be set to undefined by this doc after it sets up its scroll,etc.
+    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links 
     onChildClick: ScriptField, // script to run for each child when its clicked
     onChildDoubleClick: ScriptField, // script to run for each child when its clicked
     onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view
