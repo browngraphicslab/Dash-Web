@@ -1215,7 +1215,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const scrollRef = self._scrollRef.current;
                     if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
                         const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
-                        if (!LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc) {
+                        if (!LinkDocPreview.LinkInfo) {
                             scrollPos && smoothScroll(500, scrollRef, scrollPos);
                         } else {
                             scrollRef.scrollTo({ top: scrollPos });
@@ -1338,7 +1338,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     onPointerUp = (e: React.PointerEvent): void => {
         if (!this._downEvent) return;
         this._downEvent = false;
-        if (!(e.nativeEvent as any).formattedHandled) {
+        if (!(e.nativeEvent as any).formattedHandled && this.active(true)) {
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
@@ -1366,13 +1366,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             e.preventDefault();
         }
         FormattedTextBoxComment.Hide();
-        if (FormattedTextBoxComment.linkDoc) {
-            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                this.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "add" : "add:right");
-            } else {
-                LinkManager.FollowLink(FormattedTextBoxComment.linkDoc, this.props.Document, this.props, false);
-            }
-        }
 
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1601,7 +1594,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
     }
     onScroll = (ev: React.UIEvent) => {
-        if (!LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc && this._scrollRef.current) {
+        if (!LinkDocPreview.LinkInfo && this._scrollRef.current) {
             this._ignoreScroll = true;
             this.layoutDoc._scrollTop = this._scrollRef.current.scrollTop;
             this._ignoreScroll = false;

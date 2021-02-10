@@ -107,7 +107,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         //this._disposers.scrubbing = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
 
         this._disposers.triggerAudio = reaction(
-            () => !LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerAudio, null) : undefined,
+            () => !LinkDocPreview.LinkInfo && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerAudio, null) : undefined,
             start => start !== undefined && setTimeout(() => {
                 this.playFrom(start);
                 setTimeout(() => {
@@ -119,7 +119,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         );
 
         this._disposers.audioStop = reaction(
-            () => this.props.renderDepth !== -1 && !LinkDocPreview.LinkInfo && !FormattedTextBoxComment.linkDoc ? Cast(this.Document._audioStop, "number", null) : undefined,
+            () => this.props.renderDepth !== -1 && !LinkDocPreview.LinkInfo ? Cast(this.Document._audioStop, "number", null) : undefined,
             audioStop => audioStop !== undefined && setTimeout(() => {
                 this.Pause();
                 setTimeout(() => this.Document._audioStop = undefined, 10);

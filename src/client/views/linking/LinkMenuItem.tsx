@@ -143,7 +143,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             docprops: this.props.docView.props,
                             linkSrc: this.props.sourceDoc,
                             linkDoc: this.props.linkDoc,
-                            Location: [e.clientX, e.clientY + 20]
+                            showHeader: false,
+                            location: [e.clientX, e.clientY + 20]
                         })}
                         onPointerDown={this.onLinkButtonDown}>
 

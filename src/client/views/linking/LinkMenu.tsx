@@ -30,8 +30,7 @@ export class LinkMenu extends React.Component<Props> {
 
     onPointerDown = (e: PointerEvent) => {
         LinkDocPreview.Clear();
-        if (this._linkMenuRef && this._editorRef &&
-            !this._linkMenuRef.current?.contains(e.target as any) &&
+        if (!this._linkMenuRef.current?.contains(e.target as any) &&
             !this._editorRef.current?.contains(e.target as any)) {
             DocumentLinksButton.ClearLinkEditor();
         }

@@ -626,8 +626,7 @@ export class MainView extends React.Component {
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>

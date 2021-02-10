@@ -140,7 +140,8 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 docprops: this.props,
                 linkSrc: linkSource,
                 linkDoc: this.rootDoc,
-                Location: [e.clientX, e.clientY + 20]
+                showHeader: true,
+                location: [e.clientX, e.clientY + 20]
             })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref}
