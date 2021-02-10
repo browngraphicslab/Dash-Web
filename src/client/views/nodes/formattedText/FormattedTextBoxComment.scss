@@ -1,4 +1,4 @@
-.FormattedTextBox-tooltip {
+.formattedTextBox-tooltip {
     position: absolute;
     pointer-events: all;
     height: 100%;
@@ -14,9 +14,13 @@
     max-width: 400;
     max-height: 235;
     height:max-content;
+    .formattedTextBox-tooltipText {
+        height: max-content;
+        text-overflow: ellipsis;
+    }
 }
 
-.FormattedTextBox-tooltip:before {
+.formattedTextBox-tooltip:before {
     content: "";
     height: 0;
     width: 0;
@@ -29,7 +33,7 @@
     border-top-color: silver;
 }
 
-.FormattedTextBox-tooltip:after {
+.formattedTextBox-tooltip:after {
     content: "";
     height: 0;
     width: 0;

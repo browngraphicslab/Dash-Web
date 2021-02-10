@@ -55,9 +55,8 @@ import { DocumentButtonBar } from '../../DocumentButtonBar';
 import { AudioBox } from '../AudioBox';
 import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
-import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
+import { FormattedTextBoxComment, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
-import { LinkManager } from '../../../util/LinkManager';
 import { CollectionStackingView } from '../../collections/CollectionStackingView';
 import { CollectionViewType } from '../../collections/CollectionView';
 import { SnappingManager } from '../../../util/SnappingManager';
@@ -825,8 +824,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
                     }
-                }),
-                formattedTextBoxCommentPlugin
+                }), new Plugin({ view(editorView) { return new FormattedTextBoxComment(editorView); } })
             ]
         };
     }
@@ -1613,8 +1611,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc._autoHeight = false;
             }
-            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight, 0);
-            const dh = NumCast(this.rootDoc._height, 0);
+            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight);
+            const dh = NumCast(this.rootDoc._height);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + this.titleHeight);
             if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
                 // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...

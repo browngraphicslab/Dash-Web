@@ -80,15 +80,17 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
             } else {
                 const anchorDoc = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                 anchorDoc && DocServer.GetRefField(anchorDoc).then(action(async anchor => {
-                    if (anchor instanceof Doc) {
+                    if (anchor instanceof Doc && DocListCast(anchor.links).length) {
                         this._linkDoc = DocListCast(anchor.links)[0];
                         this._linkSrc = anchor;
                         const targetanchor = LinkManager.getOppositeAnchor(this._linkDoc, this._linkSrc);
                         runInAction(async () => {
                             this._linkTarget = targetanchor;
                             const target = this._linkTarget?.annotationOn ? await DocCastAsync(this._linkTarget.annotationOn) : this._linkTarget;
-                            this._toolTipText = "";
-                            runInAction(() => this._targetDoc = target);
+                            runInAction(() => {
+                                this._toolTipText = "";
+                                this._targetDoc = target;
+                            });
                         });
                     }
                 }));
@@ -99,8 +101,10 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
             runInAction(async () => {
                 this._linkTarget = Doc.AreProtosEqual(anchor1, linkSrc) || Doc.AreProtosEqual(anchor1.annotationOn as Doc, linkSrc) ? anchor2 : anchor1;
                 const target = this._linkTarget?.annotationOn ? await DocCastAsync(this._linkTarget.annotationOn) : this._linkTarget;
-                this._toolTipText = "";
-                runInAction(() => this._targetDoc = target);
+                runInAction(() => {
+                    this._toolTipText = "";
+                    this._targetDoc = target;
+                });
             });
         }
     }
@@ -125,22 +129,22 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
     height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
     @computed get previewHeader() {
         return !this._linkDoc || !this._targetDoc || !this._linkSrc ? (null) :
-            <div className="LinkDocPreview-info" ref={this._infoRef}>
-                <div className="LinkDocPreview-title">
+            <div className="linkDocPreview-info" ref={this._infoRef}>
+                <div className="linkDocPreview-title">
                     {StrCast(this._targetDoc.title).length > 16 ? StrCast(this._targetDoc.title).substr(0, 16) + "..." : this._targetDoc.title}
-                    <p className="LinkDocPreview-description"> {StrCast(this._linkDoc.description)}</p>
+                    <p className="linkDocPreview-description"> {StrCast(this._linkDoc.description)}</p>
                 </div>
                 <div className="wrapper" style={{ float: "right" }}>
                     {(this.props.hrefs?.length || 0) <= 1 ? (null) :
                         <Tooltip title={<div className="dash-tooltip">Next Link</div>} placement="top">
-                            <div className="LinkDocPreview-button" onPointerDown={this.nextHref}>
-                                <FontAwesomeIcon className="LinkDocPreview-fa-icon" icon="chevron-right" color="white" size="sm" />
+                            <div className="linkDocPreview-button" onPointerDown={this.nextHref}>
+                                <FontAwesomeIcon className="linkDocPreview-fa-icon" icon="chevron-right" color="white" size="sm" />
                             </div>
                         </Tooltip>}
 
                     <Tooltip title={<div className="dash-tooltip">Delete Link</div>} placement="top">
-                        <div className="LinkDocPreview-button" onPointerDown={this.deleteLink}>
-                            <FontAwesomeIcon className="LinkDocPreview-fa-icon" icon="trash" color="white" size="sm" />
+                        <div className="linkDocPreview-button" onPointerDown={this.deleteLink}>
+                            <FontAwesomeIcon className="linkDocPreview-fa-icon" icon="trash" color="white" size="sm" />
                         </div>
                     </Tooltip>
                 </div>
@@ -149,15 +153,15 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
 
     @computed get docPreview() {
         return (!this._linkDoc || !this._targetDoc || !this._linkSrc) && !this._toolTipText ? (null) :
-            <div className="LinkDocPreview-inner">
+            <div className="linkDocPreview-inner">
                 {!this.props.showHeader ? (null) : this.previewHeader}
-                <div className="LinkDocPreview-preview-wrapper">
+                <div className="linkDocPreview-preview-wrapper">
                     {this._toolTipText ? this._toolTipText :
                         <DocumentView ref={(r) => {
                             const targetanchor = LinkManager.getOppositeAnchor(this._linkDoc!, this._linkSrc!);
                             targetanchor && this._targetDoc !== targetanchor && r?.focus(targetanchor);
                         }}
-                            Document={this._targetDoc}
+                            Document={this._targetDoc!}
                             moveDocument={returnFalse}
                             rootSelected={returnFalse}
                             styleProvider={this.props.docprops?.styleProvider}
