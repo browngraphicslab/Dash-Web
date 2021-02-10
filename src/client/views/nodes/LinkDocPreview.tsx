@@ -17,7 +17,6 @@ import React = require("react");
 interface LinkDocPreviewProps {
     linkDoc?: Doc;
     linkSrc?: Doc;
-    href?: string;
     docprops: DocumentViewSharedProps;
     location: number[];
     hrefs?: string[];
@@ -121,8 +120,8 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
     followLink = (e: React.PointerEvent) => {
         if (this._linkDoc && this._linkSrc) {
             LinkManager.FollowLink(this._linkDoc, this._linkSrc, this.props.docprops, false);
-        } else if (this.props.href) {
-            this.props.docprops?.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
+        } else if (this.props.hrefs?.length) {
+            this.props.docprops?.addDocTab(Docs.Create.WebDocument(this.props.hrefs[0], { title: this.props.hrefs[0], _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
