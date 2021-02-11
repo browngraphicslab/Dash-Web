@@ -168,7 +168,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return this.props.addDocTab(doc, where);
     }
 
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, didFocus?: boolean) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         Doc.BrushDoc(doc);
         this.props.focus(this.props.Document, true);  // bcz: want our containing collection to zoom
         Doc.linkFollowHighlight(doc);
