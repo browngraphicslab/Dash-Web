@@ -250,8 +250,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 if (doc) {
                     return doc._viewType === CollectionViewType.Docking || (Doc.IsSystem(doc)) ? (null) :
                         <>
-                            <div>
-                                <select className="filterBox-treeView-selection">
+                            <div style={{ marginRight: "5px", fontSize: "10px" }}>
+                                <select className="filterBox-selection">
                                     <option value="Is" key="Is">Is</option>
                                     <option value="Is Not" key="Is Not">Is Not</option>
                                 </select>

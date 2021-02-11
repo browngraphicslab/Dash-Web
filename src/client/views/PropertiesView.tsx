@@ -68,7 +68,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
-    @observable openFilters: boolean = false;
+    @observable openFilters: boolean = true;
 
     // @observable selectedUser: string = "";
     // @observable addButtonPressed: boolean = false;
@@ -1040,8 +1040,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     {this.sharingSubMenu}
 
-                    {this.filtersSubMenu}
-
                     {this.inkSubMenu}
 
                     {this.fieldsSubMenu}
@@ -1049,6 +1047,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {this.contextsSubMenu}
 
                     {this.layoutSubMenu}
+
+                    {this.filtersSubMenu}
                 </div>;
             }
             if (this.isPres) {
