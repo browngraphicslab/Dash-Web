@@ -134,13 +134,14 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 </div>}
             </div>
         );
-        return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
-            onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
-            onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
-                docprops: this.props,
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`}
+            onPointerLeave={LinkDocPreview.Clear}
+            onPointerEnter={e => LinkDocPreview.SetLinkInfo({
+                docProps: this.props,
                 linkSrc: linkSource,
                 linkDoc: this.rootDoc,
-                Location: [e.clientX, e.clientY + 20]
+                showHeader: true,
+                location: [e.clientX, e.clientY + 20]
             })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref}

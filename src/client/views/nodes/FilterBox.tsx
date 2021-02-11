@@ -211,6 +211,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     onCheckedClick={this.scriptField}
                     dontRegisterView={true}
                     styleProvider={this.props.styleProvider}
+                    layerProvider={this.props.layerProvider}
+                    docViewPath={this.props.docViewPath}
                     scriptContext={this.props.scriptContext}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}

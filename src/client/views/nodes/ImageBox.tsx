@@ -222,7 +222,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) return url.href;  //Why is this here
 
         const ext = path.extname(url.href);
-        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.props.PanelWidth() < 100 ? "_s" : "_m";
+        const scrSize = this.props.ScreenToLocalTransform().inverse().transformDirection(this.nativeSize.nativeWidth, this.nativeSize.nativeHeight);
+        this._curSuffix = this.props.renderDepth < 1 ? "_o" : scrSize[0] < 100 ? "_s" : scrSize[0] < 400 || !this.props.isSelected() ? "_m" : "_o";
         return url.href.replace(ext, this._curSuffix + ext);
     }
 
@@ -466,7 +467,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             </CollectionFreeFormView>
             {this.annotationLayer}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
         </div >);
     }
 }

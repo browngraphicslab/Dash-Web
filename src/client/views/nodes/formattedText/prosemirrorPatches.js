@@ -143,17 +143,21 @@ function wrappingInputRule(regexp, nodeType, getAttrs, joinPredicate, customWith
 // :: ([Mark]) → ?Mark
 // Tests whether there is a mark of this type in the given set.
 function isInSetWithAttrs(mark, set, attrs) {
+    var markAllAnchors = attrs.allAnchors !== undefined ? Array.from(attrs.allAnchors.map(al => al.anchorId)) : [];
     for (var i = 0; i < set.length; i++) {
         if (set[i].type == mark) {
-            if (Array.from(Object.keys(attrs)).reduce((p, akey) => {
+            return Array.from(Object.keys(attrs)).reduce((p, akey) => {
                 if (p && JSON.stringify(set[i].attrs[akey]) === JSON.stringify(attrs[akey])) return true;
-                set[i].attrs.allLinks = Array.from(set[i].attrs.allLinks).filter(a => !Array.from(attrs.allLinks.map(al => al.targetId)).includes(a.targetId) || !Array.from(attrs.allLinks.map(al => al.linkId).includes(a.linkId)))
+                // bcz: hack to allow special case of anchors in Dash to be removed from a mark which has multiple
+                if (set[i].attrs.allAnchors !== undefined) {
+                    set[i].attrs.allAnchors = set[i].attrs.allAnchors.filter(a => !markAllAnchors.includes(a.anchorId));
+                    if (set[i].attrs.allAnchors.length) return undefined;
+                }
                 return false;
-            }, true)) {
-                return set[i];
-            }
+            }, true);
         }
     }
+    return undefined;
 };
 
 // :: (number, number, ?union<Mark, MarkType>) → this
@@ -170,7 +174,9 @@ function removeMarkWithAttrs(tr, from, to, mark, attrs) {
         step++;
         var toRemove = null;
         if (mark) {
-            if (isInSetWithAttrs(mark, node.marks, attrs)) { toRemove = [mark]; }
+            const inset = isInSetWithAttrs(mark, node.marks, attrs);
+            if (inset === true) { toRemove = [mark]; }
+            // if (inset === undefined) { console.log("lightened")  } // anchorids were removed from the mark, but the mark wasn't removed since there are still anchorsids left
         } else {
             toRemove = node.marks;
         }

@@ -13,7 +13,7 @@ import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -42,6 +42,7 @@ import { GestureOverlay } from './GestureOverlay';
 import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { InkStrokeProperties } from './InkStrokeProperties';
+import { LightboxView } from './LightboxView';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { AudioBox } from './nodes/AudioBox';
@@ -59,16 +60,16 @@ import { AnchorMenu } from './pdf/AnchorMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { PropertiesView } from './PropertiesView';
 import { SearchBox } from './search/SearchBox';
-import { DefaultStyleProvider, StyleProp, DefaultLayerProvider } from './StyleProvider';
+import { DefaultStyleProvider, StyleProp } from './StyleProvider';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
-    private _mainViewRef = React.createRef<HTMLDivElement>();
     @observable public LastButton: Opt<Doc>;
-    @observable public LightboxDoc: Opt<Doc>;
+    @observable private _windowWidth: number = 0;
+    @observable private _windowHeight: number = 0;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -100,7 +101,7 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -248,6 +249,9 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
+            docViewPath={returnEmptyDoclist}
+            layerProvider={undefined}
+            styleProvider={undefined}
             rootSelected={returnTrue}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
@@ -336,6 +340,9 @@ export class MainView extends React.Component {
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
+                        docViewPath={returnEmptyDoclist}
+                        layerProvider={undefined}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
                         ScreenToLocalTransform={this.mainContainerXf}
@@ -344,7 +351,6 @@ export class MainView extends React.Component {
                         renderDepth={0}
                         scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={emptyFunction}
-                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -373,8 +379,10 @@ export class MainView extends React.Component {
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -476,11 +484,13 @@ export class MainView extends React.Component {
                     dropAction={"alias"}
                     parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}
+                    docViewPath={returnEmptyDoclist}
                     moveDocument={this.moveButtonDoc}
                     CollectionView={undefined}
                     addDocument={this.addButtonDoc}
@@ -547,12 +557,14 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                docViewPath={returnEmptyDoclist}
                 parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -573,6 +585,8 @@ export class MainView extends React.Component {
                     ContainingCollectionDoc={undefined}
                     Document={DocumentLinksButton.invisibleWebDoc}
                     dropAction={"move"}
+                    layerProvider={undefined}
+                    styleProvider={undefined}
                     isSelected={returnFalse}
                     select={returnFalse}
                     rootSelected={returnFalse}
@@ -585,6 +599,7 @@ export class MainView extends React.Component {
                     active={returnFalse}
                     whenActiveChanged={returnFalse}
                     focus={returnFalse}
+                    docViewPath={returnEmptyDoclist}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
                     docFilters={returnEmptyFilter}
@@ -594,79 +609,12 @@ export class MainView extends React.Component {
             </div>;
     }
 
-    lightboxWidth = () => window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2;
-    lightboxHeight = () => window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2;
-    lightboxScreenToLocal = () => new Transform(-Math.min(window.innerWidth / 4, 200), -Math.min(window.innerHeight / 4, 100), 1);
-    lightboxHistory: (Opt<Doc>)[] = [];
-    lightboxFuture: (Opt<Doc>)[] = [];
-    @computed get lightboxView() {
-        if (this.lightboxHistory.lastElement() !== this.LightboxDoc) this.lightboxHistory.push(this.LightboxDoc);
-        let downx = 0, downy = 0;
-        return !this.LightboxDoc ? (null) :
-            <div className="mainView-lightBox-frame"
-                onPointerDown={e => { downx = e.clientX; downy = e.clientY; }}
-                onClick={action(e => {
-                    if (Math.abs(downx - e.clientX) < 4 && Math.abs(downy - e.clientY) < 4) {
-                        this.lightboxHistory = [];
-                        this.lightboxFuture = [];
-                        this.LightboxDoc = undefined;
-                    }
-                })}  >
-                <div className="mainView-lightBox-contents" style={{
-                    left: Math.min(window.innerWidth / 4, 200),
-                    top: Math.min(window.innerHeight / 4, 100),
-                    width: window.innerWidth - Math.min(window.innerWidth / 4, 200) * 2,
-                    height: window.innerHeight - Math.min(window.innerHeight / 4, 100) * 2
-                }}>
-                    <DocumentView
-                        Document={this.LightboxDoc}
-                        DataDoc={undefined}
-                        addDocument={undefined}
-                        addDocTab={this.addDocTabFunc}
-                        pinToPres={emptyFunction}
-                        rootSelected={returnTrue}
-                        removeDocument={undefined}
-                        styleProvider={DefaultStyleProvider}
-                        layerProvider={DefaultLayerProvider(this.LightboxDoc)}
-                        ScreenToLocalTransform={this.lightboxScreenToLocal}
-                        PanelWidth={this.lightboxWidth}
-                        PanelHeight={this.lightboxHeight}
-                        focus={emptyFunction}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        docFilters={returnEmptyFilter}
-                        docRangeFilters={returnEmptyFilter}
-                        searchFilterDocs={returnEmptyDoclist}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        renderDepth={0} />
-                </div>
-                <div style={{ position: "absolute", display: this.LightboxDoc && this.lightboxHistory.length ? "" : "none", width: Math.min(window.innerWidth / 4, 200) }}>
-                    <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
-                        onClick={action(e => {
-                            e.stopPropagation();
-                            if (this.lightboxHistory.lastElement() !== this.lightboxFuture.lastElement()) this.lightboxFuture.push(this.lightboxHistory.pop());
-                            this.LightboxDoc = this.lightboxHistory.lastElement();
-                        })}>
-                        <FontAwesomeIcon icon={"chevron-left"} size="3x" />
-                    </div>
-                </div>
-                <div style={{ position: "absolute", display: this.LightboxDoc && this.lightboxFuture.length ? "" : "none", left: window.innerWidth - Math.min(window.innerWidth / 4, 200), width: Math.min(window.innerWidth / 4, 200) }}>
-                    <div className="mainView-lightBox-navBtn" style={{ top: window.innerHeight / 2 - 12.50 }}
-                        onClick={action(e => {
-                            e.stopPropagation();
-                            this.LightboxDoc = this.lightboxFuture.pop();
-                        })}>
-                        <FontAwesomeIcon icon={"chevron-right"} size="3x" />
-                    </div>
-                </div>
-            </div>;
-    }
-
-
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)} ref={this._mainViewRef}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}
+            onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)}
+            ref={r => {
+                r && new _global.ResizeObserver(action(() => { this._windowWidth = r.getBoundingClientRect().width; this._windowHeight = r.getBoundingClientRect().height; })).observe(r);
+            }}>
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />
@@ -677,9 +625,8 @@ export class MainView extends React.Component {
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
+            {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>
@@ -693,7 +640,7 @@ export class MainView extends React.Component {
             <TimelineMenu />
             {this.snapLines}
             <div className="mainView-webRef" ref={this.makeWebRef} />
-            {this.lightboxView}
+            <LightboxView PanelWidth={this._windowWidth} PanelHeight={this._windowHeight} maxBorder={[200, 50]} />
         </div>);
     }
 
@@ -710,9 +657,12 @@ export class MainView extends React.Component {
                             Document={invisibleDoc}
                             dropAction={"move"}
                             isSelected={returnFalse}
+                            docViewPath={returnEmptyDoclist}
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}
+                            layerProvider={undefined}
+                            styleProvider={undefined}
                             addDocTab={returnFalse}
                             pinToPres={returnFalse}
                             ScreenToLocalTransform={Transform.Identity}

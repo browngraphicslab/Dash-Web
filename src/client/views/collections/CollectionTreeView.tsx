@@ -164,7 +164,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 renderDepth={this.props.renderDepth + 1}
                 rootSelected={returnTrue}
                 //dontRegisterView={true}
+                docViewPath={this.props.docViewPath}
                 styleProvider={this.props.styleProvider}
+                layerProvider={this.props.layerProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}

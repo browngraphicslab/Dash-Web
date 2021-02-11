@@ -1,17 +1,16 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
-import { BoolCast, Cast, ScriptCast, StrCast } from '../../../fields/Types';
-import { ImageField } from '../../../fields/URLField';
+import { ScriptField } from '../../../fields/ScriptField';
+import { Cast, ScriptCast, StrCast } from '../../../fields/Types';
 import { denormalizeEmail, distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
-import { returnFalse, Utils } from '../../../Utils';
+import { returnFalse } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -38,7 +37,6 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { ScriptField } from '../../../fields/ScriptField';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 
@@ -85,8 +83,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     _isChildActive = false;   //TODO should this be observable?
-    get _isLightboxOpen() { return BoolCast(this.props.Document._isLightboxOpen); }
-    set _isLightboxOpen(value) { this.props.Document._isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
@@ -280,7 +276,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         !Doc.UserDoc().noviceMode && subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         !Doc.UserDoc().noviceMode && subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
-        subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 
         if (!Doc.IsSystem(this.props.Document) && !this.props.Document.annotationOn) {
             const existingVm = ContextMenu.Instance.findByDescription(category);
@@ -342,27 +337,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         }
     }
 
-    lightbox = (images: { image: string, title: string, caption: string }[]) => {
-        if (!images.length) return (null);
-        const mainPath = path.extname(images[this._curLightboxImg].image);
-        const nextPath = path.extname(images[(this._curLightboxImg + 1) % images.length].image);
-        const prevPath = path.extname(images[(this._curLightboxImg + images.length - 1) % images.length].image);
-        const main = images[this._curLightboxImg].image.replace(mainPath, "_o" + mainPath);
-        const title = images[this._curLightboxImg].title;
-        const caption = images[this._curLightboxImg].caption;
-        const next = images[(this._curLightboxImg + 1) % images.length].image.replace(nextPath, "_o" + nextPath);
-        const prev = images[(this._curLightboxImg + images.length - 1) % images.length].image.replace(prevPath, "_o" + prevPath);
-        return !this._isLightboxOpen ? (null) : (<Lightbox key="lightbox"
-            mainSrc={main}
-            nextSrc={next}
-            prevSrc={prev}
-            imageTitle={title}
-            imageCaption={caption}
-            onCloseRequest={action(() => this._isLightboxOpen = false)}
-            onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
-            onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
-    }
-
     bodyPanelWidth = () => this.props.PanelWidth();
 
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
@@ -389,13 +363,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             style={{ pointerEvents: this.props.layerProvider?.(this.props.Document) === false ? "none" : undefined }}>
             {this.showIsTagged()}
             {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
-            {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => Cast(d.data, ImageField, null)).map(d =>
-                ({
-                    image: (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
-                        Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href,
-                    title: StrCast(d.title),
-                    caption: Field.toString(d.caption as Field)
-                })))}
         </div>);
     }
 }

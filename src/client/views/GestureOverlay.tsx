@@ -8,7 +8,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents, emptyPath } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -516,7 +516,7 @@ export class GestureOverlay extends Touchable {
     }
 
     handleLineGesture = (): boolean => {
-        let actionPerformed = false;
+        const actionPerformed = false;
         const B = this.svgBounds;
 
         // get the two targets at the ends of the line
@@ -524,21 +524,6 @@ export class GestureOverlay extends Touchable {
         const ep2 = this._points[this._points.length - 1];
         const target1 = document.elementFromPoint(ep1.X, ep1.Y);
         const target2 = document.elementFromPoint(ep2.X, ep2.Y);
-
-        // callback function to be called by each target
-        const callback = (doc: Doc) => {
-            if (!this._d1) {
-                this._d1 = doc;
-            }
-            // we don't want to create a link of both endpoints are the same document (doing so makes drawing an l very hard)
-            else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
-                // we don't want to create a link between ink strokes (doing so makes drawing a t very hard)
-                if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link", "");
-                    actionPerformed = true;
-                }
-            }
-        };
 
         const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
             {
@@ -886,6 +871,8 @@ export class GestureOverlay extends Touchable {
                 PanelHeight={this.return300}
                 renderDepth={0}
                 styleProvider={returnEmptyString}
+                layerProvider={undefined}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}

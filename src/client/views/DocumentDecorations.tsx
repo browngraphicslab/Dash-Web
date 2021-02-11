@@ -23,10 +23,10 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { InkStrokeProperties } from './InkStrokeProperties';
+import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
-import { MainView } from './MainView';
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -175,7 +175,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 } else if (e.altKey) {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
                 } else {
-                    runInAction(() => MainView.Instance.LightboxDoc = selectedDocs[0].props.Document);
+                    runInAction(() => {
+                        LightboxView.LightboxDoc = selectedDocs[0].props.Document;
+                        LightboxView.LightboxFuture = selectedDocs.slice(1).map(view => view.props.Document);
+                    });
                 }
             }
         }
@@ -572,10 +575,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
                 </div></Tooltip>);
 
-        const openIcon = !canOpen ? (null) : <Tooltip key="open" title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top"><div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
-            {SelectionManager.Views().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
-        </div>
-        </Tooltip>;
+        const openIcon = !canOpen ? (null) :
+            <Tooltip key="open" title={<div className="dash-tooltip">Open in Tab (ctrl: as alias, shift: in new collection)</div>} placement="top">
+                <div className="documentDecorations-openInTab" onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onPointerDown={this.onMaximizeDown}>
+                    <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" />
+                </div>
+            </Tooltip>;
 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}

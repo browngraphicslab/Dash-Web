@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from '../../../fields/Doc';
 import { Cast, StrCast } from '../../../fields/Types';
 import { WebField } from '../../../fields/URLField';
-import { emptyFunction, setupMoveUpEvents } from '../../../Utils';
+import { emptyFunction, setupMoveUpEvents, returnFalse } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from '../../util/DragManager';
@@ -18,6 +18,7 @@ import { DocumentView, DocumentViewSharedProps } from '../nodes/DocumentView';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
+import { setup } from 'mocha';
 
 
 interface LinkMenuItemProps {
@@ -27,7 +28,6 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    docprops: DocumentViewSharedProps;
     menuRef: React.Ref<HTMLDivElement>;
 }
 
@@ -69,9 +69,6 @@ export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: Docume
 @observer
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
-    private _downX = 0;
-    private _downY = 0;
-    private _eleClone: any;
 
     _editRef = React.createRef<HTMLDivElement>();
     _buttonRef = React.createRef<HTMLDivElement>();
@@ -81,84 +78,45 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onEdit = (e: React.PointerEvent): void => {
         LinkManager.currentLink = this.props.linkDoc;
-        setupMoveUpEvents(this, e, this.editMoved, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
+        setupMoveUpEvents(this, e, e => {
+            DragManager.StartDocumentDrag([this._editRef.current!], new DragManager.DocumentDragData([this.props.linkDoc]), e.x, e.y);
+            return true;
+        }, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
     }
 
-    editMoved = (e: PointerEvent) => {
-        const dragData = new DragManager.DocumentDragData([this.props.linkDoc]);
-        DragManager.StartDocumentDrag([this._editRef.current!], dragData, e.x, e.y);
-        return true;
-    }
-
-    @action
     onLinkButtonDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        this._eleClone = this._drag.current!.cloneNode(true);
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.addEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        document.addEventListener("pointerup", this.onLinkButtonUp);
-
-        if (this._buttonRef && !!!this._buttonRef.current?.contains(e.target as any)) {
-            LinkDocPreview.LinkInfo = undefined;
-        }
+        setupMoveUpEvents(this, e,
+            e => {
+                const eleClone: any = this._drag.current!.cloneNode(true);
+                eleClone.style.transform = `translate(${e.x}px, ${e.y}px)`;
+                StartLinkTargetsDrag(eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
+                DocumentLinksButton.ClearLinkEditor();
+                return true;
+            },
+            emptyFunction,
+            () => {
+                DocumentLinksButton.ClearLinkEditor();
+                LinkManager.FollowLink(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
+            });
     }
 
-    onLinkButtonUp = action((e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        LinkManager.FollowLink(this.props.linkDoc, this.props.sourceDoc, this.props.docView.props, false);
-        LinkDocPreview.LinkInfo = undefined;
-        DocumentLinksButton.EditLink = undefined;
-
-        e.stopPropagation();
-    });
-
-    onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._drag.current !== null && Math.abs((e.clientX - this._downX) * (e.clientX - this._downX) + (e.clientY - this._downY) * (e.clientY - this._downY)) > 5) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
-
-            this._eleClone.style.transform = `translate(${e.x}px, ${e.y}px)`;
-            StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
-        }
-        e.stopPropagation();
-    }
-
-    @undoBatch
-    @action
     deleteLink = (e: React.PointerEvent): void => {
-        this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-        LinkManager.Instance.deleteLink(this.props.linkDoc);
-        e.stopPropagation();
-
-        runInAction(() => {
-            LinkDocPreview.LinkInfo = undefined;
-            DocumentLinksButton.EditLink = undefined;
-        });
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(action(() => {
+            this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkManager.Instance.deleteLink(this.props.linkDoc);
+        })));
     }
 
-    @undoBatch
-    @action
     autoMove = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        this.props.linkDoc.linkAutoMove = !this.props.linkDoc.linkAutoMove;
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(action(() => this.props.linkDoc.linkAutoMove = !this.props.linkDoc.linkAutoMove)));
     }
 
-    @undoBatch
-    @action
     showLink = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        this.props.linkDoc.linkDisplay = !this.props.linkDoc.linkDisplay;
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(action(() => this.props.linkDoc.linkDisplay = !this.props.linkDoc.linkDisplay)));
     }
 
-    @undoBatch
-    @action
     showAnchor = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        this.props.linkDoc.hidden = !this.props.linkDoc.hidden;
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(action(() => this.props.linkDoc.hidden = !this.props.linkDoc.hidden)));
     }
 
     render() {
@@ -180,13 +138,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 <div className={"linkMenu-item-content expand-two"}>
 
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
-                        onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
-                        onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
-                            docprops: this.props.docprops,
+                        onPointerLeave={LinkDocPreview.Clear}
+                        onPointerEnter={e => this.props.linkDoc && LinkDocPreview.SetLinkInfo({
+                            docProps: this.props.docView.props,
                             linkSrc: this.props.sourceDoc,
                             linkDoc: this.props.linkDoc,
-                            Location: [e.clientX, e.clientY + 20]
-                        }))}
+                            showHeader: false,
+                            location: [e.clientX, e.clientY + 20]
+                        })}
                         onPointerDown={this.onLinkButtonDown}>
 
                         <div className="linkMenu-text">
@@ -205,26 +164,26 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
 
                             <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show Anchor" : "Hide Anchor"}</div></>}>
-                                <div className="button" ref={this._editRef} onPointerDown={this.showAnchor}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.showAnchor} onClick={e => e.stopPropagation()}>
                                     <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.hidden ? "eye-slash" : "eye"} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkDisplay ? "Show link" : "Hide link"}</div></>}>
-                                <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.showLink} onClick={e => e.stopPropagation()}>
                                     <FontAwesomeIcon className="fa-icon" icon={!this.props.linkDoc.linkDisplay ? "eye-slash" : "eye"} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title={<><div className="dash-tooltip">{!this.props.linkDoc.linkAutoMove ? "Auto move dot" : "Freeze dot position"}</div></>}>
-                                <div className="button" ref={this._editRef} onPointerDown={this.autoMove}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.autoMove} onClick={e => e.stopPropagation()}>
                                     <FontAwesomeIcon className="fa-icon" icon={this.props.linkDoc.linkAutoMove ? "play" : "pause"} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title={<><div className="dash-tooltip">Edit Link</div></>}>
-                                <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.onEdit} onClick={e => e.stopPropagation()}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
                             <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>}>
-                                <div className="button" onPointerDown={this.deleteLink}>
+                                <div className="button" onPointerDown={this.deleteLink} onClick={e => e.stopPropagation()}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>
                         </div>

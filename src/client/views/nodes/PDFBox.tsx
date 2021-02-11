@@ -22,6 +22,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { DocAfterFocusFunc } from './DocumentView';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -79,8 +80,11 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
 
+    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => { this._pdfViewer?.scrollFocus(doc, smooth, afterFocus); }
+    getAnchor = () => this.rootDoc;
     componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {
+        this.props.setContentView?.(this);
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
                 document.removeEventListener("keydown", this.onKeyDown);
@@ -218,7 +222,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     static pdfpromise = new Map<string, Pdfjs.PDFPromise<Pdfjs.PDFDocumentProxy>>();
     render() {
         TraceMobx();
-        if (true) {//this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0) || this.props.Document._scrollY !== undefined) {
+        if (true) {//this.props.isSelected() || (this.props.active() && this.props.renderDepth === 0)) {
             this._displayPdfLive = true;
         }
         if (this._displayPdfLive) {

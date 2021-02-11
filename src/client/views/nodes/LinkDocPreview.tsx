@@ -1,131 +1,180 @@
-import { action, computed, observable, runInAction } from 'mobx';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
+import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
-import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
-import { Id } from '../../../fields/FieldSymbols';
-import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
+import { DocServer } from '../../DocServer';
 import { Docs } from "../../documents/Documents";
 import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
-import { ContextMenu } from '../ContextMenu';
-import { DocumentLinksButton } from './DocumentLinksButton';
-import { DocumentView, StyleProviderFunc, DocumentViewSharedProps } from "./DocumentView";
+import { undoBatch } from '../../util/UndoManager';
+import { DocumentView, DocumentViewSharedProps } from "./DocumentView";
+import './LinkDocPreview.scss';
 import React = require("react");
 
-interface Props {
+interface LinkDocPreviewProps {
     linkDoc?: Doc;
     linkSrc?: Doc;
-    href?: string;
-    docprops: DocumentViewSharedProps;
+    docProps: DocumentViewSharedProps;
     location: number[];
+    hrefs?: string[];
+    showHeader?: boolean;
 }
 @observer
-export class LinkDocPreview extends React.Component<Props> {
-    static TargetDoc: Doc | undefined;
-    @observable public static LinkInfo: Opt<{ linkDoc?: Doc; linkSrc: Doc; href?: string; Location: number[], docprops: DocumentViewSharedProps }>;
+export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
+    @action public static Clear() { LinkDocPreview.LinkInfo = undefined; }
+    @action public static SetLinkInfo(info?: LinkDocPreviewProps) { LinkDocPreview.LinkInfo != info && (LinkDocPreview.LinkInfo = info); }
+
+    _infoRef = React.createRef<HTMLDivElement>();
+    @observable public static LinkInfo: Opt<LinkDocPreviewProps>;
     @observable _targetDoc: Opt<Doc>;
+    @observable _linkDoc: Opt<Doc>;
+    @observable _linkSrc: Opt<Doc>;
     @observable _toolTipText = "";
-    _editRef = React.createRef<HTMLDivElement>();
+    @observable _hrefInd = 0;
 
-    @action
-    onContextMenu = (e: React.MouseEvent) => {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
-        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
-    }
-
-    @action.bound
-    async followDefault() {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        this._targetDoc && LinkManager.FollowLink(this.props.linkDoc, this._targetDoc, this.props.docprops, false);
-    }
-    componentWillUnmount() { LinkDocPreview.TargetDoc = undefined; }
-
-    componentDidUpdate() { this.updatePreview(); }
-    componentDidMount() { this.updatePreview(); }
-    async updatePreview() {
-        const linkDoc = this.props.linkDoc;
-        const linkSrc = this.props.linkSrc;
-        LinkDocPreview.TargetDoc = undefined;
-        if (this.props.href) {
-            if (this.props.href.startsWith("https://en.wikipedia.org/wiki/")) {
-                wiki().page(this.props.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(action(summary => this._toolTipText = summary.substring(0, 500))));
-            } else {
-                runInAction(() => this._toolTipText = "external => " + this.props.href);
-            }
-        } else if (linkDoc && linkSrc) {
-            const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), linkSrc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
-            const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
-            runInAction(() => {
-                this._toolTipText = "";
-                LinkDocPreview.TargetDoc = this._targetDoc = target;
-                if (this._targetDoc) {
-                    this._targetDoc._scrollToPreviewLinkID = linkDoc?.[Id];
-                    if (anchor !== this._targetDoc && anchor) {
-                        this._targetDoc._scrollPreviewY = NumCast(anchor?.y);
-                    }
-                }
-            });
+    @action init() {
+        var linkTarget = this.props.linkDoc;
+        this._linkSrc = this.props.linkSrc;
+        this._linkDoc = this.props.linkDoc;
+        const anchor1 = this._linkDoc?.anchor1 as Doc;
+        const anchor2 = this._linkDoc?.anchor2 as Doc;
+        if (anchor1 && anchor2) {
+            linkTarget = Doc.AreProtosEqual(anchor1, this._linkSrc) || Doc.AreProtosEqual(anchor1?.annotationOn as Doc, this._linkSrc) ? anchor2 : anchor1;
         }
+        this._targetDoc = linkTarget?.annotationOn as Doc ?? linkTarget;
+        this._toolTipText = "";
     }
-    pointerDown = (e: React.PointerEvent) => {
-        if (this.props.linkDoc && this.props.linkSrc) {
-            LinkManager.FollowLink(this.props.linkDoc, this.props.linkSrc, this.props.docprops, false);
-        } else if (this.props.href) {
-            this.props.docprops?.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, useCors: true }), "add:right");
+    componentDidUpdate(props: any) {
+        if (props.linkSrc !== this.props.linkSrc || props.linkDoc !== this.props.linkDoc || props.hrefs !== this.props.hrefs) this.init();
+    }
+    componentDidMount() {
+        this.init();
+        document.addEventListener("pointerdown", this.onPointerDown);
+    }
+
+    componentWillUnmount() {
+        LinkDocPreview.SetLinkInfo(undefined);
+        document.removeEventListener("pointerdown", this.onPointerDown);
+    }
+
+    onPointerDown = (e: PointerEvent) => {
+        !this._infoRef.current?.contains(e.target as any) && LinkDocPreview.Clear(); // close preview when not clicking anywhere other than the info bar of the preview
+    }
+
+    @computed get href() {
+        if (this.props.hrefs?.length) {
+            const href = this.props.hrefs[this._hrefInd];
+            if (href.indexOf(Utils.prepend("/doc/")) !== 0) {  // link to a web page URL -- try to show a preview
+                if (href.startsWith("https://en.wikipedia.org/wiki/")) {
+                    wiki().page(href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(action(summary => this._toolTipText = summary.substring(0, 500))));
+                } else {
+                    setTimeout(action(() => this._toolTipText = "url => " + href));
+                }
+            } else { // hyperlink to a document .. decode doc id and retrieve from the server. this will trigger vals() being invalidated
+                const anchorDoc = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                anchorDoc && DocServer.GetRefField(anchorDoc).then(action(anchor => {
+                    if (anchor instanceof Doc && DocListCast(anchor.links).length) {
+                        this._linkDoc = DocListCast(anchor.links)[0];
+                        this._linkSrc = anchor;
+                        const linkTarget = LinkManager.getOppositeAnchor(this._linkDoc, this._linkSrc);
+                        this._targetDoc = linkTarget?.annotationOn as Doc ?? linkTarget;
+                        this._toolTipText = "";
+                    }
+                }));
+            }
+            return href;
+        }
+        return undefined;
+    }
+    deleteLink = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(() => this._linkDoc && LinkManager.Instance.deleteLink(this._linkDoc)));
+    }
+    nextHref = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action(() => this._hrefInd = (this._hrefInd + 1) % (this.props.hrefs?.length || 1)));
+    }
+
+    followLink = (e: React.PointerEvent) => {
+        if (this._linkDoc && this._linkSrc) {
+            LinkManager.FollowLink(this._linkDoc, this._linkSrc, this.props.docProps, false);
+        } else if (this.props.hrefs?.length) {
+            this.props.docProps?.addDocTab(Docs.Create.WebDocument(this.props.hrefs[0], { title: this.props.hrefs[0], _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
     width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
     height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
-    @computed get targetDocView() {
-        return !this._targetDoc ?
-            <div style={{ pointerEvents: "all", maxWidth: 225, maxHeight: 225, width: "100%", height: "100%", overflow: "hidden" }}>
-                <div style={{ width: "100%", height: "100%", textOverflow: "ellipsis", }} onPointerDown={this.pointerDown}>
-                    {this._toolTipText}
+    @computed get previewHeader() {
+        return !this._linkDoc || !this._targetDoc || !this._linkSrc ? (null) :
+            <div className="linkDocPreview-info" ref={this._infoRef}>
+                <div className="linkDocPreview-title">
+                    {StrCast(this._targetDoc.title).length > 16 ? StrCast(this._targetDoc.title).substr(0, 16) + "..." : this._targetDoc.title}
+                    <p className="linkDocPreview-description"> {StrCast(this._linkDoc.description)}</p>
                 </div>
-            </div>
-            :
-            <DocumentView
-                Document={this._targetDoc}
-                moveDocument={returnFalse}
-                rootSelected={returnFalse}
-                ScreenToLocalTransform={Transform.Identity}
-                parentActive={returnFalse}
-                addDocument={returnFalse}
-                removeDocument={returnFalse}
-                addDocTab={returnFalse}
-                pinToPres={returnFalse}
-                dontRegisterView={true}
-                docFilters={returnEmptyFilter}
-                docRangeFilters={returnEmptyFilter}
-                searchFilterDocs={returnEmptyDoclist}
-                ContainingCollectionDoc={undefined}
-                ContainingCollectionView={undefined}
-                renderDepth={-1}
-                PanelWidth={this.width}
-                PanelHeight={this.height}
-                focus={emptyFunction}
-                whenActiveChanged={returnFalse}
-                bringToFront={returnFalse}
-                styleProvider={this.props.docprops?.styleProvider} />;
+                <div className="linkDocPreview-buttonBar" >
+                    <Tooltip title={<div className="dash-tooltip">Next Link</div>} placement="top">
+                        <div className="linkDocPreview-button" style={{ background: (this.props.hrefs?.length || 0) <= 1 ? "gray" : "green" }} onPointerDown={this.nextHref}>
+                            <FontAwesomeIcon className="linkDocPreview-fa-icon" icon="chevron-right" color="white" size="sm" />
+                        </div>
+                    </Tooltip>
+
+                    <Tooltip title={<div className="dash-tooltip">Delete Link</div>} placement="top">
+                        <div className="linkDocPreview-button" onPointerDown={this.deleteLink}>
+                            <FontAwesomeIcon className="linkDocPreview-fa-icon" icon="trash" color="white" size="sm" />
+                        </div>
+                    </Tooltip>
+                </div>
+            </div>;
+    }
+
+    @computed get docPreview() {
+        const href = this.href; // needs to be here to trigger lookup of web pages and docs on server
+        return (!this._linkDoc || !this._targetDoc || !this._linkSrc) && !this._toolTipText ? (null) :
+            <div className="linkDocPreview-inner">
+                {!this.props.showHeader ? (null) : this.previewHeader}
+                <div className="linkDocPreview-preview-wrapper">
+                    {this._toolTipText ? this._toolTipText :
+                        <DocumentView ref={(r) => {
+                            const targetanchor = LinkManager.getOppositeAnchor(this._linkDoc!, this._linkSrc!);
+                            targetanchor && this._targetDoc !== targetanchor && r?.focus(targetanchor);
+                        }}
+                            Document={this._targetDoc!}
+                            moveDocument={returnFalse}
+                            rootSelected={returnFalse}
+                            styleProvider={this.props.docProps?.styleProvider}
+                            layerProvider={this.props.docProps?.layerProvider}
+                            docViewPath={returnEmptyDoclist}
+                            ScreenToLocalTransform={Transform.Identity}
+                            parentActive={returnFalse}
+                            addDocument={returnFalse}
+                            removeDocument={returnFalse}
+                            addDocTab={returnFalse}
+                            pinToPres={returnFalse}
+                            dontRegisterView={true}
+                            docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
+                            ContainingCollectionDoc={undefined}
+                            ContainingCollectionView={undefined}
+                            renderDepth={-1}
+                            PanelWidth={this.width}
+                            PanelHeight={this.height}
+                            focus={emptyFunction}
+                            whenActiveChanged={returnFalse}
+                            bringToFront={returnFalse}
+                            NativeWidth={Doc.NativeWidth(this._targetDoc) ? () => Doc.NativeWidth(this._targetDoc) : undefined}
+                            NativeHeight={Doc.NativeHeight(this._targetDoc) ? () => Doc.NativeHeight(this._targetDoc) : undefined}
+                        />}
+                </div>
+            </div>;
     }
 
     render() {
-        return <div className="linkDocPreview"
-            style={{
-                position: "absolute", left: this.props.location[0],
-                top: this.props.location[1], width: this.width() + 16, height: this.height() + 16,
-                zIndex: 1000,
-                backgroundColor: "lightblue",
-                border: "8px solid white", borderRadius: "7px",
-                boxShadow: "3px 3px 1.5px grey",
-                borderBottom: "8px solid white", borderRight: "8px solid white"
-            }}>
-            {this.targetDocView}
+        return <div className="linkDocPreview" onPointerDown={this.followLink}
+            style={{ left: this.props.location[0], top: this.props.location[1], width: this.width() + 16 }}>
+            {this.docPreview}
         </div>;
     }
 }

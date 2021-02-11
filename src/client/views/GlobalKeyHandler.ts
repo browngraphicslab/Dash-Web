@@ -19,12 +19,13 @@ import { SnappingManager } from "../util/SnappingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
+import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { ContextMenu } from "./ContextMenu";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
+import { LightboxView } from "./LightboxView";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
 import { DocUtils } from "../documents/Documents";
@@ -96,7 +97,6 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
-                MainView.Instance.LightboxDoc = undefined;
 
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
@@ -110,7 +110,10 @@ export class KeyManager {
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
                 }
-                doDeselect && SelectionManager.DeselectAll();
+                if (doDeselect) {
+                    SelectionManager.DeselectAll();
+                    LightboxView.LightboxDoc = undefined;
+                }
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();

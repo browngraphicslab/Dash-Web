@@ -1,14 +1,12 @@
+import { runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";
-import { DocFocusFunc, DocumentViewSharedProps } from "../views/nodes/DocumentView";
-import { FormattedTextBoxComment } from "../views/nodes/formattedText/FormattedTextBoxComment";
-import { LinkDocPreview } from "../views/nodes/LinkDocPreview";
+import { LightboxView } from "../views/LightboxView";
+import { DocumentViewSharedProps } from "../views/nodes/DocumentView";
 import { CreateViewFunc, DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
-import { MainView } from "../views/MainView";
-import { runInAction } from "mobx";
 
 /* 
  * link doc: 
@@ -102,14 +100,14 @@ export class LinkManager {
     // follows a link - if the target is on screen, it highlights/pans to it.
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    public static FollowLink = async (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean) => {
+    public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = () => {
+            const targetFocusAfterDocFocus = (didFocus: boolean) => {
                 const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
+                    finished && setTimeout(finished); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 const addTab = docViewProps.addDocTab(doc, where);
@@ -120,17 +118,15 @@ export class LinkManager {
                 return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
             if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus();
+                targetFocusAfterDocFocus(false);
             } else {
                 // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
                 docViewProps.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
             }
         };
-        await LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
+        LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
-    public static async traverseLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
-        LinkDocPreview.TargetDoc = undefined;
-        FormattedTextBoxComment.linkDoc = undefined;
+    public static traverseLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
         const linkDocs = link ? [link] : DocListCast(doc.links);
         const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
         const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
@@ -147,13 +143,13 @@ export class LinkManager {
                     doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
-                    if (MainView.Instance.LightboxDoc) {
-                        runInAction(() => MainView.Instance.LightboxDoc = (target.annotationOn as Doc) ?? target);
+                    if (LightboxView.LightboxDoc && !DocumentManager.Instance.getLightboxDocumentView(doc)) {
+                        runInAction(() => LightboxView.LightboxDoc = (target.annotationOn as Doc) ?? target);
                         finished?.();
                     } else {
-                        const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                        containerDoc._currentTimecode = targetTimecode;
-                        const targetContext = await target?.context as Doc;
+                        const containerDoc = Cast(target.annotationOn, Doc, null) || target;
+                        targetTimecode !== undefined && (containerDoc._currentTimecode = targetTimecode);
+                        const targetContext = Cast(containerDoc?.context, Doc, null);
                         const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
                         DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
                     }

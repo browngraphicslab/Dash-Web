@@ -191,6 +191,13 @@ export namespace Utils {
         return { h: h, s: s, l: l };
     }
 
+    export function scrollIntoView(targetY: number, targetHgt: number, scrollTop: number, contextHgt: number) {
+        if (scrollTop + contextHgt < targetY + targetHgt * 1.1) {
+            return targetY + targetHgt * 1.1 - contextHgt;
+        } else if (scrollTop > targetY - targetHgt * .1) {
+            return Math.max(0, targetY - targetHgt * .1);
+        }
+    }
 
     export function clamp(n: number, lower: number, upper: number) {
         return Math.max(lower, Math.min(upper, n));

@@ -4,29 +4,23 @@
     width: auto;
     height: auto;
     position: absolute;
-    z-index: 10001;
+    z-index: 2001;
 
-    .linkMenu-list {
-
+    .linkMenu-list,
+    .linkMenu-listEditor
+     {
         display: inline-block;
-
+        position: relative;
         border: 1px solid black;
-
         box-shadow: 3px 3px 1.5px grey;
+        background: white;
 
+        min-width: 170px;
         max-height: 170px;
         overflow-y: scroll;
-        position: relative;
         z-index: 10;
-        background: white;
-        min-width: 170px;
-        //border-radius: 5px;
-        //padding-top: 6.5px;
-        //padding-bottom: 6.5px;
-        //padding-left: 6.5px;
-        //padding-right: 2px;
-        //width: calc(auto + 50px);
-
+     }
+     .linkMenu-list {
         white-space: nowrap;
         overflow-x: hidden;
         width: 240px;
@@ -39,22 +33,6 @@
         &:hover {
             scrollbar-color: rgb(201, 239, 252);
         }
-    }
-
-    .linkMenu-listEditor {
-
-        display: inline-block;
-
-        border: 1px solid black;
-
-        box-shadow: 3px 3px 1.5px grey;
-
-        max-height: 170px;
-        overflow-y: scroll;
-        position: relative;
-        z-index: 10;
-        background: white;
-        min-width: 170px;
     }
 }
 

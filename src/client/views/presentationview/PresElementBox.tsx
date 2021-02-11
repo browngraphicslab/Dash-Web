@@ -7,7 +7,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, emptyPath, returnEmptyDoclist } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -93,6 +93,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     styleProvider={this.styleProvider}
+                    layerProvider={this.props.layerProvider}
+                    docViewPath={returnEmptyDoclist}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -275,9 +277,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     /**
      * Method called for updating the view of the currently selected document
-     * 
-     * @param targetDoc 
-     * @param activeItem 
+     *
+     * @param targetDoc
+     * @param activeItem
      */
     @undoBatch
     @action
@@ -347,12 +349,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerUp={this.headerUp}
             >
                 {miniView ?
-                    // when width is LESS than 110 px 
+                    // when width is LESS than 110 px
                     <div className={`presItem-miniSlide ${isSelected ? "active" : ""}`} ref={miniView ? this._dragRef : null}>
                         {`${this.indexInPres + 1}.`}
                     </div>
                     :
-                    // when width is MORE than 110 px 
+                    // when width is MORE than 110 px
                     <div className="presItem-number">
                         {`${this.indexInPres + 1}.`}
                     </div>}
