@@ -805,11 +805,17 @@
 .propertiesView-uneditableKey {
     float: right;
     position: absolute;
-    right: 8px;
+    right: 22px;
     width: 50%;
     text-align: end;
 }
 
 .propertiesView-editableField {
     margin-bottom: 4px;
+}
+
+.propertiesView-closeFieldIcon {
+    position: absolute;
+    right: 9px;
+    margin-top: 3px;
 }

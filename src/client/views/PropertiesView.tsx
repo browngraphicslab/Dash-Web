@@ -182,7 +182,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     const value = Field.toString(contents as Field);
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
                         rows.push(<div className="propertiesView-uneditable-field" key={key}>
-                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                             <div className="propertiesView-uneditableKey" style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
                     } else {
@@ -197,12 +197,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                         />;
 
-                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "4px" }} key={key}>
-                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap", float: "left" }}>{key + ":"}</span>
+                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "5px" }} key={key}>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap", float: "left" }}>{key}</span>
                         &nbsp;
                             <div className="propertiesView-editableField">
                                 {contentElement}
                             </div>
+                            <div className="propertiesView-closeFieldIcon"><FontAwesomeIcon icon="times" size="sm" /></div>
                         </div>);
                     }
                 }

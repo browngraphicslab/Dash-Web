@@ -232,7 +232,7 @@ export class EditableView extends React.Component<EditableProps> {
             <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
                 style={{
                     backgroundColor: this.props.backgroundColor,
-                    display: this.props.display, borderRadius: "4px", border: this.props.outline ? "0.5px solid black" : "", paddingLeft: "4px", paddingRight: "4px",
+                    display: this.props.display, borderRadius: "4px", border: this.props.outline ? "0.2px solid black" : "", paddingLeft: "4px", paddingRight: "4px",
                     textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight
                 }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
