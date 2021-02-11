@@ -52,6 +52,7 @@ import { FieldViewProps } from './nodes/FieldView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
+import { MainViewPopup } from './nodes/MainViewPopup';
 import { RadialMenu } from './nodes/RadialMenu';
 import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { WebBox } from './nodes/WebBox';
@@ -624,6 +625,7 @@ export class MainView extends React.Component {
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
             <CollectionMenu />
+            <MainViewPopup />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}

@@ -1,0 +1,12 @@
+.mainViewPopup {
+    background-color: white;
+    min-width: 100px;
+    min-height: 100px;
+    width: auto;
+    height: auto;
+    padding: 5px;
+    position: absolute;
+    z-index: 10000;
+    border-radius: 5px;
+    border: 1px solid black;
+}
