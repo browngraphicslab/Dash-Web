@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, HeightSym, WidthSym, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -26,10 +26,10 @@ import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { Annotation } from "../pdf/Annotation";
+import { DocAfterFocusFunc } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
-import { DocFocusFunc, DocAfterFocusFunc, DocumentView } from "./DocumentView";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;

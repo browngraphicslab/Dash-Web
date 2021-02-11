@@ -192,8 +192,8 @@ export namespace Utils {
     }
 
     export function scrollIntoView(targetY: number, targetHgt: number, scrollTop: number, contextHgt: number) {
-        if (scrollTop + contextHgt < targetY + Math.max(targetHgt * 1.1, 100)) {
-            return Math.min(scrollTop, targetY + Math.max(targetHgt * 1.1, 100) - contextHgt);
+        if (scrollTop + contextHgt < targetY + targetHgt * 1.1) {
+            return targetY + targetHgt * 1.1 - contextHgt;
         } else if (scrollTop > targetY - targetHgt * .1) {
             return Math.max(0, targetY - targetHgt * .1);
         }

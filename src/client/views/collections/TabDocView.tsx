@@ -356,7 +356,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, notFocused?: boolean) => {
+    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
             this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         }

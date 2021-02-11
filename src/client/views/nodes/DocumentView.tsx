@@ -41,7 +41,6 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { LinkDocPreview } from "./LinkDocPreview";
-import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
@@ -919,8 +918,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, focused?: boolean) => {
-        return this.docView?.focus(doc, willZoom, scale, afterFocus, focused);
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+        return this.docView?.focus(doc, willZoom, scale, afterFocus);
     }
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {

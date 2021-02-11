@@ -907,53 +907,59 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else {
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
-
             const newState = HistoryUtil.getState();
-            let newPanX = savedState.px;
-            let newPanY = savedState.py;
+            const { px, py } = layoutdoc.annotationOn ? savedState : willZoom ? this.setZoomToDoc(layoutdoc, scale) : this.setPanIntoView(doc);
             if (!layoutdoc.annotationOn) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
-                willZoom && this.setScaleToZoom(layoutdoc, scale);
-                const cx = NumCast(this.props.Document._panX);
-                const cy = NumCast(this.props.Document._panY);
-                const pwid = this.props.PanelWidth() / NumCast(this.props.Document._viewScale, 1);
-                const phgt = this.props.PanelHeight() / NumCast(this.props.Document._viewScale, 1);
-                const screen = { left: cx - pwid / 2, right: cx + pwid / 2, top: cy - phgt / 2, bot: cy + phgt / 2 };
-                const bounds = { left: NumCast(doc.x) - pwid / 10, right: NumCast(doc.x) + doc[WidthSym]() + pwid / 10, top: NumCast(doc.y) - phgt / 10, bot: NumCast(doc.y) + doc[HeightSym]() + phgt / 10 };
-                newPanX = cx + Math.min(0, bounds.left - screen.left) + Math.max(0, bounds.right - screen.right);
-                newPanY = cy + Math.min(0, bounds.top - screen.top) + Math.max(0, bounds.bot - screen.bot);
-                newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+                newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
             }
 
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                 // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
-                if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+                if (!doc.z) this.setPan(px, py, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             }
             Doc.BrushDoc(this.props.Document);
 
-            const newAfterFocus = (didFocus: boolean) => {
-                afterFocus && setTimeout(() => {
-                    // @ts-ignore
-                    if (afterFocus?.(didFocus || (newPanX !== savedState.px || newPanY !== savedState.py))) {
+            !doc.hidden && Doc.linkFollowHighlight(doc);
+            this.props.focus(this.props.Document, undefined, undefined, (didFocus: boolean) => {
+                setTimeout(() => {
+                    if (afterFocus?.(didFocus || (px !== savedState.px || py !== savedState.py))) {
                         this.Document._panX = savedState.px;
                         this.Document._panY = savedState.py;
                         this.Document[this.scaleFieldKey] = savedState.s;
                         this.Document._viewTransition = savedState.pt;
                     }
                     doc.hidden && Doc.UnHighlightDoc(doc);
-                }, newPanX !== savedState.px || newPanY !== savedState.py ? 500 : 0);
+                }, px !== savedState.px || py !== savedState.py ? 500 : 0);
                 return false;
-            };
-            this.props.focus(this.props.Document, undefined, undefined, newAfterFocus);
-            !doc.hidden && Doc.linkFollowHighlight(doc);
+            });
         }
-
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
-        const pw = this.isAnnotationOverlay ? Doc.NativeWidth(this.props.Document) : this.props.PanelWidth();
-        const ph = this.isAnnotationOverlay ? Doc.NativeHeight(this.props.Document) : this.props.PanelHeight();
+    setPanIntoView = (doc: Doc) => {
+        const cx = NumCast(this.props.Document._panX);
+        const cy = NumCast(this.props.Document._panY);
+        const pwid = this.props.PanelWidth() / NumCast(this.props.Document._viewScale, 1);
+        const phgt = this.props.PanelHeight() / NumCast(this.props.Document._viewScale, 1);
+        const screen = { left: cx - pwid / 2, right: cx + pwid / 2, top: cy - phgt / 2, bot: cy + phgt / 2 };
+        const bounds = { left: NumCast(doc.x) - pwid / 10, right: NumCast(doc.x) + doc[WidthSym]() + pwid / 10, top: NumCast(doc.y) - phgt / 10, bot: NumCast(doc.y) + doc[HeightSym]() + phgt / 10 };
+        return {
+            px: cx + Math.min(0, bounds.left - screen.left) + Math.max(0, bounds.right - screen.right),
+            py: cy + Math.min(0, bounds.top - screen.top) + Math.max(0, bounds.bot - screen.bot)
+        };
+    }
+
+    setZoomToDoc = (doc: Doc, scale: number = 0.75) => {
+        const pw = this.props.PanelWidth();
+        const ph = this.props.PanelHeight();
         pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
+        const pwid = pw / NumCast(this.props.Document._viewScale, 1);
+        const phgt = ph / NumCast(this.props.Document._viewScale, 1);
+        const bounds = { left: NumCast(doc.x) - pwid / 10, right: NumCast(doc.x) + doc[WidthSym]() + pwid / 10, top: NumCast(doc.y) - phgt / 10, bot: NumCast(doc.y) + doc[HeightSym]() + phgt / 10 };
+        return {
+            px: (bounds.left + bounds.right) / 2,
+            py: (bounds.top + bounds.bot) / 2
+        };
     }
 
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
