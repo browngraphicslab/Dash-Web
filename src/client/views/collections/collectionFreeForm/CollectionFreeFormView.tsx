@@ -913,27 +913,30 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
             }
-
-            if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
-                // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
-                if (!doc.z) this.setPan(px, py, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
-            }
-            Doc.BrushDoc(this.props.Document);
-
+            // focus on the document in the collection
+            const didMove = !doc.z && (px !== savedState.px || py !== savedState.py);
+            const focusSpeed = didMove ? (doc.focusSpeed !== undefined ? Number(doc.focusSpeed) : 500) : 0;
+            // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
+            if (didMove) this.setPan(px, py, `transform ${focusSpeed}ms`, true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+            Doc.BrushDoc(this.rootDoc);
             !doc.hidden && Doc.linkFollowHighlight(doc);
-            this.props.focus(this.props.Document, undefined, undefined, (didFocus: boolean) => {
+
+            // focus the collection in its parent view.  the parent view after focusing determines whether to reset the view change within the collection
+            this.props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) => {
                 setTimeout(() => {
-                    if (afterFocus?.(didFocus || (px !== savedState.px || py !== savedState.py))) {
+                    if (afterFocus?.(didFocus || didMove)) {
+                        doc.hidden && Doc.UnHighlightDoc(doc);
                         this.Document._panX = savedState.px;
                         this.Document._panY = savedState.py;
                         this.Document[this.scaleFieldKey] = savedState.s;
                         this.Document._viewTransition = savedState.pt;
+                    } else {
+                        doc.hidden && Doc.UnHighlightDoc(doc);
                     }
-                    doc.hidden && Doc.UnHighlightDoc(doc);
-                }, px !== savedState.px || py !== savedState.py ? 500 : 0);
+                }, focusSpeed);
                 return false;
-            });
-        }
+            })
+        };
     }
 
     setPanIntoView = (doc: Doc) => {

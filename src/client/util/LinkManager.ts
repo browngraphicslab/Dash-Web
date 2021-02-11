@@ -104,10 +104,10 @@ export class LinkManager {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = () => {
+            const targetFocusAfterDocFocus = (didFocus: boolean) => {
                 const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
+                    finished && setTimeout(finished); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 const addTab = docViewProps.addDocTab(doc, where);
@@ -118,7 +118,7 @@ export class LinkManager {
                 return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
             if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus();
+                targetFocusAfterDocFocus(false);
             } else {
                 // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
                 docViewProps.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);

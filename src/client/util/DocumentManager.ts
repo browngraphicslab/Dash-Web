@@ -172,18 +172,7 @@ export class DocumentManager {
                 first.focus(targetDoc, false);
             }
         } else if (docView && (targetDocContextView || !targetDocContext)) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?      
-            const first = annotatedDoc && getFirstDocView(annotatedDoc);
-            const targetFocus = (outFocus?: boolean) => docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => focusAndFinish(outFocus || didFocus));
-            const annoFocus = (outFocus?: boolean) => first?.props.focus(first.rootDoc, false, undefined, (didFocus: boolean) => {
-                targetFocus(outFocus || didFocus);
-                return false;
-            });
-            const contextFocus = targetDocContext === annotatedDoc ? undefined : (outFocus?: boolean) => targetDocContextView?.props.focus(targetDocContext, false, undefined, (didFocus: boolean) => {
-                annoFocus(outFocus || didFocus);
-                return false;
-            });
-            (contextFocus || annoFocus || targetFocus)();
-            highlight();
+            docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => focusAndFinish(didFocus));
         } else {
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
