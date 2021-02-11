@@ -144,6 +144,10 @@ export class DocumentManager {
     ): Promise<void> => {
         const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
         const docView = getFirstDocView(targetDoc, originatingDoc);
+        const highlight = () => {
+            const finalDocView = getFirstDocView(targetDoc);
+            finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
+        };
         const focusAndFinish = (didFocus: boolean) => {
             if (originatingDoc?.isPushpin) {
                 if (!didFocus || targetDoc.hidden) {
@@ -153,12 +157,9 @@ export class DocumentManager {
                 targetDoc.hidden && (targetDoc.hidden = undefined);
                 docView?.select(false);
             }
+            highlight();
             finished?.();
             return false;
-        };
-        const highlight = () => {
-            const finalDocView = getFirstDocView(targetDoc);
-            finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
         };
         let annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
         const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
@@ -172,7 +173,12 @@ export class DocumentManager {
                 first.focus(targetDoc, false);
             }
         } else if (docView && (targetDocContextView || !targetDocContext)) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?      
-            docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => focusAndFinish(didFocus));
+            docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) =>
+                new Promise<boolean>(res => {
+                    focusAndFinish(didFocus);
+                    res();
+                })
+            );
         } else {
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
@@ -190,7 +196,12 @@ export class DocumentManager {
                         const findView = (delay: number) => {
                             const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
                             if (retryDocView) {   // we found the target in the context
-                                retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
+                                retryDocView.props.focus(targetDoc, willZoom, undefined, (didFocus: boolean) =>
+                                    new Promise<boolean>(res => {
+                                        focusAndFinish(didFocus);
+                                        res();
+                                    })
+                                ); // focus on the target in the context
                                 highlight();
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.

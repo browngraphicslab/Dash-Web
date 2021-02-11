@@ -103,25 +103,29 @@ export class LinkManager {
     public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
-        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = (didFocus: boolean) => {
+        const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
+            const createTabForTarget = (didFocus: boolean) => new Promise<boolean>(res => {
                 const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
-                const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
-                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                };
-                const addTab = docViewProps.addDocTab(doc, where);
-                addTab && setTimeout(() => {
+                docViewProps.addDocTab(doc, where);
+                setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
-                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
-                }); //  add the target and focus on it.
-                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
-            };
+                    if (targDocView) {
+                        targDocView.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, (didFocus: boolean) => {
+                            finished?.();
+                            res(true);
+                            return new Promise<boolean>(res2 => res2());
+                        });
+                    } else {
+                        res(where !== "inPlace"); // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+                    }
+                });
+            });
+
             if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus(false);
+                createTabForTarget(false);
             } else {
                 // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                docViewProps.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
+                docViewProps.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, createTabForTarget);
             }
         };
         LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);

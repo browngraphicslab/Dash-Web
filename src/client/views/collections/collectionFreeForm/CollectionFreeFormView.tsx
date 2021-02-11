@@ -49,6 +49,7 @@ import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { StyleProp, StyleLayers } from "../../StyleProvider";
 import { DocumentDecorations } from "../../DocumentDecorations";
 import { FieldViewProps } from "../../nodes/FieldView";
+import { reset } from "colors";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -908,8 +909,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
             const newState = HistoryUtil.getState();
-            const { px, py } = layoutdoc.annotationOn ? savedState : willZoom ? this.setZoomToDoc(layoutdoc, scale) : this.setPanIntoView(doc);
-            if (!layoutdoc.annotationOn) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
+            const { px, py } = layoutdoc.annotationOn || this.rootDoc._isGroup ? savedState : willZoom ? this.setZoomToDoc(layoutdoc, scale) : this.setPanIntoView(doc);
+            if (!layoutdoc.annotationOn && !this.rootDoc._isGroup) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
                 newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
             }
@@ -921,22 +922,21 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             Doc.BrushDoc(this.rootDoc);
             !doc.hidden && Doc.linkFollowHighlight(doc);
 
-            // focus the collection in its parent view.  the parent view after focusing determines whether to reset the view change within the collection
-            this.props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) => {
-                setTimeout(() => {
-                    if (afterFocus?.(didFocus || didMove)) {
-                        doc.hidden && Doc.UnHighlightDoc(doc);
-                        this.Document._panX = savedState.px;
-                        this.Document._panY = savedState.py;
-                        this.Document[this.scaleFieldKey] = savedState.s;
-                        this.Document._viewTransition = savedState.pt;
-                    } else {
-                        doc.hidden && Doc.UnHighlightDoc(doc);
-                    }
-                }, focusSpeed);
-                return false;
-            })
-        };
+            // focus on this collection within its parent view.  the parent view after focusing determines whether to reset the view change within the collection
+            const endFocus = async (moved: boolean) => {
+                doc.hidden && Doc.UnHighlightDoc(doc);
+                const resetView = afterFocus ? await afterFocus(moved) : false;
+                if (resetView) {
+                    this.Document._panX = savedState.px;
+                    this.Document._panY = savedState.py;
+                    this.Document[this.scaleFieldKey] = savedState.s;
+                    this.Document._viewTransition = savedState.pt;
+                }
+                return resetView;
+            };
+            this.props.focus(this.rootDoc._isGroup ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)));
+        }
     }
 
     setPanIntoView = (doc: Doc) => {

@@ -42,7 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { LinkDocPreview } from "./LinkDocPreview";
 
-export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
+export type DocAfterFocusFunc = (notFocused: boolean) => Promise<boolean>;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {

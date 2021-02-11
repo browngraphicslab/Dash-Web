@@ -192,7 +192,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             }
         }
         return this.props.styleProvider?.(doc, props, property);
-    };
+    }
     getDisplayDoc(doc: Doc, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
