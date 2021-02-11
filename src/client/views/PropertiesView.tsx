@@ -152,6 +152,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
+                    oneLine
                     contents={"add key:value or #tags"}
                     height={13}
                     fontSize={10}
@@ -208,6 +209,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
+                    oneLine
                     contents={"add key:value or #tags"}
                     height={13}
                     fontSize={10}
@@ -443,13 +445,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         const titles = new Set<string>();
         SelectionManager.Views().forEach(dv => titles.add(StrCast(dv.rootDoc.title)));
         const title = Array.from(titles.keys()).length > 1 ? "--multiple selected--" : StrCast(this.selectedDoc?.title);
-        return <div className="editable-title"><EditableView
-            key="editableView"
-            contents={title}
-            height={25}
-            fontSize={14}
-            GetValue={() => title}
-            SetValue={this.setTitle} /> </div>;
+        return <div className="editable-title">
+            <EditableView
+                key="editableView"
+                contents={title}
+                height={25}
+                fontSize={14}
+                GetValue={() => title}
+                SetValue={this.setTitle} />
+        </div>;
     }
 
     @undoBatch
@@ -1016,6 +1020,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     // }
 
     render() {
+        // console.log(this.props.width);
         if (!this.selectedDoc && !this.isPres) {
             return <div className="propertiesView" style={{ width: this.props.width }}>
                 <div className="propertiesView-title" style={{ width: this.props.width }}>

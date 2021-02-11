@@ -55,6 +55,7 @@ export interface EditableProps {
     color?: string | undefined;
     onDrop?: any;
     placeholder?: string;
+    fullWidth?: boolean; // used in PropertiesView to make the whole key:value input box clickable 
 }
 
 /**

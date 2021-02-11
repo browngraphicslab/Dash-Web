@@ -1062,7 +1062,7 @@ export namespace Doc {
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
     export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
-        console.log("m8");
+        // console.log(key, value, modifiers);
         const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {

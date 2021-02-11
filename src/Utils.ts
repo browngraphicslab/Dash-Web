@@ -500,9 +500,9 @@ export function addStyleSheet(styleType: string = "text/css") {
     const sheets = document.head.appendChild(style);
     return (sheets as any).sheet;
 }
-export function addStyleSheetRule(sheet: any, selector: any, css: any) {
+export function addStyleSheetRule(sheet: any, selector: any, css: any, selectorPrefix = ".") {
     const propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
-    return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
+    return sheet.insertRule(selectorPrefix + selector + "{" + propText + "}", sheet.cssRules.length);
 }
 export function removeStyleSheetRule(sheet: any, rule: number) {
     if (sheet.rules.length) {
@@ -600,17 +600,32 @@ export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement
     return entered;
 }
 
+export function StopEvent(e: React.PointerEvent | React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent, movement: number[]) => any,
+    upEvent: (e: PointerEvent, movement: number[], isClick: boolean) => any,
     clickEvent: (e: PointerEvent, doubleTap?: boolean) => any,
     stopPropagation: boolean = true,
-    stopMovePropagation: boolean = true
+    stopMovePropagation: boolean = true,
+    noDoubleTapTimeout?: () => void
 ) {
+    const doubleTapTimeout = 300;
+    (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < doubleTapTimeout);
+    (target as any)._lastTap = Date.now();
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
+    if (!(target as any)._doubleTime && noDoubleTapTimeout) {
+        (target as any)._doubleTime = setTimeout(() => {
+            noDoubleTapTimeout?.();
+            (target as any)._doubleTime = undefined;
+        }, doubleTapTimeout);
+    }
 
     const _moveEvent = (e: PointerEvent): void => {
         if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
@@ -628,12 +643,10 @@ export function setupMoveUpEvents(
         (target as any)._lastY = e.clientY;
         stopMovePropagation && e.stopPropagation();
     };
-    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
-        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
-        (target as any)._lastTap = Date.now();
-        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY]);
-        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+        const isClick = Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4;
+        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY], isClick);
+        if (isClick) {
             if ((target as any)._doubleTime && (target as any)._doubleTap) {
                 clearTimeout((target as any)._doubleTime);
                 (target as any)._doubleTime = undefined;

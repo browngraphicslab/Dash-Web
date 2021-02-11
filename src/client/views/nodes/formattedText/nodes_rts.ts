@@ -6,12 +6,48 @@ import { ParagraphNodeSpec, toParagraphDOM, getParagraphNodeAttrs } from "./Para
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
 
+function formatAudioTime(time: number) {
+    time = Math.round(time);
+    const hours = Math.floor(time / 60 / 60);
+    const minutes = Math.floor(time / 60) - (hours * 60);
+    const seconds = time % 60;
+
+    return minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+}
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
 export const nodes: { [index: string]: NodeSpec } = {
     // :: NodeSpec The top level document node.
     doc: {
         content: "block+"
+    },
+
+    audiotag: {
+        group: "block",
+        attrs: {
+            timeCode: { default: 0 },
+            audioId: { default: "" }
+        },
+        toDOM(node) {
+            return ['audiotag',
+                {
+                    // style: see FormattedTextBox.scss
+                    "data-timecode": node.attrs.timeCode,
+                    "data-audioid": node.attrs.audioId,
+                },
+                formatAudioTime(node.attrs.timeCode.toString())
+            ];
+        },
+        parseDOM: [
+            {
+                tag: "audiotag", getAttrs(dom: any) {
+                    return {
+                        timeCode: dom.getAttribute("data-timecode"),
+                        audioId: dom.getAttribute("data-audioid")
+                    };
+                }
+            },
+        ]
     },
 
     footnote: {
@@ -315,7 +351,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             mapStyle: { default: "decimal" }, // "decimal", "multi", "bullet"
             visibility: { default: true }
         },
-        content: 'paragraph+ | (paragraph ordered_list)',
+        content: '(paragraph|audiotag)+ | ((paragraph|audiotag)+ ordered_list)',
         parseDOM: [{
             tag: "li", getAttrs(dom: any) {
                 return { mapStyle: dom.getAttribute("data-mapStyle"), bulletStyle: dom.getAttribute("data-bulletStyle") };

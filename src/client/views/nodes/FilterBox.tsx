@@ -36,12 +36,16 @@ const FilterBoxDocument = makeInterface(documentSchema);
 
 @observer
 export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDocument>(FilterBoxDocument) {
+    constructor(props: Readonly<FieldViewProps>) {
+        super(props);
+    }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
     public _filterBoolean = "AND";
     public _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
+    private myFiltersRef = React.createRef<HTMLDivElement>();
 
     @computed get allDocs() {
         const allDocs = new Set<Doc>();
@@ -231,6 +235,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         console.log(this._filterMatch);
     }
 
+    @computed get yPos() {
+        return this.myFiltersRef.current?.getBoundingClientRect();
+    }
+
 
     @action
     changeSelected = (e: any) => {
@@ -242,6 +250,12 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             // helper method to select specified docs
         }
         console.log(this._filterSelected);
+    }
+
+    saveFilter = () => {
+        Doc.AddDocToList(Doc.UserDoc(), "savedFilters", this.props.Document);
+        console.log("saved filter");
+        console.log(Doc.UserDoc().savedFilters);
     }
 
     FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
@@ -267,6 +281,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
 
+    suppressChildClick = () => ScriptField.MakeScript("")!;
     render() {
         const facetCollection = this.props.Document;
         // const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
@@ -280,6 +295,17 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         // const attributes = this.activeAttributes;
 
         // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
+        // const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+        // console.log(this.props.Document);
+        // console.log(Doc.UserDoc().currentFilter);
+        console.log(this.yPos);
+        console.log(this.myFiltersRef.current?.getBoundingClientRect());
+
+        const flyout = <>
+            <div className="nothing for now" onWheel={e => e.stopPropagation()}>
+                testing flyout
+            </div>
+        </>;
         const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
@@ -320,9 +346,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 <CollectionTreeView
                     Document={facetCollection}
                     DataDoc={Doc.GetProto(facetCollection)}
-                    fieldKey={`${this.props.fieldKey}`}
+                    fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
                     cantBrush={true}
+                    onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
                     searchFilterDocs={returnEmptyDoclist}
@@ -383,17 +410,26 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
                 <div style={{ display: "flex" }}>
                     <div className="filterBox-saveWrapper">
-                        <div className="filterBox-saveBookmark">
+                        <div className="filterBox-saveBookmark"
+                            onPointerDown={this.saveFilter}
+                        >
                             <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"save"} size={"sm"} />
                             <div>SAVE</div>
                         </div>
                     </div>
                     <div className="filterBox-saveWrapper">
-                        <div className="filterBox-saveBookmark">
+                        <div className="filterBox-saveBookmark" ref={this.myFiltersRef}>
                             <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
-                            <div>MY FILTERS</div>
+                            <Flyout className="myFilters-flyout" anchorPoint={anchorPoints.TOP} content={flyout}>
+                                <div>MY FILTERS</div>
+                            </Flyout>
                         </div>
                     </div>
+                </div>
+                <div
+                    style={{ width: 200, height: 200, backgroundColor: "black", color: "white" }}
+                >
+                    floot floot
                 </div>
             </div>
         </div>;

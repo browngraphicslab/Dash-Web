@@ -7,7 +7,7 @@ import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
-import { createSchema, makeInterface } from "../../../fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { emptyFunction, formatTime, OmitKeys, returnOne, setupMoveUpEvents, Utils } from "../../../Utils";
@@ -29,11 +29,8 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import "./VideoBox.scss";
 const path = require('path');
 
-export const timeSchema = createSchema({
-    _currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
-});
-type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
-const VideoDocument = makeInterface(documentSchema, timeSchema);
+type VideoDocument = makeInterface<[typeof documentSchema]>;
+const VideoDocument = makeInterface(documentSchema);
 
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
@@ -63,7 +60,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     @computed get links() { return DocListCast(this.dataDoc.links); }
     @computed get heightPercent() { return NumCast(this.layoutDoc._timelineHeightPercent, 100); }
     @computed get duration() { return NumCast(this.dataDoc[this.fieldKey + "-duration"]); }
-    @computed get anchorDocs() { return DocListCast(this.dataDoc[this.annotationKey + "-timeline"]).concat(DocListCast(this.dataDoc[this.annotationKey])); }
 
     private get transition() { return this._clicking ? "left 0.5s, width 0.5s, height 0.5s" : ""; }
     public get player(): HTMLVideoElement | null { return this._videoRef; }
@@ -73,11 +69,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         VideoBox.Instance = this;
     }
 
-    anchorStart = (anchor: Doc) => NumCast(anchor.anchorStartTime, NumCast(anchor._timecodeToShow, NumCast(anchor.videoStart)));
-    anchorEnd = (anchor: Doc, defaultVal: any = null) => NumCast(anchor.anchorEndTime, NumCast(anchor._timecodeToHide, NumCast(anchor.videoEnd, defaultVal)));
-
     getAnchor = () => {
-        return this._stackedTimeline.current?.createAnchor(Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
     }
 
     choosePath(url: string) {
@@ -92,13 +85,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.dataDoc[this.fieldKey + "-duration"] = this.player!.duration;
     }
 
-    static keyEventsWrapper = (e: KeyboardEvent) => {
-        VideoBox.Instance._stackedTimeline.current?.keyEvents(e);
-    }
-
     @action public Play = (update: boolean = true) => {
-        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
-        document.addEventListener("keydown", VideoBox.keyEventsWrapper, true);
         this._playing = true;
         try {
             update && this.player?.play();
@@ -180,7 +167,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
+            const retitled = StrCast(this.rootDoc.title).replace(/[ -\.]/g, "");
+            const filename = path.basename(encodeURIComponent("snapshot" + retitled + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) =>
                 returnedFilename && this.createRealSummaryLink(returnedFilename));
         }
@@ -192,14 +180,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const height = this.layoutDoc._height || 0;
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: Doc.NativeWidth(this.layoutDoc), _nativeHeight: Doc.NativeHeight(this.layoutDoc),
-            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), isLinkButton: true,
             _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.SetNativeWidth(Doc.GetProto(imageSummary), Doc.NativeWidth(this.layoutDoc));
         Doc.SetNativeHeight(Doc.GetProto(imageSummary), Doc.NativeHeight(this.layoutDoc));
-        imageSummary.isLinkButton = true;
         this.props.addDocument?.(imageSummary);
-        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
+        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.getAnchor() }, "video snapshot");
     }
 
     @action
@@ -254,7 +241,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     componentWillUnmount() {
         this.Pause();
         Object.keys(this._disposers).forEach(d => this._disposers[d]?.());
-        document.removeEventListener("keydown", VideoBox.keyEventsWrapper, true);
     }
 
     @action
@@ -419,7 +405,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             action((e: PointerEvent) => {
                 this._clicking = false;
                 if (this.active()) {
-                    const local = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
+                    const local = this.props.ScreenToLocalTransform().scale(this.props.scaling?.() || 1).transformPoint(e.clientX, e.clientY);
                     this.layoutDoc._timelineHeightPercent = Math.max(0, Math.min(100, local[1] / this.props.PanelHeight() * 100));
                 }
                 return false;
@@ -431,11 +417,13 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     });
 
     onResetDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, (e: PointerEvent) => {
-            this.Seek(Math.max(0, (this.layoutDoc._currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
-            e.stopImmediatePropagation();
-            return false;
-        }, emptyFunction,
+        setupMoveUpEvents(this, e,
+            (e: PointerEvent) => {
+                this.Seek(Math.max(0, (this.layoutDoc._currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
+                e.stopImmediatePropagation();
+                return false;
+            },
+            emptyFunction,
             (e: PointerEvent) => this.layoutDoc._currentTimecode = 0);
     }
 
@@ -454,7 +442,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     addDocWithTimecode(doc: Doc | Doc[]): boolean {
         const docs = doc instanceof Doc ? [doc] : doc;
         const curTime = NumCast(this.layoutDoc._currentTimecode);
-        docs.forEach(doc => doc._timecodeToShow = curTime);
+        docs.forEach(doc => doc._timecodeToHide = (doc._timecodeToShow = curTime) + 1);
         return this.addDocument(doc);
     }
 
@@ -486,62 +474,54 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     playLink = (doc: Doc) => {
-        const startTime = NumCast(doc.anchorStartTime, NumCast(doc._timecodeToShow));
-        const endTime = NumCast(doc.anchorEndTime, NumCast(doc._timecodeToHide, null));
+        const startTime = this._stackedTimeline.current?.anchorStart(doc) || 0;
+        const endTime = this._stackedTimeline.current?.anchorEnd(doc);
         if (startTime !== undefined) {
             if (this.layoutDoc.playOnSelect) endTime ? this.playFrom(startTime, endTime) : this.playFrom(startTime);
             else this.Seek(startTime);
         }
     }
 
-    // returns the timeline
+    playing = () => this._playing;
+    isActiveChild = () => this._isChildActive;
+    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    timelineScreenToLocal = () => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight());
+    setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
+    timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;
     @computed get renderTimeline() {
         return <div style={{ width: "100%", transition: this.transition, height: `${100 - this.heightPercent}%`, position: "absolute" }}>
-            <CollectionStackedTimeline ref={this._stackedTimeline}
-                Document={this.props.Document}
+            <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
-                parentActive={this.props.parentActive}
+                startTag={"videoStart"}
+                endTag={"videoEnd"}
+                fieldKeySuffix={"-timeline"}
                 focus={emptyFunction}
-                styleProvider={this.props.styleProvider}
-                docFilters={this.props.docFilters}
-                docRangeFilters={this.props.docRangeFilters}
-                searchFilterDocs={this.props.searchFilterDocs}
-                rootSelected={this.props.rootSelected}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
                 bringToFront={emptyFunction}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                ContainingCollectionView={this.props.ContainingCollectionView}
                 CollectionView={undefined}
                 duration={this.duration}
                 playFrom={this.playFrom}
-                setTime={(time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time}
-                playing={() => this._playing}
-                select={this.props.select}
-                isSelected={this.props.isSelected}
-                whenActiveChanged={action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive))}
+                setTime={this.setAnchorTime}
+                playing={this.playing}
+                whenActiveChanged={this.timelineWhenActiveChanged}
                 removeDocument={this.removeDocument}
-                ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight())}
-                isChildActive={() => this._isChildActive}
+                ScreenToLocalTransform={this.timelineScreenToLocal}
+                isChildActive={this.isActiveChild}
                 Play={this.Play}
                 Pause={this.Pause}
                 active={this.active}
                 playLink={this.playLink}
-                PanelWidth={this.props.PanelWidth}
-                PanelHeight={() => this.props.PanelHeight() * (100 - this.heightPercent) / 100}
+                PanelHeight={this.timelineHeight}
             />
         </div>;
     }
-
-    contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
 
     @computed get annotationLayer() {
         return <div className="imageBox-annotationLayer" style={{ transition: this.transition, height: `${this.heightPercent}%` }} ref={this._annotationLayer} />;
     }
 
     marqueeDown = action((e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.layoutDoc._viewScale === 1 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
     });
 
     finishMarquee = action(() => {
@@ -549,6 +529,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.props.select(true);
     });
 
+    contentFunc = () => [this.youtubeVideoId ? this.youtubeContent : this.content];
     scaling = () => this.props.scaling?.() || 1;
     panelWidth = () => this.props.PanelWidth() * this.heightPercent / 100;
     panelHeight = () => this.layoutDoc._fitWidth ? this.panelWidth() / Doc.NativeAspect(this.rootDoc) : this.props.PanelHeight() * this.heightPercent / 100;
@@ -556,6 +537,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const offset = (this.props.PanelWidth() - this.panelWidth()) / 2 / this.scaling();
         return this.props.ScreenToLocalTransform().translate(-offset, 0).scale(100 / this.heightPercent);
     }
+    marqueeFitScaling = () => (this.props.scaling?.() || 1) * this.heightPercent / 100;
+    marqueeOffset = () => [this.panelWidth() / 2 * (1 - this.heightPercent / 100) / (this.heightPercent / 100), 0];
 
     render() {
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
@@ -590,7 +573,16 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 {this.annotationLayer}
                 {this.renderTimeline}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                    <MarqueeAnnotator rootDoc={this.rootDoc} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocWithTimecode} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                    <MarqueeAnnotator
+                        rootDoc={this.rootDoc}
+                        down={this._marqueeing}
+                        scaling={this.marqueeFitScaling}
+                        containerOffset={this.marqueeOffset}
+                        addDocument={this.addDocWithTimecode}
+                        finishMarquee={this.finishMarquee}
+                        savedAnnotations={this._savedAnnotations}
+                        annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current}
+                    />}
             </div>
         </div >);
     }
