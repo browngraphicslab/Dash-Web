@@ -19,6 +19,7 @@ interface LightboxViewProps {
 @observer
 export class LightboxView extends React.Component<LightboxViewProps> {
     @observable public static LightboxDoc: Opt<Doc>;
+    public static IsLightboxDocView(path: DocumentView[]) { return path.includes(LightboxView.LightboxDocView.current!); }
     public static LightboxHistory: (Opt<Doc>)[] = [];
     public static LightboxFuture: (Opt<Doc>)[] = [];
     public static LightboxDocView = React.createRef<DocumentView>();

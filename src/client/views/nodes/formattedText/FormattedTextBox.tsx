@@ -1246,7 +1246,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             (this._editorView as any).TextView = this;
         }
 
-        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad && (!LightboxView.LightboxDoc || this.props.docViewPath().includes(LightboxView.LightboxDocView.current!));
+        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad && (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath()));
         if (selectOnLoad && !this.props.dontRegisterView && !this.props.dontSelectOnLoad && this.isActiveTab(this.ProseRef)) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);

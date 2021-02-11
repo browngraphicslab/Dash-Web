@@ -104,7 +104,7 @@ export class DocumentManager {
     public getLightboxDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const docViews = DocumentManager.Instance.DocumentViews;
         const views: DocumentView[] = [];
-        docViews.map(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!) && view.rootDoc === toFind && views.push(view));
+        docViews.map(view => LightboxView.IsLightboxDocView(view.docViewPath) && view.rootDoc === toFind && views.push(view));
         return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
@@ -113,14 +113,14 @@ export class DocumentManager {
     }
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
-        const docViews = DocumentManager.Instance.DocumentViews.filter(view => !view.docViewPath.includes(LightboxView.LightboxDocView.current!));
-        const lightboxViews = DocumentManager.Instance.DocumentViews.filter(view => view.docViewPath.includes(LightboxView.LightboxDocView.current!));
+        const docViews = DocumentManager.Instance.DocumentViews.filter(view => !LightboxView.IsLightboxDocView(view.docViewPath));
+        const lightViews = DocumentManager.Instance.DocumentViews.filter(view => LightboxView.IsLightboxDocView(view.docViewPath));
 
         // heuristic to return the "best" documents first:
         //   choose a document in the lightbox first
         //   choose an exact match over an alias match
-        lightboxViews.map(view => view.rootDoc === toFind && toReturn.push(view));
-        lightboxViews.map(view => view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
+        lightViews.map(view => view.rootDoc === toFind && toReturn.push(view));
+        lightViews.map(view => view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
         docViews.map(view => view.rootDoc === toFind && toReturn.push(view));
         docViews.map(view => view.rootDoc !== toFind && Doc.AreProtosEqual(view.rootDoc, toFind) && toReturn.push(view));
 
@@ -142,10 +142,7 @@ export class DocumentManager {
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void,
     ): Promise<void> => {
-        const getFirstDocView = (toFind: Doc, originatingDoc?: Doc) => {
-            const docView = DocumentManager.Instance.getFirstDocumentView(toFind, originatingDoc);
-            return (!LightboxView.LightboxDoc || docView?.docViewPath.includes(LightboxView.LightboxDocView.current!)) ? docView : undefined;
-        };
+        const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
         const focusAndFinish = () => { finished?.(); return false; };
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
@@ -218,7 +215,7 @@ export class DocumentManager {
                 } else {  // there's no context view so we need to create one first and try again when that finishes
                     const finishFunc = () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
                     if (LightboxView.LightboxDoc) {
-                        runInAction(() => LightboxView.LightboxDoc = annotatedDoc ? annotatedDoc : targetDoc);
+                        runInAction(() => LightboxView.LightboxDoc = targetDocContext);
                         setTimeout(() => finishFunc, 250);
                     } else {
                         createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target

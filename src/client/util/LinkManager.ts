@@ -4,8 +4,6 @@ import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";
 import { LightboxView } from "../views/LightboxView";
 import { DocumentViewSharedProps } from "../views/nodes/DocumentView";
-import { FormattedTextBoxComment } from "../views/nodes/formattedText/FormattedTextBoxComment";
-import { LinkDocPreview } from "../views/nodes/LinkDocPreview";
 import { CreateViewFunc, DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
@@ -146,7 +144,6 @@ export class LinkManager {
                         (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
                 if (target) {
                     if (LightboxView.LightboxDoc && !DocumentManager.Instance.getLightboxDocumentView(doc)) {
-                        //doc.annotationOn !== LightboxView.LightboxDoc) { // following a link should replace an existing lightboxDoc unless the target is an annotation on the lightbox document
                         runInAction(() => LightboxView.LightboxDoc = (target.annotationOn as Doc) ?? target);
                         finished?.();
                     } else {
