@@ -918,8 +918,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
             const newState = HistoryUtil.getState();
-            const { px, py } = layoutdoc.annotationOn || this.rootDoc._isGroup ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, willZoom ? scale || .75 : undefined);
-            if (!layoutdoc.annotationOn && !this.rootDoc._isGroup) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
+            const cantTransform = this.props.isAnnotationOverlay || this.rootDoc._isGroup;
+            const { px, py } = cantTransform ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, willZoom ? scale || .75 : undefined);
+            if (!cantTransform) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
                 newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
             }
@@ -943,11 +944,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
                 return resetView;
             };
-            this.props.focus(this.rootDoc._isGroup ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)),
-                !this.rootDoc._isGroup ? Transform.Identity() :
-                    new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX), NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1)
-                        .transform(docTransform ?? Transform.Identity()));
+            const xf = !cantTransform ? Transform.Identity() :
+                this.props.isAnnotationOverlay ?
+                    new Transform(NumCast(this.rootDoc.x), NumCast(this.rootDoc.y), this.rootDoc[WidthSym]() / Doc.NativeWidth(this.rootDoc))
+                    :
+                    new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX),
+                        NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1);
+            this.props.focus(cantTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)), xf.transform(docTransform ?? Transform.Identity()));
         }
     }
 
@@ -959,7 +963,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const bounds = { left: pt[0], right: pt2[0], top: pt[1], bot: pt2[1] };
 
         if (scale) {
-            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / doc[WidthSym](), this.props.PanelHeight() / doc[HeightSym]());
+            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0])), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1]);
             return { px: (bounds.left + bounds.right) / 2, py: (bounds.top + bounds.bot) / 2 };
         } else {
             const cx = NumCast(this.layoutDoc._panX);
