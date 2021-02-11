@@ -418,7 +418,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @observable _marqueeing: number[] | undefined;
     @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @computed get annotationLayer() {
-        return <div className="imageBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer} />;
+        return <div className="imageBox-annotationLayer" style={{ height: this.props.PanelHeight() }} ref={this._annotationLayer} />;
     }
     @action
     marqueeDown = (e: React.PointerEvent) => {
