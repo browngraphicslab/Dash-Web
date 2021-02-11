@@ -29,6 +29,7 @@ import { Annotation } from "../pdf/Annotation";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
+import { DocFocusFunc, DocAfterFocusFunc, DocumentView } from "./DocumentView";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -110,22 +111,21 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     getAnchor = () => this.rootDoc;
-    scrollFocus = (doc: Doc, smooth: boolean) => {
+    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
         if (doc !== this.rootDoc && this.webpage && this._outerRef.current) {
-            this._initialScroll !== undefined && (this._initialScroll = NumCast(doc.y));
-            this._ignoreScroll = true;
-            if (smooth) {
-                smoothScroll(500, this.webpage as any as HTMLElement, NumCast(doc.y));
-                smoothScroll(500, this._outerRef.current, NumCast(doc.y));
-            } else {
-                this.webpage.scrollTop = NumCast(doc.y);
-                this._outerRef.current.scrollTop = NumCast(doc.y);
+            const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
+            if (scrollTo !== undefined) {
+                this._initialScroll !== undefined && (this._initialScroll = scrollTo);
+                this._ignoreScroll = true;
+                this.goTo(scrollTo, smooth ? 500 : 0);
+                this.layoutDoc._scrollTop = scrollTo;
+                this._ignoreScroll = false;
+                return afterFocus?.(true);
             }
-            smooth && (this.layoutDoc._scrollTop = NumCast(doc.y));
-            this._ignoreScroll = false;
         } else {
             this._initialScroll = NumCast(doc.y);
         }
+        afterFocus?.(false);
     }
 
     async componentDidMount() {
@@ -164,29 +164,35 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }
         }
 
-        var quickScroll: string | undefined = "";
+        var quickScroll = true;
         this._disposers.scrollReaction = reaction(() => NumCast(this.layoutDoc._scrollTop),
             (scrollTop) => {
-                if (quickScroll !== undefined) {
+                if (quickScroll) {
                     this._initialScroll = scrollTop;
                 }
-                else if (!this._ignoreScroll && this._outerRef.current && this.webpage) {
+                else if (!this._ignoreScroll) {
                     const viewTrans = StrCast(this.Document._viewTransition);
                     const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
                     const durationSecStr = viewTrans.match(/([0-9.]*)s/);
                     const duration = durationMiliStr ? Number(durationMiliStr[1]) : durationSecStr ? Number(durationSecStr[1]) * 1000 : 0;
-                    if (duration) {
-                        smoothScroll(duration, this.webpage as any as HTMLElement, scrollTop);
-                        smoothScroll(duration, this._outerRef.current, scrollTop);
-                    } else {
-                        this.webpage.scrollTop = scrollTop;
-                        this._outerRef.current.scrollTop = scrollTop;
-                    }
+                    this.goTo(scrollTop, duration);
                 }
             },
             { fireImmediately: true }
         );
-        quickScroll = undefined;
+        quickScroll = false;
+    }
+
+    goTo = (scrollTop: number, duration: number) => {
+        if (this._outerRef.current && this.webpage) {
+            if (duration) {
+                smoothScroll(duration, this.webpage as any as HTMLElement, scrollTop);
+                smoothScroll(duration, this._outerRef.current, scrollTop);
+            } else {
+                this.webpage.scrollTop = scrollTop;
+                this._outerRef.current.scrollTop = scrollTop;
+            }
+        }
     }
 
     componentWillUnmount() {

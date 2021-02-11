@@ -1,6 +1,6 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast, HeightSym } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -44,11 +44,11 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => boolean;
-export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => void;
+export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor: () => Doc;
-    scrollFocus?: (doc: Doc, smooth: boolean) => void;
+    scrollFocus?: (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => void;
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
@@ -376,9 +376,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => {
-        this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here
-        return this.props.focus(doc, willZoom, scale, afterFocus, dontCenter, focused);
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+        if (this._componentView?.scrollFocus) {
+            return this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo, afterFocus); // bcz: smooth parameter should really be passed into focus() instead of inferred here
+        }
+        return this.props.focus(doc, willZoom, scale, afterFocus);
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
@@ -917,8 +919,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, focused?: boolean) => {
-        return this.docView?.focus(doc, willZoom, scale, afterFocus, dontCenter, focused);
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, focused?: boolean) => {
+        return this.docView?.focus(doc, willZoom, scale, afterFocus, focused);
     }
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {

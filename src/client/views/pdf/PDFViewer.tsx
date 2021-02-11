@@ -28,6 +28,7 @@ import { AnchorMenu } from "./AnchorMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { DocAfterFocusFunc } from "../nodes/DocumentView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -179,15 +180,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     // scrolls to focus on a nested annotation document.  if this is part a link preview then it will jump to the scroll location,
     // otherwise it will scroll smoothly.
-    scrollFocus = (doc: Doc, smooth: boolean) => {
+    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
         const mainCont = this._mainCont.current;
-        if (mainCont) {
-            if (smooth) {
-                smoothScroll(500, mainCont, NumCast(doc.y));
-            } else {
-                mainCont.scrollTop = NumCast(doc.y);
+        if (doc !== this.rootDoc && mainCont) {
+            const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
+            if (scrollTo !== undefined) {
+                if (smooth) smoothScroll(500, mainCont, scrollTo);
+                else mainCont.scrollTop = scrollTo;
+                return afterFocus?.(true);
             }
         }
+        afterFocus?.(false);
     }
 
     @action

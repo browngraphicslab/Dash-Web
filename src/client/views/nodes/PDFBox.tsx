@@ -22,6 +22,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { DocAfterFocusFunc } from './DocumentView';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -79,7 +80,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean) => doc !== this.rootDoc && this._pdfViewer?.scrollFocus(doc, smooth);
+    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => { this._pdfViewer?.scrollFocus(doc, smooth, afterFocus); }
     getAnchor = () => this.rootDoc;
     componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {

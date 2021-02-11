@@ -150,29 +150,26 @@ export class DocumentManager {
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
         let annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
-        if (annotatedDoc && annotatedDoc !== originatingDoc?.context && !targetDoc?.isPushpin) {
+        if (!docView && annotatedDoc && annotatedDoc !== originatingDoc?.context && targetDoc.type === DocumentType.TEXTANCHOR) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.rootDoc;
                 first.focus(targetDoc, false);
             }
-        }
-        if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            const sameContext = annotatedDoc && annotatedDoc === originatingDoc?.context;
+        } else if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
             if (originatingDoc?.isPushpin) {
                 docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => {
                     if (!didFocus || docView.rootDoc.hidden) {
                         docView.rootDoc.hidden = !docView.rootDoc.hidden;
                     }
                     return focusAndFinish();
-                }, sameContext, false);// don't want to focus the container if the source and target are in the same container, so pass 'sameContext' for dontCenter parameter
-                //finished?.();
+                });
             }
             else {
                 docView.select(false);
                 docView.rootDoc.hidden && (docView.rootDoc.hidden = undefined);
                 // @ts-ignore
-                docView.props.focus(docView.rootDoc, willZoom, undefined, focusAndFinish, sameContext, false);
+                docView.props.focus(docView.rootDoc, willZoom, undefined, focusAndFinish);
             }
             highlight();
         } else {

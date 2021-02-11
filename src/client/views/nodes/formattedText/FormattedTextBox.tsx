@@ -67,6 +67,7 @@ import { AnchorMenu } from '../../pdf/AnchorMenu';
 import { CurrentUserUtils } from '../../../util/CurrentUserUtils';
 import { DocumentManager } from '../../../util/DocumentManager';
 import { LightboxView } from '../../LightboxView';
+import { DocAfterFocusFunc } from '../DocumentView';
 const translateGoogleApi = require("translate-google-api");
 
 export interface FormattedTextBoxProps {
@@ -867,7 +868,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean) => {
+    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
         const anchorId = doc[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
             const nodes: Node[] = [];
@@ -905,8 +906,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
                 const escAnchorId = anchorId[0] > '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
                 addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
-                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), 1500);
+                setTimeout(() => {
+                    clearStyleSheetRules(FormattedTextBox._highlightStyleSheet);
+                    afterFocus?.(true);
+                }, 1500);
             }
+        } else {
+            afterFocus?.(false);
         }
     }
 
