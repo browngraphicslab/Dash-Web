@@ -43,7 +43,7 @@ import React = require("react");
 import { LinkDocPreview } from "./LinkDocPreview";
 
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<boolean>;
-export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
+export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor: () => Doc;
@@ -375,11 +375,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         if (this._componentView?.scrollFocus) {
             return this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo, afterFocus); // bcz: smooth parameter should really be passed into focus() instead of inferred here
         }
-        return this.props.focus(doc, willZoom, scale, afterFocus);
+        return this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&

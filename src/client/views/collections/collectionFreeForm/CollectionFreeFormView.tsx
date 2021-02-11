@@ -789,6 +789,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
+        if (this.Document._isGroup) return;
         let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
         if (deltaScale < 0) deltaScale = -deltaScale;
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
@@ -815,10 +816,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             e.stopPropagation();
         }
         else if (this.props.active(true)) {
-            e.stopPropagation();
-            e.preventDefault();
-            if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+            if (!e.ctrlKey && MarqueeView.DragMarquee) {
+                this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else if (!this.Document._isGroup) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+            }
 
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
@@ -876,6 +883,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     });
 
     scaleAtPt(docpt: number[], scale: number) {
+        if (this.Document._isGroup) return;
         const screenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
         this.Document._viewTransition = "transform 500ms";
         this.layoutDoc[this.scaleFieldKey] = scale;
@@ -886,7 +894,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         const state = HistoryUtil.getState();
 
         // TODO This technically isn't correct if type !== "doc", as
@@ -906,10 +914,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this.props.Document.scrollHeight) {
             this.props.focus(doc, undefined, undefined, afterFocus);
         } else {
+            const xfToCollection = docTransform ?? Transform.Identity();
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
             const newState = HistoryUtil.getState();
-            const { px, py } = layoutdoc.annotationOn || this.rootDoc._isGroup ? savedState : willZoom ? this.setZoomToDoc(layoutdoc, scale) : this.setPanIntoView(doc);
+            const { px, py } = layoutdoc.annotationOn || this.rootDoc._isGroup ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, willZoom ? scale || .75 : undefined);
             if (!layoutdoc.annotationOn && !this.rootDoc._isGroup) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
                 newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
@@ -935,34 +944,32 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 return resetView;
             };
             this.props.focus(this.rootDoc._isGroup ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)));
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)),
+                !this.rootDoc._isGroup ? Transform.Identity() :
+                    new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX), NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1)
+                        .transform(docTransform ?? Transform.Identity()));
         }
     }
 
-    setPanIntoView = (doc: Doc) => {
-        const cx = NumCast(this.props.Document._panX);
-        const cy = NumCast(this.props.Document._panY);
-        const pwid = this.props.PanelWidth() / NumCast(this.props.Document._viewScale, 1);
-        const phgt = this.props.PanelHeight() / NumCast(this.props.Document._viewScale, 1);
-        const screen = { left: cx - pwid / 2, right: cx + pwid / 2, top: cy - phgt / 2, bot: cy + phgt / 2 };
-        const bounds = { left: NumCast(doc.x) - pwid / 10, right: NumCast(doc.x) + doc[WidthSym]() + pwid / 10, top: NumCast(doc.y) - phgt / 10, bot: NumCast(doc.y) + doc[HeightSym]() + phgt / 10 };
-        return {
-            px: cx + Math.min(0, bounds.left - screen.left) + Math.max(0, bounds.right - screen.right),
-            py: cy + Math.min(0, bounds.top - screen.top) + Math.max(0, bounds.bot - screen.bot)
-        };
-    }
+    setPanIntoView = (doc: Doc, xf: Transform, scale?: number) => {
+        const pw = this.props.PanelWidth() / NumCast(this.layoutDoc._viewScale, 1);
+        const ph = this.props.PanelHeight() / NumCast(this.layoutDoc._viewScale, 1);
+        const pt = xf.transformPoint(NumCast(doc.x), NumCast(doc.y));
+        const pt2 = xf.transformPoint(NumCast(doc.x) + doc[WidthSym](), NumCast(doc.y) + doc[HeightSym]());
+        const bounds = { left: pt[0], right: pt2[0], top: pt[1], bot: pt2[1] };
 
-    setZoomToDoc = (doc: Doc, scale: number = 0.75) => {
-        const pw = this.props.PanelWidth();
-        const ph = this.props.PanelHeight();
-        pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
-        const pwid = pw / NumCast(this.props.Document._viewScale, 1);
-        const phgt = ph / NumCast(this.props.Document._viewScale, 1);
-        const bounds = { left: NumCast(doc.x) - pwid / 10, right: NumCast(doc.x) + doc[WidthSym]() + pwid / 10, top: NumCast(doc.y) - phgt / 10, bot: NumCast(doc.y) + doc[HeightSym]() + phgt / 10 };
-        return {
-            px: (bounds.left + bounds.right) / 2,
-            py: (bounds.top + bounds.bot) / 2
-        };
+        if (scale) {
+            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / doc[WidthSym](), this.props.PanelHeight() / doc[HeightSym]());
+            return { px: (bounds.left + bounds.right) / 2, py: (bounds.top + bounds.bot) / 2 };
+        } else {
+            const cx = NumCast(this.layoutDoc._panX);
+            const cy = NumCast(this.layoutDoc._panY);
+            const screen = { left: cx - pw / 2, right: cx + pw / 2, top: cy - ph / 2, bot: cy + ph / 2 };
+            return {
+                px: cx + Math.min(0, bounds.left - pw / 10 - screen.left) + Math.max(0, bounds.right + pw / 10 - screen.right),
+                py: cy + Math.min(0, bounds.top - ph / 10 - screen.top) + Math.max(0, bounds.bot + ph / 10 - screen.bot)
+            };
+        }
     }
 
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
