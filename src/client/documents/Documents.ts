@@ -373,6 +373,9 @@ export namespace Docs {
             }],
             [DocumentType.GROUP, {
                 layout: { view: EmptyBox, dataField: defaultDataKey }
+            }],
+            [DocumentType.TEXTANCHOR, {
+                layout: { view: EmptyBox, dataField: defaultDataKey }
             }]
         ]);
 
@@ -783,6 +786,10 @@ export namespace Docs {
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
+        }
+
+        export function TextanchorDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {

@@ -111,7 +111,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
     scaling?: () => number,
     layoutKey: string,
     hideOnLeave?: boolean,
-    makeLink?: () => Opt<Doc>,  // function to call when a link is made
 }> {
     @computed get layout(): string {
         TraceMobx();
@@ -141,16 +140,17 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
     CreateBindings(onClick: Opt<ScriptField>, onInput: Opt<ScriptField>): JsxBindings {
         const docOnlyProps = [  // these are the properties in  DocumentViewProps that need to be removed to pass on only DocumentSharedViewProps to the FieldViews
             "freezeDimensions",
+            "hideResizeHandles",
             "hideTitle",
             "treeViewDoc",
-            "dragDivName",
             "contentPointerEvents",
             "radialMenu",
             "LayoutTemplateString",
             "LayoutTemplate",
+            "dontCenter",
             "ContentScaling",
-            "contentFittingScaling",
             "contextMenuItems",
+            "onClick",
             "onDoubleClick",
             "onPointerDown",
             "onPointerUp",
@@ -166,7 +166,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
         return { props: list };
     }
 
-    render() {
+    componentWillUpdate(oldProps: any, newState: any) {
+        // console.log("willupdate", oldProps, this.props); // bcz: if you get a message saying something invalidated because reactive props changed, then this method allows you to figure out which prop changed
+    }
+
+    @computed get renderData() {
         TraceMobx();
         let layoutFrame = this.layout;
 
@@ -201,13 +205,18 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
         };
         const onClick = makeFuncProp("onClick");
         const onInput = makeFuncProp("onInput");
-
         const bindings = this.CreateBindings(onClick, onInput);
-        //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
+        return { bindings, layoutFrame };
+    }
+
+    render() {
+        TraceMobx();
+        const { bindings, layoutFrame } = this.renderData;
+
         return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc || GetEffectiveAcl(this.layoutDoc) === AclPrivate) ? (null) :
             <ObserverJsxParser
                 key={42}
-                blacklistedAttrs={[]}
+                blacklistedAttrs={emptyPath}
                 renderInWrapper={false}
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,

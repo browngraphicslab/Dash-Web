@@ -19,12 +19,13 @@ import { SnappingManager } from "../util/SnappingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
+import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { ContextMenu } from "./ContextMenu";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { InkStrokeProperties } from "./InkStrokeProperties";
+import { LightboxView } from "./LightboxView";
 import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import { CollectionStackedTimeline } from "./collections/CollectionStackedTimeline";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
 import { random } from "lodash";
@@ -131,13 +132,16 @@ export class KeyManager {
                 } else {
                     doDeselect = !ContextMenu.Instance.closeMenu();
                 }
-                doDeselect && SelectionManager.DeselectAll();
+                if (doDeselect) {
+                    SelectionManager.DeselectAll();
+                    LightboxView.LightboxDoc = undefined;
+                }
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 if (!GroupManager.Instance.isOpen) SettingsManager.Instance.close();
                 GroupManager.Instance.close();
-                CollectionFreeFormViewChrome.Instance?.clearKeep();
+                CollectionFreeFormViewChrome.Instance?.clearKeepPrimitiveMode();
                 window.getSelection()?.empty();
                 document.body.focus();
                 break;

@@ -5,7 +5,7 @@ import ReactLoading from 'react-loading';
 import { Doc } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { Cast, NumCast } from "../../fields/Types";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, setupMoveUpEvents, Utils, emptyPath } from "../../Utils";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { DragManager } from "../util/DragManager";
 import { Scripting } from "../util/Scripting";
@@ -193,6 +193,8 @@ export class OverlayView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
+                    docViewPath={returnEmptyDoclist}
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}

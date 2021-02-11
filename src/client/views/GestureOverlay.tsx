@@ -8,7 +8,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnEmptyString, returnFalse, returnTrue, setupMoveUpEvents, emptyPath } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -32,10 +32,6 @@ export class GestureOverlay extends Touchable {
     @observable public InkShape: string = "";
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
-    @observable public SavedFill?: string;
-    @observable public SavedArrowStart: string = "none";
-    @observable public SavedArrowEnd: string = "none";
-    @observable public SavedDash: String = "0";
     @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
@@ -520,7 +516,7 @@ export class GestureOverlay extends Touchable {
     }
 
     handleLineGesture = (): boolean => {
-        let actionPerformed = false;
+        const actionPerformed = false;
         const B = this.svgBounds;
 
         // get the two targets at the ends of the line
@@ -528,21 +524,6 @@ export class GestureOverlay extends Touchable {
         const ep2 = this._points[this._points.length - 1];
         const target1 = document.elementFromPoint(ep1.X, ep1.Y);
         const target2 = document.elementFromPoint(ep2.X, ep2.Y);
-
-        // callback function to be called by each target
-        const callback = (doc: Doc) => {
-            if (!this._d1) {
-                this._d1 = doc;
-            }
-            // we don't want to create a link of both endpoints are the same document (doing so makes drawing an l very hard)
-            else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
-                // we don't want to create a link between ink strokes (doing so makes drawing a t very hard)
-                if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link", "");
-                    actionPerformed = true;
-                }
-            }
-        };
 
         const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
             {
@@ -607,7 +588,7 @@ export class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (!CollectionFreeFormViewChrome.Instance._keepMode) {
+                if (!CollectionFreeFormViewChrome.Instance._keepPrimitiveMode) {
                     this.InkShape = "";
                 }
             }
@@ -653,15 +634,7 @@ export class GestureOverlay extends Touchable {
         } else {
             this._points = [];
         }
-        //get out of ink mode after each stroke=
-        if (CollectionFreeFormViewChrome.Instance && !CollectionFreeFormViewChrome.Instance?._keepMode) {
-            Doc.SetSelectedTool(InkTool.None);
-            CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
-            SetActiveArrowStart("none");
-            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-            SetActiveArrowEnd("none");
-            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
-        }
+        CollectionFreeFormViewChrome.Instance.primCreated();
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
@@ -898,6 +871,8 @@ export class GestureOverlay extends Touchable {
                 PanelHeight={this.return300}
                 renderDepth={0}
                 styleProvider={returnEmptyString}
+                layerProvider={undefined}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
@@ -969,13 +944,9 @@ Scripting.addGlobal(function setPen(width: any, color: any, fill: any, arrowStar
         SetActiveInkColor(color);
         GestureOverlay.Instance.SavedWidth = ActiveInkWidth();
         SetActiveInkWidth(width);
-        GestureOverlay.Instance.SavedFill = ActiveFillColor();
         SetActiveFillColor(fill);
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
         SetActiveArrowStart(arrowStart);
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
         SetActiveArrowStart(arrowEnd);
-        GestureOverlay.Instance.SavedDash = ActiveDash();
         SetActiveDash(dash);
     });
 });

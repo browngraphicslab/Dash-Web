@@ -38,5 +38,7 @@ export enum DocumentType {
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     SCRIPTDB = "scriptdb",      // database of scripts
-    GROUPDB = "groupdb"         // database of groups
+    GROUPDB = "groupdb",        // database of groups
+
+    TEXTANCHOR = "textanchor"   // selection of text in a text box
 }

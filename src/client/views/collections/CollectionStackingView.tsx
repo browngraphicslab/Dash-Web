@@ -80,13 +80,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return docs.map((d, i) => {
             const height = () => this.getDocHeight(d);
             const width = () => this.getDocWidth(d);
-            const dref = React.createRef<HTMLDivElement>();
-            const dxf = () => this.getDocTransform(d, dref.current!);
-            this._docXfs.push({ dxf, width, height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
-            return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(d, dxf, width)}
+            return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} style={style} >
+                {this.getDisplayDoc(d, width)}
             </div>;
         });
     }
@@ -171,8 +168,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return this.props.addDocTab(doc, where);
     }
 
-
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, didFocus?: boolean) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         Doc.BrushDoc(doc);
         this.props.focus(this.props.Document, true);  // bcz: want our containing collection to zoom
         Doc.linkFollowHighlight(doc);
@@ -186,27 +182,32 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         afterFocus && setTimeout(afterFocus, 500);
     }
 
-    getDisplayDoc(doc: Doc, dxf: () => Transform, width: () => number) {
+    styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
+        if (property === StyleProp.Opacity && doc) {
+            if (this.props.childOpacity) {
+                return this.props.childOpacity();
+            }
+            if (this.Document._currentFrame !== undefined) {
+                return CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
+            }
+        }
+        return this.props.styleProvider?.(doc, props, property);
+    }
+    getDisplayDoc(doc: Doc, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
-        const styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
-            if (property === StyleProp.Opacity && doc) {
-                if (this.props.childOpacity) {
-                    return this.props.childOpacity();
-                }
-                if (this.Document._currentFrame !== undefined) {
-                    return CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document._currentFrame))?.opacity;
-                }
-            }
-            return this.props.styleProvider?.(doc, props, property);
-        };
-        return <DocumentView
+
+        let dref: Opt<HTMLDivElement>;
+        const stackedDocTransform = () => this.getDocTransform(doc, dref);
+        return <DocumentView ref={r => dref = r?.ContentDiv ? r.ContentDiv : undefined}
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
             renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            styleProvider={styleProvider}
+            styleProvider={this.styleProvider}
+            layerProvider={this.props.layerProvider}
+            docViewPath={this.props.docViewPath}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
@@ -218,7 +219,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
-            ScreenToLocalTransform={dxf}
+            ScreenToLocalTransform={stackedDocTransform}
             focus={this.focusDocument}
             docFilters={this.docFilters}
             docRangeFilters={this.docRangeFilters}
@@ -385,14 +386,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         />;
     }
 
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        if (!dref) return Transform.Identity();
+    getDocTransform(doc: Doc, dref?: HTMLDivElement) {
         const y = this._scroll; // required for document decorations to update when the text box container is scrolled
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        const outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
-        const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const offsety = 0;
-        return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
+        return new Transform(-translateX, -translateY, 1).scale(this.props.ScreenToLocalTransform().Scale);
     }
 
     forceAutoHeight = () => {

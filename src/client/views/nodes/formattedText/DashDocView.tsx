@@ -236,7 +236,9 @@ export class DashDocView extends React.Component<IDashDocView> {
                             PanelWidth={finalLayout[WidthSym]}
                             PanelHeight={finalLayout[HeightSym]}
                             focus={this.outerFocus}
-                            styleProvider={returnEmptyString}
+                            styleProvider={self._textBox.props.styleProvider}
+                            layerProvider={self._textBox.props.layerProvider}
+                            docViewPath={self._textBox.props.docViewPath}
                             parentActive={returnFalse}
                             whenActiveChanged={returnFalse}
                             bringToFront={emptyFunction}

@@ -15,7 +15,7 @@ import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { GetEffectiveAcl } from "../../../fields/util";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
@@ -25,6 +25,7 @@ import { COLLECTION_BORDER_WIDTH, SCHEMA_DIVIDER_WIDTH } from '../../views/globa
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
+import { DefaultStyleProvider } from "../StyleProvider";
 import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
@@ -570,6 +571,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     ref="overlay"><DocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
+                        styleProvider={DefaultStyleProvider}
+                        layerProvider={undefined}
+                        docViewPath={returnEmptyDoclist}
                         freezeDimensions={true}
                         focus={emptyFunction}
                         renderDepth={this.props.renderDepth}

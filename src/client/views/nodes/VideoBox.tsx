@@ -70,7 +70,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     getAnchor = () => {
-        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", Cast(this.layoutDoc._currentTimecode, "number", null)) || this.rootDoc;
+        const timecode = Cast(this.layoutDoc._currentTimecode, "number", null);
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", timecode ? timecode : undefined) || this.rootDoc;
     }
 
     choosePath(url: string) {
@@ -211,7 +212,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             },
             { fireImmediately: true });
         this._disposers.triggerVideo = reaction(
-            () => !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerVideo, null) : undefined,
+            () => !LinkDocPreview.LinkInfo && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerVideo, null) : undefined,
             time => time !== undefined && setTimeout(() => {
                 this.player && this.Play();
                 setTimeout(() => this.Document._triggerVideo = undefined, 10);
@@ -219,7 +220,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             { fireImmediately: true }
         );
         this._disposers.triggerStop = reaction(
-            () => this.props.renderDepth !== -1 && !LinkDocPreview.TargetDoc && !FormattedTextBoxComment.linkDoc ? NumCast(this.Document._triggerVideoStop, null) : undefined,
+            () => this.props.renderDepth !== -1 && !LinkDocPreview.LinkInfo ? NumCast(this.Document._triggerVideoStop, null) : undefined,
             stop => stop !== undefined && setTimeout(() => {
                 this.player && this.Pause();
                 setTimeout(() => this.Document._triggerVideoStop = undefined, 10);
@@ -489,7 +490,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;
     @computed get renderTimeline() {
-        return <div style={{ width: "100%", transition: this.transition, height: `${100 - this.heightPercent}%`, position: "absolute" }}>
+        return <div className="videoBox-stackPanel" style={{ transition: this.transition, height: `${100 - this.heightPercent}%` }}>
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
@@ -574,6 +575,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 {this.renderTimeline}
                 {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                     <MarqueeAnnotator
+                        scrollTop={0}
                         rootDoc={this.rootDoc}
                         down={this._marqueeing}
                         scaling={this.marqueeFitScaling}

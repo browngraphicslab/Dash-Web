@@ -275,6 +275,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={1}
                     rootSelected={returnFalse}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
+                    docViewPath={returnEmptyDoclist}
                     freezeDimensions={true}
                     dontCenter={"y"}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}

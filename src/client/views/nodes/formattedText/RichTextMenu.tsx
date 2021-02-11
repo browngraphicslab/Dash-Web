@@ -806,7 +806,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 <p>Linked to:</p>
                 <input value={link} ref={this._linkToRef} placeholder="Enter URL" onChange={onLinkChange} />
                 <button className="make-button" onPointerDown={e => this.makeLinkToURL(link, "add:right")}>Apply hyperlink</button>
-                <div className="divider"></div>
+                <div className="divider" />
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
 
@@ -819,7 +819,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.allLinks.length > 0 ? link.attrs.allLinks[0].href : undefined;
+            const href = link.attrs.allAnchors.length > 0 ? link.attrs.allAnchors[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -851,21 +851,21 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     // TODO: should check for valid URL
     @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
-        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRadd:rightight", "", target);
+        ((this.view as any)?.TextView as FormattedTextBox).makeLinkAnchor(undefined, "onRadd:rightight", target, target);
     }
 
     @undoBatch
     @action
     deleteLink = () => {
         if (this.view) {
-            const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);
-            if (link) {
-                const allLinks = link.attrs.allLinks.slice();
-                this.TextView.RemoveLinkFromSelection(link.attrs.allLinks);
+            const linkAnchor = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);
+            if (linkAnchor) {
+                const allAnchors = linkAnchor.attrs.allAnchors.slice();
+                this.TextView.RemoveAnchorFromSelection(allAnchors);
                 // bcz: Argh ... this will remove the link from the document even it's anchored somewhere else in the text which happens if only part of the anchor text was selected.
-                allLinks.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
-                    const linkId = aref.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    linkId && DocServer.GetRefField(linkId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc));
+                allAnchors.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
+                    const anchorId = aref.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    anchorId && DocServer.GetRefField(anchorId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc));
                 });
             }
         }
@@ -877,8 +877,8 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allAnchors.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allAnchors.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;

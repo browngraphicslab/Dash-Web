@@ -138,6 +138,7 @@ export class DashDocView {
                     removeDocument={removeDoc}
                     layerProvider={this._textBox.props.layerProvider}
                     styleProvider={this._textBox.props.styleProvider}
+                    docViewPath={this._textBox.props.docViewPath}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={this._textBox.props.addDocTab}
                     pinToPres={returnFalse}

@@ -12,7 +12,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -22,9 +22,10 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { LightboxView } from '../LightboxView';
+import { DocAfterFocusFunc, DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { FieldViewProps } from '../nodes/FieldView';
-import { PresBox, PresMovement, PinProps } from '../nodes/PresBox';
+import { PinProps, PresBox, PresMovement } from '../nodes/PresBox';
 import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } from '../StyleProvider';
 import { CollectionDockingView } from './CollectionDockingView';
 import { CollectionDockingViewMenu } from './CollectionDockingViewMenu';
@@ -277,9 +278,11 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
+            case "lightbox": return runInAction(() => LightboxView.LightboxDoc = doc) ? true : false;
             case "inPlace":
             case "add":
-            default: return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
+            default:
+                return CollectionDockingView.AddSplit(doc, locationParams, this.stack);
         }
     }
 
@@ -311,6 +314,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     parentActive={returnFalse}
+                    docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
                     active={returnTrue}
@@ -331,6 +335,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     styleProvider={TabDocView.miniStyleProvider}
+                    layerProvider={undefined}
                     addDocTab={this.addDocTab}
                     pinToPres={TabDocView.PinDoc}
                     docFilters={CollectionDockingView.Instance.docFilters}
@@ -351,7 +356,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, notFocused?: boolean) => {
+    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
             this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         }
@@ -405,6 +410,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 parentActive={this.active}
                 whenActiveChanged={emptyFunction}
                 focus={this.focusFunc}
+                docViewPath={returnEmptyDoclist}
                 bringToFront={emptyFunction}
                 pinToPres={TabDocView.PinDoc} />
                 {this._document._viewType !== CollectionViewType.Freeform ? (null) :

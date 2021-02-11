@@ -3,32 +3,27 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Utils } from "../../../../Utils";
-import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
     @computed get uniqueConnections() {
-        const connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
-            if (!drawnPairs.reduce((found, drawnPair) => {
-                const match1 = (connection.a === drawnPair.a && connection.b === drawnPair.b);
-                const match2 = (connection.a === drawnPair.b && connection.b === drawnPair.a);
-                const match = match1 || match2;
-                if (match && !drawnPair.l.reduce((found, link) => found || link[Id] === connection.l[Id], false)) {
-                    drawnPair.l.push(connection.l);
-                }
-                return match || found;
-            }, false)) {
-                drawnPairs.push({ a: connection.a, b: connection.b, l: [connection.l] });
-            }
-            return drawnPairs;
-        }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
-        return connections.filter(c => c.a.props.Document.type === DocumentType.LINK)
-            .map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        const connections = DocumentManager.Instance.LinkedDocumentViews
+            .filter(c => c.a.props.Document.type === DocumentType.LINK || c.b.props.Document.type === DocumentType.LINK)
+            .reduce((drawnPairs, connection) => {
+                const matchingPairs = drawnPairs.filter(pair => connection.a === pair.a && connection.b === pair.b);
+                matchingPairs.forEach(drawnPair => drawnPair.l.add(connection.l));
+                if (!matchingPairs.length) drawnPairs.push({ a: connection.a, b: connection.b, l: new Set<Doc>([connection.l]) });
+                return drawnPairs;
+            }, [] as { a: DocumentView, b: DocumentView, l: Set<Doc> }[]);
+        const set = new Map<Doc, { a: DocumentView, b: DocumentView, l: Doc[] }>();
+        connections.map(c => !set.has(Array.from(c.l)[0]) && set.set(Array.from(c.l)[0], { a: c.a, b: c.b, l: Array.from(c.l) }));
+        return Array.from(set.values()).map(c => <CollectionFreeFormLinkView key={c.l[0][Id]} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {

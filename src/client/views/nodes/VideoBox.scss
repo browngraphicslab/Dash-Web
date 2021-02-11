@@ -13,6 +13,11 @@
     .collectionStackedTimeline {
         background: beige;
     }
+    .videoBox-stackPanel {
+        z-index: -1;
+        width: 100%;
+        position: absolute; 
+    }
 }
 
 .videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen,

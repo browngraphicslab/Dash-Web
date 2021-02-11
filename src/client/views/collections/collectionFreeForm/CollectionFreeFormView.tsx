@@ -49,6 +49,7 @@ import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { StyleProp, StyleLayers } from "../../StyleProvider";
 import { DocumentDecorations } from "../../DocumentDecorations";
 import { FieldViewProps } from "../../nodes/FieldView";
+import { reset } from "colors";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -271,12 +272,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     @action
-    internalPdfAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
+    internalAnchorAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
         const dragDoc = annoDragData.dropDocument!;
         const dropPos = [NumCast(dragDoc.x), NumCast(dragDoc.y)];
         dragDoc.x = xp - annoDragData.offset[0] + (NumCast(dragDoc.x) - dropPos[0]);
         dragDoc.y = yp - annoDragData.offset[1] + (NumCast(dragDoc.y) - dropPos[1]);
-        annoDragData.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
         this.bringToFront(dragDoc);
         return true;
     }
@@ -303,7 +303,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
-        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
+        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData, xp, yp);
         if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }
@@ -789,6 +789,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
+        if (this.Document._isGroup) return;
         let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
         if (deltaScale < 0) deltaScale = -deltaScale;
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
@@ -815,10 +816,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             e.stopPropagation();
         }
         else if (this.props.active(true)) {
-            e.stopPropagation();
-            e.preventDefault();
-            if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-            else this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+            if (!e.ctrlKey && MarqueeView.DragMarquee) {
+                this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else if (!this.Document._isGroup) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
+            }
 
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
@@ -876,6 +883,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     });
 
     scaleAtPt(docpt: number[], scale: number) {
+        if (this.Document._isGroup) return;
         const screenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
         this.Document._viewTransition = "transform 500ms";
         this.layoutDoc[this.scaleFieldKey] = scale;
@@ -886,7 +894,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, dontCenter?: boolean, didFocus?: boolean) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         const state = HistoryUtil.getState();
 
         // TODO This technically isn't correct if type !== "doc", as
@@ -904,77 +912,68 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
-            const annotOn = Cast(doc.annotationOn, Doc) as Doc;
-            let delay = 1000;
-            if (!annotOn) {
-                !dontCenter && this.props.focus(doc);
-                afterFocus && setTimeout(afterFocus, delay);
-            } else {
-                const contextHgt = NumCast(annotOn._height);
-                const curScroll = NumCast(this.props.Document._scrollTop);
-                let scrollTo = curScroll;
-                if (curScroll + contextHgt < NumCast(doc.y)) {
-                    scrollTo = NumCast(doc.y) + Math.max(NumCast(doc._height), 100) - contextHgt;
-                } else if (curScroll > NumCast(doc.y)) {
-                    scrollTo = Math.max(0, NumCast(doc.y) - 50);
-                }
-                if (curScroll !== scrollTo || this.props.Document._viewTransition) {
-                    this.props.Document._scrollPreviewY = this.props.Document._scrollY = scrollTo;
-                    delay = Math.abs(scrollTo - curScroll) > 5 ? 1000 : 0;
-                    !dontCenter && this.props.focus(this.props.Document);
-                    afterFocus && setTimeout(afterFocus, delay);
-                } else {
-                    !dontCenter && delay && this.props.focus(this.props.Document);
-                    afterFocus?.(!dontCenter && delay ? true : false);
-                }
-            }
-
+            this.props.focus(doc, undefined, undefined, afterFocus);
         } else {
+            const xfToCollection = docTransform ?? Transform.Identity();
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
-
             const newState = HistoryUtil.getState();
-            let newPanX = savedState.px;
-            let newPanY = savedState.py;
-            if (!layoutdoc.annotationOn) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
-                willZoom && this.setScaleToZoom(layoutdoc, scale);
-                newPanX = (NumCast(doc.x) + doc[WidthSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeWidth(this.props.Document)) / 2 / this.zoomScaling() : 0);
-                newPanY = (NumCast(doc.y) + doc[HeightSym]() / 2) - (this.isAnnotationOverlay ? (Doc.NativeHeight(this.props.Document)) / 2 / this.zoomScaling() : 0);
-                newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
+            const cantTransform = this.props.isAnnotationOverlay || this.rootDoc._isGroup;
+            const { px, py } = cantTransform ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, willZoom ? scale || .75 : undefined);
+            if (!cantTransform) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
+                newState.initializers![this.Document[Id]] = { panX: px, panY: py };
                 HistoryUtil.pushState(newState);
             }
-
-            if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
-                // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
-                if (!doc.z) this.setPan(newPanX, newPanY, doc.focusSpeed || doc.focusSpeed === 0 ? `transform ${doc.focusSpeed}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
-            }
-            Doc.BrushDoc(this.props.Document);
-
-            const newDidFocus = didFocus || (newPanX !== savedState.px || newPanY !== savedState.py);
-
-            const newAfterFocus = (didFocus: boolean) => {
-                afterFocus && setTimeout(() => {
-                    // @ts-ignore
-                    if (afterFocus?.(!dontCenter && (didFocus || (newPanX !== savedState.px || newPanY !== savedState.py)))) {
-                        this.Document._panX = savedState.px;
-                        this.Document._panY = savedState.py;
-                        this.Document[this.scaleFieldKey] = savedState.s;
-                        this.Document._viewTransition = savedState.pt;
-                    }
-                    doc.hidden && Doc.UnHighlightDoc(doc);
-                }, newPanX !== savedState.px || newPanY !== savedState.py ? 500 : 0);
-                return false;
-            };
-            this.props.focus(this.props.Document, undefined, undefined, newAfterFocus, undefined, newDidFocus);
+            // focus on the document in the collection
+            const didMove = !doc.z && (px !== savedState.px || py !== savedState.py);
+            const focusSpeed = didMove ? (doc.focusSpeed !== undefined ? Number(doc.focusSpeed) : 500) : 0;
+            // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
+            if (didMove) this.setPan(px, py, `transform ${focusSpeed}ms`, true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+            Doc.BrushDoc(this.rootDoc);
             !doc.hidden && Doc.linkFollowHighlight(doc);
-        }
 
+            // focus on this collection within its parent view.  the parent view after focusing determines whether to reset the view change within the collection
+            const endFocus = async (moved: boolean) => {
+                doc.hidden && Doc.UnHighlightDoc(doc);
+                const resetView = afterFocus ? await afterFocus(moved) : false;
+                if (resetView) {
+                    this.Document._panX = savedState.px;
+                    this.Document._panY = savedState.py;
+                    this.Document[this.scaleFieldKey] = savedState.s;
+                    this.Document._viewTransition = savedState.pt;
+                }
+                return resetView;
+            };
+            const xf = !cantTransform ? Transform.Identity() :
+                this.props.isAnnotationOverlay ?
+                    new Transform(NumCast(this.rootDoc.x), NumCast(this.rootDoc.y), this.rootDoc[WidthSym]() / Doc.NativeWidth(this.rootDoc))
+                    :
+                    new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX),
+                        NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1);
+            this.props.focus(cantTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)), xf.transform(docTransform ?? Transform.Identity()));
+        }
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
-        const pw = this.isAnnotationOverlay ? Doc.NativeWidth(this.props.Document) : this.props.PanelWidth();
-        const ph = this.isAnnotationOverlay ? Doc.NativeHeight(this.props.Document) : this.props.PanelHeight();
-        pw && ph && (this.Document[this.scaleFieldKey] = scale * Math.min(pw / NumCast(doc._width), ph / NumCast(doc._height)));
+    setPanIntoView = (doc: Doc, xf: Transform, scale?: number) => {
+        const pw = this.props.PanelWidth() / NumCast(this.layoutDoc._viewScale, 1);
+        const ph = this.props.PanelHeight() / NumCast(this.layoutDoc._viewScale, 1);
+        const pt = xf.transformPoint(NumCast(doc.x), NumCast(doc.y));
+        const pt2 = xf.transformPoint(NumCast(doc.x) + doc[WidthSym](), NumCast(doc.y) + doc[HeightSym]());
+        const bounds = { left: pt[0], right: pt2[0], top: pt[1], bot: pt2[1] };
+
+        if (scale) {
+            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0])), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1]);
+            return { px: (bounds.left + bounds.right) / 2, py: (bounds.top + bounds.bot) / 2 };
+        } else {
+            const cx = NumCast(this.layoutDoc._panX);
+            const cy = NumCast(this.layoutDoc._panY);
+            const screen = { left: cx - pw / 2, right: cx + pw / 2, top: cy - ph / 2, bot: cy + ph / 2 };
+            return {
+                px: cx + Math.min(0, bounds.left - pw / 10 - screen.left) + Math.max(0, bounds.right + pw / 10 - screen.right),
+                py: cy + Math.min(0, bounds.top - ph / 10 - screen.top) + Math.max(0, bounds.bot + ph / 10 - screen.bot)
+            };
+        }
     }
 
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
@@ -988,6 +987,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
             parentActive: this.parentActive,
+            docViewPath: this.props.docViewPath,
             DataDoc: childData,
             Document: childLayout,
             ContainingCollectionView: this.props.CollectionView,
@@ -1005,6 +1005,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
+            layerProvider: this.props.layerProvider,
             freezeDimensions: this.props.childFreezeDimensions,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             bringToFront: this.bringToFront,

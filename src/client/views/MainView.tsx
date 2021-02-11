@@ -13,7 +13,7 @@ import { List } from '../../fields/List';
 import { PrefetchProxy } from '../../fields/Proxy';
 import { BoolCast, PromiseValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
@@ -42,6 +42,7 @@ import { GestureOverlay } from './GestureOverlay';
 import { MENU_PANEL_WIDTH, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import { KeyManager } from './GlobalKeyHandler';
 import { InkStrokeProperties } from './InkStrokeProperties';
+import { LightboxView } from './LightboxView';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import "./collections/TreeView.scss";
@@ -67,8 +68,9 @@ const _global = (window /* browser */ || global /* node */) as any;
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _docBtnRef = React.createRef<HTMLDivElement>();
-    private _mainViewRef = React.createRef<HTMLDivElement>();
     @observable public LastButton: Opt<Doc>;
+    @observable private _windowWidth: number = 0;
+    @observable private _windowHeight: number = 0;
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _panelContent: string = "none";
@@ -100,7 +102,7 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollY", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -177,8 +179,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                        thing.className === "collectionSchema-header-menuOptions"));
+                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                    thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -249,6 +251,9 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
+            docViewPath={returnEmptyDoclist}
+            layerProvider={undefined}
+            styleProvider={undefined}
             rootSelected={returnTrue}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
@@ -337,6 +342,9 @@ export class MainView extends React.Component {
                         addDocument={undefined}
                         addDocTab={this.addDocTabFunc}
                         pinToPres={emptyFunction}
+                        docViewPath={returnEmptyDoclist}
+                        layerProvider={undefined}
+                        styleProvider={this._sidebarContent.proto === Doc.UserDoc().myDashboards ? this.DashboardStyleProvider : DefaultStyleProvider}
                         rootSelected={returnTrue}
                         removeDocument={returnFalse}
                         ScreenToLocalTransform={this.mainContainerXf}
@@ -345,7 +353,6 @@ export class MainView extends React.Component {
                         renderDepth={0}
                         scriptContext={CollectionDockingView.Instance.props.Document}
                         focus={emptyFunction}
-                        styleProvider={this._sidebarContent.title === "My Dashboards" ? this.DashboardStyleProvider : DefaultStyleProvider}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -374,8 +381,10 @@ export class MainView extends React.Component {
                 PanelWidth={this.menuPanelWidth}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
+                docViewPath={returnEmptyDoclist}
                 focus={emptyFunction}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -477,11 +486,13 @@ export class MainView extends React.Component {
                     dropAction={"alias"}
                     parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
+                    layerProvider={undefined}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}
+                    docViewPath={returnEmptyDoclist}
                     moveDocument={this.moveButtonDoc}
                     CollectionView={undefined}
                     addDocument={this.addButtonDoc}
@@ -548,12 +559,14 @@ export class MainView extends React.Component {
                 pinToPres={emptyFunction}
                 rootSelected={returnTrue}
                 styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
                 focus={emptyFunction}
+                docViewPath={returnEmptyDoclist}
                 parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
@@ -574,6 +587,8 @@ export class MainView extends React.Component {
                     ContainingCollectionDoc={undefined}
                     Document={DocumentLinksButton.invisibleWebDoc}
                     dropAction={"move"}
+                    layerProvider={undefined}
+                    styleProvider={undefined}
                     isSelected={returnFalse}
                     select={returnFalse}
                     rootSelected={returnFalse}
@@ -586,6 +601,7 @@ export class MainView extends React.Component {
                     active={returnFalse}
                     whenActiveChanged={returnFalse}
                     focus={returnFalse}
+                    docViewPath={returnEmptyDoclist}
                     PanelWidth={() => 500}
                     PanelHeight={() => 800}
                     docFilters={returnEmptyFilter}
@@ -596,7 +612,11 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)} ref={this._mainViewRef}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}
+            onScroll={() => ((ele) => ele.scrollTop = ele.scrollLeft = 0)(document.getElementById("root")!)}
+            ref={r => {
+                r && new _global.ResizeObserver(action(() => { this._windowWidth = r.getBoundingClientRect().width; this._windowHeight = r.getBoundingClientRect().height; })).observe(r);
+            }}>
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />
@@ -607,9 +627,8 @@ export class MainView extends React.Component {
             {this.search}
             <CollectionMenu />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} docprops={DocumentLinksButton.EditLink.props} changeFlyout={emptyFunction} /> : (null)}
-            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} docprops={LinkDocPreview.LinkInfo.docprops}
-                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href} /> : (null)}
+            {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}
             <GestureOverlay >
                 {this.mainContent}
             </GestureOverlay>
@@ -623,7 +642,8 @@ export class MainView extends React.Component {
             <TimelineMenu />
             {this.snapLines}
             <div className="mainView-webRef" ref={this.makeWebRef} />
-        </div >);
+            <LightboxView PanelWidth={this._windowWidth} PanelHeight={this._windowHeight} maxBorder={[200, 50]} />
+        </div>);
     }
 
     makeWebRef = (ele: HTMLDivElement) => {
@@ -639,9 +659,12 @@ export class MainView extends React.Component {
                             Document={invisibleDoc}
                             dropAction={"move"}
                             isSelected={returnFalse}
+                            docViewPath={returnEmptyDoclist}
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}
+                            layerProvider={undefined}
+                            styleProvider={undefined}
                             addDocTab={returnFalse}
                             pinToPres={returnFalse}
                             ScreenToLocalTransform={Transform.Identity}

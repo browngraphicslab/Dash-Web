@@ -5,13 +5,14 @@ import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, StrCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
-import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { Scripting } from "../util/Scripting";
 import { Transform } from "../util/Transform";
 import { undoBatch } from "../util/UndoManager";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
 import { DocumentView } from "./nodes/DocumentView";
+import { DefaultStyleProvider } from "./StyleProvider";
 import './TemplateMenu.scss';
 import React = require("react");
 
@@ -130,6 +131,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 CollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
+                styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
+                docViewPath={returnEmptyDoclist}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}
