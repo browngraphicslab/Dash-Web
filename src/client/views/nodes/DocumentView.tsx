@@ -47,7 +47,7 @@ export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterF
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor: () => Doc;
-    scrollFocus?: (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
+    scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
@@ -376,11 +376,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
-        if (this._componentView?.scrollFocus) {
-            this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo, willZoom, scale, afterFocus); // bcz: smooth parameter should really be passed into focus() instead of inferred here
-        } else {
-            this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
-        }
+        const focusSpeed = this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
+        const endFocus = focusSpeed === undefined ? afterFocus : async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
+        this.props.focus(docTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed ?? 0)), docTransform);
+
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&

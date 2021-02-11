@@ -951,7 +951,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX),
                         NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1);
             this.props.focus(cantTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)), xf.transform(docTransform ?? Transform.Identity()));
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)), xf);
         }
     }
 

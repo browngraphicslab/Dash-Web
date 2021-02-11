@@ -99,6 +99,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
 
     followLink = (e: React.PointerEvent) => {
         if (this._linkDoc && this._linkSrc) {
+            LinkDocPreview.Clear();
             LinkManager.FollowLink(this._linkDoc, this._linkSrc, this.props.docProps, false);
         } else if (this.props.hrefs?.length) {
             this.props.docProps?.addDocTab(Docs.Create.WebDocument(this.props.hrefs[0], { title: this.props.hrefs[0], _width: 200, _height: 400, useCors: true }), "add:right");

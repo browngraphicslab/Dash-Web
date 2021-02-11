@@ -868,7 +868,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    focusSpeed: Opt<number>;
+    scrollFocus = (doc: Doc, smooth: boolean) => {
         const anchorId = doc[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
             const nodes: Node[] = [];
@@ -894,14 +895,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
 
         let start = 0;
-        let focusSpeed = 0;
-        let endFocus = afterFocus;
         if (this._editorView && anchorId) {
-            focusSpeed = 1500;
             const editor = this._editorView;
             const ret = findAnchorFrag(editor.state.doc.content, editor);
 
             if (ret.frag.size > 2 && ret.start >= 0) {
+                smooth && (this.focusSpeed = 500);
                 let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                 if (ret.frag.firstChild) {
                     selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
@@ -911,13 +910,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
                 setTimeout(() => {
                     clearStyleSheetRules(FormattedTextBox._highlightStyleSheet);
-                    afterFocus?.(true);
-                }, focusSpeed);
-                endFocus = async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
+                    this.focusSpeed = undefined;
+                }, this.focusSpeed);
             }
         }
-        (this.props as any).DocumentView().props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed)));
+
+        return this.focusSpeed;
     }
 
     componentDidMount() {
@@ -1228,8 +1226,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const scrollRef = self._scrollRef.current;
                     if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
                         const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
-                        if (!LinkDocPreview.LinkInfo) {
-                            scrollPos && smoothScroll(500, scrollRef, scrollPos);
+                        if (this.focusSpeed !== undefined) {
+                            scrollPos && smoothScroll(this.focusSpeed, scrollRef, scrollPos);
                         } else {
                             scrollRef.scrollTo({ top: scrollPos });
                         }
