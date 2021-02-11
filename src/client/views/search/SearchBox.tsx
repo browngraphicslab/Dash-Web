@@ -466,7 +466,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @computed get scopeButtons() {
-        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px"}}>
+        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px" }}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                 <div style={{ display: "contents" }}>
                     <div className="radio" style={{ margin: 0 }}>
@@ -509,9 +509,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 Logoff
                         </div>
                         </div>
-                        <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
+                        {/* <div className="searchBox-lozenge" onClick={() => DocServer.UPDATE_SERVER_CACHE()}>
                             {`UI project`}
-                        </div>
+                        </div> */}
                         <div className="searchBox-lozenge-dashboard"  >
                             <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
                                 value={myDashboards.indexOf(CurrentUserUtils.ActiveDashboard)}>

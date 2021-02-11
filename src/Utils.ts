@@ -592,6 +592,18 @@ export function lightOrDark(color: any) {
     }
 }
 
+export enum colorScheme {
+    //dark mode
+
+
+    //light mode
+    LIGHT_HEADER = "BDDBE8",
+    LIGHT_COLLECTION_MENU = "92AD89",
+    LIGHT_BUTTON = "#E3E3E3",
+    LIGHT_BUTTON_ACTIVE_BACKGROUND = "#BEDBE6",
+    LIGHT_BUTTON_ACTIVE = "#589AD6"
+}
+
 export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {
     let entered = false;
     for (let child = document.elementFromPoint(x, y); !entered && child; child = child.parentElement) {

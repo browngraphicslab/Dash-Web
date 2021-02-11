@@ -63,29 +63,28 @@
 .mainView-container {
     color: black;
 
-    .lm_title {
-        background: #cacaca;
-        color: black;
-    }
-
     .mainView-lightBox-frame {
-        position: absolute; 
-        top: 0; left: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         background: #000000bb;
         z-index: 10000;
+
         .mainView-lightBox-contents {
             position: absolute;
         }
+
         .mainView-lightBox-navBtn {
             margin: auto;
             position: relative;
             background: transparent;
             border-radius: 8;
-            color:white;
+            color: white;
             opacity: 0.7;
             width: 30;
+
             &:hover {
                 opacity: 1;
             }
@@ -98,11 +97,6 @@
 
     .lm_goldenlayout {
         background: dimgray;
-    }
-
-    .lm_title {
-        background: black;
-        color: unset;
     }
 
     .marquee {
@@ -177,7 +171,8 @@
     cursor: auto;
 }
 
-.mainView-innerContent, .mainView-innerContent-dark {
+.mainView-innerContent,
+.mainView-innerContent-dark {
     display: contents;
     flex-direction: row;
     position: relative;
@@ -199,44 +194,52 @@
         position: absolute;
         z-index: 2;
         background-color: rgb(159, 159, 159);
+
         .editable-title {
             background-color: lightgrey;
         }
     }
 
 }
+
 .mainView-libraryHandle {
     background-color: lightgrey;
 }
-.mainView-innerContent-dark 
-{
+
+.mainView-innerContent-dark {
     .propertiesView {
         background-color: #252525;
+
         input {
             background-color: dimgrey;
         }
-        .propertiesView-sharingTable 
-        {
+
+        .propertiesView-sharingTable {
             background-color: dimgrey;
         }
+
         .editable-title {
             background-color: dimgrey;
         }
+
         .propertiesView-field {
             background-color: dimgrey;
         }
     }
+
     .mainView-propertiesDragger,
     .mainView-libraryHandle {
         background: #353535;
     }
 }
+
 .mainView-container-dark {
     .contextMenu-cont {
         background: dimgrey;
         color: white;
+
         input::placeholder {
-            color:white;
+            color: white;
         }
     }
 }
@@ -382,6 +385,7 @@
 .mainView-libraryFlyout-out {
     transition: width .25s;
     box-shadow: rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw;
+
     .mainView-docButtons {
         left: 0;
     }
@@ -459,8 +463,14 @@
     right: unset !important;
     left: 0 !important;
 }
+
 .lm_close_tab {
     padding: 0;
+    align-self: center;
+    margin-right: 5px;
+    background-color: black;
+    border-radius: 3px;
+    opacity: 1 !important;
     width: 15px !important;
     height: 15px !important;
     position: relative !important;
@@ -470,7 +480,9 @@
     right: unset !important;
     left: 0 !important;
 }
-.lm_tab, .lm_tab_active {
+
+.lm_tab,
+.lm_tab_active {
     display: flex !important;
     padding-right: 0 !important;
 }
