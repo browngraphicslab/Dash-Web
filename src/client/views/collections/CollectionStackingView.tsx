@@ -168,18 +168,23 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return this.props.addDocTab(doc, where);
     }
 
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         Doc.BrushDoc(doc);
-        this.props.focus(this.props.Document, true);  // bcz: want our containing collection to zoom
         Doc.linkFollowHighlight(doc);
 
+        let focusSpeed = 0;
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            if (Math.floor(localTop[1]) !== 0) {
+                smoothScroll(focusSpeed = doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            }
         }
-        afterFocus && setTimeout(afterFocus, 500);
+        const endFocus = async (moved: boolean) => afterFocus ? await afterFocus(moved) : false;
+        this.props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+            new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed)));
+
     }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {

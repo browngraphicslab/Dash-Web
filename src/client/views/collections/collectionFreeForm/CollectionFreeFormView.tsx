@@ -912,7 +912,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
-            this.props.focus(doc, undefined, undefined, afterFocus);
+            this.props.focus(doc, willZoom, scale, afterFocus);
         } else {
             const xfToCollection = docTransform ?? Transform.Identity();
             const layoutdoc = Doc.Layout(doc);

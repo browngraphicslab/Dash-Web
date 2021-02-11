@@ -80,7 +80,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => this._pdfViewer?.scrollFocus(doc, smooth, afterFocus);
+    scrollFocus = (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => this._pdfViewer?.scrollFocus(doc, smooth, willZoom, scale, afterFocus);
     getAnchor = () => this.rootDoc;
     componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {

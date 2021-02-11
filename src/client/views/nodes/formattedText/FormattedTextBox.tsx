@@ -868,7 +868,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    scrollFocus = (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         const anchorId = doc[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
             const nodes: Node[] = [];
@@ -894,7 +894,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
 
         let start = 0;
+        let focusSpeed = 0;
+        let endFocus = afterFocus;
         if (this._editorView && anchorId) {
+            focusSpeed = 1500;
             const editor = this._editorView;
             const ret = findAnchorFrag(editor.state.doc.content, editor);
 
@@ -909,11 +912,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 setTimeout(() => {
                     clearStyleSheetRules(FormattedTextBox._highlightStyleSheet);
                     afterFocus?.(true);
-                }, 1500);
+                }, focusSpeed);
+                endFocus = async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
             }
-        } else {
-            afterFocus?.(false);
         }
+        (this.props as any).DocumentView().props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed)));
     }
 
     componentDidMount() {

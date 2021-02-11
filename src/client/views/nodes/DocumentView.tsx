@@ -47,7 +47,7 @@ export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterF
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor: () => Doc;
-    scrollFocus?: (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => void;
+    scrollFocus?: (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => void;
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
@@ -377,9 +377,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         if (this._componentView?.scrollFocus) {
-            return this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo, afterFocus); // bcz: smooth parameter should really be passed into focus() instead of inferred here
+            this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo, willZoom, scale, afterFocus); // bcz: smooth parameter should really be passed into focus() instead of inferred here
+        } else {
+            this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
         }
-        return this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&

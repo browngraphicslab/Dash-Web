@@ -180,17 +180,23 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     // scrolls to focus on a nested annotation document.  if this is part a link preview then it will jump to the scroll location,
     // otherwise it will scroll smoothly.
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    scrollFocus = (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
         const mainCont = this._mainCont.current;
+        let focusSpeed = 0;
+        let endFocus = afterFocus;
         if (doc !== this.rootDoc && mainCont) {
             const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
-                if (smooth) smoothScroll(500, mainCont, scrollTo);
+                focusSpeed = 500;
+
+                if (smooth) smoothScroll(focusSpeed, mainCont, scrollTo);
                 else mainCont.scrollTop = scrollTo;
-                return afterFocus?.(true);
+
+                endFocus = async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
             }
         }
-        afterFocus?.(false);
+        (this.props as any).DocumentView().props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed)));
     }
 
     @action

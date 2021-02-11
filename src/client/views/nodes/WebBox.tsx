@@ -111,21 +111,24 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     getAnchor = () => this.rootDoc;
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    scrollFocus = (doc: Doc, smooth: boolean, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+        let focusSpeed = 0;
+        let endFocus = afterFocus;
         if (doc !== this.rootDoc && this.webpage && this._outerRef.current) {
             const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
                 this._ignoreScroll = true;
-                this.goTo(scrollTo, smooth ? 500 : 0);
+                this.goTo(scrollTo, focusSpeed = smooth ? 500 : 0);
                 this.layoutDoc._scrollTop = scrollTo;
                 this._ignoreScroll = false;
-                return afterFocus?.(true);
+                endFocus = async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
             }
         } else {
             this._initialScroll = NumCast(doc.y);
         }
-        afterFocus?.(false);
+        (this.props as any).DocumentView().props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
+            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed)));
     }
 
     async componentDidMount() {
