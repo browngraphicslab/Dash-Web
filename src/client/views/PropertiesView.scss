@@ -332,6 +332,7 @@
             }
         }
     }
+
     .propertiesView-fields {
         //border-bottom: 1px solid black;
         //padding: 8.5px;
@@ -798,4 +799,17 @@
 
 .properties-flyout {
     grid-column: 2/4;
+}
+
+.propertiesView-editableField,
+.propertiesView-uneditableKey {
+    float: right;
+    position: absolute;
+    right: 8px;
+    width: 50%;
+    text-align: end;
+}
+
+.propertiesView-editableField {
+    margin-bottom: 4px;
 }

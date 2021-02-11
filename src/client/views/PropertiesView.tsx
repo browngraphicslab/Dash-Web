@@ -183,10 +183,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
                         rows.push(<div className="propertiesView-uneditable-field" key={key}>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
-                            <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
+                            <div className="propertiesView-uneditableKey" style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
                     } else {
-                        const contentElement = <EditableView key="editableView"
+                        const contentElement = <EditableView
+                            backgroundColor="#C4C4C4"
+                            outline={true}
+                            key="editableView"
                             contents={value}
                             height={13}
                             fontSize={10}
@@ -194,10 +197,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                         />;
 
-                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
-                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "4px" }} key={key}>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap", float: "left" }}>{key + ":"}</span>
                         &nbsp;
-                        {contentElement}
+                            <div className="propertiesView-editableField">
+                                {contentElement}
+                            </div>
                         </div>);
                     }
                 }

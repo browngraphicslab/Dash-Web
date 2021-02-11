@@ -55,6 +55,8 @@ export interface EditableProps {
     color?: string | undefined;
     onDrop?: any;
     placeholder?: string;
+    outline?: boolean;
+    backgroundColor?: string;
 }
 
 /**
@@ -209,7 +211,7 @@ export class EditableView extends React.Component<EditableProps> {
                 onKeyPress={e => e.stopPropagation()}
                 onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true, false)}
                 onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}
+                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20, backgroundColor: this.props.backgroundColor }}
                 placeholder={this.props.placeholder}
             />;
     }
@@ -228,7 +230,11 @@ export class EditableView extends React.Component<EditableProps> {
         setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
         return this.props.contents instanceof ObjectField ? (null) :
             <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
-                style={{ display: this.props.display, textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight }}
+                style={{
+                    backgroundColor: this.props.backgroundColor,
+                    display: this.props.display, borderRadius: "4px", border: this.props.outline ? "0.5px solid black" : "", paddingLeft: "4px", paddingRight: "4px",
+                    textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight
+                }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
                 <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >{
                     this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
