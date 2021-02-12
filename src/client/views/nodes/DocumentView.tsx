@@ -393,26 +393,24 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     clearTimeout(this._timeout);
                     this._timeout = undefined;
                 }
-                if (!(e.nativeEvent as any).formattedHandled) {
-                    if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                        const func = () => this.onDoubleClickHandler.script.run({
-                            this: this.layoutDoc,
-                            self: this.rootDoc,
-                            scriptContext: this.props.scriptContext,
-                            thisContainer: this.props.ContainingCollectionDoc,
-                            documentView: this.props.DocumentView(),
-                            clientX: e.clientX,
-                            clientY: e.clientY,
-                            shiftKey: e.shiftKey
-                        }, console.log);
-                        UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
-                    } else if (!Doc.IsSystem(this.props.Document)) {
-                        if (this.props.Document.type !== DocumentType.LABEL) {
-                            UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
-                            SelectionManager.DeselectAll();
-                        }
-                        Doc.UnBrushDoc(this.props.Document);
+                if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                    const func = () => this.onDoubleClickHandler.script.run({
+                        this: this.layoutDoc,
+                        self: this.rootDoc,
+                        scriptContext: this.props.scriptContext,
+                        thisContainer: this.props.ContainingCollectionDoc,
+                        documentView: this.props.DocumentView(),
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        shiftKey: e.shiftKey
+                    }, console.log);
+                    UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
+                } else if (!Doc.IsSystem(this.props.Document)) {
+                    if (this.props.Document.type !== DocumentType.LABEL) {
+                        UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
+                        SelectionManager.DeselectAll();
                     }
+                    Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 const shiftKey = e.shiftKey;
@@ -475,7 +473,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this.props.DocumentView(), true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                // don't preventDefault anymore.  Goldenlayout, PDF text selection and RTF text selection all need it to go though
+                //if (this.props.isSelected(true) && this.rootDoc.type !== DocumentType.PDF && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault();
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -514,7 +513,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
         } else {
             this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-            this._lastTap = Date.now();
+            if (!this.props.isSelected(true)) this._lastTap = Date.now();// don't want to process the start of a double tap if the doucment is selected
         }
     }
 

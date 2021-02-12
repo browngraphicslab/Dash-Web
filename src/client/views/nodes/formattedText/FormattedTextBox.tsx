@@ -301,8 +301,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
-            if (!this._editorView.state.selection.empty && FormattedTextBox.CanAnnotate) this.setupAnchorMenu();
-
             const removeSelection = (json: string | undefined) => {
                 return json?.indexOf("\"storedMarks\"") === -1 ? json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
             };
@@ -1337,24 +1335,34 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBoxComment.textBox = this;
         if (e.button === 0 && (this.props.rootSelected(true) || this.props.isSelected(true)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
-                e.stopPropagation();  // if the text box is selected, then it consumes all down events
+                // bcz: Change. drag selecting requires that preventDefault is NOT called.  This used to happen in DocumentView,
+                //      but that's changed, so this shouldn't be needed.
+                //e.stopPropagation();  // if the text box is selected, then it consumes all down events
+                document.addEventListener("pointerup", this.onSelectEnd);
+                document.addEventListener("pointermove", this.onSelectMove);
             }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
         }
     }
+    onSelectMove = (e: PointerEvent) => e.stopPropagation();
+    onSelectEnd = (e: PointerEvent) => {
+        document.removeEventListener("pointerup", this.onSelectEnd);
+        document.removeEventListener("pointermove", this.onSelectMove);
+    }
 
     onPointerUp = (e: React.PointerEvent): void => {
+        FormattedTextBox.CanAnnotate = true;
+        if (!this._editorView?.state.selection.empty && FormattedTextBox.CanAnnotate) this.setupAnchorMenu();
         if (!this._downEvent) return;
         this._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled && this.active(true)) {
             const editor = this._editorView!;
-            FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             const target = (e.target as any).parentElement; // hrefs are store don the database of the <a> node that wraps the hyerlink <span>
-            FormattedTextBoxComment.update(editor, undefined, target?.dataset?.targethrefs);
+            FormattedTextBoxComment.update(this, editor, undefined, target?.dataset?.targethrefs);
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1451,7 +1459,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         (e.nativeEvent as any).formattedHandled = true;
 
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
-            e.stopPropagation();
+            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
             this.hitBulletTargets(e.clientX, e.clientY, !this._editorView?.state.selection.empty || this._forceUncollapse, false, this._forceDownNode, e.shiftKey);
         }
         this._forceUncollapse = !(this._editorView!.root as any).getSelection().isCollapsed;

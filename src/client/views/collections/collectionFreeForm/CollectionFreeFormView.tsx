@@ -608,13 +608,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     onClick = (e: React.MouseEvent) => {
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
-            if (Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a double click
+            if (Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a double click 
                 if (e.shiftKey) {
-                    LightboxView.SetLightboxDoc(this.rootDoc, this.childDocs);
-                } else {
                     this.scaleAtPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
                     e.stopPropagation();
                     e.preventDefault();
+                } else {
+                    LightboxView.SetLightboxDoc(this.rootDoc, this.childDocs);
                 }
             }
             this._lastTap = Date.now();

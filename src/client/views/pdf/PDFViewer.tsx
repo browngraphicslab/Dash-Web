@@ -363,9 +363,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         const hit = document.elementFromPoint(e.clientX, e.clientY);
-        if (hit && hit.localName === "span" && this.annotationsActive(true)) {  // drag selecting text stops propagation
-            e.button === 0 && e.stopPropagation();
-        }
+        // bcz: Change. drag selecting requires that preventDefault is NOT called.  This used to happen in DocumentView,
+        //      but that's changed, so this shouldn't be needed.
+        // if (hit && hit.localName === "span" && this.annotationsActive(true)) {  // drag selecting text stops propagation
+        //     e.button === 0 && e.stopPropagation();
+        // }
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -376,6 +378,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (!e.altKey && e.button === 0 && this.active(true)) {
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
                 this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
+                document.addEventListener("pointermove", this.onSelectMove); // need this to prevent document from being dragged if stopPropagation doesn't get called
             } else {
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
@@ -383,8 +386,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
+                document.addEventListener("pointermove", this.onSelectMove);
             }
-            document.addEventListener("pointermove", this.onSelectMove);
         }
     }
 
@@ -458,7 +461,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             this._setPreviewCursor(e.clientX, e.clientY, false);
         }
-        e.stopPropagation();
+        // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
     }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
