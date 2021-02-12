@@ -26,7 +26,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         if (!doc) {
             LightboxView.LightboxFuture = LightboxView.LightboxHistory = [];
         } else if (future) {
-            LightboxView.LightboxFuture = future;
+            LightboxView.LightboxFuture = future.slice();
         }
         return true;
     }

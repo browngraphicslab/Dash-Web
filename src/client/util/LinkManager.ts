@@ -106,12 +106,8 @@ export class LinkManager {
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
             const createTabForTarget = (didFocus: boolean) => new Promise<boolean>(res => {
-                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
-                if (LightboxView.LightboxDoc) {
-                    LightboxView.SetLightboxDoc(doc);
-                } else {
-                    docViewProps.addDocTab(doc, where);
-                }
+                const where = LightboxView.LightboxDoc ? "lightbox" : StrCast(sourceDoc.followLinkLocation) || followLoc;
+                docViewProps.addDocTab(doc, where);
                 setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
                     if (targDocView) {

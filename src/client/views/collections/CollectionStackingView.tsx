@@ -181,7 +181,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 smoothScroll(focusSpeed = doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
             }
         }
-        const endFocus = async (moved: boolean) => afterFocus ? await afterFocus(moved) : false;
+        const endFocus = async (moved: boolean) => afterFocus ? afterFocus(moved) : false;
         this.props.focus(this.rootDoc, willZoom, scale, (didFocus: boolean) =>
             new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed)));
 

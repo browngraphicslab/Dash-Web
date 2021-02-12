@@ -50,6 +50,7 @@ import { StyleProp, StyleLayers } from "../../StyleProvider";
 import { DocumentDecorations } from "../../DocumentDecorations";
 import { FieldViewProps } from "../../nodes/FieldView";
 import { reset } from "colors";
+import { LightboxView } from "../../LightboxView";
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -441,7 +442,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return;
         }
         this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
-        if (e.button === 0 && (!e.shiftKey || this._hitCluster !== -1) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey && this.props.active(true)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -608,10 +609,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onClick = (e: React.MouseEvent) => {
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a double click
-                runInAction(() => DocumentLinksButton.StartLink = DocumentLinksButton.StartLinkView = undefined);
-                this.scaleAtPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
-                e.stopPropagation();
-                e.preventDefault();
+                if (e.shiftKey) {
+                    LightboxView.SetLightboxDoc(this.rootDoc, this.childDocs);
+                } else {
+                    this.scaleAtPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             }
             this._lastTap = Date.now();
         }
@@ -918,7 +922,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { px: NumCast(this.Document._panX), py: NumCast(this.Document._panY), s: this.Document[this.scaleFieldKey], pt: this.Document._viewTransition };
             const newState = HistoryUtil.getState();
-            const cantTransform = this.props.isAnnotationOverlay || this.rootDoc._isGroup;
+            const cantTransform = this.props.isAnnotationOverlay || this.rootDoc._isGroup || this.layoutDoc._lockedTransform;
             const { px, py } = cantTransform ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, willZoom ? scale || .75 : undefined);
             if (!cantTransform) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
                 newState.initializers![this.Document[Id]] = { panX: px, panY: py };

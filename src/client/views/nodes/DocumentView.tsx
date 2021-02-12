@@ -377,7 +377,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
         const focusSpeed = this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
-        const endFocus = focusSpeed === undefined ? afterFocus : async (moved: boolean) => afterFocus ? await afterFocus(true) : false;
+        const endFocus = focusSpeed === undefined ? afterFocus : async (moved: boolean) => afterFocus ? afterFocus(true) : false;
         this.props.focus(docTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
             new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed ?? 0)), docTransform);
 
@@ -408,10 +408,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
                     } else if (!Doc.IsSystem(this.props.Document)) {
                         if (this.props.Document.type !== DocumentType.LABEL) {
-                            UndoManager.RunInBatch(() => {
-                                const fullScreenDoc = Cast(this.props.Document._fullScreenView, Doc, null) || this.props.Document;
-                                this.props.addDocTab(fullScreenDoc, "lightbox");
-                            }, "double tap");
+                            UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
                             SelectionManager.DeselectAll();
                         }
                         Doc.UnBrushDoc(this.props.Document);
@@ -963,7 +960,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     docViewPathFunc = () => this.docViewPath;
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
-    select = (ctrlPressed: boolean) => SelectionManager.SelectView(this, ctrlPressed);
+    select = (extendSelection: boolean) => SelectionManager.SelectView(this, !SelectionManager.Views().some(v => v.props.Document === this.props.ContainingCollectionDoc) && extendSelection);
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     PanelWidth = () => this.panelWidth;

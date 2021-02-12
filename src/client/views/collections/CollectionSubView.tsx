@@ -112,7 +112,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const docFilters = this.docFilters();
             const docRangeFilters = this.docRangeFilters();
             const searchDocs = this.searchFilterDocs();
-            if (this.props.Document.dontRegisterView || (!docFilters.length && !docRangeFilters.length && !searchDocs.length)) return childDocs;
+            if (this.props.Document.dontRegisterView || (!docFilters.length && !docRangeFilters.length && !searchDocs.length)) {
+                return childDocs;
+            }
 
             const docsforFilter: Doc[] = [];
             childDocs.forEach((d) => {
