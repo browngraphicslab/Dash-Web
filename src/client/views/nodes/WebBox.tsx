@@ -30,6 +30,7 @@ import { DocAfterFocusFunc } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
+import { LinkDocPreview } from "./LinkDocPreview";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -119,7 +120,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
                 this._ignoreScroll = true;
                 this.goTo(scrollTo, focusSpeed = smooth ? 500 : 0);
-                this.layoutDoc._scrollTop = scrollTo;
+                if (!LinkDocPreview.LinkInfo) {
+                    this.layoutDoc._scrollTop = scrollTo;
+                }
                 this._ignoreScroll = false;
             }
         } else {

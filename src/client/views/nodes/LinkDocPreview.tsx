@@ -3,7 +3,7 @@ import { Tooltip } from '@material-ui/core';
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocCastAsync } from "../../../fields/Doc";
 import { NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from '../../DocServer';
@@ -45,7 +45,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
         if (anchor1 && anchor2) {
             linkTarget = Doc.AreProtosEqual(anchor1, this._linkSrc) || Doc.AreProtosEqual(anchor1?.annotationOn as Doc, this._linkSrc) ? anchor2 : anchor1;
         }
-        this._targetDoc = linkTarget?.annotationOn as Doc ?? linkTarget;
+        linkTarget && DocCastAsync(linkTarget.annotationOn).then(action(anno => this._targetDoc = anno));
         this._toolTipText = "";
     }
     componentDidUpdate(props: any) {

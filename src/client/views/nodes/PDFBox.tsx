@@ -80,7 +80,11 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean) => this._pdfViewer?.scrollFocus(doc, smooth);
+    initialScrollTarget: Opt<Doc>;
+    scrollFocus = (doc: Doc, smooth: boolean) => {
+        this.initialScrollTarget = doc;
+        return this._pdfViewer?.scrollFocus(doc, smooth);
+    }
     getAnchor = () => this.rootDoc;
     componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {
@@ -128,7 +132,13 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     });
 
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-    setPdfViewer = (pdfViewer: PDFViewer) => { this._pdfViewer = pdfViewer; };
+    setPdfViewer = (pdfViewer: PDFViewer) => {
+        this._pdfViewer = pdfViewer;
+        if (this.initialScrollTarget) {
+            this.scrollFocus(this.initialScrollTarget, false);
+            this.initialScrollTarget = undefined;
+        }
+    };
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {

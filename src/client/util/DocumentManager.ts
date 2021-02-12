@@ -141,7 +141,7 @@ export class DocumentManager {
         finished?: () => void,
     ): Promise<void> => {
         const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
-        const docView = getFirstDocView(targetDoc, originatingDoc);
+        let docView = getFirstDocView(targetDoc, originatingDoc);
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
@@ -159,19 +159,17 @@ export class DocumentManager {
             finished?.();
             return false;
         };
-        let annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
+        const annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
+        const rtfView = annotatedDoc && getFirstDocView(annotatedDoc);
         const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
         const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc) || Doc.AreProtosEqual(doc, annotatedDoc)) ? docContext : undefined;
         const targetDocContext = contextDoc || annotatedDoc;
         const targetDocContextView = targetDocContext && getFirstDocView(targetDocContext);
-        if (!docView && annotatedDoc && annotatedDoc !== originatingDoc?.context && targetDoc.type === DocumentType.TEXTANCHOR) {
-            const first = getFirstDocView(annotatedDoc);
-            if (first) {
-                annotatedDoc = first.rootDoc;
-                first.focus(targetDoc, false);
-            }
-        } else if (docView && (targetDocContextView || !targetDocContext)) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?      
-            docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) =>
+        if (!docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView) {
+            rtfView.focus(targetDoc, false);
+        }
+        else if (docView) {
+            docView.props.focus(targetDoc, willZoom, undefined, (didFocus: boolean) =>
                 new Promise<boolean>(res => {
                     focusAndFinish(didFocus);
                     res();
@@ -205,7 +203,7 @@ export class DocumentManager {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);
                                 if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
-                                    Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
+                                    // Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                                 }
                             } else {

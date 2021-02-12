@@ -28,6 +28,7 @@ import { AnchorMenu } from "./AnchorMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -87,6 +88,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _lastSearch = false;
     private _viewerIsSetup = false;
     private _ignoreScroll = false;
+    private _initialScroll: Opt<number>;
     private _smoothScrolling = true;
 
     @computed get allAnnotations() {
@@ -182,14 +184,16 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     scrollFocus = (doc: Doc, smooth: boolean) => {
         const mainCont = this._mainCont.current;
         let focusSpeed: Opt<number>;
-        if (doc !== this.rootDoc && mainCont) {
+        if (doc !== this.rootDoc && mainCont && this._pdfViewer) {
             const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
                 focusSpeed = 500;
 
                 if (smooth) smoothScroll(focusSpeed, mainCont, scrollTo);
-                else mainCont.scrollTop = scrollTo;
+                else this._mainCont.current?.scrollTo({ top: Math.abs(scrollTo || 0) });
             }
+        } else {
+            this._initialScroll = NumCast(doc.y);
         }
         return focusSpeed;
     }
@@ -222,7 +226,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this.gotoPage(this.Document._curPage || 1);
         }
         document.removeEventListener("pagesinit", this.pagesinit);
-        var quickScroll: string | undefined = "";
+        var quickScroll: string | undefined = this._initialScroll ? this._initialScroll.toString() : "";
         this._disposers.scroll = reaction(
             () => NumCast(this.Document._scrollTop),
             (pos) => {
@@ -249,6 +253,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             { fireImmediately: true }
         );
         quickScroll = undefined;
+        if (this._initialScroll !== undefined && this._mainCont.current) {
+            this._mainCont.current?.scrollTo({ top: Math.abs(this._initialScroll || 0) });
+            this._initialScroll = undefined;
+        }
     }
 
     createPdfViewer() {
@@ -313,7 +321,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         if (this._mainCont.current && !this._smoothScrolling) {
             this._ignoreScroll = true;
-            this.layoutDoc._scrollTop = this._mainCont.current.scrollTop;
+            if (!LinkDocPreview.LinkInfo) {
+                this.layoutDoc._scrollTop = this._mainCont.current.scrollTop;
+            }
             this._ignoreScroll = false;
         }
     }
