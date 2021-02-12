@@ -11,6 +11,8 @@ import { DocumentView } from './nodes/DocumentView';
 import { DefaultStyleProvider } from './StyleProvider';
 import { DocUtils } from '../documents/Documents';
 import { DocumentManager } from '../util/DocumentManager';
+import { SelectionManager } from '../util/SelectionManager';
+import { TabDocView } from './collections/TabDocView';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -51,6 +53,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             </div>
         </div>;
     }
+    addDocTab = (doc: Doc, location: string) => {
+        SelectionManager.DeselectAll();
+        return LightboxView.SetLightboxDoc(doc);
+    }
 
     render() {
         if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxDoc) LightboxView.LightboxHistory.push(LightboxView.LightboxDoc);
@@ -73,8 +79,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         Document={LightboxView.LightboxDoc}
                         DataDoc={undefined}
                         addDocument={undefined}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
+                        addDocTab={this.addDocTab}
+                        pinToPres={TabDocView.PinDoc}
                         rootSelected={returnTrue}
                         docViewPath={returnEmptyDoclist}
                         removeDocument={undefined}
