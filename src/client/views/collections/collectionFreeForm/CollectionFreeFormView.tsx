@@ -967,7 +967,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const bounds = { left: pt[0], right: pt2[0], top: pt[1], bot: pt2[1] };
 
         if (scale) {
-            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0]), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1]));
+            const maxZoom = 2; // sets the limit for how far we will zoom. this is useful for preventing small text boxes from filling the screen. So probably needs to be more sophisticated to consider more about the target and context
+            this.Document[this.scaleFieldKey] = Math.min(maxZoom, scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0]), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1])));
             return { px: (bounds.left + bounds.right) / 2, py: (bounds.top + bounds.bot) / 2 };
         } else {
             const cx = NumCast(this.layoutDoc._panX);
