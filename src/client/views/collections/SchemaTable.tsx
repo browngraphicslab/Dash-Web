@@ -16,7 +16,7 @@ import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { GetEffectiveAcl } from "../../../fields/util";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse } from "../../../Utils";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -575,7 +575,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         layerProvider={undefined}
                         docViewPath={returnEmptyDoclist}
                         freezeDimensions={true}
-                        focus={emptyFunction}
+                        focus={DocUtils.DefaultFocus}
                         renderDepth={this.props.renderDepth}
                         rootSelected={() => false}
                         PanelWidth={() => 150}

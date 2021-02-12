@@ -7,7 +7,7 @@ import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc"
 import { NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from '../../DocServer';
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch } from '../../util/UndoManager';
@@ -162,7 +162,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
                             renderDepth={-1}
                             PanelWidth={this.width}
                             PanelHeight={this.height}
-                            focus={emptyFunction}
+                            focus={DocUtils.DefaultFocus}
                             whenActiveChanged={returnFalse}
                             bringToFront={returnFalse}
                             NativeWidth={Doc.NativeWidth(this._targetDoc) ? () => Doc.NativeWidth(this._targetDoc) : undefined}

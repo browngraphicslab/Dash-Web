@@ -9,6 +9,8 @@ import { Transform } from '../util/Transform';
 import "./LightboxView.scss";
 import { DocumentView } from './nodes/DocumentView';
 import { DefaultStyleProvider } from './StyleProvider';
+import { DocUtils } from '../documents/Documents';
+import { DocumentManager } from '../util/DocumentManager';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -18,7 +20,16 @@ interface LightboxViewProps {
 
 @observer
 export class LightboxView extends React.Component<LightboxViewProps> {
-    @observable public static LightboxDoc: Opt<Doc>;
+    @observable static LightboxDoc: Opt<Doc>;
+    @action public static SetLightboxDoc(doc: Opt<Doc>, future?: Doc[]) {
+        LightboxView.LightboxDoc = doc;
+        if (!doc) {
+            LightboxView.LightboxFuture = LightboxView.LightboxHistory = [];
+        } else if (future) {
+            LightboxView.LightboxFuture = future;
+        }
+        return true;
+    }
     public static IsLightboxDocView(path: DocumentView[]) { return path.includes(LightboxView.LightboxDocView.current!); }
     public static LightboxHistory: (Opt<Doc>)[] = [];
     public static LightboxFuture: (Opt<Doc>)[] = [];
@@ -47,13 +58,11 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         return !LightboxView.LightboxDoc ? (null) :
             <div className="lightboxView-frame"
                 onPointerDown={e => { downx = e.clientX; downy = e.clientY; }}
-                onClick={action(e => {
+                onClick={e => {
                     if (Math.abs(downx - e.clientX) < 4 && Math.abs(downy - e.clientY) < 4) {
-                        LightboxView.LightboxHistory = [];
-                        LightboxView.LightboxFuture = [];
-                        LightboxView.LightboxDoc = undefined;
+                        LightboxView.SetLightboxDoc(undefined);
                     }
-                })}  >
+                }}  >
                 <div className="lightboxView-contents" style={{
                     left: this.leftBorder,
                     top: this.topBorder,
@@ -74,7 +83,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         ScreenToLocalTransform={this.lightboxScreenToLocal}
                         PanelWidth={this.lightboxWidth}
                         PanelHeight={this.lightboxHeight}
-                        focus={emptyFunction}
+                        focus={DocUtils.DefaultFocus}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -87,18 +96,31 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                 </div>
                 {this.navBtn(undefined, "chevron-left",
                     () => LightboxView.LightboxDoc && LightboxView.LightboxHistory.length ? "" : "none",
-                    action(e => {
+                    e => {
                         e.stopPropagation();
-                        const popped = LightboxView.LightboxHistory.pop();
-                        if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxFuture.lastElement()) LightboxView.LightboxFuture.push(popped);
-                        LightboxView.LightboxDoc = LightboxView.LightboxHistory.lastElement();
-                    }))}
+                        const previous = LightboxView.LightboxHistory.pop();
+                        const target = LightboxView.LightboxHistory.lastElement();
+                        const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
+                        if (docView && target) {
+                            if (LightboxView.LightboxFuture.lastElement() !== previous) LightboxView.LightboxFuture.push(previous);
+                            docView.focus(target, true, 0.9);
+                        } else {
+                            LightboxView.SetLightboxDoc(target);
+                        }
+                    })}
                 {this.navBtn(this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), "chevron-right",
                     () => LightboxView.LightboxDoc && LightboxView.LightboxFuture.length ? "" : "none",
-                    action(e => {
+                    e => {
                         e.stopPropagation();
-                        LightboxView.LightboxDoc = LightboxView.LightboxFuture.pop();
-                    }))}
+                        const target = LightboxView.LightboxFuture.pop();
+                        const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
+                        if (docView && target) {
+                            docView.focus(target, true, 0.9);
+                            if (LightboxView.LightboxHistory.lastElement() !== target) LightboxView.LightboxHistory.push(target);
+                        } else {
+                            LightboxView.SetLightboxDoc(target);
+                        }
+                    })}
 
             </div>;
     }

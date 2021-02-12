@@ -55,6 +55,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { DocAfterFocusFunc } from "../views/nodes/DocumentView";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -1015,6 +1016,10 @@ export namespace DocUtils {
                 }
             }
         });
+    }
+
+    export function DefaultFocus(doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) {
+        afterFocus?.(false);
     }
 
     export let ActiveRecordings: AudioBox[] = [];

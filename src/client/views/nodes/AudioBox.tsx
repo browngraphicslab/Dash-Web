@@ -356,7 +356,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             renderDepth={this.props.renderDepth + 1}
             startTag={"audioStart"}
             endTag={"audioEnd"}
-            focus={emptyFunction}
+            focus={DocUtils.DefaultFocus}
             bringToFront={emptyFunction}
             CollectionView={undefined}
             duration={this.duration}

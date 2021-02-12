@@ -497,7 +497,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 startTag={"videoStart"}
                 endTag={"videoEnd"}
                 fieldKeySuffix={"-timeline"}
-                focus={emptyFunction}
+                focus={DocUtils.DefaultFocus}
                 bringToFront={emptyFunction}
                 CollectionView={undefined}
                 duration={this.duration}

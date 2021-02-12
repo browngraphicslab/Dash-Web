@@ -10,8 +10,6 @@ import { LightboxView } from '../views/LightboxView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
 
-export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
-
 export class DocumentManager {
 
     //global holds all of the nodes (regardless of which collection they're in)
@@ -217,14 +215,9 @@ export class DocumentManager {
                         findView(0);
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
-                    const finishFunc = () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
-                    if (LightboxView.LightboxDoc) {
-                        runInAction(() => LightboxView.LightboxDoc = targetDocContext);
-                        setTimeout(() => finishFunc, 250);
-                    } else {
-                        createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
-                            finishFunc);
-                    }
+                    const finishFunc = () => this.jumpToDocument(targetDoc, true, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
+                    createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
+                        finishFunc);
                 }
             }
         }

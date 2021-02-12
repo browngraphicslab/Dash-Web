@@ -963,7 +963,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const bounds = { left: pt[0], right: pt2[0], top: pt[1], bot: pt2[1] };
 
         if (scale) {
-            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0])), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1]);
+            this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0]), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1]));
             return { px: (bounds.left + bounds.right) / 2, py: (bounds.top + bounds.bot) / 2 };
         } else {
             const cx = NumCast(this.layoutDoc._panX);

@@ -34,6 +34,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
+import { DocUtils } from '../../documents/Documents';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -278,7 +279,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
-            case "lightbox": return runInAction(() => LightboxView.LightboxDoc = doc) ? true : false;
+            case "lightbox": return LightboxView.SetLightboxDoc(doc);
             case "inPlace":
             case "add":
             default:
@@ -333,7 +334,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     ScreenToLocalTransform={Transform.Identity}
                     renderDepth={0}
                     whenActiveChanged={emptyFunction}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     styleProvider={TabDocView.miniStyleProvider}
                     layerProvider={undefined}
                     addDocTab={this.addDocTab}
