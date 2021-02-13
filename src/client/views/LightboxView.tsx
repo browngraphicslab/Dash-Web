@@ -3,7 +3,7 @@ import { action, observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc, Opt } from '../../fields/Doc';
+import { Doc, Opt, DocListCast } from '../../fields/Doc';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from '../../Utils';
 import { Transform } from '../util/Transform';
 import "./LightboxView.scss";
@@ -13,7 +13,7 @@ import { DocUtils } from '../documents/Documents';
 import { DocumentManager } from '../util/DocumentManager';
 import { SelectionManager } from '../util/SelectionManager';
 import { TabDocView } from './collections/TabDocView';
-import { Cast } from '../../fields/Types';
+import { Cast, NumCast } from '../../fields/Types';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -50,10 +50,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
 
         return true;
     }
-    public static IsLightboxDocView(path: DocumentView[]) { return path.includes(LightboxView.LightboxDocView.current!); }
+    public static IsLightboxDocView(path: DocumentView[]) { return path.includes(LightboxView.LightboxDocView!); }
     public static LightboxHistory: (Opt<Doc>)[] = [];
     public static LightboxFuture: (Opt<Doc>)[] = [];
-    public static LightboxDocView = React.createRef<DocumentView>();
+    public static LightboxDocView: Opt<DocumentView>;
     @computed get leftBorder() { return Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]); }
     @computed get topBorder() { return Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]); }
     lightboxWidth = () => this.props.PanelWidth - this.leftBorder * 2;
@@ -71,10 +71,12 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             </div>
         </div>;
     }
-    addDocTab = (doc: Doc, location: string) => {
+    public static AddDocTab = (doc: Doc, location: string) => {
         SelectionManager.DeselectAll();
-        return LightboxView.SetLightboxDoc(doc);
+        return LightboxView.SetLightboxDoc(doc, [...DocListCast(doc[Doc.LayoutFieldKey(doc)]), ...DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"])]
+            .sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
     }
+    addDocTab = LightboxView.AddDocTab;
 
     fitToBox = () => LightboxView.LightboxDocTarget === LightboxView.LightboxDoc;
     render() {
@@ -94,7 +96,18 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     width: this.lightboxWidth(),
                     height: this.lightboxHeight()
                 }}>
-                    <DocumentView ref={LightboxView.LightboxDocView}
+                    <DocumentView ref={action((r: DocumentView | null) => {
+                        LightboxView.LightboxDocView = r !== null ? r : undefined;
+                        setTimeout(action(() => {
+                            const vals = r?.ComponentView?.freeformData?.();
+                            if (vals && r) {
+                                r.layoutDoc._panX = vals.panX;
+                                r.layoutDoc._panY = vals.panY;
+                                r.layoutDoc._viewScale = vals.scale;
+                            }
+                            LightboxView.LightboxDocTarget = undefined;
+                        }));
+                    })}
                         Document={LightboxView.LightboxDoc}
                         DataDoc={undefined}
                         addDocument={undefined}

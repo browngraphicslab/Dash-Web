@@ -46,12 +46,13 @@ export type DocAfterFocusFunc = (notFocused: boolean) => Promise<boolean>;
 export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
-    getAnchor: () => Doc;
+    getAnchor?: () => Doc;
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
     submitURL?: (url: string) => boolean;
+    freeformData?: () => Opt<{ panX: number, panY: number, scale: number }>;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -388,7 +389,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             let stopPropagate = true;
             let preventDefault = true;
             !StrListCast(this.props.Document.layers).includes(StyleLayers.Background) && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
-            if (this._doubleTap && ((this.props.renderDepth && this.props.Document.type !== DocumentType.FONTICON) || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && (this.props.Document.type !== DocumentType.FONTICON || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
                     this._timeout = undefined;
@@ -513,7 +514,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
         } else {
             this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-            if (!this.props.isSelected(true)) this._lastTap = Date.now();// don't want to process the start of a double tap if the doucment is selected
+            // bcz: this is a placeholder.  documents, when selected, should stopPropagation on doubleClicks if they want to keep the DocumentView from getting them
+            if (!this.props.isSelected(true) || ![DocumentType.PDF, DocumentType.RTF].includes(StrCast(this.rootDoc.type) as any)) this._lastTap = Date.now();// don't want to process the start of a double tap if the doucment is selected
         }
     }
 

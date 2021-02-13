@@ -279,7 +279,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
-            case "lightbox": return LightboxView.SetLightboxDoc(doc, DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"]).sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
+            case "lightbox": return LightboxView.AddDocTab(doc, location);
             case "inPlace":
             case "add":
             default:

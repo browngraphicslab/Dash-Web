@@ -117,7 +117,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
 
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
-    @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
+    @computed get fitToContentVals() {
+        return this.fitToContent &&
+        {
+            panX: (this.contentBounds.x + this.contentBounds.r) / 2,
+            panY: (this.contentBounds.y + this.contentBounds.b) / 2,
+            scale: !this.childDocs.length ? 1 :
+                Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
+                    this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x))
+        } || undefined;
+    }
     @computed get fitToContent() { return (this.props.fitContentsToDoc?.() || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
@@ -126,17 +135,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get scaleFieldKey() { return this.props.scaleField || "_viewScale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.fitToContent && !this.props.isAnnotationOverlay ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document._panX || 0;
-    private panY = () => this.fitToContent && !this.props.isAnnotationOverlay ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document._panY || 0;
-    private zoomScaling = () => {
-        const mult = this.fitToContentScaling / this.parentScaling;
-        if (this.fitToContent) {
-            const zs = !this.childDocs.length ? 1 :
-                Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x));
-            return mult * zs;
-        }
-        return mult * NumCast(this.Document[this.scaleFieldKey], 1);
-    }
+    private panX = () => this.fitToContentVals?.panX ?? NumCast(this.Document._panX);
+    private panY = () => this.fitToContentVals?.panY ?? NumCast(this.Document._panY);
+    private zoomScaling = () => (this.fitToContentVals?.scale ?? NumCast(this.Document[this.scaleFieldKey], 1)) / this.parentScaling;
     @computed get cachedCenteringShiftX(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
         return this.props.isAnnotationOverlay ? 0 : this.props.PanelWidth() / 2 / this.parentScaling / scaling;  // shift so pan position is at center of window for non-overlay collections
@@ -607,14 +608,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     onClick = (e: React.MouseEvent) => {
-        if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
+        if ((Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a double click 
                 if (e.shiftKey) {
-                    this.scaleAtPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+                    if (this.layoutDoc.targetScale) {
+                        this.scaleAtPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+                    }
                     e.stopPropagation();
                     e.preventDefault();
-                } else {
-                    LightboxView.SetLightboxDoc(this.rootDoc, this.childDocs);
                 }
             }
             this._lastTap = Date.now();
@@ -937,6 +938,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             Doc.BrushDoc(this.rootDoc);
             !doc.hidden && Doc.linkFollowHighlight(doc);
 
+            const startTime = Date.now();
             // focus on this collection within its parent view.  the parent view after focusing determines whether to reset the view change within the collection
             const endFocus = async (moved: boolean) => {
                 doc.hidden && Doc.UnHighlightDoc(doc);
@@ -956,8 +958,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     :
                     new Transform(NumCast(this.rootDoc.x) + this.rootDoc[WidthSym]() / 2 - NumCast(this.rootDoc._panX),
                         NumCast(this.rootDoc.y) + this.rootDoc[HeightSym]() / 2 - NumCast(this.rootDoc._panY), 1);
+
             this.props.focus(cantTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), focusSpeed)), xf);
+                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didMove || didFocus)), Math.max(0, focusSpeed - (Date.now() - startTime)))), xf);
         }
     }
 
@@ -1185,10 +1188,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.Document._useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
         return elements;
     }
-
+    freeformData = () => { return this.fitToContentVals; }
     @action
     componentDidMount() {
         super.componentDidMount?.();
+        this.props.setContentView?.(this);
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
