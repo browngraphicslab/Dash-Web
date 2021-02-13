@@ -279,7 +279,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
-            case "lightbox": return LightboxView.SetLightboxDoc(doc);
+            case "lightbox": return LightboxView.SetLightboxDoc(doc, DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"]).sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
             case "inPlace":
             case "add":
             default:
@@ -342,7 +342,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     docFilters={CollectionDockingView.Instance.docFilters}
                     docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
                     searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                    fitContentsToDoc={true}
+                    fitContentsToDoc={returnTrue}
                 />
                 <div className="miniOverlay" onPointerDown={this.miniDown} >
                     <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />

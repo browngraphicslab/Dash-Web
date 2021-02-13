@@ -719,8 +719,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (audio) {
                     audio.mediaStart = "manual";
                     audio.mediaStop = "manual";
-                    audio.presStartTime = NumCast(doc.audioStart, NumCast(doc.videoStart));
-                    audio.presEndTime = NumCast(doc.audioEnd, NumCast(doc.videoEnd));
+                    audio.presStartTime = NumCast(doc._timecodeToShow /* audioStart */, NumCast(doc._timecodeToShow /* videoStart */));
+                    audio.presEndTime = NumCast(doc._timecodeToHide /* audioEnd */, NumCast(doc._timecodeToHide /* videoEnd */));
                     audio.presDuration = audio.presStartTime - audio.presEndTime;
                     TabDocView.PinDoc(audio, { audioRange: true });
                     setTimeout(() => this.removeDocument(doc), 0);

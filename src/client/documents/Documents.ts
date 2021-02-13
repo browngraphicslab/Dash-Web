@@ -155,6 +155,7 @@ export interface DocumentOptions {
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
     _timecodeToHide?: number; // the time that a document should be hidden
+    _timelineLabel?: boolean; // whether the document exists on a timeline
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears

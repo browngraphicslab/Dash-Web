@@ -31,7 +31,6 @@ export type CollectionStackedTimelineProps = {
     isChildActive: () => boolean;
     startTag: string;
     endTag: string;
-    fieldKeySuffix?: string;
 };
 
 @observer
@@ -47,7 +46,6 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
     @observable _markerEnd: number = 0;
 
     get duration() { return this.props.duration; }
-    @computed get anchorDocs() { return this.props.fieldKeySuffix ? this.childDocs.concat(...DocListCast(this.rootDoc[this.props.fieldKey + this.props.fieldKeySuffix])) : this.childDocs; }
     @computed get currentTime() { return NumCast(this.layoutDoc._currentTimecode); }
     @computed get selectionContainer() {
         return CollectionStackedTimeline.SelectingRegion !== this ? (null) : <div className="collectionStackedTimeline-selector" style={{
@@ -159,7 +157,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
             title: ComputedField.MakeFunction(`"#" + formatToTime(self["${startTag}"]) + "-" + formatToTime(self["${endTag}"])`) as any,
             useLinkSmallAnchor: true,
             hideLinkButton: true,
-            annotationOn: rootDoc
+            annotationOn: rootDoc,
+            _timelineLabel: true
         });
         Doc.GetProto(anchor)[startTag] = anchorStartTime;
         Doc.GetProto(anchor)[endTag] = anchorEndTime;
@@ -295,7 +294,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         const timelineContentWidth = this.props.PanelWidth();
         const timelineContentHeight = this.props.PanelHeight();
         const overlaps: { anchorStartTime: number, anchorEndTime: number, level: number }[] = [];
-        const drawAnchors = this.anchorDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
+        const drawAnchors = this.childDocs.map(anchor => ({ level: this.getLevel(anchor, overlaps), anchor }));
         const maxLevel = overlaps.reduce((m, o) => Math.max(m, o.level), 0) + 2;
         const isActive = this.props.isChildActive() || this.props.isSelected(false);
         return <div className="collectionStackedTimeline" ref={(timeline: HTMLDivElement | null) => this._timeline = timeline}

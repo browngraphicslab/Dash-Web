@@ -6,7 +6,7 @@ import { ObjectField } from "../../../fields/ObjectField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { NumCast, StrCast, BoolCast, Cast } from "../../../fields/Types";
-import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, setupMoveUpEvents, returnTrue } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -86,7 +86,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
             <CollectionFreeFormView {...this.props}
-                fitContentsToDoc={true}
+                fitContentsToDoc={returnTrue}
                 childClickScript={this._childClickedScript}
                 viewDefDivClick={this._viewDefDivClick}
                 childFreezeDimensions={true}

@@ -20,6 +20,7 @@ export const documentSchema = createSchema({
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     _timecodeToShow: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    _timecodeToHIde: "number",  // the time that a document should be hidden
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
     markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 

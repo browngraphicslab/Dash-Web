@@ -362,7 +362,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         DocListCast(this.dataDoc.links).forEach((l, i) => {
             const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
             if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
-                linkTime = NumCast(anchor.audioStart);
+                linkTime = NumCast(anchor._timecodeToShow /* audioStart */);
                 linkAnchor = anchor;
             }
         });
@@ -1669,8 +1669,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     sidebarContentScaling = () => (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
+    fitToBox = () => this.props.Document._fitToBox;
     @computed get sidebarCollection() {
-        const fitToBox = this.props.Document._fitToBox;
         const collectionProps: SubCollectionViewProps & collectionFreeformViewProps = {
             ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
             NativeWidth: returnZero,
@@ -1683,7 +1683,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             scaleField: this.SidebarKey + "-scale",
             isAnnotationOverlay: true,
             fieldKey: this.SidebarKey,
-            fitContentsToDoc: fitToBox,
+            fitContentsToDoc: this.fitToBox,
             select: emptyFunction,
             active: this.annotationsActive,
             scaling: this.sidebarContentScaling,

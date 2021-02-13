@@ -57,7 +57,7 @@ export interface DocumentViewSharedProps {
     renderDepth: number;
     Document: Doc;
     DataDoc?: Doc;
-    fitContentsToDoc?: boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
+    fitContentsToDoc?: () => boolean; // used by freeformview to fit its contents to its panel. corresponds to _fitToBox property on a Document
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
     setContentView?: (view: DocComponentView) => any;

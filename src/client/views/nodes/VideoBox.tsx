@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction,
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, StrListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { InkTool } from "../../../fields/InkField";
 import { makeInterface } from "../../../fields/Schema";
@@ -71,7 +71,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     getAnchor = () => {
         const timecode = Cast(this.layoutDoc._currentTimecode, "number", null);
-        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey + "-timeline", "videoStart", "videoEnd", timecode ? timecode : undefined) || this.rootDoc;
+        const anchor = CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow"/* videoStart */, "_timecodeToHide" /* videoEnd */, timecode ? timecode : undefined) || this.rootDoc;
+        return anchor;
     }
 
     choosePath(url: string) {
@@ -202,7 +203,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
@@ -494,9 +494,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
                 fieldKey={this.annotationKey}
                 renderDepth={this.props.renderDepth + 1}
-                startTag={"videoStart"}
-                endTag={"videoEnd"}
-                fieldKeySuffix={"-timeline"}
+                startTag={"_timecodeToShow" /* videoStart */}
+                endTag={"_timecodeToHide" /* videoEnd */}
                 focus={DocUtils.DefaultFocus}
                 bringToFront={emptyFunction}
                 CollectionView={undefined}
@@ -540,7 +539,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
     marqueeFitScaling = () => (this.props.scaling?.() || 1) * this.heightPercent / 100;
     marqueeOffset = () => [this.panelWidth() / 2 * (1 - this.heightPercent / 100) / (this.heightPercent / 100), 0];
-
+    timelineDocFilter = () => ["_timelineLabel:true:x"];
     render() {
         const borderRad = this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BorderRounding);
         const borderRadius = borderRad?.includes("px") ? `${Number(borderRad.split("px")[0]) / this.scaling()}px` : borderRad;
@@ -558,6 +557,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         select={emptyFunction}
                         active={this.annotationsActive}
                         scaling={returnOne}
+                        docFilters={this.timelineDocFilter}
                         PanelWidth={this.panelWidth}
                         PanelHeight={this.panelHeight}
                         ScreenToLocalTransform={this.screenToLocalTransform}

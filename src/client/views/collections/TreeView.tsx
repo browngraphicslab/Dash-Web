@@ -632,7 +632,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             PanelHeight={panelHeight}
             NativeWidth={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfWidth : undefined}
             NativeHeight={!asText && (this.layoutDoc.type === DocumentType.RTF || this.layoutDoc.type === DocumentType.SLIDER) ? this.rtfHeight : undefined}
-            fitContentsToDoc={true}
+            fitContentsToDoc={returnTrue}
             hideTitle={asText}
             LayoutTemplateString={asText ? FormattedTextBox.LayoutString("text") : undefined}
             focus={asText ? this.refocus : returnFalse}

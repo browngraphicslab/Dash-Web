@@ -89,7 +89,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     }
 
     getAnchor = () => {
-        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "audioStart", "audioEnd", this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined)) || this.rootDoc;
+        return CollectionStackedTimeline.createAnchor(this.rootDoc, this.dataDoc, this.annotationKey, "_timecodeToShow" /* audioStart */, "_timecodeToHide" /* audioEnd */, this._ele?.currentTime || Cast(this.props.Document._currentTimecode, "number", null) || (this.audioState === "recording" ? (Date.now() - (this.recordingStart || 0)) / 1000 : undefined)) || this.rootDoc;
     }
 
     componentWillUnmount() {
@@ -354,8 +354,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return <CollectionStackedTimeline ref={this._stackedTimeline} {...this.props}
             fieldKey={this.annotationKey}
             renderDepth={this.props.renderDepth + 1}
-            startTag={"audioStart"}
-            endTag={"audioEnd"}
+            startTag={"_timecodeToShow" /* audioStart */}
+            endTag={"_timecodeToHide" /* audioEnd */}
             focus={DocUtils.DefaultFocus}
             bringToFront={emptyFunction}
             CollectionView={undefined}

@@ -151,6 +151,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             }, 5000);
         });
     }
+    @undoBatch
+    resolution = () => this.layoutDoc._showFullRes = !this.layoutDoc._showFullRes;
 
     @undoBatch
     rotate = action(() => {
@@ -170,6 +172,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (field) {
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Rotate Clockwise 90", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({ description: `Show ${this.layoutDoc._showFullRes ? "Dynamic Res" : "Full Res"}`, event: this.resolution, icon: "expand-arrows-alt" });
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
@@ -223,7 +226,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
         const ext = path.extname(url.href);
         const scrSize = this.props.ScreenToLocalTransform().inverse().transformDirection(this.nativeSize.nativeWidth, this.nativeSize.nativeHeight);
-        this._curSuffix = this.props.renderDepth < 1 ? "_o" : scrSize[0] < 100 ? "_s" : scrSize[0] < 400 || !this.props.isSelected() ? "_m" : "_o";
+        this._curSuffix = this.props.renderDepth < 1 || this.layoutDoc._showFullRes ? "_o" : scrSize[0] < 100 ? "_s" : scrSize[0] < 400 || !this.props.isSelected() ? "_m" : "_o";
         return url.href.replace(ext, this._curSuffix + ext);
     }
 
