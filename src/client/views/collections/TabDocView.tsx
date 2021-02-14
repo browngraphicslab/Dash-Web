@@ -14,6 +14,7 @@ import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, returnEmptyDoclist, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
+import { DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -23,7 +24,7 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { LightboxView } from '../LightboxView';
-import { DocAfterFocusFunc, DocumentView, DocumentViewProps } from "../nodes/DocumentView";
+import { DocFocusOptions, DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import { FieldViewProps } from '../nodes/FieldView';
 import { PinProps, PresBox, PresMovement } from '../nodes/PresBox';
 import { DefaultLayerProvider, DefaultStyleProvider, StyleLayers, StyleProp } from '../StyleProvider';
@@ -34,7 +35,6 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
-import { DocUtils } from '../../documents/Documents';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
@@ -209,7 +209,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             const tabs = Cast(sublists[0], Doc, null);
             const tabdocs = await DocListCastAsync(tabs.data);
             runInAction(() => {
-                if (!tabdocs?.includes(curPres)) {
+                if (!pinProps?.hidePresBox && !tabdocs?.includes(curPres)) {
                     tabdocs?.push(curPres);  // bcz: Argh! this is annoying.  if multiple documents are pinned, this will get called multiple times before the presentation view is drawn.  Thus it won't be in the tabdocs list and it will get created multple times.  so need to explicilty add the presbox to the list of open tabs
                     CollectionDockingView.AddSplit(curPres, "right");
                 }
@@ -279,7 +279,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             case "close": return CollectionDockingView.CloseSplit(doc, locationParams);
             case "fullScreen": return CollectionDockingView.OpenFullScreen(doc);
             case "replace": return CollectionDockingView.ReplaceTab(doc, locationParams, this.stack);
-            case "lightbox": return LightboxView.AddDocTab(doc, location);
+            case "lightbox": {
+                // TabDocView.PinDoc(doc, { hidePresBox: true });
+                return LightboxView.AddDocTab(doc, location);
+            }
             case "inPlace":
             case "add":
             default:
@@ -357,11 +360,25 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             </Tooltip>
         </>;
     }
-    focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    @action
+    focusFunc = (doc: Doc, options?: DocFocusOptions) => {
+        const vals = (!options?.originalTarget || options?.originalTarget === this._document) && this.view?.ComponentView?.freeformData?.(true);
+        if (vals && this._document) {
+            const focusSpeed = 1000;
+            this._document._panX = vals.panX;
+            this._document._panY = vals.panY;
+            this._document._viewScale = vals.scale;
+            this._document._viewTrasition = `transform ${focusSpeed}ms`;
+            setTimeout(action(() => {
+                this._document!._viewTransition = undefined;
+                options?.afterFocus?.(false);
+            }), focusSpeed);
+        } else {
+            options?.afterFocus?.(false);
+        }
         if (!this.tab.header.parent._activeContentItem || this.tab.header.parent._activeContentItem !== this.tab.contentItem) {
             this.tab.header.parent.setActiveContentItem(this.tab.contentItem); // glr: Panning does not work when this is set - (this line is for trying to make a tab that is not topmost become topmost)
         }
-        afterFocus?.(false);
     }
     active = () => this._isActive;
     ScreenToLocalTransform = () => {

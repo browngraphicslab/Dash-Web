@@ -139,9 +139,11 @@ export class DocumentManager {
         closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void,
+        originalTarget?: Doc
     ): Promise<void> => {
+        originalTarget = originalTarget ?? targetDoc;
         const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
-        let docView = getFirstDocView(targetDoc, originatingDoc);
+        const docView = getFirstDocView(targetDoc, originatingDoc);
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
@@ -166,15 +168,16 @@ export class DocumentManager {
         const targetDocContext = contextDoc || annotatedDoc;
         const targetDocContextView = targetDocContext && getFirstDocView(targetDocContext);
         if (!docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView) {
-            rtfView.focus(targetDoc, false);
+            rtfView.focus(targetDoc);
         }
         else if (docView) {
-            docView.props.focus(targetDoc, willZoom, undefined, (didFocus: boolean) =>
-                new Promise<boolean>(res => {
-                    focusAndFinish(didFocus);
-                    res();
-                })
-            );
+            docView.props.focus(targetDoc, {
+                originalTarget, willZoom, afterFocus: (didFocus: boolean) =>
+                    new Promise<boolean>(res => {
+                        focusAndFinish(didFocus);
+                        res();
+                    })
+            });
         } else {
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
@@ -182,7 +185,7 @@ export class DocumentManager {
             } else {  // otherwise try to get a view of the context of the target
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
-                    targetDocContextView.props.focus(targetDocContextView.rootDoc, willZoom);
+                    targetDocContextView.props.focus(targetDocContextView.rootDoc, { willZoom });
 
                     // now find the target document within the context
                     if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
@@ -192,12 +195,13 @@ export class DocumentManager {
                         const findView = (delay: number) => {
                             const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
                             if (retryDocView) {   // we found the target in the context
-                                retryDocView.props.focus(targetDoc, willZoom, undefined, (didFocus: boolean) =>
-                                    new Promise<boolean>(res => {
-                                        focusAndFinish(didFocus);
-                                        res();
-                                    })
-                                ); // focus on the target in the context
+                                retryDocView.props.focus(targetDoc, {
+                                    willZoom, afterFocus: (didFocus: boolean) =>
+                                        new Promise<boolean>(res => {
+                                            focusAndFinish(didFocus);
+                                            res();
+                                        })
+                                }); // focus on the target in the context
                                 highlight();
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
@@ -213,7 +217,7 @@ export class DocumentManager {
                         findView(0);
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
-                    const finishFunc = () => this.jumpToDocument(targetDoc, true, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
+                    const finishFunc = () => this.jumpToDocument(targetDoc, true, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished, originalTarget);
                     createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
                         finishFunc);
                 }
@@ -222,4 +226,4 @@ export class DocumentManager {
     }
 
 }
-Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });
+Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, { willZoom: true })); });

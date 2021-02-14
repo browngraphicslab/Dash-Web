@@ -259,8 +259,8 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
         const anchor = observable({ view: undefined as any });
         const focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: (notFocused: boolean) => Promise<boolean>, docTransform?: Transform) => {
             this.props.playLink(mark);
-            this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
-        }
+            this.props.focus(doc, { willZoom, scale, afterFocus, docTransform });
+        };
         return {
             anchor, view: <DocumentView key="view"  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 ref={action((r: DocumentView | null) => anchor.view = r)}

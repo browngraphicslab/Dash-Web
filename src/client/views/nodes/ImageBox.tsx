@@ -152,7 +152,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         });
     }
     @undoBatch
-    resolution = () => this.layoutDoc._showFullRes = !this.layoutDoc._showFullRes;
+    resolution = () => this.layoutDoc._showFullRes = !this.layoutDoc._showFullRes
 
     @undoBatch
     rotate = action(() => {

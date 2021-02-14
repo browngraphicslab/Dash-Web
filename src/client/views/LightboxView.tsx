@@ -89,7 +89,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const target = LightboxView.LightboxDocTarget = LightboxView.LightboxFuture?.pop();
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (docView && target) {
-            docView.focus(target, true, 0.9);
+            docView.focus(target, { willZoom: true, scale: 0.9 });
             if (LightboxView.LightboxHistory?.lastElement() !== target) LightboxView.LightboxHistory?.push(target);
         } else {
             if (!target && LightboxView.path.length) {
@@ -120,7 +120,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (docView && target) {
             if (LightboxView.LightboxFuture?.lastElement() !== previous) LightboxView.LightboxFuture?.push(previous!);
-            docView.focus(target, true, 0.9);
+            docView.focus(target, { willZoom: true, scale: 0.9 });
         } else {
             LightboxView.SetLightboxDoc(target);
         }
@@ -138,6 +138,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         if (coll) {
             const fieldKey = Doc.LayoutFieldKey(coll);
             LightboxView.SetLightboxDoc(coll, [...DocListCast(coll[fieldKey]), ...DocListCast(coll[fieldKey + "-annotations"])]);
+            TabDocView.PinDoc(coll, { hidePresBox: true });
         }
         setTimeout(() => this.stepForward());
     }

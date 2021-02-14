@@ -1,6 +1,6 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast, HeightSym } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -37,13 +37,20 @@ import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { FieldViewProps } from "./FieldView";
 import { LinkAnchorBox } from './LinkAnchorBox';
+import { LinkDocPreview } from "./LinkDocPreview";
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
-import { LinkDocPreview } from "./LinkDocPreview";
 
+export interface DocFocusOptions {
+    originalTarget?: Doc;
+    willZoom?: boolean;
+    scale?: number;
+    afterFocus?: DocAfterFocusFunc;
+    docTransform?: Transform;
+}
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<boolean>;
-export type DocFocusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => void;
+export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
     getAnchor?: () => Doc;
@@ -52,7 +59,7 @@ export interface DocComponentView {
     forward?: () => boolean;
     url?: () => string;
     submitURL?: (url: string) => boolean;
-    freeformData?: () => Opt<{ panX: number, panY: number, scale: number }>;
+    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number }>;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -376,11 +383,13 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
+    focus = (doc: Doc, options?: DocFocusOptions) => {
         const focusSpeed = this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
-        const endFocus = focusSpeed === undefined ? afterFocus : async (moved: boolean) => afterFocus ? afterFocus(true) : false;
-        this.props.focus(docTransform ? doc : this.rootDoc, willZoom, scale, (didFocus: boolean) =>
-            new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed ?? 0)), docTransform);
+        const endFocus = focusSpeed === undefined ? options?.afterFocus : async (moved: boolean) => options?.afterFocus ? options?.afterFocus(true) : false;
+        this.props.focus(options?.docTransform ? doc : this.rootDoc, {
+            ...options, afterFocus: (didFocus: boolean) =>
+                new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed ?? 0))
+        });
 
     }
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
@@ -439,7 +448,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
-            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
+            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey && !(e.nativeEvent as any).formattedHandled) {
                 this.allLinks.length && LinkManager.FollowLink(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
@@ -575,7 +584,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
         if (linkSource && linkSource !== this.props.Document) {
             e.stopPropagation();
-            const dropDoc = this._componentView?.getAnchor() || this.rootDoc;
+            const dropDoc = this._componentView?.getAnchor?.() || this.rootDoc;
             if (de.complete.annoDragData) de.complete.annoDragData.dropDocument = dropDoc;
             de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
         }
@@ -718,7 +727,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    setContentView = (view: { getAnchor: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
+    setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     @computed get contents() {
@@ -918,8 +927,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
-    focus = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
-        return this.docView?.focus(doc, willZoom, scale, afterFocus);
+    focus = (doc: Doc, options?: DocFocusOptions) => {
+        return this.docView?.focus(doc, options);
     }
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {

@@ -35,6 +35,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { DocFocusOptions } from "../views/nodes/DocumentView";
 import { FilterBox } from "../views/nodes/FilterBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
@@ -55,8 +56,6 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
-import { DocAfterFocusFunc } from "../views/nodes/DocumentView";
-import { Transform } from "../util/Transform";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -1020,8 +1019,8 @@ export namespace DocUtils {
         });
     }
 
-    export function DefaultFocus(doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) {
-        afterFocus?.(false);
+    export function DefaultFocus(doc: Doc, options?: DocFocusOptions) {
+        options?.afterFocus?.(false);
     }
 
     export let ActiveRecordings: AudioBox[] = [];

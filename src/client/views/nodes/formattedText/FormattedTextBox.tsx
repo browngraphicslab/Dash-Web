@@ -1456,7 +1456,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
-        (e.nativeEvent as any).formattedHandled = true;
+        this.props.isSelected(true) && ((e.nativeEvent as any).formattedHandled = true);
 
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
             // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks

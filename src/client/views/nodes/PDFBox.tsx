@@ -138,7 +138,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             this.scrollFocus(this.initialScrollTarget, false);
             this.initialScrollTarget = undefined;
         }
-    };
+    }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
 
     settingsPanel() {
