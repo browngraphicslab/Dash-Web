@@ -17,6 +17,7 @@ import { CollectionSubView } from "../collections/CollectionSubView";
 import { DocumentView } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
+import { Transform } from "../../util/Transform";
 
 type PanZoomDocument = makeInterface<[]>;
 const PanZoomDocument = makeInterface();
@@ -256,6 +257,10 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
 
     renderInner = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
         const anchor = observable({ view: undefined as any });
+        const focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: (notFocused: boolean) => Promise<boolean>, docTransform?: Transform) => {
+            this.props.playLink(mark);
+            this.props.focus(doc, willZoom, scale, afterFocus, docTransform);
+        }
         return {
             anchor, view: <DocumentView key="view"  {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 ref={action((r: DocumentView | null) => anchor.view = r)}
@@ -267,7 +272,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
                 PanelWidth={() => width}
                 PanelHeight={() => height}
                 ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-x, -y)}
-                focus={() => this.props.playLink(mark)}
+                focus={focusFunc}
                 parentActive={out => this.props.isSelected(out) || this.props.isChildActive()}
                 rootSelected={returnFalse}
                 onClick={script}

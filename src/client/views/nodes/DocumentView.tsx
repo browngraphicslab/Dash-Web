@@ -645,6 +645,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
             onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
             onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
+            onClicks.push({ description: (this.Document.followLinkZoom ? "Don't" : "") + " zoom following link", event: () => this.Document.followLinkZoom = !this.Document.followLinkZoom, icon: this.Document.ignoreClick ? "unlock" : "lock" });
 
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");

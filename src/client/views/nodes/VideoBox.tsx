@@ -496,7 +496,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 renderDepth={this.props.renderDepth + 1}
                 startTag={"_timecodeToShow" /* videoStart */}
                 endTag={"_timecodeToHide" /* videoEnd */}
-                focus={DocUtils.DefaultFocus}
                 bringToFront={emptyFunction}
                 CollectionView={undefined}
                 duration={this.duration}
