@@ -44,15 +44,15 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             };
         }
         if (future) {
-            LightboxView.LightboxFuture = future.slice();
+            LightboxView.LightboxFuture = future.slice().sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
         }
         LightboxView.LightboxDoc = LightboxView.LightboxDocTarget = doc;
 
         return true;
     }
     public static IsLightboxDocView(path: DocumentView[]) { return path.includes(LightboxView.LightboxDocView!); }
-    public static LightboxHistory: (Opt<Doc>)[] = [];
-    public static LightboxFuture: (Opt<Doc>)[] = [];
+    public static LightboxHistory: Opt<Doc[]> = [];
+    public static LightboxFuture: Opt<Doc[]> = [];
     public static LightboxDocView: Opt<DocumentView>;
     @computed get leftBorder() { return Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]); }
     @computed get topBorder() { return Math.min(this.props.PanelHeight / 4, this.props.maxBorder[1]); }
@@ -73,14 +73,18 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     }
     public static AddDocTab = (doc: Doc, location: string) => {
         SelectionManager.DeselectAll();
-        return LightboxView.SetLightboxDoc(doc, [...DocListCast(doc[Doc.LayoutFieldKey(doc)]), ...DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"])]
-            .sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
+        return LightboxView.SetLightboxDoc(doc,
+            [...DocListCast(doc[Doc.LayoutFieldKey(doc)]),
+            ...DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"]),
+            ...(LightboxView.LightboxFuture ?? [])
+            ]
+                .sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
     }
     addDocTab = LightboxView.AddDocTab;
 
     fitToBox = () => LightboxView.LightboxDocTarget === LightboxView.LightboxDoc;
     render() {
-        if (LightboxView.LightboxHistory.lastElement() !== LightboxView.LightboxDoc) LightboxView.LightboxHistory.push(LightboxView.LightboxDoc);
+        if (LightboxView.LightboxHistory?.lastElement() !== LightboxView.LightboxDoc) LightboxView.LightboxHistory?.push(LightboxView.LightboxDoc!);
         let downx = 0, downy = 0;
         return !LightboxView.LightboxDoc ? (null) :
             <div className="lightboxView-frame"
@@ -134,28 +138,28 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         renderDepth={0} />
                 </div>
                 {this.navBtn(undefined, "chevron-left",
-                    () => LightboxView.LightboxDoc && LightboxView.LightboxHistory.length ? "" : "none",
+                    () => LightboxView.LightboxDoc && LightboxView.LightboxHistory?.length ? "" : "none",
                     action(e => {
                         e.stopPropagation();
-                        const previous = LightboxView.LightboxHistory.pop();
-                        const target = LightboxView.LightboxDocTarget = LightboxView.LightboxHistory.lastElement();
+                        const previous = LightboxView.LightboxHistory?.pop();
+                        const target = LightboxView.LightboxDocTarget = LightboxView.LightboxHistory?.lastElement();
                         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
                         if (docView && target) {
-                            if (LightboxView.LightboxFuture.lastElement() !== previous) LightboxView.LightboxFuture.push(previous);
+                            if (LightboxView.LightboxFuture?.lastElement() !== previous) LightboxView.LightboxFuture?.push(previous!);
                             docView.focus(target, true, 0.9);
                         } else {
                             LightboxView.SetLightboxDoc(target);
                         }
                     }))}
                 {this.navBtn(this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), "chevron-right",
-                    () => LightboxView.LightboxDoc && LightboxView.LightboxFuture.length ? "" : "none",
+                    () => LightboxView.LightboxDoc && LightboxView.LightboxFuture?.length ? "" : "none",
                     action(e => {
                         e.stopPropagation();
-                        const target = LightboxView.LightboxDocTarget = LightboxView.LightboxFuture.pop();
+                        const target = LightboxView.LightboxDocTarget = LightboxView.LightboxFuture?.pop();
                         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
                         if (docView && target) {
                             docView.focus(target, true, 0.9);
-                            if (LightboxView.LightboxHistory.lastElement() !== target) LightboxView.LightboxHistory.push(target);
+                            if (LightboxView.LightboxHistory?.lastElement() !== target) LightboxView.LightboxHistory?.push(target);
                         } else {
                             LightboxView.SetLightboxDoc(target);
                         }

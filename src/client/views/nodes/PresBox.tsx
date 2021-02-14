@@ -70,6 +70,7 @@ export class PinProps {
     audioRange?: boolean;
     unpin?: boolean;
     setPosition?: boolean;
+    hidePresBox?: boolean;
 }
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;

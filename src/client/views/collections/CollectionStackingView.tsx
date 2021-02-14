@@ -44,7 +44,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     _draggerRef = React.createRef<HTMLDivElement>();
     _pivotFieldDisposer?: IReactionDisposer;
     _autoHeightDisposer?: IReactionDisposer;
-    _docXfs: any[] = [];
+    _docXfs: { height: () => number, width: () => number, stackedDocTransform: () => Transform }[] = [];
     _columnStart: number = 0;
     @observable _heightMap = new Map<string, number>();
     @observable _cursor: CursorProperty = "grab";
@@ -204,6 +204,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
         let dref: Opt<HTMLDivElement>;
         const stackedDocTransform = () => this.getDocTransform(doc, dref);
+        this._docXfs.push({ stackedDocTransform, width, height });
         return <DocumentView ref={r => dref = r?.ContentDiv ? r.ContentDiv : undefined}
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
@@ -295,8 +296,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         let dropAfter = 0;
         if (de.complete.docDragData) {
             this._docXfs.map((cd, i) => {
-                const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
-                const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+                const pos = cd.stackedDocTransform().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+                const pos1 = cd.stackedDocTransform().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && (i === this._docXfs.length - 1 || where[1] < pos1[1])) {
                     dropInd = i;
                     const axis = this.Document._viewType === CollectionViewType.Masonry ? 0 : 1;
@@ -327,8 +328,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
-            const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
-            const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+            const pos = cd.stackedDocTransform().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+            const pos1 = cd.stackedDocTransform().inverse().transformPoint(cd.width(), cd.height());
             if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                 targInd = i;
             }
