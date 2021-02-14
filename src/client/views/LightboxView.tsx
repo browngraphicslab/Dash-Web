@@ -49,7 +49,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             };
         }
         if (future) {
-            LightboxView.LightboxFuture = future.slice().sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
+            LightboxView.LightboxFuture = future.slice().sort((a, b) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)).sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
         }
         LightboxView.LightboxDoc = LightboxView.LightboxDocTarget = doc;
 
