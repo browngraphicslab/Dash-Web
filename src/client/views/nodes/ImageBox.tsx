@@ -1,4 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import { Dictionary } from 'typescript-collections';
@@ -10,12 +9,11 @@ import { ObjectField } from '../../../fields/ObjectField';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { ComputedField } from '../../../fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { AudioField, ImageField } from '../../../fields/URLField';
+import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, OmitKeys, returnOne, Utils } from '../../../Utils';
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
-import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
@@ -30,8 +28,6 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 const path = require('path');
-const { Howl } = require('howler');
-
 
 export const pageSchema = createSchema({
     _curPage: "number",
@@ -39,16 +35,6 @@ export const pageSchema = createSchema({
     googlePhotosUrl: "string",
     googlePhotosTags: "string"
 });
-
-interface Window {
-    MediaRecorder: MediaRecorder;
-}
-
-declare class MediaRecorder {
-    // whatever MediaRecorder has
-    constructor(e: any);
-}
-
 type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
@@ -64,10 +50,9 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
+    private _curSuffix = "_m";
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    @observable private _audioState = 0;
-    @observable static _showControls: boolean;
     @observable uploadIcon = uploadIcons.idle;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -120,37 +105,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         }
     }
 
-    recordAudioAnnotation = () => {
-        let gumStream: any;
-        let recorder: any;
-        const self = this;
-        navigator.mediaDevices.getUserMedia({
-            audio: true
-        }).then(function (stream) {
-            gumStream = stream;
-            recorder = new MediaRecorder(stream);
-            recorder.ondataavailable = async (e: any) => {
-                const [{ result }] = await Networking.UploadFilesToServer(e.data);
-                if (!(result instanceof Error)) {
-                    const audioDoc = Docs.Create.AudioDocument(Utils.prepend(result.accessPaths.agnostic.client), { title: "audio test", _width: 200, _height: 32 });
-                    audioDoc.treeViewExpandedView = "layout";
-                    const audioAnnos = Cast(self.dataDoc[self.fieldKey + "-audioAnnotations"], listSpec(Doc));
-                    if (audioAnnos === undefined) {
-                        self.dataDoc[self.fieldKey + "-audioAnnotations"] = new List([audioDoc]);
-                    } else {
-                        audioAnnos.push(audioDoc);
-                    }
-                }
-            };
-            runInAction(() => self._audioState = 2);
-            recorder.start();
-            setTimeout(() => {
-                recorder.stop();
-                runInAction(() => self._audioState = 0);
-                gumStream.getAudioTracks()[0].stop();
-            }, 5000);
-        });
-    }
     @undoBatch
     resolution = () => this.layoutDoc._showFullRes = !this.layoutDoc._showFullRes
 
@@ -250,29 +204,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             }
         }
     }
-    _curSuffix = "_m";
-
-    @action
-    onPointerEnter = () => {
-        const self = this;
-        const audioAnnos = DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]);
-        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
-            const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
-            anno.data instanceof AudioField && new Howl({
-                src: [anno.data.url.href],
-                format: ["mp3"],
-                autoplay: true,
-                loop: false,
-                volume: 0.5,
-                onend: function () {
-                    runInAction(() => self._audioState = 0);
-                }
-            });
-            this._audioState = 1;
-        }
-    }
-
-    audioDown = () => this.recordAudioAnnotation();
 
     considerGooglePhotosLink = () => {
         const remoteUrl = this.dataDoc.googlePhotosUrl;
@@ -387,16 +318,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
             </div>
-            {!this.layoutDoc._showAudio ? (null) :
-                <div className="imageBox-audioBackground"
-                    onPointerDown={this.audioDown}
-                    onPointerEnter={this.onPointerEnter}
-                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
-                >
-                    <FontAwesomeIcon className="imageBox-audioFont"
-                        style={{ color: [DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
-                        icon={!DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
-                </div>}
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />

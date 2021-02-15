@@ -42,8 +42,7 @@ export const documentSchema = createSchema({
     _yMargin: "number",         // margin added on top/bottom of most documents to add separation from their container
     _overflow: "string",        // sets overflow behvavior for CollectionFreeForm views
     _showCaption: "string",     // whether editable caption text is overlayed at the bottom of the document 
-    _showTitle: "string",       // the fieldkey whose contents should be displayed at the top of the document
-    _showTitleHover: "string",  // the showTitle should be shown only on hover
+    _showTitle: "string",       // the fieldkey(s) whose contents should be displayed at the top of the document. separate multiple keys with ";".  Use :hover suffix to indicate title should be shown on hover
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis

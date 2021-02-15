@@ -258,13 +258,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     _lastText = "";
     dispatchTransaction = (tx: Transaction) => {
-        let timeStamp;
-        clearTimeout(timeStamp);
         if (this._editorView) {
-
             const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
             if (metadata) {
-
                 const range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;

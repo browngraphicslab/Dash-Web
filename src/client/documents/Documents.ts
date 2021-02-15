@@ -76,8 +76,7 @@ export interface DocumentOptions {
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
-    _showTitleHover?: string; // 
-    _showTitle?: string; // which field to display in the title area.  leave empty to have no title
+    _showTitle?: string; // field name to display in header (:hover is an optional suffix)
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged

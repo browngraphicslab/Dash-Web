@@ -1,18 +1,22 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
+import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { AudioField } from "../../../fields/URLField";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { emptyFunction, hasDescendantTarget, OmitKeys, returnFalse, returnVal, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
+import { Networking } from "../../Network";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -41,6 +45,17 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+const { Howl } = require('howler');
+
+interface Window {
+    MediaRecorder: MediaRecorder;
+}
+
+declare class MediaRecorder {
+    // whatever MediaRecorder has
+    constructor(e: any);
+}
+
 
 export enum ViewAdjustment {
     resetView = 1,
@@ -135,6 +150,7 @@ export interface DocumentViewInternalProps extends DocumentViewProps {
 @observer
 export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps, Document>(Document) {
     @observable _animateScalingTo = 0;
+    @observable _audioState = 0;
     private _downX: number = 0;
     private _downY: number = 0;
     private _firstX: number = -1;
@@ -146,8 +162,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     private _timeout: NodeJS.Timeout | undefined;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
-    _componentView: Opt<DocComponentView>;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    _componentView: Opt<DocComponentView>;
 
     private get topMost() { return this.props.renderDepth === 0; }
     private get active() { return this.props.isSelected(true) || this.props.parentActive(true); }
@@ -165,6 +181,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @computed get backgroundColor() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BackgroundColor); }
     @computed get docContents() { return this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.DocContents); }
     @computed get headerMargin() { return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
+    @computed get titleHeight() { return this.props?.styleProvider?.(this.layoutDoc, this.props, StyleProp.TitleHeight) || 0; }
     @computed get pointerEvents() { return this.props.styleProvider?.(this.Document, this.props, StyleProp.PointerEvents + (this.props.isSelected() ? ":selected" : "")); }
     @computed get finalLayoutKey() { return StrCast(this.Document.layoutKey, "layout"); }
     @computed get nativeWidth() { return this.props.NativeWidth(); }
@@ -737,6 +754,16 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
     @computed get contents() {
         TraceMobx();
+        const audioView = !this.layoutDoc._showAudio ? (null) :
+            <div className="documentView-audioBackground"
+                onPointerDown={this.recordAudioAnnotation}
+                onPointerEnter={this.onPointerEnter}
+                style={{ height: 25, position: "absolute", top: 10, left: 10 }}
+            >
+                <FontAwesomeIcon className="documentView-audioFont"
+                    style={{ color: [DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                    icon={!DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
+            </div>;
         return <div className="documentView-contentsView"
             style={{
                 pointerEvents: this.props.contentPointerEvents as any,
@@ -757,6 +784,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {this.hideLinkButton ? (null) :
                 <DocumentLinksButton View={this.props.DocumentView()} links={this.allLinks} Offset={[this.topMost ? 0 : -15, undefined, undefined, this.topMost ? 10 : -20]} />}
+
+            {audioView}
         </div>;
     }
 
@@ -790,11 +819,62 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             </div >);
     }
 
+    @action
+    onPointerEnter = () => {
+        const self = this;
+        const audioAnnos = DocListCast(this.dataDoc[this.LayoutFieldKey + "-audioAnnotations"]);
+        if (audioAnnos && audioAnnos.length && this._audioState === 0) {
+            const anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
+            anno.data instanceof AudioField && new Howl({
+                src: [anno.data.url.href],
+                format: ["mp3"],
+                autoplay: true,
+                loop: false,
+                volume: 0.5,
+                onend: function () {
+                    runInAction(() => self._audioState = 0);
+                }
+            });
+            this._audioState = 1;
+        }
+    }
+    recordAudioAnnotation = () => {
+        let gumStream: any;
+        let recorder: any;
+        const self = this;
+        navigator.mediaDevices.getUserMedia({
+            audio: true
+        }).then(function (stream) {
+            gumStream = stream;
+            recorder = new MediaRecorder(stream);
+            recorder.ondataavailable = async (e: any) => {
+                const [{ result }] = await Networking.UploadFilesToServer(e.data);
+                if (!(result instanceof Error)) {
+                    const audioDoc = Docs.Create.AudioDocument(Utils.prepend(result.accessPaths.agnostic.client), { title: "audio test", _width: 200, _height: 32 });
+                    audioDoc.treeViewExpandedView = "layout";
+                    const audioAnnos = Cast(self.dataDoc[self.LayoutFieldKey + "-audioAnnotations"], listSpec(Doc));
+                    if (audioAnnos === undefined) {
+                        self.dataDoc[self.LayoutFieldKey + "-audioAnnotations"] = new List([audioDoc]);
+                    } else {
+                        audioAnnos.push(audioDoc);
+                    }
+                }
+            };
+            runInAction(() => self._audioState = 2);
+            recorder.start();
+            setTimeout(() => {
+                recorder.stop();
+                runInAction(() => self._audioState = 0);
+                gumStream.getAudioTracks()[0].stop();
+            }, 5000);
+        });
+    }
+
     captionStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewInternalProps>, property: string) => this.props?.styleProvider?.(doc, props, property + ":caption");
     @computed get innards() {
         TraceMobx();
-        const showTitle = this.ShowTitle;
-        const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
+        const showTitle = this.ShowTitle?.split(":")[0];
+        const showTitleHover = this.ShowTitle?.includes(":hover");
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const captionView = !showCaption ? (null) :
             <div className="documentView-captionWrapper"
@@ -815,7 +895,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const titleView = !showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: this.headerMargin ? "relative" : "absolute",
-                height: this.headerMargin,
+                height: this.titleHeight,
                 background: SharingManager.Instance.users.find(users => users.user.email === this.dataDoc.author)?.userColor || (this.rootDoc.type === DocumentType.RTF ? StrCast(Doc.SharingDoc().userColor) : "rgba(0,0,0,0.4)"),
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
@@ -932,9 +1012,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
-    focus = (doc: Doc, options?: DocFocusOptions) => {
-        return this.docView?.focus(doc, options);
-    }
+    focus = (doc: Doc, options?: DocFocusOptions) => this.docView?.focus(doc, options);
     getBounds = () => {
         if (!this.docView || !this.docView.ContentDiv || this.docView.props.renderDepth === 0 || this.docView.props.treeViewDoc || Doc.AreProtosEqual(this.props.Document, Doc.UserDoc())) {
             return undefined;

@@ -36,7 +36,8 @@ export enum StyleProp {
     PointerEvents = "pointerEvents",      // pointer events for DocumentView -- inherits pointer events if not specified
     Decorations = "decorations",          // additional decoration to display above a DocumentView -- currently only used to display a Lock for making things background
     HeaderMargin = "headerMargin",        // margin at top of documentview, typically for displaying a title -- doc contents will start below that
-    ShowTitle = "showTitle",              // whether to display a title on a Document
+    TitleHeight = "titleHeight",          // Height of Title area
+    ShowTitle = "showTitle",              // whether to display a title on a Document (optional :hover suffix)
 }
 
 function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkScheme); }
@@ -86,7 +87,8 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             return "white";
         case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
         case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
-        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !doc?._showTitleHover ? 15 : 0;
+        case StyleProp.TitleHeight: return 15;
+        case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
