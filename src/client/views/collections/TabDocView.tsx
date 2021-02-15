@@ -368,7 +368,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             this._document._panX = vals.panX;
             this._document._panY = vals.panY;
             this._document._viewScale = vals.scale;
-            this._document._viewTrasition = `transform ${focusSpeed}ms`;
+            this._document._viewTransition = `transform ${focusSpeed}ms`;
             setTimeout(action(() => {
                 this._document!._viewTransition = undefined;
                 options?.afterFocus?.(false);

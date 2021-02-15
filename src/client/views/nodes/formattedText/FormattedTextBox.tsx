@@ -155,7 +155,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBox.Instance = this;
         this.updateHighlights();
         this._recordingStart = Date.now();
-        this.layoutDoc._timeStampOnEnter = true;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -311,15 +310,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || json.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (removeSelection(json) !== removeSelection(curLayout?.Data)) {
-                            if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
-                                timeStamp = setTimeout(() => this.pause(), 10 * 1000); // 10 seconds delay for time stamp
-                            }
-
-                            // if 10 seconds have passed, insert time stamp the next time you type
-                            if (this._pause) {
-                                this._pause = false;
-                                this.insertTime();
-                            }
                             !curText && tx.storedMarks?.filter(m => m.type.name === "pFontSize").map(m => Doc.UserDoc().fontSize = this.layoutDoc._fontSize = (m.attrs.fontSize + "px"));
                             !curText && tx.storedMarks?.filter(m => m.type.name === "pFontFamily").map(m => Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily);
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
@@ -353,8 +343,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
-    pause = () => this._pause = true;
-
     // for inserting timestamps 
     insertTime = () => {
         let linkTime;
@@ -366,7 +354,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 linkAnchor = anchor;
             }
         });
-        if (this._editorView) {
+        if (this._editorView && linkTime) {
             const state = this._editorView.state;
             const now = Date.now();
             let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
@@ -382,7 +370,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
 
             const path = (this._editorView.state.selection.$from as any).path;
-            if (linkAnchor && linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
+            if (linkAnchor && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
                 const time = linkTime + Date.now() / 1000 - this._recordingStart / 1000;
                 this._break = false;
                 const from = state.selection.from;
@@ -662,7 +650,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: `${FormattedTextBox.CanAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox.CanAnnotate = !FormattedTextBox.CanAnnotate, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
-        !Doc.UserDoc().noviceMode && uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
@@ -1595,7 +1582,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             RichTextMenu.Instance.updateMenu(undefined, undefined, undefined);
         } else {
             if (e.key === "Tab" || e.key === "Enter") {
-                if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
+                if (e.key === "Enter") {
                     this.insertTime();
                 }
                 e.preventDefault();

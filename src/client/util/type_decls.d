@@ -158,6 +158,10 @@ declare abstract class URLField extends ObjectField {
     constructor(url: URL);
 }
 
+declare class RichTextField extends URLField { 
+    [Copy](): ObjectField; 
+    constructor(data:string, text: string);
+}
 declare class AudioField extends URLField { [Copy](): ObjectField; }
 declare class VideoField extends URLField { [Copy](): ObjectField; }
 declare class ImageField extends URLField { [Copy](): ObjectField; }
