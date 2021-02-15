@@ -35,7 +35,7 @@ import { DocumentDecorations } from "../../DocumentDecorations";
 import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth } from "../../InkingStroke";
 import { LightboxView } from "../../LightboxView";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocFocusOptions, DocumentView, DocumentViewProps } from "../../nodes/DocumentView";
+import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../../nodes/DocumentView";
 import { FieldViewProps } from "../../nodes/FieldView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
@@ -921,14 +921,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutdoc = Doc.Layout(doc);
             const savedState = { panX: NumCast(this.Document._panX), panY: NumCast(this.Document._panY), scale: this.Document[this.scaleFieldKey], transition: this.Document._viewTransition };
             const newState = HistoryUtil.getState();
-            const cantTransform = this.props.isAnnotationOverlay || ((this.rootDoc._isGroup || this.layoutDoc._lockedTransform) && !LightboxView.LightboxDoc);
+            const cantTransform = this.props.layoutEngine?.() || this.props.isAnnotationOverlay || ((this.rootDoc._isGroup || this.layoutDoc._lockedTransform) && !LightboxView.LightboxDoc);
             const { panX, panY, scale } = cantTransform ? savedState : this.setPanIntoView(layoutdoc, xfToCollection, options?.willZoom ? options?.scale || .75 : undefined);
             if (!cantTransform) {   // only pan and zoom to focus on a document if the document is not an annotation in an annotation overlay collection
                 newState.initializers![this.Document[Id]] = { panX: panX, panY: panY };
                 HistoryUtil.pushState(newState);
             }
             // focus on the document in the collection
-            const didMove = !doc.z && (panX !== savedState.panX || panY !== savedState.panY || scale !== undefined);
+            const didMove = !cantTransform && !doc.z && (panX !== savedState.panX || panY !== savedState.panY || scale !== undefined);
             const focusSpeed = didMove ? (doc.focusSpeed !== undefined ? Number(doc.focusSpeed) : 500) : 0;
             // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
             if (didMove) {
@@ -942,7 +942,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // focus on this collection within its parent view.  the parent view after focusing determines whether to reset the view change within the collection
             const endFocus = async (moved: boolean) => {
                 doc.hidden && Doc.UnHighlightDoc(doc);
-                const resetView = options?.afterFocus ? await options?.afterFocus(moved) : false;
+                const resetView = options?.afterFocus ? await options?.afterFocus(moved) : ViewAdjustment.doNothing;
                 if (resetView) {
                     const restoreState = LightboxView.LightboxDoc !== this.props.Document && LightboxState ? LightboxState : savedState;
                     this.Document._panX = restoreState.panX;
@@ -961,7 +961,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
             this.props.focus(cantTransform ? doc : this.rootDoc, {
                 ...options, docTransform: xf,
-                afterFocus: (didFocus: boolean) => new Promise<boolean>(res =>
+                afterFocus: (didFocus: boolean) => new Promise<ViewAdjustment>(res =>
                     setTimeout(async () => res(await endFocus(didMove || didFocus)), Math.max(0, focusSpeed - (Date.now() - startTime))))
             });
         }

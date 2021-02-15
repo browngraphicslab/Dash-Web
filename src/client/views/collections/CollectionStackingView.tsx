@@ -21,7 +21,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView, DocumentViewProps, DocFocusOptions } from "../nodes/DocumentView";
+import { DocumentView, DocumentViewProps, DocFocusOptions, ViewAdjustment } from "../nodes/DocumentView";
 import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
@@ -181,10 +181,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 smoothScroll(focusSpeed = doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
             }
         }
-        const endFocus = async (moved: boolean) => options?.afterFocus ? options?.afterFocus(moved) : false;
+        const endFocus = async (moved: boolean) => options?.afterFocus ? options?.afterFocus(moved) : ViewAdjustment.doNothing;
         this.props.focus(this.rootDoc, {
             willZoom: options?.willZoom, scale: options?.scale, afterFocus: (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed))
+                new Promise<ViewAdjustment>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed))
         });
 
     }

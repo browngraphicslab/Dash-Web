@@ -42,14 +42,19 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 
-export interface DocFocusOptions {
-    originalTarget?: Doc;
-    willZoom?: boolean;
-    scale?: number;
-    afterFocus?: DocAfterFocusFunc;
-    docTransform?: Transform;
+export enum ViewAdjustment {
+    resetView = 1,
+    doNothing = 0
+
 }
-export type DocAfterFocusFunc = (notFocused: boolean) => Promise<boolean>;
+export interface DocFocusOptions {
+    originalTarget?: Doc; // set in JumpToDocument, used by TabDocView to determine whether to fit contents to tab
+    willZoom?: boolean;   // determines whether to zoom in on target document
+    scale?: number;       // percent of containing frame to zoom into document
+    afterFocus?: DocAfterFocusFunc;  // function to call after focusing on a document
+    docTransform?: Transform; // when a document can't be panned and zoomed within its own container (say a group), then we need to continue to move up the render hierarchy to find something that can pan and zoom.  when this happens the docTransform must accumulate all the transforms of each level of the hierarchy
+}
+export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>;
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
@@ -385,10 +390,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     focus = (doc: Doc, options?: DocFocusOptions) => {
         const focusSpeed = this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
-        const endFocus = focusSpeed === undefined ? options?.afterFocus : async (moved: boolean) => options?.afterFocus ? options?.afterFocus(true) : false;
+        const endFocus = focusSpeed === undefined ? options?.afterFocus : async (moved: boolean) => options?.afterFocus ? options?.afterFocus(true) : ViewAdjustment.doNothing;
         this.props.focus(options?.docTransform ? doc : this.rootDoc, {
             ...options, afterFocus: (didFocus: boolean) =>
-                new Promise<boolean>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : false), focusSpeed ?? 0))
+                new Promise<ViewAdjustment>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : ViewAdjustment.doNothing), focusSpeed ?? 0))
         });
 
     }

@@ -14,7 +14,7 @@ import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionSubView } from "../collections/CollectionSubView";
-import { DocumentView } from "../nodes/DocumentView";
+import { DocumentView, DocAfterFocusFunc } from "../nodes/DocumentView";
 import { LabelBox } from "../nodes/LabelBox";
 import "./CollectionStackedTimeline.scss";
 import { Transform } from "../../util/Transform";
@@ -257,7 +257,7 @@ export class CollectionStackedTimeline extends CollectionSubView<PanZoomDocument
 
     renderInner = computedFn(function (this: CollectionStackedTimeline, mark: Doc, script: undefined | (() => ScriptField), doublescript: undefined | (() => ScriptField), x: number, y: number, width: number, height: number) {
         const anchor = observable({ view: undefined as any });
-        const focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: (notFocused: boolean) => Promise<boolean>, docTransform?: Transform) => {
+        const focusFunc = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc, docTransform?: Transform) => {
             this.props.playLink(mark);
             this.props.focus(doc, { willZoom, scale, afterFocus, docTransform });
         };

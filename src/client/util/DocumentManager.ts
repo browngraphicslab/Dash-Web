@@ -7,7 +7,7 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
-import { DocumentView } from '../views/nodes/DocumentView';
+import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
 
 export class DocumentManager {
@@ -173,7 +173,7 @@ export class DocumentManager {
         else if (docView) {
             docView.props.focus(targetDoc, {
                 originalTarget, willZoom, afterFocus: (didFocus: boolean) =>
-                    new Promise<boolean>(res => {
+                    new Promise<ViewAdjustment>(res => {
                         focusAndFinish(didFocus);
                         res();
                     })
@@ -197,7 +197,7 @@ export class DocumentManager {
                             if (retryDocView) {   // we found the target in the context
                                 retryDocView.props.focus(targetDoc, {
                                     willZoom, afterFocus: (didFocus: boolean) =>
-                                        new Promise<boolean>(res => {
+                                        new Promise<ViewAdjustment>(res => {
                                             focusAndFinish(didFocus);
                                             res();
                                         })

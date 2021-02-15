@@ -375,13 +375,13 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
             const tabs = Cast(sublists[0], Doc, null);
             const other = Cast(sublists[1], Doc, null);
-            const tabdocs = await DocListCastAsync(tabs.data);
-            const otherdocs = await DocListCastAsync(other.data);
-            Doc.GetProto(tabs).data = new List<Doc>(docs);
+            const tabdocs = await DocListCastAsync(tabs?.data);
+            const otherdocs = await DocListCastAsync(other?.data);
+            tabs && (Doc.GetProto(tabs).data = new List<Doc>(docs));
             const otherSet = new Set<Doc>();
             otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
             tabdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
+            other && (Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values())));
         }, 0);
     }
 

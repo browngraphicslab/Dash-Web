@@ -3,7 +3,7 @@ import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";
 import { LightboxView } from "../views/LightboxView";
-import { DocumentViewSharedProps } from "../views/nodes/DocumentView";
+import { DocumentViewSharedProps, ViewAdjustment } from "../views/nodes/DocumentView";
 import { DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
@@ -105,21 +105,22 @@ export class LinkManager {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
-            const createTabForTarget = (didFocus: boolean) => new Promise<boolean>(res => {
+            const createTabForTarget = (didFocus: boolean) => new Promise<ViewAdjustment>(res => {
                 const where = LightboxView.LightboxDoc ? "lightbox" : StrCast(sourceDoc.followLinkLocation) || followLoc;
                 docViewProps.addDocTab(doc, where);
                 setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
                     if (targDocView) {
                         targDocView.props.focus(doc, {
-                            willZoom: BoolCast(sourceDoc.followLinkZoom, false), afterFocus: (didFocus: boolean) => {
+                            willZoom: BoolCast(sourceDoc.followLinkZoom, false),
+                            afterFocus: (didFocus: boolean) => {
                                 finished?.();
-                                res(true);
-                                return new Promise<boolean>(res2 => res2());
+                                res(ViewAdjustment.resetView);
+                                return new Promise<ViewAdjustment>(res2 => res2());
                             }
                         });
                     } else {
-                        res(where !== "inPlace"); // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+                        res(where !== "inPlace" ? ViewAdjustment.resetView : ViewAdjustment.doNothing); // for 'inPlace'  resetting the initial focus&zoom would negate the zoom into the target 
                     }
                 });
             });
