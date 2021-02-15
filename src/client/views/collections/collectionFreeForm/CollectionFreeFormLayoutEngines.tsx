@@ -1,16 +1,12 @@
-import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../../fields/Types";
-import { ScriptBox } from "../../ScriptBox";
-import { CompileScript } from "../../../util/Scripting";
-import { ScriptField } from "../../../../fields/ScriptField";
-import { OverlayView, OverlayElementOptions } from "../../OverlayView";
-import { emptyFunction, aggregateBounds } from "../../../../Utils";
-import React = require("react");
+import { Doc, Field, FieldResult, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id, ToString } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { RefField } from "../../../../fields/RefField";
 import { listSpec } from "../../../../fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
+import { aggregateBounds } from "../../../../Utils";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import React = require("react");
 
 export interface ViewDefBounds {
     type: string;
