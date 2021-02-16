@@ -115,7 +115,7 @@ export class FormattedTextBoxComment {
             nbef && naft && LinkDocPreview.SetLinkInfo({
                 docProps: textBox.props,
                 linkSrc: textBox.rootDoc,
-                location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - nbef)),
+                location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - Math.max(0, nbef - 1))),
                 hrefs,
                 showHeader: true
             });

@@ -887,12 +887,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
                 }
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
-                const escAnchorId = anchorId[0] > '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
+                const escAnchorId = anchorId[0] >= '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
                 addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
-                setTimeout(() => {
-                    clearStyleSheetRules(FormattedTextBox._highlightStyleSheet);
-                    this.focusSpeed = undefined;
-                }, this.focusSpeed);
+                setTimeout(() => this.focusSpeed = undefined, this.focusSpeed);
+                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this.focusSpeed || 0, 1500));
             }
         }
 

@@ -144,10 +144,6 @@ export class DocumentManager {
         originalTarget = originalTarget ?? targetDoc;
         const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
         const docView = getFirstDocView(targetDoc, originatingDoc);
-        const highlight = () => {
-            const finalDocView = getFirstDocView(targetDoc);
-            finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
-        };
         const focusAndFinish = (didFocus: boolean) => {
             if (originatingDoc?.isPushpin) {
                 if (!didFocus || targetDoc.hidden) {
@@ -157,7 +153,6 @@ export class DocumentManager {
                 targetDoc.hidden && (targetDoc.hidden = undefined);
                 docView?.select(false);
             }
-            highlight();
             finished?.();
             return false;
         };
@@ -167,11 +162,10 @@ export class DocumentManager {
         const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc) || Doc.AreProtosEqual(doc, annotatedDoc)) ? docContext : undefined;
         const targetDocContext = contextDoc || annotatedDoc;
         const targetDocContextView = targetDocContext && getFirstDocView(targetDocContext);
-        if (!docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView) {
-            rtfView.focus(targetDoc);
-        }
-        else if (docView) {
-            docView.props.focus(targetDoc, {
+        const focusView = !docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView ? rtfView : docView;
+        if (focusView) {
+            focusView && Doc.linkFollowHighlight(focusView.rootDoc);
+            focusView.focus(targetDoc, {
                 originalTarget, willZoom, afterFocus: (didFocus: boolean) =>
                     new Promise<ViewAdjustment>(res => {
                         focusAndFinish(didFocus);
@@ -181,7 +175,6 @@ export class DocumentManager {
         } else {
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
-                highlight();
             } else {  // otherwise try to get a view of the context of the target
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
@@ -202,7 +195,6 @@ export class DocumentManager {
                                             res();
                                         })
                                 }); // focus on the target in the context
-                                highlight();
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);

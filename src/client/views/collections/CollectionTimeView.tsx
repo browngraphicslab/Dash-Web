@@ -1,6 +1,6 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocCastAsync } from "../../../fields/Doc";
+import { Doc, Opt, DocCastAsync, StrListCast } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -19,7 +19,12 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
+import { toUpper } from "lodash";
+import { DocumentManager } from "../../util/DocumentManager";
+import { listSpec } from "../../../fields/Schema";
+import { LinkManager } from "../../util/LinkManager";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -28,13 +33,54 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _collapsed: boolean = false;
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
+
+    getAnchor = () => {
+        const anchor = Docs.Create.TextanchorDocument({
+            title: ComputedField.MakeFunction(`"${this.pivotField}"])`) as any,
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            annotationOn: this.rootDoc
+        });
+        Doc.GetProto(anchor).pivotField = this.pivotField;
+        Doc.GetProto(anchor).docFilters = ObjectField.MakeCopy(this.layoutDoc._docFilters as ObjectField);
+        Doc.GetProto(anchor)._docRangeFilters = ObjectField.MakeCopy(this.layoutDoc._docRangeFilters as ObjectField);
+        if (Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), null) !== undefined) {
+            Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), []).push(anchor);
+        } else {
+            this.dataDoc[this.props.fieldKey + "-annotations"] = new List<Doc>([anchor]);
+        }
+        return anchor;
+    }
+
     async componentDidMount() {
-        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || DocUtils.findTemplate("detailView", StrCast(this.props.Document.type), "");
-        const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
+        this.props.setContentView?.(this);
+        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || DocUtils.findTemplate("detailView", StrCast(this.rootDoc.type), "");
+        ///const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
+        const childText = "openInLightbox(self, shiftKey); ";
         runInAction(() => {
             this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
             this._viewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
         });
+    }
+
+    @observable _scrollFilters: Opt<string[]>;
+    @observable _scrollPivotField: Opt<string>;
+    timeDocFilters = () => this._scrollFilters || ([] as string[]);
+    get pivotField() { return this._scrollPivotField || StrCast(this.layoutDoc._pivotField); }
+    @action
+    scrollFocus = (anchor: Doc, smooth: boolean) => {
+        if (!LinkDocPreview.LinkInfo) {
+            if (anchor.pivotField !== undefined) {
+                this.layoutDoc._prevFilterIndex = 1;
+                this.layoutDoc._pivotField = StrCast(anchor.pivotField);
+                this.layoutDoc._docFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docFilters as ObjectField);
+                this.layoutDoc._docRangeFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docRangeFilters as ObjectField);
+            }
+        } else {
+            this._scrollPivotField = StrCast(anchor.pivotField);
+            this._scrollFilters = StrListCast(Doc.GetProto(anchor).docFilters);
+        }
+        return 0;
     }
 
     layoutEngine = () => this._layoutEngine;
@@ -69,24 +115,30 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }), returnFalse, emptyFunction);
     }
 
-    contentsDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, returnFalse, returnFalse, action(() => {
-            let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
-            if (prevFilterIndex > 0) {
-                prevFilterIndex--;
-                this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
-                this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
-                this.props.Document._prevFilterIndex = prevFilterIndex;
-            } else {
-                this.props.Document._docFilters = new List([]);
-            }
-        }), false);
+    goTo = (prevFilterIndex: number) => {
+        this.layoutDoc._pivotField = this.layoutDoc["_prevPivotFields" + prevFilterIndex];
+        this.layoutDoc._docFilters = ObjectField.MakeCopy(this.layoutDoc["_prevDocFilter" + prevFilterIndex] as ObjectField);
+        this.layoutDoc._docRangeFilters = ObjectField.MakeCopy(this.layoutDoc["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
+        this.layoutDoc._prevFilterIndex = prevFilterIndex;
+    }
+
+    @action
+    contentsDown = (e: React.MouseEvent) => {
+        let prevFilterIndex = NumCast(this.layoutDoc._prevFilterIndex);
+        if (prevFilterIndex > 0) {
+            this.goTo(prevFilterIndex - 1);
+        } else {
+            this.layoutDoc._docFilters = new List([]);
+        }
     }
 
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
+        return <div className="collectionTimeView-innards" key="timeline" style={{ pointerEvents: this.props.active() ? undefined : "none" }}
+            onClick={this.contentsDown}>
             <CollectionFreeFormView {...this.props}
+                engineProps={{ pivotField: this.pivotField, docFilters: this.docFilters }}
                 fitContentsToDoc={returnTrue}
+                docFilters={this.timeDocFilters}
                 childClickScript={this._childClickedScript}
                 viewDefDivClick={this._viewDefDivClick}
                 childFreezeDimensions={true}
@@ -100,7 +152,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
     specificMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
-        const doc = this.props.Document;
+        const doc = this.layoutDoc;
 
         layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline"; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot"; }, icon: "compress-arrows-alt" });
@@ -123,10 +175,10 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         this.childLayoutPairs.map(pair => this._allFacets.filter(fieldKey =>
             pair.layout[fieldKey] instanceof RichTextField ||
             typeof (pair.layout[fieldKey]) === "number" ||
-            typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
+            typeof (pair.layout[fieldKey]) === "string").filter(fieldKey => fieldKey[0] !== "_" && (fieldKey[0] === "#" || fieldKey[0] === toUpper(fieldKey)[0])).map(fieldKey => keySet.add(fieldKey)));
         Array.from(keySet).map(fieldKey =>
-            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
-        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" });
+            docItems.push({ description: ":" + fieldKey, event: () => this.layoutDoc._pivotField = fieldKey, icon: "compress-arrows-alt" }));
+        docItems.push({ description: ":(null)", event: () => this.layoutDoc._pivotField = undefined, icon: "compress-arrows-alt" });
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
         const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y, ":");
@@ -137,13 +189,13 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             GetValue: () => "",
             SetValue: (value: any) => {
                 if (value?.length) {
-                    this.props.Document._pivotField = value;
+                    this.layoutDoc._pivotField = value;
                     return true;
                 }
                 return false;
             },
             showMenuOnLoad: true,
-            contents: ":" + StrCast(this.props.Document._pivotField),
+            contents: ":" + StrCast(this.layoutDoc._pivotField),
             toggle: this.toggleVisibility,
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
@@ -155,12 +207,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     render() {
         let nonNumbers = 0;
         this.childDocs.map(doc => {
-            const num = NumCast(doc[StrCast(this.props.Document._pivotField)], Number(StrCast(doc[StrCast(this.props.Document._pivotField)])));
+            const num = NumCast(doc[this.pivotField], Number(StrCast(doc[this.pivotField])));
             if (Number.isNaN(num)) {
                 nonNumbers++;
             }
         });
-        const forceLayout = StrCast(this.props.Document._forceRenderEngine);
+        const forceLayout = StrCast(this.layoutDoc._forceRenderEngine);
         const doTimeline = forceLayout ? (forceLayout === "timeline") : nonNumbers / this.childDocs.length < 0.1 && this.props.PanelWidth() / this.props.PanelHeight() > 6;
         if (doTimeline !== (this._layoutEngine === "timeline")) {
             if (!this._changing) {
@@ -173,7 +225,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }
 
         return <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
-            style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.layoutDoc._chromeStatus === "enabled" ? 51 : 0}px)` }}>
             {this.pivotKeyUI}
             {this.contents}
             {!this.props.isSelected() || !doTimeline ? (null) : <>
@@ -189,10 +241,17 @@ Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBoun
     let prevFilterIndex = NumCast(pivotDoc._prevFilterIndex);
     pivotDoc["_prevDocFilter" + prevFilterIndex] = ObjectField.MakeCopy(pivotDoc._docFilters as ObjectField);
     pivotDoc["_prevDocRangeFilters" + prevFilterIndex] = ObjectField.MakeCopy(pivotDoc._docRangeFilters as ObjectField);
+    pivotDoc["_prevPivotFields" + prevFilterIndex] = pivotDoc._pivotField;
     pivotDoc._prevFilterIndex = ++prevFilterIndex;
     runInAction(() => {
         pivotDoc._docFilters = new List();
-        (bounds.payload as string[]).map(filterVal =>
-            Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+        const filterVals = (bounds.payload as string[]);
+        filterVals.map(filterVal => Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+        const pivotView = DocumentManager.Instance.getDocumentView(pivotDoc);
+        if (pivotDoc && pivotView?.ComponentView instanceof CollectionTimeView && filterVals.length === 1) {
+            if (pivotView?.ComponentView.childDocs.length && pivotView.ComponentView.childDocs[0][filterVals[0]]) {
+                pivotDoc._pivotField = filterVals[0];
+            }
+        }
     });
 });

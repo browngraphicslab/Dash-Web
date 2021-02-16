@@ -21,9 +21,9 @@ import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { TabDocView } from './TabDocView';
 import React = require("react");
-import { stat } from 'fs';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { listSpec } from '../../../fields/Schema';
+import { LightboxView } from '../LightboxView';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -435,6 +435,8 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     }
 }
 
+Scripting.addGlobal(function openInLightbox(doc: any) { LightboxView.AddDocTab(doc, "lightbox"); },
+    "opens up document in a lightbox", "(doc: any)");
 Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddSplit(doc, "right"); },
-    "opens up the inputted document on the right side of the screen", "(doc: any)");
+    "opens up document in tab on right side of the screen", "(doc: any)");
 Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.ReplaceTab(doc, "right", undefined, shiftKey); });

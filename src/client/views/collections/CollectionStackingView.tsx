@@ -170,7 +170,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
 
     focusDocument = (doc: Doc, options?: DocFocusOptions) => {
         Doc.BrushDoc(doc);
-        Doc.linkFollowHighlight(doc);
 
         let focusSpeed = 0;
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
@@ -186,7 +185,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             willZoom: options?.willZoom, scale: options?.scale, afterFocus: (didFocus: boolean) =>
                 new Promise<ViewAdjustment>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed))
         });
-
     }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
