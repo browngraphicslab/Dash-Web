@@ -45,6 +45,7 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { ObjectField } from "../../../fields/ObjectField";
 const { Howl } = require('howler');
 
 interface Window {
@@ -56,12 +57,13 @@ declare class MediaRecorder {
     constructor(e: any);
 }
 
-
 export enum ViewAdjustment {
     resetView = 1,
     doNothing = 0
-
 }
+
+export const ViewSpecPrefix = "_VIEW";  // field prefix for anchor fields that are immediately copied over to the target document when link is followed.  Other anchor properties will be copied over in the specific setViewSpec() method on their view (which allows for seting preview values instead of writing to the document)
+
 export interface DocFocusOptions {
     originalTarget?: Doc; // set in JumpToDocument, used by TabDocView to determine whether to fit contents to tab
     willZoom?: boolean;   // determines whether to zoom in on target document
@@ -75,6 +77,7 @@ export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | F
 export interface DocComponentView {
     getAnchor?: () => Doc;
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
+    setViewSpec?: (anchor: Doc, preview: boolean) => void;
     back?: () => boolean;
     forward?: () => boolean;
     url?: () => string;
@@ -405,10 +408,14 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         }
     }
 
-    focus = (doc: Doc, options?: DocFocusOptions) => {
-        const focusSpeed = this._componentView?.scrollFocus?.(doc, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
+    focus = (anchor: Doc, options?: DocFocusOptions) => {
+        // copying over _VIEW fields immediately allows the view type to switch to create the right _componentView
+        Array.from(Object.keys(Doc.GetProto(anchor))).filter(key => key.startsWith(ViewSpecPrefix)).forEach(spec => this.layoutDoc[spec.replace(ViewSpecPrefix, "")] = ((field) => field instanceof ObjectField ? ObjectField.MakeCopy(field) : field)(anchor[spec]));
+        // after  a timeout, the right _componentView should have been created, so call it to update its view spec values
+        setTimeout(() => this._componentView?.setViewSpec?.(anchor, LinkDocPreview.LinkInfo ? true : false));
+        const focusSpeed = this._componentView?.scrollFocus?.(anchor, !LinkDocPreview.LinkInfo); // bcz: smooth parameter should really be passed into focus() instead of inferred here      
         const endFocus = focusSpeed === undefined ? options?.afterFocus : async (moved: boolean) => options?.afterFocus ? options?.afterFocus(true) : ViewAdjustment.doNothing;
-        this.props.focus(options?.docTransform ? doc : this.rootDoc, {
+        this.props.focus(options?.docTransform ? anchor : this.rootDoc, {
             ...options, afterFocus: (didFocus: boolean) =>
                 new Promise<ViewAdjustment>(res => setTimeout(async () => res(endFocus ? await endFocus(didFocus) : ViewAdjustment.doNothing), focusSpeed ?? 0))
         });

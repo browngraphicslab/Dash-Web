@@ -1,16 +1,21 @@
+import { toUpper } from "lodash";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocCastAsync, StrListCast } from "../../../fields/Doc";
+import { Doc, DocCastAsync, Opt, StrListCast } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
 import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { NumCast, StrCast, BoolCast, Cast } from "../../../fields/Types";
-import { emptyFunction, returnFalse, setupMoveUpEvents, returnTrue } from "../../../Utils";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
+import { ViewSpecPrefix } from "../nodes/DocumentView";
 import { ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionSubView } from "./CollectionSubView";
@@ -19,12 +24,6 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
-import { DocUtils, Docs } from "../../documents/Documents";
-import { toUpper } from "lodash";
-import { DocumentManager } from "../../util/DocumentManager";
-import { listSpec } from "../../../fields/Schema";
-import { LinkManager } from "../../util/LinkManager";
-import { LinkDocPreview } from "../nodes/LinkDocPreview";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -33,6 +32,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _collapsed: boolean = false;
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
+    @observable _focusDocFilters: Opt<string[]>; // fields that get overridden by a focus anchor
+    @observable _focusPivotField: Opt<string>;
+    @observable _focusRangeFilters: Opt<string[]>;
 
     getAnchor = () => {
         const anchor = Docs.Create.TextanchorDocument({
@@ -41,9 +43,15 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             hideLinkButton: true,
             annotationOn: this.rootDoc
         });
-        Doc.GetProto(anchor).pivotField = this.pivotField;
-        Doc.GetProto(anchor).docFilters = ObjectField.MakeCopy(this.layoutDoc._docFilters as ObjectField);
-        Doc.GetProto(anchor)._docRangeFilters = ObjectField.MakeCopy(this.layoutDoc._docRangeFilters as ObjectField);
+
+        // save view spec information for anchor
+        const proto = Doc.GetProto(anchor);
+        proto.pivotField = this.pivotField;
+        proto.docFilters = ObjectField.MakeCopy(this.layoutDoc._docFilters as ObjectField) || new List<string>([]);
+        proto.docRangeFilters = ObjectField.MakeCopy(this.layoutDoc._docRangeFilters as ObjectField) || new List<string>([]);
+        proto[ViewSpecPrefix + "_viewType"] = this.layoutDoc._viewType;
+
+        // store anchor in annotations list of document (not technically needed since these anchors are never drawn)
         if (Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), null) !== undefined) {
             Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), []).push(anchor);
         } else {
@@ -63,26 +71,24 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         });
     }
 
-    @observable _scrollFilters: Opt<string[]>;
-    @observable _scrollPivotField: Opt<string>;
-    timeDocFilters = () => this._scrollFilters || ([] as string[]);
-    get pivotField() { return this._scrollPivotField || StrCast(this.layoutDoc._pivotField); }
+    get pivotField() { return this._focusPivotField || StrCast(this.layoutDoc._pivotField); }
     @action
-    scrollFocus = (anchor: Doc, smooth: boolean) => {
-        if (!LinkDocPreview.LinkInfo) {
-            if (anchor.pivotField !== undefined) {
-                this.layoutDoc._prevFilterIndex = 1;
-                this.layoutDoc._pivotField = StrCast(anchor.pivotField);
-                this.layoutDoc._docFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docFilters as ObjectField);
-                this.layoutDoc._docRangeFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docRangeFilters as ObjectField);
-            }
-        } else {
-            this._scrollPivotField = StrCast(anchor.pivotField);
-            this._scrollFilters = StrListCast(Doc.GetProto(anchor).docFilters);
+    setViewSpec = (anchor: Doc, preview: boolean) => {
+        if (preview) {   // if in preview, then override document's fields with view spec
+            this._focusPivotField = StrCast(anchor.pivotField);
+            this._focusDocFilters = StrListCast(anchor.docFilters);
+            this._focusRangeFilters = StrListCast(anchor.docRangeFilters);
+        } else if (anchor.pivotField !== undefined) {  // otherwise set document's fields based on anchor view spec
+            this.layoutDoc._prevFilterIndex = 1;
+            this.layoutDoc._pivotField = StrCast(anchor.pivotField);
+            this.layoutDoc._docFilters = new List<string>(this.pivotDocFilters());
+            this.layoutDoc._docRangeFilters = new List<string>(this.pivotDocRangeFilters());
         }
         return 0;
     }
 
+    pivotDocFilters = () => this._focusDocFilters || this.props.docFilters();
+    pivotDocRangeFilters = () => this._focusRangeFilters || this.props.docRangeFilters();
     layoutEngine = () => this._layoutEngine;
     toggleVisibility = action(() => this._collapsed = !this._collapsed);
 
@@ -136,9 +142,10 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         return <div className="collectionTimeView-innards" key="timeline" style={{ pointerEvents: this.props.active() ? undefined : "none" }}
             onClick={this.contentsDown}>
             <CollectionFreeFormView {...this.props}
-                engineProps={{ pivotField: this.pivotField, docFilters: this.docFilters }}
+                engineProps={{ pivotField: this.pivotField, docFilters: this.docFilters, docRangeFilters: this.docRangeFilters }}
                 fitContentsToDoc={returnTrue}
-                docFilters={this.timeDocFilters}
+                docFilters={this.pivotDocFilters}
+                docRangeFilters={this.pivotDocRangeFilters}
                 childClickScript={this._childClickedScript}
                 viewDefDivClick={this._viewDefDivClick}
                 childFreezeDimensions={true}

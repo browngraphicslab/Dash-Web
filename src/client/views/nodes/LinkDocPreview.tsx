@@ -45,7 +45,11 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
         if (anchor1 && anchor2) {
             linkTarget = Doc.AreProtosEqual(anchor1, this._linkSrc) || Doc.AreProtosEqual(anchor1?.annotationOn as Doc, this._linkSrc) ? anchor2 : anchor1;
         }
-        linkTarget && DocCastAsync(linkTarget.annotationOn).then(action(anno => this._targetDoc = anno));
+        if (linkTarget?.annotationOn) {
+            linkTarget && DocCastAsync(linkTarget.annotationOn).then(action(anno => this._targetDoc = anno));
+        } else {
+            this._targetDoc = linkTarget;
+        }
         this._toolTipText = "";
     }
     componentDidUpdate(props: any) {

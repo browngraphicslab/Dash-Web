@@ -6,6 +6,7 @@ import { collectionSchema, documentSchema } from "../../../../fields/documentSch
 import { Id } from "../../../../fields/FieldSymbols";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
+import { ObjectField } from "../../../../fields/ObjectField";
 import { RichTextField } from "../../../../fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../../fields/Schema";
 import { ScriptField } from "../../../../fields/ScriptField";
@@ -35,7 +36,7 @@ import { DocumentDecorations } from "../../DocumentDecorations";
 import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth } from "../../InkingStroke";
 import { LightboxView } from "../../LightboxView";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../../nodes/DocumentView";
+import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment, ViewSpecPrefix } from "../../nodes/DocumentView";
 import { FieldViewProps } from "../../nodes/FieldView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
@@ -114,6 +115,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable _focusFilters: Opt<string[]>; // fields that get overriden by focus anchor
 
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentVals() {
@@ -985,7 +987,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 panY: (bounds.top + bounds.bot) / 2,
                 scale: Math.min(maxZoom, scale * Math.min(this.props.PanelWidth() / Math.abs(pt2[0] - pt[0]), this.props.PanelHeight() / Math.abs(pt2[1] - pt[1])))
             };
-        } else if ((screen.right - screen.left) < (bounds.right - bounds.left)) {
+        } else if ((screen.right - screen.left) < (bounds.right - bounds.left) ||
+            (screen.bot - screen.top) < (bounds.bot - bounds.top)) {
             return {
                 panX: (bounds.left + bounds.right) / 2,
                 panY: (bounds.top + bounds.bot) / 2,
@@ -1023,7 +1026,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
-            docFilters: this.docFilters,
+            docFilters: this.freeformDocFilters,
             docRangeFilters: this.docRangeFilters,
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
@@ -1201,6 +1204,35 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         this.Document._useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
         return elements;
+    }
+
+    freeformDocFilters = () => this._focusFilters || this.docFilters();
+    @action
+    setViewSpec = (anchor: Doc, preview: boolean) => {
+        if (preview) {
+            this._focusFilters = StrListCast(Doc.GetProto(anchor).docFilters);
+        } else if (anchor.pivotField !== undefined) {
+            this.layoutDoc._docFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docFilters as ObjectField);
+        }
+        return 0;
+    }
+
+    getAnchor = () => {
+        const anchor = Docs.Create.TextanchorDocument({
+            title: StrCast(this.layoutDoc._viewType),
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            annotationOn: this.rootDoc
+        });
+        const proto = Doc.GetProto(anchor);
+        proto[ViewSpecPrefix + "_viewType"] = this.layoutDoc._viewType;
+        proto[ViewSpecPrefix + "_docFilters"] = ObjectField.MakeCopy(this.layoutDoc.docFilters as ObjectField) || new List<string>([]);
+        if (Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), null) !== undefined) {
+            Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), []).push(anchor);
+        } else {
+            this.dataDoc[this.props.fieldKey + "-annotations"] = new List<Doc>([anchor]);
+        }
+        return anchor;
     }
     freeformData = (force?: boolean) => this.fitToContent || force ? this.fitToContentVals : undefined;
     @action

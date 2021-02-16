@@ -103,7 +103,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
 
     @undoBatch
-    setColumnType = (columnField: SchemaHeaderField, type: ColumnType): void => {
+    setColumnType = action((columnField: SchemaHeaderField, type: ColumnType): void => {
         this._openTypes = false;
         if (columnTypes.get(columnField.heading)) return;
 
@@ -114,7 +114,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             columns[index] = columnField;
             this.columns = columns;
         }
-    }
+    });
 
     @undoBatch
     setColumnColor = (columnField: SchemaHeaderField, color: string): void => {
