@@ -81,8 +81,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         } else if (anchor.pivotField !== undefined) {  // otherwise set document's fields based on anchor view spec
             this.layoutDoc._prevFilterIndex = 1;
             this.layoutDoc._pivotField = StrCast(anchor.pivotField);
-            this.layoutDoc._docFilters = new List<string>(this.pivotDocFilters());
-            this.layoutDoc._docRangeFilters = new List<string>(this.pivotDocRangeFilters());
+            this.layoutDoc._docFilters = new List<string>(StrListCast(anchor.docFilters));
+            this.layoutDoc._docRangeFilters = new List<string>(StrListCast(anchor.docRangeFilters));
         }
         return 0;
     }

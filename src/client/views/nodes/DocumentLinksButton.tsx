@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, DocListCastAsync } from "../../../fields/Doc";
 import { emptyFunction, setupMoveUpEvents, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { TraceMobx } from "../../../fields/util";
 import { DocUtils, Docs } from "../../documents/Documents";
@@ -17,6 +17,9 @@ import { Id } from "../../../fields/FieldSymbols";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 import React = require("react");
 import './DocumentLinksButton.scss';
+import { DocServer } from "../../DocServer";
+import { LightboxView } from "../LightboxView";
+import { cat } from "shelljs";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -83,7 +86,35 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     DocumentLinksButton.StartLinkView = this.props.View;
                 }
             } else if (!this.props.InMenu) {
-                DocumentLinksButton.LinkEditorDocView = this.props.View;
+                if (doubleTap) {
+                    const rootDoc = this.props.View.rootDoc;
+                    const docid = Doc.CurrentUserEmail + Doc.GetProto(rootDoc)[Id] + "-pivotish";
+                    DocServer.GetRefField(docid).then(async docx => {
+                        const rootAlias = () => {
+                            const rootAlias = Doc.MakeAlias(rootDoc);
+                            rootAlias.x = rootAlias.y = 0;
+                            return rootAlias;
+                        }
+                        let wid = rootDoc[WidthSym]();
+                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([rootAlias()], { title: this.props.View.Document.title + "-pivot", _width: 500, _height: 500, }, docid);
+                        const docs = await DocListCastAsync(Doc.GetProto(target).data);
+                        if (!target.pivotFocusish) (Doc.GetProto(target).pivotFocusish = target);
+                        DocListCast(rootDoc.links).forEach(link => {
+                            const other = LinkManager.getOppositeAnchor(link, rootDoc);
+                            const otherdoc = !other ? undefined : other.annotationOn ? Cast(other.annotationOn, Doc, null) : other;
+                            if (otherdoc && !docs?.some(d => Doc.AreProtosEqual(d, otherdoc))) {
+                                const alias = Doc.MakeAlias(otherdoc);
+                                alias.x = wid;
+                                alias.y = 0;
+                                alias.lockedPosition = false;
+                                wid += otherdoc[WidthSym]();
+                                Doc.AddDocToList(Doc.GetProto(target), "data", alias);
+                            }
+                        });
+                        LightboxView.SetLightboxDoc(target);
+                    });
+                }
+                else DocumentLinksButton.LinkEditorDocView = this.props.View;
             }
         }));
     }

@@ -116,6 +116,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _timelineRef = React.createRef<Timeline>();
     @observable _marqueeRef = React.createRef<HTMLDivElement>();
     @observable _focusFilters: Opt<string[]>; // fields that get overriden by focus anchor
+    @observable _focusRangeFilters: Opt<string[]>; // fields that get overriden by focus anchor
 
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentVals() {
@@ -1027,7 +1028,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
             docFilters: this.freeformDocFilters,
-            docRangeFilters: this.docRangeFilters,
+            docRangeFilters: this.freeformRangeDocFilters,
             searchFilterDocs: this.searchFilterDocs,
             focus: this.focusDocument,
             styleProvider: this.getClusterColor,
@@ -1207,12 +1208,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     freeformDocFilters = () => this._focusFilters || this.docFilters();
+    freeformRangeDocFilters = () => this._focusRangeFilters || this.docRangeFilters();
     @action
     setViewSpec = (anchor: Doc, preview: boolean) => {
         if (preview) {
             this._focusFilters = StrListCast(Doc.GetProto(anchor).docFilters);
+            this._focusRangeFilters = StrListCast(Doc.GetProto(anchor).docRangeFilters);
         } else if (anchor.pivotField !== undefined) {
-            this.layoutDoc._docFilters = ObjectField.MakeCopy(Doc.GetProto(anchor).docFilters as ObjectField);
+            this.layoutDoc._docFilters = new List<string>(StrListCast(anchor.docFilters));
+            this.layoutDoc._docRangeFilters = new List<string>(StrListCast(anchor.docRangeFilters));
         }
         return 0;
     }
