@@ -182,7 +182,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         this.childLayoutPairs.map(pair => this._allFacets.filter(fieldKey =>
             pair.layout[fieldKey] instanceof RichTextField ||
             typeof (pair.layout[fieldKey]) === "number" ||
-            typeof (pair.layout[fieldKey]) === "string").filter(fieldKey => fieldKey[0] !== "_" && (fieldKey[0] === "#" || fieldKey[0] === toUpper(fieldKey)[0])).map(fieldKey => keySet.add(fieldKey)));
+            typeof (pair.layout[fieldKey]) === "boolean" ||
+            typeof (pair.layout[fieldKey]) === "string").filter(fieldKey => fieldKey[0] !== "_" && (fieldKey[0] !== "#" || fieldKey === "#") && (fieldKey === "tags" || fieldKey[0] === toUpper(fieldKey)[0])).map(fieldKey => keySet.add(fieldKey)));
         Array.from(keySet).map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.layoutDoc._pivotField = fieldKey, icon: "compress-arrows-alt" }));
         docItems.push({ description: ":(null)", event: () => this.layoutDoc._pivotField = undefined, icon: "compress-arrows-alt" });

@@ -145,7 +145,7 @@ export function computePivotLayout(
     let nonNumbers = 0;
     const pivotFieldKey = toLabel(engineProps?.pivotField ?? pivotDoc._pivotField);
     childPairs.map(pair => {
-        const lval = pivotFieldKey === "#" ? Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(k => k.startsWith("#")).map(k => k.substring(1)) :
+        const lval = pivotFieldKey === "#" || pivotFieldKey === "tags" ? Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(k => k.startsWith("#")).map(k => k.substring(1)) :
             Cast(pair.layout[pivotFieldKey], listSpec("string"), null);
 
         const num = toNumber(pair.layout[pivotFieldKey]);
