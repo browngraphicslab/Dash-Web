@@ -144,6 +144,7 @@ export interface DocumentOptions {
     _layers?: List<string>;
     _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     isLinkButton?: boolean;
+    isFolder?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
     _fontWeight?: number;
@@ -211,7 +212,7 @@ export interface DocumentOptions {
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
-    treeViewOutlineMode?: boolean; // whether slide should function as a text outline
+    treeViewType?: string; // whether treeview is a Slide, file system, or (default) collection hierarchy
     treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
     treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar

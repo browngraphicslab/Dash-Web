@@ -378,7 +378,7 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewOutlineMode: true, _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewType: "outline", _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
             Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;

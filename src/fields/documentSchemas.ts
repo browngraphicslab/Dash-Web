@@ -81,7 +81,7 @@ export const documentSchema = createSchema({
     treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
     treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
-    treeViewOutlineMode: "boolean", // whether tree view is an outline and clicks edit document titles immediately since double-click opening is turned off
+    treeViewType: "string", // whether tree view is an outline, file syste or (default) hierarchy. For outline, clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 

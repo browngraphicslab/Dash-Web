@@ -140,8 +140,11 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             height={"auto"}
             GetValue={() => StrCast(this.dataDoc.title)}
             SetValue={undoBatch((value: string, shift: boolean, enter: boolean) => {
-                if (this.props.Document.treeViewOutlineMode && enter) {
-                    this.makeTextCollection(childDocs);
+                if (enter) {
+                    switch (this.props.Document.treeViewType) {
+                        case "outline": this.makeTextCollection(childDocs); break;
+                        case "fileSystem": break;
+                    }
                 }
                 return Doc.SetInPlace(this.dataDoc, "title", value, false);
             })} />;
@@ -209,7 +212,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;
-        return hideTitle ? (null) : (this.doc.treeViewOutlineMode ? this.documentTitle : this.editableTitle)(this.treeChildren);
+        return hideTitle ? (null) : (this.doc.treeViewType === "outline" ? this.documentTitle : this.editableTitle)(this.treeChildren);
     }
     render() {
         TraceMobx();
