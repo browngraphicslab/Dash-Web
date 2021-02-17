@@ -465,13 +465,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                     clientY: clientY,
                     shiftKey
                 }, console.log);
-                const clickFunc = () => {
-                    if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) &&
-                        !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc) &&
-                        !this.onClickHandler.script.originalScript.includes("selectMainMenu")) {
-                        UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on click");
-                    } else func();
-                };
+                const clickFunc = () => this.props.Document.dontUndo ? func() :
+                    UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on click");
                 if (this.onDoubleClickHandler) {
                     this._timeout = setTimeout(() => { this._timeout = undefined; clickFunc(); }, 350);
                 } else clickFunc();

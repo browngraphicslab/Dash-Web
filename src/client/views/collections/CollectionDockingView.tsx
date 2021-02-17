@@ -437,6 +437,6 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
 Scripting.addGlobal(function openInLightbox(doc: any) { LightboxView.AddDocTab(doc, "lightbox"); },
     "opens up document in a lightbox", "(doc: any)");
-Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddSplit(doc, "right"); },
+Scripting.addGlobal(function openOnRight(doc: any) { return CollectionDockingView.AddSplit(doc, "right"); },
     "opens up document in tab on right side of the screen", "(doc: any)");
 Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.ReplaceTab(doc, "right", undefined, shiftKey); });

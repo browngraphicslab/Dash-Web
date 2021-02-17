@@ -111,6 +111,7 @@ export interface DocumentOptions {
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
+    dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
     _viewScale?: number;
     _overflow?: string;

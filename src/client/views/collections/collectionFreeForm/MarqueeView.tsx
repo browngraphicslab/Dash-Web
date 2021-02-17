@@ -135,7 +135,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             } else if (e.key === "f" && e.ctrlKey) {
                 e.preventDefault();
                 const root = Docs.Create.FreeformDocument([], { title: "folder", _stayInCollection: true, system: true, isFolder: true });
-                const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem" });
+                const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem", treeViewTruncateTitleWidth: 150 });
                 Doc.GetProto(folder).isFolder = true;
                 folder.x = x;
                 folder.y = y;
