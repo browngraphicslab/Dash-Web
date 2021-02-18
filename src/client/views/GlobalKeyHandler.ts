@@ -134,7 +134,7 @@ export class KeyManager {
                 }
                 if (doDeselect) {
                     SelectionManager.DeselectAll();
-                    LightboxView.LightboxDoc = undefined;
+                    LightboxView.SetLightboxDoc(undefined);
                 }
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();

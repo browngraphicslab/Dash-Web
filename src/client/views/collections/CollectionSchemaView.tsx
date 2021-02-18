@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, emptyPath, returnFalse, setupMoveUpEvents, returnEmptyDoclist } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, setupMoveUpEvents, returnEmptyDoclist, returnTrue } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
@@ -25,6 +25,7 @@ import { DefaultStyleProvider } from "../StyleProvider";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
+import { DocUtils } from "../../documents/Documents";
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {
@@ -102,7 +103,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
 
     @undoBatch
-    setColumnType = (columnField: SchemaHeaderField, type: ColumnType): void => {
+    setColumnType = action((columnField: SchemaHeaderField, type: ColumnType): void => {
         this._openTypes = false;
         if (columnTypes.get(columnField.heading)) return;
 
@@ -113,7 +114,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             columns[index] = columnField;
             this.columns = columns;
         }
-    }
+    });
 
     @undoBatch
     setColumnColor = (columnField: SchemaHeaderField, color: string): void => {
@@ -401,10 +402,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 <DocumentView
                     Document={this.previewDocument}
                     DataDoc={undefined}
-                    fitContentsToDoc={true}
+                    fitContentsToDoc={returnTrue}
                     freezeDimensions={true}
                     dontCenter={"y"}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     renderDepth={this.props.renderDepth}
                     rootSelected={this.rootSelected}
                     PanelWidth={this.previewWidth}

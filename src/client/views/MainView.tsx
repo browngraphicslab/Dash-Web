@@ -16,7 +16,7 @@ import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
-import { Docs } from '../documents/Documents';
+import { Docs, DocUtils } from '../documents/Documents';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import { GroupManager } from '../util/GroupManager';
@@ -48,7 +48,7 @@ import "./MainView.scss";
 import "./collections/TreeView.scss";
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { DocumentView, DocumentViewProps } from './nodes/DocumentView';
+import { DocumentView, DocumentViewProps, DocAfterFocusFunc } from './nodes/DocumentView';
 import { FieldViewProps } from './nodes/FieldView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
@@ -259,7 +259,7 @@ export class MainView extends React.Component {
             ScreenToLocalTransform={Transform.Identity}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
-            focus={emptyFunction}
+            focus={DocUtils.DefaultFocus}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
@@ -352,7 +352,7 @@ export class MainView extends React.Component {
                         PanelHeight={this.getContentsHeight}
                         renderDepth={0}
                         scriptContext={CollectionDockingView.Instance.props.Document}
-                        focus={emptyFunction}
+                        focus={DocUtils.DefaultFocus}
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
@@ -382,7 +382,7 @@ export class MainView extends React.Component {
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 docViewPath={returnEmptyDoclist}
-                focus={emptyFunction}
+                focus={DocUtils.DefaultFocus}
                 styleProvider={DefaultStyleProvider}
                 layerProvider={undefined}
                 parentActive={returnTrue}
@@ -503,7 +503,7 @@ export class MainView extends React.Component {
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     whenActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}
@@ -565,7 +565,7 @@ export class MainView extends React.Component {
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
                 renderDepth={0}
-                focus={emptyFunction}
+                focus={DocUtils.DefaultFocus}
                 docViewPath={returnEmptyDoclist}
                 parentActive={returnFalse}
                 whenActiveChanged={emptyFunction}

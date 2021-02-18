@@ -28,7 +28,7 @@ import { AnchorMenu } from "./AnchorMenu";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
-import { DocAfterFocusFunc } from "../nodes/DocumentView";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -88,6 +88,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _lastSearch = false;
     private _viewerIsSetup = false;
     private _ignoreScroll = false;
+    private _initialScroll: Opt<number>;
     private _smoothScrolling = true;
 
     @computed get allAnnotations() {
@@ -180,17 +181,21 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     // scrolls to focus on a nested annotation document.  if this is part a link preview then it will jump to the scroll location,
     // otherwise it will scroll smoothly.
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    scrollFocus = (doc: Doc, smooth: boolean) => {
         const mainCont = this._mainCont.current;
-        if (doc !== this.rootDoc && mainCont) {
+        let focusSpeed: Opt<number>;
+        if (doc !== this.rootDoc && mainCont && this._pdfViewer) {
             const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
-                if (smooth) smoothScroll(500, mainCont, scrollTo);
-                else mainCont.scrollTop = scrollTo;
-                return afterFocus?.(true);
+                focusSpeed = 500;
+
+                if (smooth) smoothScroll(focusSpeed, mainCont, scrollTo);
+                else this._mainCont.current?.scrollTo({ top: Math.abs(scrollTo || 0) });
             }
+        } else {
+            this._initialScroll = NumCast(doc.y);
         }
-        afterFocus?.(false);
+        return focusSpeed;
     }
 
     @action
@@ -221,7 +226,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this.gotoPage(this.Document._curPage || 1);
         }
         document.removeEventListener("pagesinit", this.pagesinit);
-        var quickScroll: string | undefined = "";
+        var quickScroll: string | undefined = this._initialScroll ? this._initialScroll.toString() : "";
         this._disposers.scroll = reaction(
             () => NumCast(this.Document._scrollTop),
             (pos) => {
@@ -248,6 +253,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             { fireImmediately: true }
         );
         quickScroll = undefined;
+        if (this._initialScroll !== undefined && this._mainCont.current) {
+            this._mainCont.current?.scrollTo({ top: Math.abs(this._initialScroll || 0) });
+            this._initialScroll = undefined;
+        }
     }
 
     createPdfViewer() {
@@ -312,7 +321,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         if (this._mainCont.current && !this._smoothScrolling) {
             this._ignoreScroll = true;
-            this.layoutDoc._scrollTop = this._mainCont.current.scrollTop;
+            if (!LinkDocPreview.LinkInfo) {
+                this.layoutDoc._scrollTop = this._mainCont.current.scrollTop;
+            }
             this._ignoreScroll = false;
         }
     }
@@ -361,9 +372,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         const hit = document.elementFromPoint(e.clientX, e.clientY);
-        if (hit && hit.localName === "span" && this.annotationsActive(true)) {  // drag selecting text stops propagation
-            e.button === 0 && e.stopPropagation();
-        }
+        // bcz: Change. drag selecting requires that preventDefault is NOT called.  This used to happen in DocumentView,
+        //      but that's changed, so this shouldn't be needed.
+        // if (hit && hit.localName === "span" && this.annotationsActive(true)) {  // drag selecting text stops propagation
+        //     e.button === 0 && e.stopPropagation();
+        // }
         // if alt+left click, drag and annotate
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -374,6 +387,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (!e.altKey && e.button === 0 && this.active(true)) {
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
                 this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
+                document.addEventListener("pointermove", this.onSelectMove); // need this to prevent document from being dragged if stopPropagation doesn't get called
             } else {
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
@@ -381,8 +395,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 this._savedAnnotations.clear();
                 this._styleRule = addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
                 document.addEventListener("pointerup", this.onSelectEnd);
+                document.addEventListener("pointermove", this.onSelectMove);
             }
-            document.addEventListener("pointermove", this.onSelectMove);
         }
     }
 
@@ -456,7 +470,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             this._setPreviewCursor(e.clientX, e.clientY, false);
         }
-        e.stopPropagation();
+        // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
     }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
@@ -491,7 +505,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         TraceMobx();
         return <div className="pdfViewerDash-annotationLayer" style={{ height: Doc.NativeHeight(this.Document), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} showInfo={this.showInfo} select={this.props.select} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={this.showInfo} dataDoc={this.dataDoc} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }

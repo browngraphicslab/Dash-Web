@@ -124,8 +124,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
-        const timecode = this.dataDoc[anchor + "_timecode"];
-        const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title) + (timecode !== undefined ? ":" + timecode : "");
+        const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title);
         const flyout = (
             <div className="linkAnchorBoxBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.rootDoc)}>
                 <LinkEditor sourceDoc={Cast(this.dataDoc[this.fieldKey], Doc, null)} hideback={true} linkDoc={this.rootDoc} showLinks={action(() => { })} />

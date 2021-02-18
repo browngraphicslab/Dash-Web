@@ -70,6 +70,7 @@ export class PinProps {
     audioRange?: boolean;
     unpin?: boolean;
     setPosition?: boolean;
+    hidePresBox?: boolean;
 }
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -422,7 +423,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.layoutDoc.presCollection = targetDoc;
             // this still needs some fixing
             setTimeout(resetSelection, 500);
-            doc !== targetDoc && setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
+            if (doc !== targetDoc) {
+                setTimeout(() => finished?.(), 100); /// give it some time to create the targetDoc if we're opening up its context
+            } else {
+                finished?.();
+            }
         };
         // If openDocument is selected then it should open the document for the user
         if (activeItem.openDocument) {
@@ -715,8 +720,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 if (audio) {
                     audio.mediaStart = "manual";
                     audio.mediaStop = "manual";
-                    audio.presStartTime = NumCast(doc.audioStart, NumCast(doc.videoStart));
-                    audio.presEndTime = NumCast(doc.audioEnd, NumCast(doc.videoEnd));
+                    audio.presStartTime = NumCast(doc._timecodeToShow /* audioStart */, NumCast(doc._timecodeToShow /* videoStart */));
+                    audio.presEndTime = NumCast(doc._timecodeToHide /* audioEnd */, NumCast(doc._timecodeToHide /* videoEnd */));
                     audio.presDuration = audio.presStartTime - audio.presEndTime;
                     TabDocView.PinDoc(audio, { audioRange: true });
                     setTimeout(() => this.removeDocument(doc), 0);

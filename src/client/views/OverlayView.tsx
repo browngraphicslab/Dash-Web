@@ -15,6 +15,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import './OverlayView.scss';
 import { ScriptingRepl } from './ScriptingRepl';
 import { DefaultStyleProvider } from "./StyleProvider";
+import { DocUtils } from "../documents/Documents";
 
 export type OverlayDisposer = () => void;
 
@@ -191,7 +192,7 @@ export class OverlayView extends React.Component {
                     renderDepth={1}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
                     docViewPath={returnEmptyDoclist}

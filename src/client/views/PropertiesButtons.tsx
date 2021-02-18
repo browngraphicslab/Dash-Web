@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../fields/Doc";
 import { InkField } from '../../fields/InkField';
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { ImageField } from '../../fields/URLField';
 import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
@@ -222,10 +222,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
 
     @undoBatch
-    @action
-    setDictation = () => {
-        SelectionManager.Views().forEach(dv => dv.rootDoc._showAudio = dv.rootDoc._showAudio === !dv.rootDoc._showAudio);
-    }
+    setDictation = () => SelectionManager.Views().forEach(dv => dv.rootDoc._showAudio = !dv.rootDoc._showAudio);
 
     @computed
     get dictationButton() {
@@ -244,7 +241,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setTitle = () => {
-        SelectionManager.Views().forEach(dv => dv.rootDoc._showTitle = dv.rootDoc._showTitle === undefined ? "title" : undefined);
+        SelectionManager.Views().forEach(dv => dv.rootDoc._showTitle = !dv.rootDoc._showTitle ? "title" : dv.rootDoc._showTitle === "title" ? "title:hover" : undefined);
     }
 
     @computed
@@ -252,7 +249,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Title Header"}</div>} placement="top">
             <div>
-                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._showTitle ? "on" : "off"}`} onPointerDown={this.setTitle}>
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._showTitle === "title" ? "on" : StrCast(targetDoc._showTitle).includes(":hover") ? "hover" : "off"}`} onPointerDown={this.setTitle}>
                     <FontAwesomeIcon className="propertiesButtons-icon" icon="text-width" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> Title </div>
@@ -502,7 +499,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.lockButton}
             </div>
-            <div className="propertiesButtons-button" style={{ display: isText || isImage ? "" : "none" }}>
+            <div className="propertiesButtons-button">
                 {this.dictationButton}
             </div>
             <div className="propertiesButtons-button">

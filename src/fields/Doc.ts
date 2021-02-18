@@ -1148,7 +1148,7 @@ export namespace Doc {
             case DocumentType.IMG: return "image";
             case DocumentType.COMPARISON: return "columns";
             case DocumentType.RTF: return "sticky-note";
-            case DocumentType.COL: return "folder";
+            case DocumentType.COL: return !doc.isFolder ? "folder" : "chevron-right";
             case DocumentType.WEB: return "globe-asia";
             case DocumentType.SCREENSHOT: return "photo-video";
             case DocumentType.WEBCAM: return "video";

@@ -45,7 +45,7 @@ class OtherToggle extends React.Component<{ checked: boolean, name: string, togg
 
 export interface TemplateMenuProps {
     docViews: DocumentView[];
-    templates: Map<string, boolean>;
+    templates?: Map<string, boolean>;
 }
 
 
@@ -115,7 +115,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const addedTypes = Doc.UserDoc().noviceMode ? [] : DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
-        this.props.templates.forEach((checked, template) =>
+        this.props.templates?.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);

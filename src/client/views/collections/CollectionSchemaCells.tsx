@@ -216,7 +216,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const placeholder = type === "number" ? "0" : contents === "" ? "--" : "undefined";
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: field instanceof Doc ? "grab" : "auto" }}
-                ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+                ref={dragRef} onPointerDown={this.onPointerDown} onClick={action(e => this._isEditing = true)} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null}>
                         {!this.props.Document._searchDoc ?

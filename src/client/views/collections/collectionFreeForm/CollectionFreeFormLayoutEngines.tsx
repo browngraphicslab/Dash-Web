@@ -1,16 +1,12 @@
-import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../../fields/Types";
-import { ScriptBox } from "../../ScriptBox";
-import { CompileScript } from "../../../util/Scripting";
-import { ScriptField } from "../../../../fields/ScriptField";
-import { OverlayView, OverlayElementOptions } from "../../OverlayView";
-import { emptyFunction, aggregateBounds } from "../../../../Utils";
-import React = require("react");
+import { Doc, Field, FieldResult, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id, ToString } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { RefField } from "../../../../fields/RefField";
 import { listSpec } from "../../../../fields/Schema";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
+import { aggregateBounds } from "../../../../Utils";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
+import React = require("react");
 
 export interface ViewDefBounds {
     type: string;
@@ -89,7 +85,8 @@ export function computerPassLayout(
     pivotDoc: Doc,
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[],
+    engineProps: any
 ) {
     const docMap = new Map<string, PoolData>();
     childPairs.forEach(({ layout, data }, i) => {
@@ -110,7 +107,8 @@ export function computerStarburstLayout(
     pivotDoc: Doc,
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[],
+    engineProps: any
 ) {
     const docMap = new Map<string, PoolData>();
     const burstRadius = [NumCast(pivotDoc._starburstRadius, panelDim[0]), NumCast(pivotDoc._starburstRadius, panelDim[1])];
@@ -137,16 +135,17 @@ export function computePivotLayout(
     pivotDoc: Doc,
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[],
+    engineProps: any
 ) {
     const docMap = new Map<string, PoolData>();
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
     let nonNumbers = 0;
-    const pivotFieldKey = toLabel(pivotDoc._pivotField);
+    const pivotFieldKey = toLabel(engineProps?.pivotField ?? pivotDoc._pivotField);
     childPairs.map(pair => {
-        const lval = pivotFieldKey === "#" ? Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(k => k.startsWith("#")).map(k => k.substring(1)) :
+        const lval = pivotFieldKey === "#" || pivotFieldKey === "tags" ? Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(k => k.startsWith("#")).map(k => k.substring(1)) :
             Cast(pair.layout[pivotFieldKey], listSpec("string"), null);
 
         const num = toNumber(pair.layout[pivotFieldKey]);
@@ -278,7 +277,8 @@ export function computeTimelineLayout(
     pivotDoc: Doc,
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[],
+    engineProps?: any
 ) {
     const fieldKey = "data";
     const pivotDateGroups = new Map<number, Doc[]>();

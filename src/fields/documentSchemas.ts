@@ -20,6 +20,7 @@ export const documentSchema = createSchema({
     activeFrame: "number",      // the active frame of a frame based animated document 
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     _timecodeToShow: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    _timecodeToHIde: "number",  // the time that a document should be hidden
     isLabel: "boolean",         // whether the document is a label or not (video / audio)
     markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 
@@ -41,8 +42,7 @@ export const documentSchema = createSchema({
     _yMargin: "number",         // margin added on top/bottom of most documents to add separation from their container
     _overflow: "string",        // sets overflow behvavior for CollectionFreeForm views
     _showCaption: "string",     // whether editable caption text is overlayed at the bottom of the document 
-    _showTitle: "string",       // the fieldkey whose contents should be displayed at the top of the document
-    _showTitleHover: "string",  // the showTitle should be shown only on hover
+    _showTitle: "string",       // the fieldkey(s) whose contents should be displayed at the top of the document. separate multiple keys with ";".  Use :hover suffix to indicate title should be shown on hover
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
@@ -81,7 +81,7 @@ export const documentSchema = createSchema({
     treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
     treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
-    treeViewOutlineMode: "boolean", // whether tree view is an outline and clicks edit document titles immediately since double-click opening is turned off
+    treeViewType: "string", // whether tree view is an outline, file syste or (default) hierarchy. For outline, clicks edit document titles immediately since double-click opening is turned off
 
     // interaction and linking properties
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 

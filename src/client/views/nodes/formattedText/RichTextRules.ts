@@ -262,9 +262,10 @@ export class RichTextRules {
                 }),
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document 
-            // [[ <fieldKey> : <Doc>]]   
+            // [[<fieldKey> : <Doc>]]   
             // [[:Doc]] => hyperlink   
             // [[fieldKey]] => show field   
+            // [[fieldKey=value]] => show field and also set its value
             // [[fieldKey:Doc]] => show field of doc
             new InputRule(
                 new RegExp(/\[\[([a-zA-Z_\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@:\.\? \-0-9]+)?\]\]$/),
@@ -274,15 +275,22 @@ export class RichTextRules {
                     const docid = rawdocid ? normalizeEmail((!rawdocid.includes("@") ? Doc.CurrentUserEmail + rawdocid : rawdocid.substring(1))) : undefined;
                     const value = match[2]?.substring(1);
                     if (!fieldKey) {
-                        const linkId = Utils.GenerateGuid();
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
+                                const rstate = this.TextBox.EditorView?.state;
+                                const selection = rstate?.selection.$from.pos;
+                                if (rstate) {
+                                    this.TextBox.EditorView?.dispatch(rstate.tr.setSelection(new TextSelection(rstate.doc.resolve(start), rstate.doc.resolve(end - 3))));
+                                }
                                 const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: rawdocid, _width: 500, _height: 500, }, docid);
-                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to", undefined, linkId);
+                                DocUtils.MakeLink({ doc: this.TextBox.getAnchor() }, { doc: target }, "portal to", undefined);
+
+                                const fstate = this.TextBox.EditorView?.state;
+                                if (fstate && selection) {
+                                    this.TextBox.EditorView?.dispatch(fstate.tr.setSelection(new TextSelection(fstate.doc.resolve(selection))));
+                                }
                             });
-                            const allLinks = [{ href: Utils.prepend("/doc/" + docid), title: docid, targetId: docid, linkId }];
-                            const link = state.schema.marks.linkAnchor.create({ allLinks, title: rawdocid, location: "add:right" });
-                            return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                            return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2);
                         }
                         return state.tr;
                     }
