@@ -3,7 +3,7 @@ import { action, observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc, Opt, DocListCast } from '../../fields/Doc';
+import { Doc, Opt, DocListCast, DocListCastAsync } from '../../fields/Doc';
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnTrue } from '../../Utils';
 import { Transform } from '../util/Transform';
 import "./LightboxView.scss";
@@ -13,8 +13,9 @@ import { DocUtils } from '../documents/Documents';
 import { DocumentManager } from '../util/DocumentManager';
 import { SelectionManager } from '../util/SelectionManager';
 import { TabDocView } from './collections/TabDocView';
-import { Cast, NumCast } from '../../fields/Types';
-import { path } from 'animejs';
+import { Cast, NumCast, StrCast } from '../../fields/Types';
+import { LinkManager } from '../util/LinkManager';
+import { List } from '../../fields/List';
 
 interface LightboxViewProps {
     PanelWidth: number;
@@ -27,12 +28,15 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     public static SavedState: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, transition: Opt<string> }>;
     @observable static LightboxDoc: Opt<Doc>;
     @observable static LightboxDocTarget: Opt<Doc>;
+    @observable static LightboxTourmap: Opt<Doc[]> = [];   // list of all tours available from the current target
+    @observable static LightboxDocFilters: string[] = [];
     public static LightboxHistory: Opt<Doc[]> = [];
     public static LightboxFuture: Opt<Doc[]> = [];
     public static LightboxDocView: Opt<DocumentView>;
     static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<Doc[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, transition: Opt<string> }> }[] = [];
     @action public static SetLightboxDoc(doc: Opt<Doc>, future?: Doc[]) {
         if (!doc) {
+            LightboxView.LightboxDocFilters.length = 0;
             if (this.LightboxDoc) {
                 this.LightboxDoc._panX = this.SavedState?.panX;
                 this.LightboxDoc._panY = this.SavedState?.panY;
@@ -52,6 +56,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             LightboxView.LightboxFuture = future.slice().sort((a, b) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)).sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
         }
         LightboxView.LightboxDoc = LightboxView.LightboxDocTarget = doc;
+        LightboxView.LightboxTourmap = DocListCast(doc?.links).map(link => {
+            const opp = LinkManager.getOppositeAnchor(link, doc!);
+            return opp?.TourMap ? opp : undefined;
+        }).filter(m => m).map(m => m!);
 
         return true;
     }
@@ -61,15 +69,16 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     lightboxWidth = () => this.props.PanelWidth - this.leftBorder * 2;
     lightboxHeight = () => this.props.PanelHeight - this.topBorder * 2;
     lightboxScreenToLocal = () => new Transform(-this.leftBorder, -this.topBorder, 1);
-    navBtn = (left: Opt<string | number>, bottom: Opt<number>, top: number, icon: string, display: () => string, click: (e: React.MouseEvent) => void) => {
+    navBtn = (left: Opt<string | number>, bottom: Opt<number>, top: number, icon: string, display: () => string, click: (e: React.MouseEvent) => void, color?: string) => {
         return <div className="lightboxView-navBtn-frame" style={{
             display: display(),
             left,
             width: bottom !== undefined ? undefined : Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]),
             bottom
         }}>
-            <div className="lightboxView-navBtn" style={{ top }}
+            <div className="lightboxView-navBtn" title={color} style={{ top, color: color ? "red" : "white", background: color ? "white" : undefined }}
                 onClick={click}>
+                <div style={{ height: 10 }}>{color}</div>
                 <FontAwesomeIcon icon={icon as any} size="3x" />
             </div>
         </div>;
@@ -83,6 +92,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             ]
                 .sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
     }
+    docFilters = () => LightboxView.LightboxDocFilters || [];
     addDocTab = LightboxView.AddDocTab;
     @action
     stepForward = () => {
@@ -112,6 +122,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                 LightboxView.SetLightboxDoc(target);
             }
         }
+        LightboxView.LightboxTourmap = DocListCast(LightboxView.LightboxDocTarget?.links).map(link => {
+            const opp = LinkManager.getOppositeAnchor(link, LightboxView.LightboxDocTarget!);
+            return opp?.TourMap ? opp : undefined;
+        }).filter(m => m).map(m => m!);
     }
     @action
     stepBackward = () => {
@@ -124,6 +138,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         } else {
             LightboxView.SetLightboxDoc(target);
         }
+        LightboxView.LightboxTourmap = DocListCast(LightboxView.LightboxDocTarget?.links).map(link => {
+            const opp = LinkManager.getOppositeAnchor(link, LightboxView.LightboxDocTarget!);
+            return opp?.TourMap ? opp : undefined;
+        }).filter(m => m).map(m => m!);
     }
     @action
     stepInto = () => {
@@ -134,11 +152,17 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             history: LightboxView.LightboxHistory,
             saved: LightboxView.SavedState
         });
-        const coll = LightboxView.LightboxDocTarget;
-        if (coll) {
-            const fieldKey = Doc.LayoutFieldKey(coll);
-            LightboxView.SetLightboxDoc(coll, [...DocListCast(coll[fieldKey]), ...DocListCast(coll[fieldKey + "-annotations"])]);
-            TabDocView.PinDoc(coll, { hidePresBox: true });
+        const tours = LightboxView.LightboxTourmap;
+        if (tours && tours.length) {
+            const fieldKey = Doc.LayoutFieldKey(tours[0]);
+            LightboxView.LightboxFuture?.push(...DocListCast(tours[0][fieldKey]).reverse());
+        } else {
+            const coll = LightboxView.LightboxDocTarget;
+            if (coll) {
+                const fieldKey = Doc.LayoutFieldKey(coll);
+                LightboxView.SetLightboxDoc(coll, [...DocListCast(coll[fieldKey]), ...DocListCast(coll[fieldKey + "-annotations"])]);
+                TabDocView.PinDoc(coll, { hidePresBox: true });
+            }
         }
         setTimeout(() => this.stepForward());
     }
@@ -181,6 +205,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         pinToPres={TabDocView.PinDoc}
                         rootSelected={returnTrue}
                         docViewPath={returnEmptyDoclist}
+                        docFilters={this.docFilters}
                         removeDocument={undefined}
                         styleProvider={DefaultStyleProvider}
                         layerProvider={returnTrue}
@@ -191,7 +216,6 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
-                        docFilters={returnEmptyFilter}
                         docRangeFilters={returnEmptyFilter}
                         searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionView={undefined}
@@ -212,7 +236,9 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     () => LightboxView.LightboxDoc && LightboxView.LightboxFuture?.length ? "" : "none", e => {
                         e.stopPropagation();
                         this.stepInto();
-                    })}
+                    },
+                    StrCast(LightboxView.LightboxTourmap?.lastElement()?.TourMap)
+                )}
             </div>;
     }
 }
