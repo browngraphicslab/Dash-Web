@@ -492,7 +492,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <button className="antimodeMenu-button" onPointerDown={() => {
                 const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
                 if (docs.length) {
-                    LightboxView.SetLightboxDoc(targetDoc, docs);
+                    LightboxView.SetLightboxDoc(targetDoc, undefined, docs);
                 }
             }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />

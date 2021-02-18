@@ -9,6 +9,7 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
 import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
+import { CurrentUserUtils } from './CurrentUserUtils';
 
 export class DocumentManager {
 
@@ -102,7 +103,7 @@ export class DocumentManager {
     public getLightboxDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const docViews = DocumentManager.Instance.DocumentViews;
         const views: DocumentView[] = [];
-        docViews.map(view => LightboxView.IsLightboxDocView(view.docViewPath) && view.rootDoc === toFind && views.push(view));
+        docViews.map(view => LightboxView.IsLightboxDocView(view.docViewPath) && Doc.AreProtosEqual(view.rootDoc, toFind) && views.push(view));
         return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {

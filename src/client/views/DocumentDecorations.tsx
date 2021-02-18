@@ -175,7 +175,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 } else if (e.altKey) {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
                 } else {
-                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, selectedDocs.slice(1).map(view => view.props.Document));
+                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
                 }
             }
         }

@@ -916,7 +916,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 HistoryUtil.pushState(state);
             }
         }
-        const LightboxState = LightboxView.LightboxDoc === this.props.Document && LightboxView.SavedState ? LightboxView.SavedState : undefined;
+        const LightboxState = LightboxView.GetSavedState(this.props.Document);
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             this.props.focus(doc, options);
