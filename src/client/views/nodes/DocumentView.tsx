@@ -46,6 +46,7 @@ import { PresBox } from './PresBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { ObjectField } from "../../../fields/ObjectField";
+import { LightboxView } from "../LightboxView";
 const { Howl } = require('howler');
 
 interface Window {
@@ -409,6 +410,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     focus = (anchor: Doc, options?: DocFocusOptions) => {
+        LightboxView.SetCookie(StrCast(anchor["cookies-set"]));
         // copying over _VIEW fields immediately allows the view type to switch to create the right _componentView
         Array.from(Object.keys(Doc.GetProto(anchor))).filter(key => key.startsWith(ViewSpecPrefix)).forEach(spec => this.layoutDoc[spec.replace(ViewSpecPrefix, "")] = ((field) => field instanceof ObjectField ? ObjectField.MakeCopy(field) : field)(anchor[spec]));
         // after  a timeout, the right _componentView should have been created, so call it to update its view spec values
@@ -663,10 +665,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
         !Doc.UserDoc().noviceMode && templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "add:right"), icon: "eye" });
         DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
-        !Doc.UserDoc().noviceMode && appearanceItems.splice(0, 0, { description: `${!this.layoutDoc._showAudio ? "Show" : "Hide"} Audio Button`, event: action(() => this.layoutDoc._showAudio = !this.layoutDoc._showAudio), icon: "microphone" });
         !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
 
         if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
+            !Doc.UserDoc().noviceMode && appearanceItems.splice(0, 0, { description: `${!this.layoutDoc._showAudio ? "Show" : "Hide"} Audio Button`, event: action(() => this.layoutDoc._showAudio = !this.layoutDoc._showAudio), icon: "microphone" });
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
 

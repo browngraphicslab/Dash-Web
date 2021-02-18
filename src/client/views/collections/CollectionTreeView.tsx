@@ -72,9 +72,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         SelectionManager.DeselectAll();
         if (result.length !== value.length) {
             const ind = targetDataDoc[this.props.fieldKey].indexOf(doc);
+            const prev = ind && targetDataDoc[this.props.fieldKey][ind - 1];
             targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
             if (ind > 0) {
-                const prev = targetDataDoc[this.props.fieldKey][ind - 1];
                 FormattedTextBox.SelectOnLoad = prev[Id];
                 const prevView = DocumentManager.Instance.getDocumentView(prev, this.props.CollectionView);
                 prevView?.select(false);

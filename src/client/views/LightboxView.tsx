@@ -24,6 +24,7 @@ interface LightboxViewProps {
 
 @observer
 export class LightboxView extends React.Component<LightboxViewProps> {
+
     @computed public static get LightboxDoc() { return this._doc; }
     @observable private static _doc: Opt<Doc>;
     @observable private static _docTarget: Opt<Doc>;
@@ -45,6 +46,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             }
             this._future = this._history = [];
         } else {
+            TabDocView.PinDoc(doc, { hidePresBox: true });
             this._history ? this._history.push({ doc, target }) : this._history = [{ doc, target }];
             this._savedState = {
                 panX: Cast(doc._panX, "number", null),
@@ -88,9 +90,11 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     public static GetSavedState(doc: Doc) {
         return this.LightboxDoc === doc && this._savedState ? this._savedState : undefined;
     }
-    public static SetDocFilter(filter: string) {
-        if (this.LightboxDoc && filter) {
-            this._docFilters = [`cookies:${filter}:match`];
+
+    // adds a cookie to the lightbox view - the cookie becomes part of a filter which will display any documents whose cookie metadata field matches this cookie
+    public static SetCookie(cookie: string) {
+        if (this.LightboxDoc && cookie) {
+            this._docFilters = (f => this._docFilters ? [this._docFilters.push(f) as any, this._docFilters][1] : [f])(`cookies:${cookie}:provide`);
         }
     }
     public static AddDocTab = (doc: Doc, location: string) => {
@@ -104,8 +108,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     }
     docFilters = () => LightboxView._docFilters || [];
     addDocTab = LightboxView.AddDocTab;
-    @action
-    stepForward = () => {
+    @action public static Next() {
         const doc = LightboxView._doc!;
         const target = LightboxView._docTarget = LightboxView._future?.pop();
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
@@ -138,8 +141,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             return opp?.TourMap ? opp : undefined;
         }).filter(m => m).map(m => m!);
     }
-    @action
-    stepBackward = () => {
+
+    @action public static Previous() {
         const previous = LightboxView._history?.pop();
         if (!previous || !LightboxView._history?.length) {
             LightboxView.SetLightboxDoc(undefined);
@@ -182,7 +185,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                 TabDocView.PinDoc(coll, { hidePresBox: true });
             }
         }
-        setTimeout(() => this.stepForward());
+        setTimeout(LightboxView.Next);
     }
 
     fitToBox = () => LightboxView._docTarget === LightboxView.LightboxDoc;
@@ -242,12 +245,12 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                 {this.navBtn(0, undefined, this.props.PanelHeight / 2 - 12.50, "chevron-left",
                     () => LightboxView.LightboxDoc && LightboxView._history?.length ? "" : "none", e => {
                         e.stopPropagation();
-                        this.stepBackward();
+                        LightboxView.Previous();
                     })}
                 {this.navBtn(this.props.PanelWidth - Math.min(this.props.PanelWidth / 4, this.props.maxBorder[0]), undefined, this.props.PanelHeight / 2 - 12.50, "chevron-right",
                     () => LightboxView.LightboxDoc && LightboxView._future?.length ? "" : "none", e => {
                         e.stopPropagation();
-                        this.stepForward();
+                        LightboxView.Next();
                     })}
                 {this.navBtn("50%", 0, 0, "chevron-down",
                     () => LightboxView.LightboxDoc && LightboxView._future?.length ? "" : "none", e => {
