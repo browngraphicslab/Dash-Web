@@ -29,6 +29,7 @@ import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { DefaultStyleProvider } from "./StyleProvider";
+import { MainViewPopup } from "./nodes/MainViewPopup";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -847,6 +848,21 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     //     });
     // }
 
+    @action
+    newFieldClick = (e: React.PointerEvent) => {
+        console.log("new field click");
+        MainViewPopup.setX(e.clientX);
+        MainViewPopup.setY(e.clientY);
+        MainViewPopup.changeContent(<div>Hello World</div>);
+        MainViewPopup.show();
+        console.log(MainViewPopup.visible);
+    }
+
+
+    addFieldButtons = <div>
+        <div className="propertiesView-addFieldBtn" onPointerDown={this.newFieldClick}>+ new field</div>
+    </div>;
+
     render() {
         if (!this.selectedDoc && !this.isPres) {
             return <div className="propertiesView" style={{ width: this.props.width }}>
@@ -961,6 +977,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {!this.openFields ? (null) :
                             <div className="propertiesView-fields-content">
                                 {novice ? this.noviceFields : this.expandedField}
+                                {this.addFieldButtons}
                             </div>}
                     </div>
                     <div className="propertiesView-contexts">

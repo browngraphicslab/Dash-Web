@@ -26,6 +26,7 @@ export class MainViewPopup extends React.Component<{}> {
     @observable public static visible = false;
     @observable public static x = 0;
     @observable public static y = 0;
+    @observable public static newAppearance = false;
 
     componentDidMount() {
         document.addEventListener('mousedown', MainViewPopup.handleClickOutside);
@@ -38,21 +39,26 @@ export class MainViewPopup extends React.Component<{}> {
     @action
     public static handleClickOutside(event: { target: any; }) {
         if (MainViewPopup.wrapperRef.current && !MainViewPopup.wrapperRef.current.contains(event.target)) {
-            MainViewPopup.visible = false;
+            if (!MainViewPopup.newAppearance) {
+                console.log("outside click");
+                MainViewPopup.visible = false;
+            } else {
+                MainViewPopup.newAppearance = false;
+            }
         }
     }
 
     @action
-    public static changeX(x: number) { MainViewPopup.x = x; }
+    public static setX(x: number) { MainViewPopup.x = x; }
 
     @action
-    public static changeY(y: number) { MainViewPopup.y = y; }
+    public static setY(y: number) { MainViewPopup.y = y; }
 
     @action
-    public static show() { MainViewPopup.visible = true; }
+    public static show() { console.log("show"); MainViewPopup.visible = true; MainViewPopup.newAppearance = true; }
 
     @action
-    public static hide() { MainViewPopup.visible = false; }
+    public static hide() { console.log("hide"); MainViewPopup.visible = false; MainViewPopup.newAppearance = false; }
 
     @action
     public static changeContent(content: any) { MainViewPopup.content = content; }
@@ -61,7 +67,7 @@ export class MainViewPopup extends React.Component<{}> {
         return <div className="mainViewPopup" ref={MainViewPopup.wrapperRef}
             style={{
                 display: MainViewPopup.visible ? "initial" : "none",
-                left: MainViewPopup.x, right: MainViewPopup.y
+                left: MainViewPopup.x, top: MainViewPopup.y
             }}>
             {MainViewPopup.content}
         </div>;
