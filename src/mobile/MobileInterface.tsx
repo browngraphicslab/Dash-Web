@@ -13,7 +13,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Docs, DocumentOptions } from '../client/documents/Documents';
+import { Docs, DocumentOptions, DocUtils } from '../client/documents/Documents';
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { Scripting } from '../client/util/Scripting';
@@ -210,7 +210,7 @@ export class MobileInterface extends React.Component {
                     PanelWidth={this.returnWidth}
                     PanelHeight={this.returnHeight}
                     renderDepth={0}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     styleProvider={this.whitebackground}
                     layerProvider={undefined}
                     docViewPath={returnEmptyDoclist}

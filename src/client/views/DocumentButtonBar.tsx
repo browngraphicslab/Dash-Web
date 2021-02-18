@@ -312,22 +312,20 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return false;
     }
 
-    _ref = React.createRef<HTMLDivElement>();
+    _ref = React.createRef<TemplateMenu>();
     @observable _tooltipOpen: boolean = false;
     @computed
     get templateButton() {
         const view0 = this.view0;
-        const templates: Map<string, boolean> = new Map();
         const views = this.props.views();
-        Array.from(["Caption", "Title", "TitleHover"]).map(template =>
-            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template] ? true : false, false as boolean)));
         return !view0 ? (null) :
             <Tooltip title={<div className="dash-tooltip">Tap to Customize Layout. Drag an embeddable alias</div>} open={this._tooltipOpen} onClose={action(() => this._tooltipOpen = false)} placement="bottom">
                 <div className="documentButtonBar-linkFlyout" ref={this._dragRef}
-                    onPointerEnter={action(() => !this._ref.current?.getBoundingClientRect().width && (this._tooltipOpen = true))} >
+                    onPointerEnter={action(() => !(this._ref.current as any as HTMLElement)?.getBoundingClientRect().width && (this._tooltipOpen = true))} >
 
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                        content={!this._aliasDown ? (null) : <div ref={this._ref}> <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} /></div>}>
+                        content={!this._aliasDown ? (null) :
+                            <TemplateMenu ref={this._ref} docViews={views.filter(v => v).map(v => v as DocumentView)} />}>
                         <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
                             {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
                         </div>

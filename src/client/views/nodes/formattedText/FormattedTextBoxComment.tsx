@@ -82,9 +82,10 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip.style.display = "";
     }
 
-    static update(view: EditorView, lastState?: EditorState, hrefs: string = "") {
-        if (FormattedTextBoxComment.textBox && (hrefs || !lastState?.doc.eq(view.state.doc) || !lastState?.selection.eq(view.state.selection))) {
-            FormattedTextBoxComment.setupPreview(view, FormattedTextBoxComment.textBox, hrefs ? hrefs.trim().split(" ") : undefined);
+    static update(textBox: FormattedTextBox, view: EditorView, lastState?: EditorState, hrefs: string = "") {
+        FormattedTextBoxComment.textBox = textBox;
+        if ((hrefs || !lastState?.doc.eq(view.state.doc) || !lastState?.selection.eq(view.state.selection))) {
+            FormattedTextBoxComment.setupPreview(view, textBox, hrefs ? hrefs.trim().split(" ") : undefined);
         }
     }
 
@@ -114,7 +115,7 @@ export class FormattedTextBoxComment {
             nbef && naft && LinkDocPreview.SetLinkInfo({
                 docProps: textBox.props,
                 linkSrc: textBox.rootDoc,
-                location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - nbef)),
+                location: ((pos) => [pos.left, pos.top + 25])(view.coordsAtPos(state.selection.from - Math.max(0, nbef - 1))),
                 hrefs,
                 showHeader: true
             });

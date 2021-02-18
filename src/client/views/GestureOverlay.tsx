@@ -873,7 +873,7 @@ export class GestureOverlay extends Touchable {
                 styleProvider={returnEmptyString}
                 layerProvider={undefined}
                 docViewPath={returnEmptyDoclist}
-                focus={emptyFunction}
+                focus={DocUtils.DefaultFocus}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}

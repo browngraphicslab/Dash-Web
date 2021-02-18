@@ -155,7 +155,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBox.Instance = this;
         this.updateHighlights();
         this._recordingStart = Date.now();
-        this.layoutDoc._timeStampOnEnter = true;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -259,13 +258,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     _lastText = "";
     dispatchTransaction = (tx: Transaction) => {
-        let timeStamp;
-        clearTimeout(timeStamp);
         if (this._editorView) {
-
             const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
             if (metadata) {
-
                 const range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;
@@ -301,8 +296,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
-            if (!this._editorView.state.selection.empty && FormattedTextBox.CanAnnotate) this.setupAnchorMenu();
-
             const removeSelection = (json: string | undefined) => {
                 return json?.indexOf("\"storedMarks\"") === -1 ? json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
             };
@@ -313,15 +306,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || json.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (removeSelection(json) !== removeSelection(curLayout?.Data)) {
-                            if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
-                                timeStamp = setTimeout(() => this.pause(), 10 * 1000); // 10 seconds delay for time stamp
-                            }
-
-                            // if 10 seconds have passed, insert time stamp the next time you type
-                            if (this._pause) {
-                                this._pause = false;
-                                this.insertTime();
-                            }
                             !curText && tx.storedMarks?.filter(m => m.type.name === "pFontSize").map(m => Doc.UserDoc().fontSize = this.layoutDoc._fontSize = (m.attrs.fontSize + "px"));
                             !curText && tx.storedMarks?.filter(m => m.type.name === "pFontFamily").map(m => Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily);
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
@@ -355,8 +339,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
-    pause = () => this._pause = true;
-
     // for inserting timestamps 
     insertTime = () => {
         let linkTime;
@@ -364,11 +346,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         DocListCast(this.dataDoc.links).forEach((l, i) => {
             const anchor = (l.anchor1 as Doc).annotationOn ? l.anchor1 as Doc : (l.anchor2 as Doc).annotationOn ? (l.anchor2 as Doc) : undefined;
             if (anchor && (anchor.annotationOn as Doc).audioState === "recording") {
-                linkTime = NumCast(anchor.audioStart);
+                linkTime = NumCast(anchor._timecodeToShow /* audioStart */);
                 linkAnchor = anchor;
             }
         });
-        if (this._editorView) {
+        if (this._editorView && linkTime) {
             const state = this._editorView.state;
             const now = Date.now();
             let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
@@ -384,7 +366,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
 
             const path = (this._editorView.state.selection.$from as any).path;
-            if (linkAnchor && linkTime && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
+            if (linkAnchor && path[path.length - 3].type !== this._editorView.state.schema.nodes.code_block) {
                 const time = linkTime + Date.now() / 1000 - this._recordingStart / 1000;
                 this._break = false;
                 const from = state.selection.from;
@@ -664,7 +646,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: `${FormattedTextBox.CanAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox.CanAnnotate = !FormattedTextBox.CanAnnotate, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
-        !Doc.UserDoc().noviceMode && uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
@@ -868,7 +849,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
     }
 
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    focusSpeed: Opt<number>;
+    scrollFocus = (doc: Doc, smooth: boolean) => {
         const anchorId = doc[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
             const nodes: Node[] = [];
@@ -899,21 +881,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const ret = findAnchorFrag(editor.state.doc.content, editor);
 
             if (ret.frag.size > 2 && ret.start >= 0) {
+                smooth && (this.focusSpeed = 500);
                 let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                 if (ret.frag.firstChild) {
                     selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
                 }
                 editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
-                const escAnchorId = anchorId[0] > '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
+                const escAnchorId = anchorId[0] >= '0' && anchorId[0] <= '9' ? `\\3${anchorId[0]} ${anchorId.substr(1)}` : anchorId;
                 addStyleSheetRule(FormattedTextBox._highlightStyleSheet, `${escAnchorId}`, { background: "yellow" });
-                setTimeout(() => {
-                    clearStyleSheetRules(FormattedTextBox._highlightStyleSheet);
-                    afterFocus?.(true);
-                }, 1500);
+                setTimeout(() => this.focusSpeed = undefined, this.focusSpeed);
+                setTimeout(() => clearStyleSheetRules(FormattedTextBox._highlightStyleSheet), Math.max(this.focusSpeed || 0, 1500));
             }
-        } else {
-            afterFocus?.(false);
         }
+
+        return this.focusSpeed;
     }
 
     componentDidMount() {
@@ -1224,8 +1205,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const scrollRef = self._scrollRef.current;
                     if ((docPos.top < viewRect.top || docPos.top > viewRect.bottom) && scrollRef) {
                         const scrollPos = scrollRef.scrollTop + (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale;
-                        if (!LinkDocPreview.LinkInfo) {
-                            scrollPos && smoothScroll(500, scrollRef, scrollPos);
+                        if (this.focusSpeed !== undefined) {
+                            scrollPos && smoothScroll(this.focusSpeed, scrollRef, scrollPos);
                         } else {
                             scrollRef.scrollTo({ top: scrollPos });
                         }
@@ -1335,24 +1316,34 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBoxComment.textBox = this;
         if (e.button === 0 && (this.props.rootSelected(true) || this.props.isSelected(true)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
-                e.stopPropagation();  // if the text box is selected, then it consumes all down events
+                // bcz: Change. drag selecting requires that preventDefault is NOT called.  This used to happen in DocumentView,
+                //      but that's changed, so this shouldn't be needed.
+                //e.stopPropagation();  // if the text box is selected, then it consumes all down events
+                document.addEventListener("pointerup", this.onSelectEnd);
+                document.addEventListener("pointermove", this.onSelectMove);
             }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
             e.preventDefault();
         }
     }
+    onSelectMove = (e: PointerEvent) => e.stopPropagation();
+    onSelectEnd = (e: PointerEvent) => {
+        document.removeEventListener("pointerup", this.onSelectEnd);
+        document.removeEventListener("pointermove", this.onSelectMove);
+    }
 
     onPointerUp = (e: React.PointerEvent): void => {
+        FormattedTextBox.CanAnnotate = true;
+        if (!this._editorView?.state.selection.empty && FormattedTextBox.CanAnnotate) this.setupAnchorMenu();
         if (!this._downEvent) return;
         this._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled && this.active(true)) {
             const editor = this._editorView!;
-            FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             const target = (e.target as any).parentElement; // hrefs are store don the database of the <a> node that wraps the hyerlink <span>
-            FormattedTextBoxComment.update(editor, undefined, target?.dataset?.targethrefs);
+            FormattedTextBoxComment.update(this, editor, undefined, target?.dataset?.targethrefs);
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1446,10 +1437,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
-        (e.nativeEvent as any).formattedHandled = true;
+        this.props.isSelected(true) && ((e.nativeEvent as any).formattedHandled = true);
 
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
-            e.stopPropagation();
+            // e.stopPropagation();  // bcz: not sure why this was here.  We need to allow the DocumentView to get clicks to process doubleClicks
             this.hitBulletTargets(e.clientX, e.clientY, !this._editorView?.state.selection.empty || this._forceUncollapse, false, this._forceDownNode, e.shiftKey);
         }
         this._forceUncollapse = !(this._editorView!.root as any).getSelection().isCollapsed;
@@ -1585,7 +1576,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             RichTextMenu.Instance.updateMenu(undefined, undefined, undefined);
         } else {
             if (e.key === "Tab" || e.key === "Enter") {
-                if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
+                if (e.key === "Enter") {
                     this.insertTime();
                 }
                 e.preventDefault();
@@ -1659,8 +1650,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     sidebarContentScaling = () => (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
+    fitToBox = () => this.props.Document._fitToBox;
     @computed get sidebarCollection() {
-        const fitToBox = this.props.Document._fitToBox;
         const collectionProps: SubCollectionViewProps & collectionFreeformViewProps = {
             ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
             NativeWidth: returnZero,
@@ -1673,7 +1664,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             scaleField: this.SidebarKey + "-scale",
             isAnnotationOverlay: true,
             fieldKey: this.SidebarKey,
-            fitContentsToDoc: fitToBox,
+            fitContentsToDoc: this.fitToBox,
             select: emptyFunction,
             active: this.annotationsActive,
             scaling: this.sidebarContentScaling,

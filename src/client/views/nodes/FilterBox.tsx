@@ -71,7 +71,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                         subDocs.forEach((t) => {
                             const facetVal = t[facetKey];
                             if (facetVal instanceof RichTextField) rtFields++;
-                            valueSet.add(Field.toString(facetVal as Field));
+                            facetVal && valueSet.add(Field.toString(facetVal as Field));
                             const fieldKey = Doc.LayoutFieldKey(t);
                             const annos = !Field.toString(Doc.LayoutField(t) as Field).includes("CollectionView");
                             DocListCast(t[annos ? fieldKey + "-annotations" : fieldKey]).forEach((newdoc) => newarray.push(newdoc));

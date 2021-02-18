@@ -22,6 +22,7 @@ import { PresBox, PresColor, PresMovement } from "../nodes/PresBox";
 import { StyleProp } from "../StyleProvider";
 import "./PresElementBox.scss";
 import React = require("react");
+import { DocUtils } from "../../documents/Documents";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -105,7 +106,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     parentActive={this.props.active}
                     moveDocument={this.props.moveDocument!}
                     renderDepth={this.props.renderDepth + 1}
-                    focus={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
                     whenActiveChanged={returnFalse}
                     bringToFront={returnFalse}
                     docFilters={this.props.docFilters}

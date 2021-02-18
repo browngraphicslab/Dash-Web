@@ -489,13 +489,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get lightboxButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Show Lightbox of Documents"}</div>} placement="top">
-            <button className="antimodeMenu-button" onPointerDown={action(() => {
+            <button className="antimodeMenu-button" onPointerDown={() => {
                 const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
                 if (docs.length) {
-                    LightboxView.LightboxDoc = docs[0];
-                    LightboxView.LightboxFuture = docs.slice(1);
+                    LightboxView.SetLightboxDoc(targetDoc, undefined, docs);
                 }
-            })}>
+            }}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="desktop" size="lg" />
             </button>
         </Tooltip>;

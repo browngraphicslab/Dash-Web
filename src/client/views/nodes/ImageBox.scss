@@ -94,24 +94,6 @@
     height: 100%;
 }
 
-.imageBox-audioBackground {
-    display: inline-block;
-    width: 10%;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    border-radius: 25px;
-    background: white;
-    opacity: 0.3;
-
-    svg {
-        width: 90% !important;
-        height: 70%;
-        position: absolute;
-        left: 5%;
-        top: 15%;
-    }
-}
 
 .imageBox-fader {
     position: relative;

@@ -35,6 +35,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { DocFocusOptions } from "../views/nodes/DocumentView";
 import { FilterBox } from "../views/nodes/FilterBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
@@ -75,8 +76,7 @@ export interface DocumentOptions {
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
-    _showTitleHover?: string; // 
-    _showTitle?: string; // which field to display in the title area.  leave empty to have no title
+    _showTitle?: string; // field name to display in header (:hover is an optional suffix)
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
@@ -111,6 +111,7 @@ export interface DocumentOptions {
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
+    dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
     _viewScale?: number;
     _overflow?: string;
@@ -144,6 +145,7 @@ export interface DocumentOptions {
     _layers?: List<string>;
     _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     isLinkButton?: boolean;
+    isFolder?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
     _fontWeight?: number;
@@ -153,6 +155,7 @@ export interface DocumentOptions {
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
     _timecodeToHide?: number; // the time that a document should be hidden
+    _timelineLabel?: boolean; // whether the document exists on a timeline
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -210,7 +213,7 @@ export interface DocumentOptions {
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
-    treeViewOutlineMode?: boolean; // whether slide should function as a text outline
+    treeViewType?: string; // whether treeview is a Slide, file system, or (default) collection hierarchy
     treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
     treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
@@ -1015,6 +1018,10 @@ export namespace DocUtils {
                 }
             }
         });
+    }
+
+    export function DefaultFocus(doc: Doc, options?: DocFocusOptions) {
+        options?.afterFocus?.(false);
     }
 
     export let ActiveRecordings: AudioBox[] = [];

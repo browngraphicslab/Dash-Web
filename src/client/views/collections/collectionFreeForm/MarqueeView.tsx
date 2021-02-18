@@ -132,6 +132,18 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                     });
                 })();
                 e.stopPropagation();
+            } else if (e.key === "f" && e.ctrlKey) {
+                e.preventDefault();
+                const root = Docs.Create.FreeformDocument([], { title: "folder", _stayInCollection: true, system: true, isFolder: true });
+                const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem", treeViewTruncateTitleWidth: 150 });
+                Doc.GetProto(folder).isFolder = true;
+                folder.x = x;
+                folder.y = y;
+                folder._width = 200;
+                folder._height = 300;
+                this.props.addDocument?.(folder);
+                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
+                e.stopPropagation();
             } else if (e.key === "b" && e.ctrlKey) {
                 // e.preventDefault();
                 // navigator.clipboard.readText().then(text => {

@@ -3,11 +3,11 @@ import { Tooltip } from '@material-ui/core';
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import wiki from "wikijs";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocCastAsync } from "../../../fields/Doc";
 import { NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from '../../DocServer';
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { LinkManager } from '../../util/LinkManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch } from '../../util/UndoManager';
@@ -45,7 +45,11 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
         if (anchor1 && anchor2) {
             linkTarget = Doc.AreProtosEqual(anchor1, this._linkSrc) || Doc.AreProtosEqual(anchor1?.annotationOn as Doc, this._linkSrc) ? anchor2 : anchor1;
         }
-        this._targetDoc = linkTarget?.annotationOn as Doc ?? linkTarget;
+        if (linkTarget?.annotationOn) {
+            linkTarget && DocCastAsync(linkTarget.annotationOn).then(action(anno => this._targetDoc = anno));
+        } else {
+            this._targetDoc = linkTarget;
+        }
         this._toolTipText = "";
     }
     componentDidUpdate(props: any) {
@@ -99,6 +103,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
 
     followLink = (e: React.PointerEvent) => {
         if (this._linkDoc && this._linkSrc) {
+            LinkDocPreview.Clear();
             LinkManager.FollowLink(this._linkDoc, this._linkSrc, this.props.docProps, false);
         } else if (this.props.hrefs?.length) {
             this.props.docProps?.addDocTab(Docs.Create.WebDocument(this.props.hrefs[0], { title: this.props.hrefs[0], _width: 200, _height: 400, useCors: true }), "add:right");
@@ -161,7 +166,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
                             renderDepth={-1}
                             PanelWidth={this.width}
                             PanelHeight={this.height}
-                            focus={emptyFunction}
+                            focus={DocUtils.DefaultFocus}
                             whenActiveChanged={returnFalse}
                             bringToFront={returnFalse}
                             NativeWidth={Doc.NativeWidth(this._targetDoc) ? () => Doc.NativeWidth(this._targetDoc) : undefined}

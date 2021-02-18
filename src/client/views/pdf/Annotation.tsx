@@ -9,42 +9,30 @@ import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
 import "./Annotation.scss";
 import { AnchorMenu } from "./AnchorMenu";
+import { FieldViewProps, FieldView } from "../nodes/FieldView";
 
-interface IAnnotationProps {
+interface IAnnotationProps extends FieldViewProps {
     anno: Doc;
-    addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc, unpin?: boolean) => void;
-    focus: (doc: Doc) => void;
-    select: (isCtrlPressed: boolean) => void;
     dataDoc: Doc;
     fieldKey: string;
     showInfo: (anno: Opt<Doc>) => void;
 }
-
 @observer
 export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a =>
-            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} select={this.props.select} pinToPres={this.props.pinToPres} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
+            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
     }
 }
 
-interface IRegionAnnotationProps {
-    anno: Doc;
+interface IRegionAnnotationProps extends IAnnotationProps {
     x: number;
     y: number;
     width: number;
     height: number;
-    addDocTab: (document: Doc, where: string) => boolean;
-    pinToPres: (document: Doc, unpin: boolean) => void;
-    select: (isCtrlPressed: boolean) => void;
     document: Doc;
-    dataDoc: Doc;
-    fieldKey: string;
-    showInfo: (anno: Opt<Doc>) => void;
 }
-
 @observer
 class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     private _reactionDisposer?: IReactionDisposer;
@@ -90,8 +78,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     @undoBatch
     pinToPres = () => {
         const group = FieldValue(Cast(this.props.document.group, Doc));
-        const isPinned = group && Doc.isDocPinned(group) ? true : false;
-        group && this.props.pinToPres(group, isPinned);
+        group && this.props.pinToPres(group);
     }
 
     @undoBatch
@@ -115,13 +102,9 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             AnchorMenu.Instance.jumpTo(e.clientX, e.clientY, true);
             e.stopPropagation();
         }
-        else if (e.button === 0) {
-            e.persist();
+        else if (e.button === 0 && this.props.document.group instanceof Doc) {
             e.stopPropagation();
-            PromiseValue(this.props.document.group).then(annoGroup => annoGroup instanceof Doc &&
-                LinkManager.traverseLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "add" : followLinkLocation), false, undefined,
-                    () => this.props.select(false))
-            );
+            LinkManager.FollowLink(undefined, this.props.document.group, this.props, false);
         }
     }
 
