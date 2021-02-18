@@ -7,10 +7,8 @@ import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
-import { DocumentView } from '../views/nodes/DocumentView';
+import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
-
-export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
 export class DocumentManager {
 
@@ -141,7 +139,9 @@ export class DocumentManager {
         closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void,
+        originalTarget?: Doc
     ): Promise<void> => {
+        originalTarget = originalTarget ?? targetDoc;
         const getFirstDocView = LightboxView.LightboxDoc ? DocumentManager.Instance.getLightboxDocumentView : DocumentManager.Instance.getFirstDocumentView;
         const docView = getFirstDocView(targetDoc, originatingDoc);
         const focusAndFinish = (didFocus: boolean) => {
@@ -156,31 +156,29 @@ export class DocumentManager {
             finished?.();
             return false;
         };
-        const highlight = () => {
-            const finalDocView = getFirstDocView(targetDoc);
-            finalDocView && Doc.linkFollowHighlight(finalDocView.rootDoc);
-        };
-        let annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
+        const annotatedDoc = Cast(targetDoc.annotationOn, Doc, null);
+        const rtfView = annotatedDoc && getFirstDocView(annotatedDoc);
         const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
         const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc) || Doc.AreProtosEqual(doc, annotatedDoc)) ? docContext : undefined;
         const targetDocContext = contextDoc || annotatedDoc;
         const targetDocContextView = targetDocContext && getFirstDocView(targetDocContext);
-        if (!docView && annotatedDoc && annotatedDoc !== originatingDoc?.context && targetDoc.type === DocumentType.TEXTANCHOR) {
-            const first = getFirstDocView(annotatedDoc);
-            if (first) {
-                annotatedDoc = first.rootDoc;
-                first.focus(targetDoc, false);
-            }
-        } else if (docView && (targetDocContextView || !targetDocContext)) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?      
-            docView.props.focus(docView.rootDoc, willZoom, undefined, (didFocus: boolean) => focusAndFinish(didFocus));
+        const focusView = !docView && targetDoc.type === DocumentType.TEXTANCHOR && rtfView ? rtfView : docView;
+        if (focusView) {
+            focusView && Doc.linkFollowHighlight(focusView.rootDoc);
+            focusView.focus(targetDoc, {
+                originalTarget, willZoom, afterFocus: (didFocus: boolean) =>
+                    new Promise<ViewAdjustment>(res => {
+                        focusAndFinish(didFocus);
+                        res();
+                    })
+            });
         } else {
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
                 createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
-                highlight();
             } else {  // otherwise try to get a view of the context of the target
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
-                    targetDocContextView.props.focus(targetDocContextView.rootDoc, willZoom);
+                    targetDocContextView.props.focus(targetDocContextView.rootDoc, { willZoom });
 
                     // now find the target document within the context
                     if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
@@ -190,13 +188,18 @@ export class DocumentManager {
                         const findView = (delay: number) => {
                             const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
                             if (retryDocView) {   // we found the target in the context
-                                retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
-                                highlight();
+                                retryDocView.props.focus(targetDoc, {
+                                    willZoom, afterFocus: (didFocus: boolean) =>
+                                        new Promise<ViewAdjustment>(res => {
+                                            focusAndFinish(didFocus);
+                                            res();
+                                        })
+                                }); // focus on the target in the context
                             } else if (delay > 1500) {
                                 // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.rootDoc);
                                 if (targetDoc.layout) { // there will no layout for a TEXTANCHOR type document
-                                    Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
+                                    // Doc.SetInPlace(targetDoc, "annotationOn", undefined, false);
                                     createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                                 }
                             } else {
@@ -206,18 +209,13 @@ export class DocumentManager {
                         findView(0);
                     }
                 } else {  // there's no context view so we need to create one first and try again when that finishes
-                    const finishFunc = () => this.jumpToDocument(targetDoc, willZoom, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished);
-                    if (LightboxView.LightboxDoc) {
-                        runInAction(() => LightboxView.LightboxDoc = targetDocContext);
-                        setTimeout(() => finishFunc, 250);
-                    } else {
-                        createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
-                            finishFunc);
-                    }
+                    const finishFunc = () => this.jumpToDocument(targetDoc, true, createViewFunc, docContext, linkDoc, true /* if we don't find the target, we want to get rid of the context just created */, undefined, finished, originalTarget);
+                    createViewFunc(targetDocContext, // after creating the context, this calls the finish function that will retry looking for the target
+                        finishFunc);
                 }
             }
         }
     }
 
 }
-Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });
+Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, { willZoom: true })); });

@@ -21,7 +21,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView, DocAfterFocusFunc, DocumentViewProps } from "../nodes/DocumentView";
+import { DocumentView, DocumentViewProps, DocFocusOptions, ViewAdjustment } from "../nodes/DocumentView";
 import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
@@ -44,7 +44,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     _draggerRef = React.createRef<HTMLDivElement>();
     _pivotFieldDisposer?: IReactionDisposer;
     _autoHeightDisposer?: IReactionDisposer;
-    _docXfs: any[] = [];
+    _docXfs: { height: () => number, width: () => number, stackedDocTransform: () => Transform }[] = [];
     _columnStart: number = 0;
     @observable _heightMap = new Map<string, number>();
     @observable _cursor: CursorProperty = "grab";
@@ -168,18 +168,23 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return this.props.addDocTab(doc, where);
     }
 
-    focusDocument = (doc: Doc, willZoom?: boolean, scale?: number, afterFocus?: DocAfterFocusFunc) => {
+    focusDocument = (doc: Doc, options?: DocFocusOptions) => {
         Doc.BrushDoc(doc);
-        this.props.focus(this.props.Document, true);  // bcz: want our containing collection to zoom
-        Doc.linkFollowHighlight(doc);
 
+        let focusSpeed = 0;
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            if (Math.floor(localTop[1]) !== 0) {
+                smoothScroll(focusSpeed = doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            }
         }
-        afterFocus && setTimeout(afterFocus, 500);
+        const endFocus = async (moved: boolean) => options?.afterFocus ? options?.afterFocus(moved) : ViewAdjustment.doNothing;
+        this.props.focus(this.rootDoc, {
+            willZoom: options?.willZoom, scale: options?.scale, afterFocus: (didFocus: boolean) =>
+                new Promise<ViewAdjustment>(res => setTimeout(async () => res(await endFocus(didFocus)), focusSpeed))
+        });
     }
 
     styleProvider = (doc: Doc | undefined, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => {
@@ -192,13 +197,14 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             }
         }
         return this.props.styleProvider?.(doc, props, property);
-    };
+    }
     getDisplayDoc(doc: Doc, width: () => number) {
         const dataDoc = (!doc.isTemplateDoc && !doc.isTemplateForField && !doc.PARAMS) ? undefined : this.props.DataDoc;
         const height = () => this.getDocHeight(doc);
 
         let dref: Opt<HTMLDivElement>;
         const stackedDocTransform = () => this.getDocTransform(doc, dref);
+        this._docXfs.push({ stackedDocTransform, width, height });
         return <DocumentView ref={r => dref = r?.ContentDiv ? r.ContentDiv : undefined}
             Document={doc}
             DataDoc={dataDoc || (!Doc.AreProtosEqual(doc[DataSym], doc) && doc[DataSym])}
@@ -290,8 +296,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         let dropAfter = 0;
         if (de.complete.docDragData) {
             this._docXfs.map((cd, i) => {
-                const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
-                const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+                const pos = cd.stackedDocTransform().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+                const pos1 = cd.stackedDocTransform().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && (i === this._docXfs.length - 1 || where[1] < pos1[1])) {
                     dropInd = i;
                     const axis = this.Document._viewType === CollectionViewType.Masonry ? 0 : 1;
@@ -322,8 +328,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
-            const pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
-            const pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+            const pos = cd.stackedDocTransform().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+            const pos1 = cd.stackedDocTransform().inverse().transformPoint(cd.width(), cd.height());
             if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                 targInd = i;
             }

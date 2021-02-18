@@ -166,9 +166,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
         return { props: list };
     }
 
-    componentWillUpdate(oldProps: any, newState: any) {
-        // console.log("willupdate", oldProps, this.props); // bcz: if you get a message saying something invalidated because reactive props changed, then this method allows you to figure out which prop changed
-    }
+    // componentWillUpdate(oldProps: any, newState: any) {
+    //     // console.log("willupdate", oldProps, this.props); // bcz: if you get a message saying something invalidated because reactive props changed, then this method allows you to figure out which prop changed
+    // }
 
     @computed get renderData() {
         TraceMobx();

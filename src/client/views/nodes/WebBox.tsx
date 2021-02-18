@@ -30,6 +30,7 @@ import { DocAfterFocusFunc } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
+import { LinkDocPreview } from "./LinkDocPreview";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -111,21 +112,24 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     getAnchor = () => this.rootDoc;
-    scrollFocus = (doc: Doc, smooth: boolean, afterFocus?: DocAfterFocusFunc) => {
+    scrollFocus = (doc: Doc, smooth: boolean) => {
+        let focusSpeed: Opt<number>;
         if (doc !== this.rootDoc && this.webpage && this._outerRef.current) {
             const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
                 this._ignoreScroll = true;
-                this.goTo(scrollTo, smooth ? 500 : 0);
-                this.layoutDoc._scrollTop = scrollTo;
+                this.goTo(scrollTo, focusSpeed = smooth ? 500 : 0);
+                if (!LinkDocPreview.LinkInfo) {
+                    this.layoutDoc._scrollTop = scrollTo;
+                }
                 this._ignoreScroll = false;
-                return afterFocus?.(true);
             }
         } else {
             this._initialScroll = NumCast(doc.y);
         }
-        afterFocus?.(false);
+
+        return focusSpeed;
     }
 
     async componentDidMount() {
@@ -424,7 +428,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         TraceMobx();
         return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} showInfo={emptyFunction} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+                <Annotation {...this.props} showInfo={emptyFunction} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }

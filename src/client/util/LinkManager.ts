@@ -3,11 +3,12 @@ import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { BoolCast, Cast, StrCast } from "../../fields/Types";
 import { LightboxView } from "../views/LightboxView";
-import { DocumentViewSharedProps } from "../views/nodes/DocumentView";
-import { CreateViewFunc, DocumentManager } from "./DocumentManager";
+import { DocumentViewSharedProps, ViewAdjustment } from "../views/nodes/DocumentView";
+import { DocumentManager } from "./DocumentManager";
 import { SharingManager } from "./SharingManager";
 import { UndoManager } from "./UndoManager";
 
+type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 /* 
  * link doc: 
  * - anchor1: doc
@@ -103,56 +104,55 @@ export class LinkManager {
     public static FollowLink = (linkDoc: Opt<Doc>, sourceDoc: Doc, docViewProps: DocumentViewSharedProps, altKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
         // open up target if it's not already in view ...
-        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
-            const targetFocusAfterDocFocus = (didFocus: boolean) => {
-                const where = StrCast(sourceDoc.followLinkLocation) || followLoc;
-                const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
-                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                };
-                const addTab = docViewProps.addDocTab(doc, where);
-                addTab && setTimeout(() => {
+        const createViewFunc = (doc: Doc, followLoc: string, finished?: Opt<() => void>) => {
+            const createTabForTarget = (didFocus: boolean) => new Promise<ViewAdjustment>(res => {
+                const where = LightboxView.LightboxDoc ? "lightbox" : StrCast(sourceDoc.followLinkLocation) || followLoc;
+                docViewProps.addDocTab(doc, where);
+                setTimeout(() => {
                     const targDocView = DocumentManager.Instance.getFirstDocumentView(doc);
-                    targDocView?.props.focus(doc, BoolCast(sourceDoc.followLinkZoom, false), undefined, hackToCallFinishAfterFocus);
-                }); //  add the target and focus on it.
-                return where !== "inPlace" || addTab; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
-            };
+                    if (targDocView) {
+                        targDocView.props.focus(doc, {
+                            willZoom: BoolCast(sourceDoc.followLinkZoom, false),
+                            afterFocus: (didFocus: boolean) => {
+                                finished?.();
+                                res(ViewAdjustment.resetView);
+                                return new Promise<ViewAdjustment>(res2 => res2());
+                            }
+                        });
+                    } else {
+                        res(where !== "inPlace" ? ViewAdjustment.resetView : ViewAdjustment.doNothing); // for 'inPlace'  resetting the initial focus&zoom would negate the zoom into the target 
+                    }
+                });
+            });
+
             if (!sourceDoc.followLinkZoom) {
-                targetFocusAfterDocFocus(false);
+                createTabForTarget(false);
             } else {
                 // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
-                docViewProps.focus(sourceDoc, BoolCast(sourceDoc.followLinkZoom, true), 1, targetFocusAfterDocFocus);
+                docViewProps.focus(sourceDoc, { willZoom: BoolCast(sourceDoc.followLinkZoom, true), scale: 1, afterFocus: createTabForTarget });
             }
         };
         LinkManager.traverseLink(linkDoc, sourceDoc, createViewFunc, BoolCast(sourceDoc.followLinkZoom, false), docViewProps.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
-    public static traverseLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
-        const linkDocs = link ? [link] : DocListCast(doc.links);
-        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor1
-        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, doc)); // link docs where 'doc' is anchor2
+
+    public static traverseLink(link: Opt<Doc>, sourceDoc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
+        const linkDocs = link ? [link] : DocListCast(sourceDoc.links);
+        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, sourceDoc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, sourceDoc)); // link docs where 'doc' is anchor1
+        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, sourceDoc) || Doc.AreProtosEqual((linkDoc.anchor2 as Doc).annotationOn as Doc, sourceDoc)); // link docs where 'doc' is anchor2
         const fwdLinkWithoutTargetView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
         const backLinkWithoutTargetView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
         const linkWithoutTargetDoc = traverseBacklink === undefined ? fwdLinkWithoutTargetView || backLinkWithoutTargetView : traverseBacklink ? backLinkWithoutTargetView : fwdLinkWithoutTargetView;
         const linkDocList = linkWithoutTargetDoc ? [linkWithoutTargetDoc] : (traverseBacklink === undefined ? firstDocs.concat(secondDocs) : traverseBacklink ? secondDocs : firstDocs);
-        const followLinks = linkDocList.length ? (doc.isPushpin ? linkDocList : [linkDocList[0]]) : [];
+        const followLinks = linkDocList.length ? (sourceDoc.isPushpin ? linkDocList : [linkDocList[0]]) : [];
         followLinks.forEach(async linkDoc => {
             if (linkDoc) {
-                const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
-                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
-                const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") :
-                    doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
-                        (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
+                const target = (sourceDoc === linkDoc.anchor1 ? linkDoc.anchor2 : sourceDoc === linkDoc.anchor2 ? linkDoc.anchor1 :
+                    (Doc.AreProtosEqual(sourceDoc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, sourceDoc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
                 if (target) {
-                    if (LightboxView.LightboxDoc && !DocumentManager.Instance.getLightboxDocumentView(doc)) {
-                        runInAction(() => LightboxView.LightboxDoc = (target.annotationOn as Doc) ?? target);
-                        finished?.();
-                    } else {
-                        const containerDoc = Cast(target.annotationOn, Doc, null) || target;
-                        targetTimecode !== undefined && (containerDoc._currentTimecode = targetTimecode);
-                        const targetContext = Cast(containerDoc?.context, Doc, null);
-                        const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                        DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, doc, finished);
-                    }
+                    const containerDoc = Cast(target.annotationOn, Doc, null) || target;
+                    const targetContext = Cast(containerDoc?.context, Doc, null);
+                    const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, sourceDoc, finished);
                 } else {
                     finished?.();
                 }

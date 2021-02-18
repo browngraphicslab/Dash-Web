@@ -153,7 +153,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     screenToLocalTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y);
-    focusDoc = (doc: Doc) => this.props.focus(doc, false);
+    focusDoc = (doc: Doc) => this.props.focus(doc);
     returnThis = () => this;
     render() {
         TraceMobx();
