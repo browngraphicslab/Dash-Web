@@ -68,7 +68,7 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
         if (doc instanceof Doc || doc === undefined) {
             return fn(doc || new Doc);
         } else {
-            return doc.map(fn);
+            if (!doc instanceof Promise) return doc.map(fn);
         }
     };
 }

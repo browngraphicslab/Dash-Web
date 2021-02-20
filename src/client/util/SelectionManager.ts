@@ -66,7 +66,7 @@ export namespace SelectionManager {
         manager.SelectSchemaView(colSchema, document);
     }
 
-    const IsSelectedCache = computedFn(function isSelected(doc: DocumentView) {  // wraapping get() in a computedFn only generates mobx() invalidations when the return value of the function for the specific get parameters has changed
+    const IsSelectedCache = computedFn(function isSelected(doc: DocumentView) {  // wrapping get() in a computedFn only generates mobx() invalidations when the return value of the function for the specific get parameters has changed
         return manager.SelectedViews.get(doc) ? true : false;
     });
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
