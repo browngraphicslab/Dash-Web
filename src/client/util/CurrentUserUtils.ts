@@ -791,20 +791,16 @@ export class CurrentUserUtils {
         // setup Filter item
         doc.currentFilter === undefined;
         if (doc.currentFilter === undefined) {
-            doc.currentFilter = new PrefetchProxy(Docs.Create.FilterDocument({
-                title: `FilterDoc(${(doc.filterDocCount as number)++})`, _height: 500,
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
+            doc.currentFilter = Docs.Create.FilterDocument({
+                title: "FilterDoc", _height: 20,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _yPadding: 10, forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 90, treeViewPreventOpen: false, ignoreClick: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
-            }));
+            });
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.currentFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
             (doc.currentFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
-        // const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
-        // (doc.myFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        // (doc.myFilter as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
-
     }
 
     static setupUserDoc(doc: Doc) {
@@ -836,7 +832,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
-        CurrentUserUtils.setupFilterDocs(doc);
+        // CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
