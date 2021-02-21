@@ -63,7 +63,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable _deletedDocsStatus: boolean = false;
     @observable _onlyAliases: boolean = true;
     @observable _searchbarOpen = false;
-    @observable _searchFullDB = "DB";
+    @observable _searchFullDB = "DB"; // "DB" means searh the entire database.  "My Stuff" adds a flag that selects only documents that the current user has authored
     @observable _noResults = "";
     @observable _pageStart = 0;
     @observable open = false;
@@ -466,7 +466,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @computed get scopeButtons() {
-        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px"}}>
+        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px" }}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                 <div style={{ display: "contents" }}>
                     <div className="radio" style={{ margin: 0 }}>

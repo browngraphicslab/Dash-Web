@@ -524,7 +524,7 @@ export class CurrentUserUtils {
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
             // { title: "Filter", target: Cast(doc.currentFilter, Doc, null), icon: "filter", click: 'selectMainMenu(self)' },
             { title: "Pres. Trails", target: Cast(doc.myPresentations, Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
-            { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
+            { title: "My Files", target: Cast(doc.myFilesystem, Doc, null), icon: "file", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
             { title: "User Doc", target: Cast(doc.myUserDoc, Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
@@ -580,6 +580,10 @@ export class CurrentUserUtils {
                     btn.color = "white";
                     btn._backgroundColor = "";
                     btn.dontUndo = true;
+                    if (btn.title === "Catalog" || btn.title === "My Files") { // migration from Catalog to My Files
+                        btn.target = Doc.UserDoc().myFilesystem;
+                        btn.title = "My Files";
+                    }
                 }));
             });
         });
@@ -772,6 +776,22 @@ export class CurrentUserUtils {
         return doc.myPresentations as any as Doc;
     }
 
+    static async setupFilesystem(doc: Doc) {
+        await doc.myFilesystem;
+        if (doc.myFilesystem === undefined) {
+            doc.myFileOrphans = Docs.Create.TreeDocument([], { title: "file orphans", _stayInCollection: true, system: true, isFolder: true });
+            doc.myFileRoot = Docs.Create.TreeDocument([], { title: "file root", _stayInCollection: true, system: true, isFolder: true });
+            doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
+                title: "My Documents", _height: 100,
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
+                isFolder: true, treeViewType: "fileSystem",
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            }));
+        }
+        return doc.myFilesystem as any as Doc;
+    }
+
     static setupRecentlyClosedDocs(doc: Doc) {
         // setup Recently Closed library item
         doc.myRecentlyClosedDocs === undefined;
@@ -831,6 +851,7 @@ export class CurrentUserUtils {
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupPresentations(doc);
+        CurrentUserUtils.setupFilesystem(doc);
         CurrentUserUtils.setupRecentlyClosedDocs(doc);
         // CurrentUserUtils.setupFilterDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);

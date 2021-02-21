@@ -32,6 +32,7 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { ContextMenu } from '../ContextMenu';
 
 export interface TreeViewProps {
     document: Doc;
@@ -93,7 +94,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
     get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
-    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.noviceMode || this.outlineMode || this.fileSysMode ? "layout" : "fields"); }
+    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.fileSysMode ? "data" : this.noviceMode || this.outlineMode ? "layout" : "fields"); }
     get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs && !this.fileSysMode ? this.fieldKey : this.defaultExpandedView); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) {
@@ -212,9 +213,10 @@ export class TreeView extends React.Component<TreeViewProps> {
         bullet.context = this.props.treeView.Document;
         return added;
     }
+
     makeFolder = () => {
         Doc.SetInPlace(this.doc, "editTitle", undefined, false);
-        const folder = Docs.Create.FreeformDocument([], { title: "-folder-", _stayInCollection: true, isFolder: true, system: true });
+        const folder = Docs.Create.TreeDocument([], { title: "-folder-", _stayInCollection: true, isFolder: true, system: true });
         const added = this.props.addDocument(folder);
         folder.context = this.props.treeView.Document;
         return added;
@@ -511,7 +513,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef.current?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-    contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
+    contextMenuItems = () => this.doc.isFolder ? [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] : Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
     truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, this.props.panelWidth());
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
