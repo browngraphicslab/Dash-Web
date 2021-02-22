@@ -729,7 +729,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             }
         }
 
-        if (this.props.removeDocument && !this.props.Document._stayInCollection && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
+        if (this.props.removeDocument && (!this.props.Document._stayInCollection || this.props.Document.isFolder) && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
             moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
         }
 
