@@ -222,7 +222,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
 
     @undoBatch
-    setDictation = () => SelectionManager.Views().forEach(dv => dv.rootDoc._showAudio = !dv.rootDoc._showAudio);
+    setDictation = () => SelectionManager.Views().forEach(dv => dv.rootDoc._showAudio = !dv.rootDoc._showAudio)
 
     @computed
     get dictationButton() {

@@ -130,7 +130,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @action
     contentsDown = (e: React.MouseEvent) => {
-        let prevFilterIndex = NumCast(this.layoutDoc._prevFilterIndex);
+        const prevFilterIndex = NumCast(this.layoutDoc._prevFilterIndex);
         if (prevFilterIndex > 0) {
             this.goTo(prevFilterIndex - 1);
         } else {

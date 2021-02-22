@@ -32,7 +32,6 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
-import { ContextMenu } from '../ContextMenu';
 
 export interface TreeViewProps {
     document: Doc;

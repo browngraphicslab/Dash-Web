@@ -257,7 +257,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const docs = doc instanceof Doc ? [doc] : doc;
                 docs.forEach(doc => Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", doc));
                 return this.addDocument(doc);
-            }
+            };
 
             if (html) {
                 if (FormattedTextBox.IsFragment(html)) {

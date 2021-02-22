@@ -956,7 +956,7 @@ export namespace DocUtils {
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
             if (d.z) return true;
             // if the document needs a cookie but no filter provides the cookie, then the document does not pass the filter
-            if (d["cookies"] && (!filterFacets["cookies"] || !Object.keys(filterFacets["cookies"]).some(key => d["cookies"] === key))) {
+            if (d.cookies && (!filterFacets.cookies || !Object.keys(filterFacets.cookies).some(key => d.cookies === key))) {
                 return false;
             }
             for (const facetKey of Object.keys(filterFacets).filter(fkey => fkey !== "cookies")) {
