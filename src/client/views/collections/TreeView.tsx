@@ -150,8 +150,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         const titleScript = ScriptField.MakeScript("scriptContext.setEditTitle(documentView)", { scriptContext: "any", documentView: "any" });
         const openScript = ScriptField.MakeScript(`self.isFolder? (scriptContext.treeViewOpen = !scriptContext.treeViewOpen) : openOnRight(self) && documentView.select()`, { scriptContext: "any", documentView: "any" });
         const treeOpenScript = ScriptField.MakeScript(`scriptContext.treeViewOpen = !scriptContext.treeViewOpen`, { scriptContext: "any" });
-        this._editTitleScript = !Doc.IsSystem(this.props.document) || props.document.isFolder ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
-        this._openScript = !Doc.IsSystem(this.props.document) || props.document.isFolder ? openScript && (() => openScript) : undefined;
+        this._editTitleScript = !Doc.IsSystem(this.props.document) ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
+        this._openScript = !Doc.IsSystem(this.props.document) ? openScript && (() => openScript) : undefined;
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -222,7 +222,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     makeFolder = () => {
-        const folder = Docs.Create.TreeDocument([], { title: "-folder-", _stayInCollection: true, isFolder: true, system: true });
+        const folder = Docs.Create.TreeDocument([], { title: "-folder-", _stayInCollection: true, isFolder: true });
         const added = this.props.addDocument(folder);
         folder.context = this.props.treeView.Document;
         TreeView._editTitleOnLoad = { id: folder[Id], parent: this.props.parentTreeView };
@@ -488,7 +488,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get headerElements() {
-        return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode && !this.doc.isFolder) || this.props.treeViewHideHeaderFields() ? (null) :
+        return (Doc.IsSystem(this.doc) && Doc.UserDoc().noviceMode) || this.props.treeViewHideHeaderFields() ? (null) :
             <>
                 <FontAwesomeIcon key="bars" icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
@@ -612,7 +612,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.treeView.props.Document}
             />;
         return <>
-            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
+            <div className={`docContainer${Doc.IsSystem(this.props.document) || this.props.document.isFolder ? "-system" : ""}`} ref={this._tref} title="click to edit title. Double Click or Drag to Open"
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,

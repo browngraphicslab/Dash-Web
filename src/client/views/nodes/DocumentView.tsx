@@ -446,7 +446,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                         shiftKey: e.shiftKey
                     }, console.log);
                     UndoManager.RunInBatch(() => func().result?.select === true ? this.props.select(false) : "", "on double click");
-                } else if (!Doc.IsSystem(this.props.Document)) {
+                } else if (!Doc.IsSystem(this.rootDoc)) {
                     if (this.props.Document.type !== DocumentType.LABEL) {
                         UndoManager.RunInBatch(() => this.props.addDocTab((this.rootDoc._fullScreenView as Doc) || this.rootDoc, "lightbox"), "double tap");
                         SelectionManager.DeselectAll();
@@ -729,7 +729,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             }
         }
 
-        if (this.props.removeDocument && (!this.props.Document._stayInCollection || this.props.Document.isFolder) && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
+        if (this.props.removeDocument && !Doc.IsSystem(this.rootDoc) && CurrentUserUtils.ActiveDashboard !== this.props.Document) { // need option to gray out menu items ... preferably with a '?' that explains why they're grayed out (eg., no permissions)
             moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
         }
 
