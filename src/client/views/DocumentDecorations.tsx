@@ -580,9 +580,9 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             </Tooltip>;
 
         const titleArea = this._edtingTitle ?
-            <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
+            <input ref={this._keyinput} className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                 onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
-            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
+            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
                 <span className="documentDecorations-titleSpan">{`${this.selectionTitle}`}</span>
             </div>;
 

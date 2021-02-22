@@ -113,6 +113,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
+    @computed get selected() { return SelectionManager.Views().length && SelectionManager.Views()[0].props.Document === this.props.document; }
 
     childDocList(field: string) {
         if (this.fileSysMode && !this.doc.isFolder) return [] as Doc[];
@@ -121,7 +122,6 @@ export class TreeView extends React.Component<TreeViewProps> {
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
             DocListCastOrNull(this.doc[field])); // otherwise use the document's data field
     }
-    @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
     }
@@ -239,20 +239,12 @@ export class TreeView extends React.Component<TreeViewProps> {
         fontStyle={style}
         fontSize={12}
         GetValue={() => StrCast(this.doc[key])}
-        OnFillDown={(value) => this.fileSysMode && this.makeFolder()}
+        OnTab={undoBatch((shift?: boolean) => !shift ? this.props.indentDocument?.(true) : this.props.outdentDocument?.(true))}
+        OnEmpty={undoBatch(() => this.outlineMode && this.props.removeDoc?.(this.doc))}
+        OnFillDown={val => this.fileSysMode && this.makeFolder()}
         SetValue={undoBatch((value: string, shiftKey: boolean, enterKey: boolean) => {
             Doc.SetInPlace(this.doc, key, value, false);
-            if (this.outlineMode && enterKey) {
-                this.makeTextCollection();
-            }
-        })}
-        onClick={() => {
-            SelectionManager.DeselectAll();
-            return false;
-        }}
-        OnEmpty={undoBatch(() => this.outlineMode && this.props.removeDoc?.(this.doc))}
-        OnTab={undoBatch((shift?: boolean) => {
-            !shift ? this.props.indentDocument?.(true) : this.props.outdentDocument?.(true);
+            this.outlineMode && enterKey && this.makeTextCollection();
         })}
     />)
 
@@ -376,7 +368,6 @@ export class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
-    selected = () => SelectionManager.Views().length && SelectionManager.Views()[0].props.Document === this.props.document;
     rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - treeBulletWidth());
     rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
     rtfOutlineHeight = () => Math.max(this.layoutDoc?.[HeightSym](), treeBulletWidth());
@@ -528,7 +519,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
         switch (property.split(":")[0]) {
             case StyleProp.Opacity: return this.outlineMode ? undefined : 1;
-            case StyleProp.BackgroundColor: return this.selected() ? "#7089bb" : StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
+            case StyleProp.BackgroundColor: return this.selected ? "#7089bb" : StrCast(doc._backgroundColor, StrCast(doc.backgroundColor));
             case StyleProp.DocContents: return testDocProps(props) && !props?.treeViewDoc ? (null) :
                 <div className="treeView-label" style={{    // just render a title for a tree view label (identified by treeViewDoc being set in 'props')
                     maxWidth: props?.PanelWidth() || undefined,
@@ -799,7 +790,7 @@ export class TreeView extends React.Component<TreeViewProps> {
 
         const docs = TreeView.sortDocs(childDocs, StrCast(containingCollection?.[key + "-sortCriteria"]));
         const rowWidth = () => panelWidth() - treeBulletWidth();
-        const treeViewRefs: Map<Doc, TreeView | undefined> = new Map();
+        const treeViewRefs = new Map<Doc, TreeView | undefined>();
         return docs.filter(child => child instanceof Doc).map((child, i) => {
             const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
             if (!pair.layout || pair.data instanceof Promise) {
