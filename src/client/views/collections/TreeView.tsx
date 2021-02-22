@@ -118,9 +118,6 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
-    @computed get isCollectionDoc() {
-        return !StrCast(this.props.document.type).includes(DocumentType.COL) || !DocListCast(this.props.document[this.fieldKey]).length ? false : true;
-    }
 
     @undoBatch openRight = () => this.props.addDocTab(this.doc, "add:right");
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
@@ -165,8 +162,8 @@ export class TreeView extends React.Component<TreeViewProps> {
         if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "treeView-header";
             document.removeEventListener("pointermove", this.onDragMove, true);
-            document.addEventListener("pointermove", this.onDragMove, true);
             document.removeEventListener("pointerup", this.onDragUp, true);
+            document.addEventListener("pointermove", this.onDragMove, true);
             document.addEventListener("pointerup", this.onDragUp, true);
         }
     }
