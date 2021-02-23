@@ -94,7 +94,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                             const rootAlias = Doc.MakeAlias(rootDoc);
                             rootAlias.x = rootAlias.y = 0;
                             return rootAlias;
-                        }
+                        };
                         let wid = rootDoc[WidthSym]();
                         const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([rootAlias()], { title: this.props.View.Document.title + "-pivot", _width: 500, _height: 500, }, docid);
                         const docs = await DocListCastAsync(Doc.GetProto(target).data);

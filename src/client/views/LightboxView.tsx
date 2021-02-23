@@ -148,7 +148,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             LightboxView.SetLightboxDoc(undefined);
             return;
         }
-        const { doc, target } = LightboxView._history?.lastElement()!;
+        const { doc, target } = LightboxView._history?.lastElement();
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (docView && target) {
             LightboxView._doc = doc;

@@ -548,6 +548,7 @@ export class CurrentUserUtils {
                     iconShape: "square",
                     _stayInCollection: true,
                     _hideContextMenu: true,
+                    system: true,
                     dontUndo: true,
                     title,
                     target,
@@ -580,6 +581,7 @@ export class CurrentUserUtils {
                     btn.color = "white";
                     btn._backgroundColor = "";
                     btn.dontUndo = true;
+                    btn.system = true;
                     if (btn.title === "Catalog" || btn.title === "My Files") { // migration from Catalog to My Files
                         btn.target = Doc.UserDoc().myFilesystem;
                         btn.title = "My Files";
