@@ -890,11 +890,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-btn">Add</div>
             </div>
         </div>;
-        MainViewPopup.setWidth(250);
-        MainViewPopup.setHeight(170);
+        MainViewPopup.setWidth(240);
+        MainViewPopup.setHeight(117);
         MainViewPopup.setBackgroundColor("#C4C4C4");
         MainViewPopup.setX(e.clientX - 200);
-        MainViewPopup.setY(e.clientY);
+        MainViewPopup.setY(e.clientY + 5);
         MainViewPopup.changeContent(content);
         MainViewPopup.show();
     }
@@ -918,11 +918,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-btn">Add</div>
             </div>
         </div>;
-        MainViewPopup.setWidth(250);
-        MainViewPopup.setHeight(170);
+        MainViewPopup.setWidth(180);
+        MainViewPopup.setHeight(90);
         MainViewPopup.setBackgroundColor("#C4C4C4");
-        MainViewPopup.setX(e.clientX - 200);
-        MainViewPopup.setY(e.clientY);
+        MainViewPopup.setX(e.clientX - 150);
+        MainViewPopup.setY(e.clientY + 5);
         MainViewPopup.changeContent(content);
         MainViewPopup.show();
     }

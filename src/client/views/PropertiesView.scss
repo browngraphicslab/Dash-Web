@@ -847,14 +847,25 @@
 
 .propertiesView-addTag {
     background-color: #C4C4C4;
+    padding: 8px;
 
     .propertiesView-addTag-wrapper {
         display: flex;
+        margin-bottom: 4px;
+        margin-top: 3px;
+        justify-content: center;
+        align-content: center;
+        align-items: center;
+    }
+
+    .propertiesView-addTag-title {
+        margin-right: 5px;
+        margin-left: 8px;
     }
 
     .propertiesView-addTag-btn {
         padding: 5px;
-        background-color: rgb(223, 223, 223);
+        background-color: white;
         border-radius: 9px;
         margin: 5px;
         width: 70px;
@@ -862,7 +873,7 @@
         margin-right: 10px;
 
         &:hover {
-            background-color: rgb(194, 194, 194);
+            background-color: rgb(223, 223, 223);
         }
     }
 }
