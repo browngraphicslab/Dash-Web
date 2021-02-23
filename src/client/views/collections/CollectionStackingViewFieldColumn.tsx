@@ -10,7 +10,7 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, returnFalse, returnEmptyString } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
@@ -294,22 +294,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.yMargin, 5);
         const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         const evContents = heading ? heading : this.props?.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
-        const headerEditableViewProps = {
-            GetValue: () => evContents,
-            SetValue: this.headingChanged,
-            contents: evContents,
-            oneLine: true,
-            HeadingObject: this.props.headingObject,
-            toggle: this.toggleVisibility,
-        };
-        const newEditableViewProps = {
-            GetValue: () => "",
-            SetValue: this.addDocument,
-            textCallback: this.textCallback,
-            contents: "+ NEW",
-            HeadingObject: this.props.headingObject,
-            toggle: this.toggleVisibility,
-        };
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{
@@ -325,7 +309,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                     style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit" }}>
-                    <EditableView {...headerEditableViewProps} />
+                    <EditableView
+                        GetValue={() => evContents}
+                        SetValue={this.headingChanged}
+                        contents={evContents}
+                        oneLine={true}
+                        toggle={this.toggleVisibility} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">
                             <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>
@@ -373,7 +362,13 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                 style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 10 }}>
-                                <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
+                                <EditableView
+                                    GetValue={returnEmptyString}
+                                    SetValue={this.addDocument}
+                                    textCallback={this.textCallback}
+                                    contents={"+ NEW"}
+                                    toggle={this.toggleVisibility}
+                                    menuCallback={this.menuCallback} />
                             </div> : null}
                     </div>
             }

@@ -8,7 +8,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, returnTrue, setupMoveUpEvents, returnEmptyString } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Scripting } from "../../util/Scripting";
@@ -193,22 +193,22 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
 
     @computed get pivotKeyUI() {
-        const newEditableViewProps = {
-            GetValue: () => "",
-            SetValue: (value: any) => {
-                if (value?.length) {
-                    this.layoutDoc._pivotField = value;
-                    return true;
-                }
-                return false;
-            },
-            showMenuOnLoad: true,
-            contents: ":" + StrCast(this.layoutDoc._pivotField),
-            toggle: this.toggleVisibility,
-            color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
-        };
         return <div className={"pivotKeyEntry"}>
-            <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
+            <EditableView
+                GetValue={returnEmptyString}
+                SetValue={(value: any) => {
+                    if (value?.length) {
+                        this.layoutDoc._pivotField = value;
+                        return true;
+                    }
+                    return false;
+                }}
+                toggle={this.toggleVisibility}
+                background={"#f1efeb"} // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+                contents={":" + StrCast(this.layoutDoc._pivotField)}
+                showMenuOnLoad={true}
+                display={"inline"}
+                menuCallback={this.menuCallback} />
         </div>;
     }
 

@@ -548,6 +548,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             oneLine={true}
             display={"inline-block"}
             editing={true}
+            background={"#7089bb"}
             contents={StrCast(this.doc.title)}
             height={12}
             sizeToContent={true}
