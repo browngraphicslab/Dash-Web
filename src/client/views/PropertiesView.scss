@@ -157,6 +157,67 @@
         }
     }
 
+    .propertiesView-filters {
+        //border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-filters-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-filters-title-icon {
+                float: right;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-filters-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+            max-height: 40%;
+            overflow-y: auto;
+
+            .propertiesView-buttonContainer {
+                float: right;
+                display: flex;
+
+                button {
+                    width: 15;
+                    height: 15;
+                    padding: 0;
+                    margin-top: -5;
+                }
+            }
+
+            button {
+                width: 5;
+                height: 5;
+            }
+
+            input {
+                width: 100%;
+            }
+        }
+    }
+
+
     .propertiesView-appearance {
         //border-bottom: 1px solid black;
         //padding: 8.5px;
@@ -332,6 +393,7 @@
             }
         }
     }
+
     .propertiesView-fields {
         //border-bottom: 1px solid black;
         //padding: 8.5px;

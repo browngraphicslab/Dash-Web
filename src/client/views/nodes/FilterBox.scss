@@ -28,15 +28,15 @@
 }
 
 // .filterBox-bottom {
-    //     // position: fixed;
-    //     // bottom: 0;
-    //     // width: 100%;
-    // }
+//     // position: fixed;
+//     // bottom: 0;
+//     // width: 100%;
+// }
 
 .filterBox-select {
-    width: 90%;
+    // width: 90%;
     margin-top: 5px;
-    margin-bottom: 15px;
+    // margin-bottom: 15px;
 }
 
 
@@ -60,20 +60,6 @@
         margin-right: 6px;
         margin-top: 4px;
         margin-left: 2px;
-    }
-
-}
-
-.filterBox-title {
-
-    justify-content: center;
-    text-align: center;
-    padding-bottom: 13px;
-    font-size: 20px;
-    font-weight: bold;
-
-    .filterBox-span {
-        margin-right: 15px;
     }
 
 }
@@ -112,6 +98,14 @@
     border-bottom: 2px solid black;
 }
 
+.filterBox-title {
+    font-size: 15;
+    // border: 2px solid black;
+    width: 100%;
+    align-self: center;
+    text-align: center;
+    background-color: #d3d3d3;
+}
 
 .filterBox-select-bool {
     margin-top: 6px;

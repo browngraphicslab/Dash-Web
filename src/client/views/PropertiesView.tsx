@@ -2,10 +2,10 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Checkbox, Tooltip } from "@material-ui/core";
 import { intersection } from "lodash";
-import { action, computed, observable } from "mobx";
+import { action, autorun, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, WidthSym } from "../../fields/Doc";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, AclUnset, DataSym, Doc, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkField } from "../../fields/InkField";
 import { ComputedField } from "../../fields/ScriptField";
@@ -29,6 +29,7 @@ import { PropertiesButtons } from "./PropertiesButtons";
 import { PropertiesDocContextSelector } from "./PropertiesDocContextSelector";
 import "./PropertiesView.scss";
 import { DefaultStyleProvider, FilteringStyleProvider } from "./StyleProvider";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { FilterBox } from "./nodes/FilterBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -48,6 +49,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
+    @computed get filterDoc() {
+        return FilterBox._filterScope === "Current Collection" ? this.selectedDoc || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+    }
     @computed get selectedDocumentView() {
         if (SelectionManager.Views().length) return SelectionManager.Views()[0];
         if (PresBox.Instance?._selectedArray.size) return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
@@ -68,7 +72,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
-    @observable openFilters: boolean = true;
+    @observable openFilters: boolean = true; // should be false
+
+    private selectedDocListenerDisposer: Opt<Lambda>;
 
     // @observable selectedUser: string = "";
     // @observable addButtonPressed: boolean = false;
@@ -83,6 +89,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable inOptions: boolean = false;
     @observable _controlBtn: boolean = false;
     @observable _lock: boolean = false;
+
+    componentDidMount() {
+        this.selectedDocListenerDisposer?.();
+        this.selectedDocListenerDisposer = autorun(() => this.openFilters && this.selectedDoc && this.checkFilterDoc());
+    }
+
+    componentWillUnmount() {
+        this.selectedDocListenerDisposer?.();
+    }
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
@@ -885,44 +900,63 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    checkFilterDoc() {
+        if (this.filterDoc.type === DocumentType.COL && !this.filterDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.filterDoc!);
+    }
+
+    saveFilter = () => {
+        this.filterDoc.currentFilter = undefined;
+        CurrentUserUtils.setupFilterDocs(this.filterDoc);
+    }
+
+    myFiltersSelect = (doc: Doc) => {
+        this.filterDoc.currentFilter = doc;
+    }
+
     @computed get filtersSubMenu() {
-        return <div className="propertiesView-sharing">
-            <div className="propertiesView-sharing-title"
+        return <div className="propertiesView-filters">
+            <div className="propertiesView-filters-title"
                 onPointerDown={action(() => this.openFilters = !this.openFilters)}
                 style={{ backgroundColor: this.openFilters ? "black" : "" }}>
                 Filters
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-filters-title-icon">
                     <FontAwesomeIcon icon={this.openFilters ? "caret-down" : "caret-right"} size="lg" color="white" />
                 </div>
             </div>
-            {!this.openFilters ? (null) :
-                <div className="propertiesView-sharing-content">
-                    <DocumentView
-                        Document={Doc.UserDoc().currentFilter as any as Doc}
-                        DataDoc={undefined}
-                        addDocument={undefined}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        rootSelected={returnTrue}
-                        removeDocument={returnFalse}
-                        ScreenToLocalTransform={this.getTransform}
-                        PanelWidth={this.docWidth}
-                        PanelHeight={this.docHeight}
-                        renderDepth={0}
-                        scriptContext={CollectionDockingView.Instance.props.Document}
-                        focus={emptyFunction}
-                        styleProvider={DefaultStyleProvider}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        docFilters={returnEmptyFilter}
-                        docRangeFilters={returnEmptyFilter}
-                        searchFilterDocs={returnEmptyDoclist}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                    />
-                </div>}
-        </div>;
+            {
+                !this.openFilters || !this.filterDoc.currentFilter ? (null) :
+                    <div className="propertiesView-filters-content">
+                        <DocumentView
+                            Document={this.filterDoc.currentFilter as Doc}
+                            DataDoc={undefined}
+                            addDocument={undefined}
+                            addDocTab={returnFalse}
+                            pinToPres={emptyFunction}
+                            rootSelected={returnTrue}
+                            removeDocument={returnFalse}
+                            ScreenToLocalTransform={this.getTransform}
+                            PanelWidth={this.docWidth}
+                            PanelHeight={this.docHeight}
+                            renderDepth={0}
+                            scriptContext={this.filterDoc.currentFilter as Doc}
+                            focus={emptyFunction}
+                            styleProvider={DefaultStyleProvider}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            docFilters={returnEmptyFilter}
+                            docRangeFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
+                            ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
+                            filterSaveCallback={this.saveFilter}
+                            myFiltersCallback={this.myFiltersSelect}
+                            docViewPath={returnEmptyDoclist}
+                            layerProvider={undefined}
+                        />
+                    </div>
+            }
+        </div >;
     }
 
     @computed get inkSubMenu() {
@@ -1022,7 +1056,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     // }
 
     render() {
-        // console.log(this.props.width);
         if (!this.selectedDoc && !this.isPres) {
             return <div className="propertiesView" style={{ width: this.props.width }}>
                 <div className="propertiesView-title" style={{ width: this.props.width }}>
@@ -1047,6 +1080,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     {this.sharingSubMenu}
 
+                    {this.selectedDoc.type === DocumentType.COL && this.filtersSubMenu}
+
                     {this.inkSubMenu}
 
                     {this.fieldsSubMenu}
@@ -1054,8 +1089,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {this.contextsSubMenu}
 
                     {this.layoutSubMenu}
-
-                    {this.filtersSubMenu}
                 </div>;
             }
             if (this.isPres) {

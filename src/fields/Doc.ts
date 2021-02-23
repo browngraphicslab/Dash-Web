@@ -25,6 +25,7 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
 import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
+import { FilterBox } from "../client/views/nodes/FilterBox";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -1063,9 +1064,8 @@ export namespace Doc {
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
     export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
-        // console.log(key, value, modifiers);
-        const container = target ?? CollectionDockingView.Instance.props.Document;
-        const docFilters = Cast(container._docFilters, listSpec("string"), []);
+        const container = target ?? FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        const docFilters = Cast(SelectionManager.Views()[0].Document._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
                 const fields = docFilters[i].split(":"); // split key:value:modifier

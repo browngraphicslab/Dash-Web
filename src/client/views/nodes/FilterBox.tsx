@@ -1,8 +1,8 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, Opt } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -30,22 +30,30 @@ import { UserOptions } from "../../util/GroupManager";
 import { DocumentViewProps } from "./DocumentView";
 import { DefaultStyleProvider, StyleProp } from "../StyleProvider";
 import { CollectionViewType } from "../collections/CollectionView";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 type FilterBoxDocument = makeInterface<[typeof documentSchema]>;
 const FilterBoxDocument = makeInterface(documentSchema);
 
 @observer
 export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDocument>(FilterBoxDocument) {
+
+    static Instance: FilterBox;
+
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
+        FilterBox.Instance = this;
+        if (!CollectionDockingView.Instance.props.Document.currentFilter) CurrentUserUtils.setupFilterDocs(CollectionDockingView.Instance.props.Document);
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
     public _filterBoolean = "AND";
-    public _filterScope = "Current Dashboard";
+    public static _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
-    private myFiltersRef = React.createRef<HTMLDivElement>();
+    // private myFiltersRef = React.createRef<HTMLDivElement>();
+
+    @observable private showFilterDialog = false;
 
     @computed get allDocs() {
         const allDocs = new Set<Doc>();
@@ -112,10 +120,12 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return { strings: Array.from(valueSet.keys()), rtFields };
     }
 
-    public static removeFilter = (filterName: string) => {
+    public removeFilter = (filterName: string) => {
         console.log("remove filter");
-        const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
-        const filterDoc = Doc.UserDoc().currentFilter as any as Doc;
+        const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        // const targetDoc = SelectionManager.Views()[0].props.Document;
+        // const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
+        const filterDoc = targetDoc.currentFilter as Doc;
         const attributes = DocListCast(filterDoc["data"]);
         const found = attributes.findIndex(doc => doc.title === filterName);
         if (found !== -1) {
@@ -145,7 +155,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         console.log("facetClick: " + facetHeader);
         console.log(this.props.fieldKey);
 
-        const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
+        const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        // const targetDoc = SelectionManager.Views()[0].props.Document;
         const found = this.activeAttributes.findIndex(doc => doc.title === facetHeader);
         if (found !== -1) {
             // (this.dataDoc[this.props.fieldKey] as List<Doc>).splice(found, 1);
@@ -164,7 +175,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             //     }
             // }
         } else {
-            const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
+            // const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
 
             let nonNumbers = 0;
@@ -179,7 +190,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 }
             });
             let newFacet: Opt<Doc>;
-            if (facetHeader === "text" || facetValues.rtFields / allCollectionDocs.length > 0.1) {
+            if (facetHeader === "text") {//} || facetValues.rtFields / allCollectionDocs.length > 0.1) {
                 newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, system: true, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet._textBoxPadding = 4;
@@ -225,8 +236,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
 
     @action
     changeScope = (e: any) => {
-        this._filterScope = e.currentTarget.value;
-        console.log(this._filterScope);
+        FilterBox._filterScope = e.currentTarget.value;
+        console.log(FilterBox._filterScope);
     }
 
     @action
@@ -234,14 +245,9 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         this._filterMatch = e.currentTarget.value;
         console.log(this._filterMatch);
     }
-
-    @computed get yPos() {
-        return this.myFiltersRef.current?.getBoundingClientRect();
-    }
-
-
+    // CHANGE SO DOCKINGVIEW HAS ITS OWN FILTERDOC
     @action
-    changeSelected = (e: any) => {
+    changeSelected = () => {
         if (this._filterSelected) {
             this._filterSelected = false;
             SelectionManager.DeselectAll();
@@ -250,12 +256,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             // helper method to select specified docs
         }
         console.log(this._filterSelected);
-    }
-
-    saveFilter = () => {
-        Doc.AddDocToList(Doc.UserDoc(), "savedFilters", this.props.Document);
-        console.log("saved filter");
-        console.log(Doc.UserDoc().savedFilters);
     }
 
     FilteringStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | DocumentViewProps>, property: string) {
@@ -270,7 +270,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                                     <option value="Is Not" key="Is Not">Is Not</option>
                                 </select>
                             </div>
-                            <div className="filterBox-treeView-close" onClick={e => FilterBox.removeFilter(StrCast(doc.title))}>
+                            <div className="filterBox-treeView-close" onClick={e => this.removeFilter(StrCast(doc.title))}>
                                 <FontAwesomeIcon icon={"times"} size="sm" />
                             </div>
                         </>;
@@ -280,45 +280,47 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         }
     }
 
-
     suppressChildClick = () => ScriptField.MakeScript("")!;
+
+    saveFilter = () => {
+        // const doc: Doc = new Doc;
+        // for (const key of Object.keys(this.props.Document)) {
+        //     doc[key] = SerializationHelper.Serialize(this.props.Document[key] as Field);
+        // }
+        // console.log(doc);
+        runInAction(() => this.showFilterDialog = true);
+        console.log("saved filter");
+    }
+
+    onTitleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.props.Document.title = e.currentTarget.value || `FilterDoc for ${SelectionManager.Views()[0].Document.title}`;
+    }
+
+    onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            runInAction(() => this.showFilterDialog = false);
+            Doc.AddDocToList(Doc.UserDoc(), "savedFilters", this.props.Document);
+        }
+    }
+
     render() {
         const facetCollection = this.props.Document;
-        // const flyout = <div className="filterBox-flyout" style={{ width: `100%` }} onWheel={e => e.stopPropagation()}>
-        //     {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-        //         <input className="filterBox-flyout-facet-check" type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
-        //         <span className="checkmark" />
-        //         {facet}
-        //     </label>)}
-        // </div>;
 
-        // const attributes = this.activeAttributes;
+        const flyout = DocListCast(Doc.UserDoc().savedFilters).map(doc => {
+            // console.log("mapping");
+            return <>
+                <div className="???" onWheel={e => e.stopPropagation()} style={{ height: 50, border: "2px" }} onPointerDown={() => this.props.myFiltersCallback?.(doc)}>
+                    {StrCast(doc.title)}
+                </div>
+            </>;
+        }
+        );
 
-        // const options = this._allFacets.filter(facet => !attributes.some(attribute => attribute.title === facet)).map(facet => ({ value: facet, label: facet }));
-        // const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
-        // console.log(this.props.Document);
-        // console.log(Doc.UserDoc().currentFilter);
-        console.log(this.yPos);
-        console.log(this.myFiltersRef.current?.getBoundingClientRect());
-
-        const flyout = <>
-            <div className="nothing for now" onWheel={e => e.stopPropagation()}>
-                testing flyout
-            </div>
-        </>;
         const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
 
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
-            {/* <div className="filterBox-top"> */}
-            {/* <div className="filter-bookmark">
-                <FontAwesomeIcon className="filter-bookmark-icon" icon={"bookmark"} size={"lg"} />
-            </div>
-
-            <div className="filterBox-title">
-                <span className="filterBox-span">Choose Filters</span>
-            </div> */}
-
+            <div className="filterBox-title">Current FilterDoc: {this.props.Document.title}</div>
             <div className="filterBox-select-bool">
                 <select className="filterBox-selection" onChange={e => this.changeBool(e)}>
                     <option value="AND" key="AND">AND</option>
@@ -326,21 +328,22 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 </select>
                 <div className="filterBox-select-text">filters in </div>
                 <select className="filterBox-selection" onChange={e => this.changeScope(e)}>
-                    <option value="Current Dashboard" key="Current Dashboard">Current Dashboard</option>
-                    <option value="Current Tab" key="Current Tab">Current Tab</option>
-                    <option value="Current Collection" key="Current Collection">Current Collection</option>
+                    <option value="Current Dashboard" key="Current Dashboard" selected={"Current Dashboard" === FilterBox._filterScope}>Current Dashboard</option>
+                    {/* <option value="Current Tab" key="Current Tab">Current Tab</option> */}
+                    <option value="Current Collection" key="Current Collection" selected={"Current Collection" === FilterBox._filterScope}>Current Collection</option>
                 </select>
             </div>
 
-            {/* <div className="filterBox-select-scope">
-                <div className="filterBox-select-text">Scope: </div>
-                <select className="filterBox-selection" onChange={e => this.changeScope(e)}>
-                    <option value="Current Dashboard" key="Current Dashboard">Current Dashboard</option>
-                    <option value="Current Tab" key="Current Tab">Current Tab</option>
-                    <option value="Current Collection" key="Current Collection">Current Collection</option>
-                </select>
-            </div> */}
-            {/* </div> */}
+            <div className="filterBox-select">
+                <Select
+                    placeholder="Add a filter..."
+                    options={options}
+                    isMulti={false}
+                    onChange={val => this.facetClick((val as UserOptions).value)}
+                    value={null}
+                    closeMenuOnSelect={false}
+                />
+            </div>
 
             <div className="filterBox-tree" key="tree">
                 <CollectionTreeView
@@ -387,21 +390,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     <div className="filterBox-addFilter"> + add a filter</div>
                 </div>
             </Flyout> */}
-            <div className="filterBox-select">
-                <Select
-                    placeholder="Add a filter..."
-                    options={options}
-                    isMulti={false}
-                    onChange={val => this.facetClick((val as UserOptions).value)}
-                    value={null}
-                    closeMenuOnSelect={false}
-                />
-            </div>
-
             <div className="filterBox-bottom">
                 <div className="filterBox-select-matched">
                     <input className="filterBox-select-box" type="checkbox"
-                        onChange={e => this.changeSelected(e)} />
+                        onChange={this.changeSelected} />
                     <div className="filterBox-select-text">select</div>
                     <select className="filterBox-selection" onChange={e => this.changeMatch(e)}>
                         <option value="matched" key="matched">matched</option>
@@ -415,24 +407,32 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                         <div className="filterBox-saveBookmark"
                             onPointerDown={this.saveFilter}
                         >
-                            <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"save"} size={"sm"} />
                             <div>SAVE</div>
                         </div>
                     </div>
                     <div className="filterBox-saveWrapper">
-                        <div className="filterBox-saveBookmark" ref={this.myFiltersRef}>
-                            <FontAwesomeIcon className="filterBox-saveBookmark-icon" icon={"bookmark"} size={"sm"} />
+                        <div className="filterBox-saveBookmark">
                             <Flyout className="myFilters-flyout" anchorPoint={anchorPoints.TOP} content={flyout}>
-                                <div>MY FILTERS</div>
+                                <div>FILTERS</div>
                             </Flyout>
                         </div>
                     </div>
+                    <div className="filterBox-saveWrapper">
+                        <div className="filterBox-saveBookmark"
+                            onPointerDown={this.props.filterSaveCallback}
+                        >
+                            <div>NEW</div>
+                        </div>
+                    </div>
                 </div>
-                <div
-                    style={{ width: 200, height: 200, backgroundColor: "black", color: "white" }}
-                >
-                    floot floot
-                </div>
+                {!this.showFilterDialog ? (null) :
+                    <input
+                        className="filterBox-dialog-input"
+                        placeholder="Enter name of filterDoc"
+                        onChange={this.onTitleValueChange}
+                        onKeyDown={this.onKeyDown}
+                    />
+                }
             </div>
         </div>;
     }
