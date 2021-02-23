@@ -566,7 +566,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
         const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
-        const closeIcon = !canDelete ? (null) : (
+        const closeIcon = !canDelete ? <div></div> : (
             <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
                 <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
@@ -580,9 +580,9 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             </Tooltip>;
 
         const titleArea = this._edtingTitle ?
-            <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
+            <input ref={this._keyinput} className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                 onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
-            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
+            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
                 <span className="documentDecorations-titleSpan">{`${this.selectionTitle}`}</span>
             </div>;
 

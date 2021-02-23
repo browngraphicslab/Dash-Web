@@ -299,7 +299,7 @@ export namespace WebSocket {
         diff.diff.$set = diff.diff.$remFromSet; delete diff.diff.$remFromSet;
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const remListItems = diff.diff.$set[updatefield].fields;
-        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields.filter((f: any) => f !== null) || [];
         diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId ? remItem.fieldId === curItem.fieldId : remItem.heading ? remItem.heading === curItem.heading : remItem === curItem));
         const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
         delete diff.diff.length;

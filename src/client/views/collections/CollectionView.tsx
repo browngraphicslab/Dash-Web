@@ -211,14 +211,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         }
         const first = doc instanceof Doc ? doc : doc[0];
         if (!first?._stayInCollection && addDocument !== returnFalse) {
-            if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
-                const added = addDocument(doc);
-                if (!added) UndoManager.UndoTempBatch();
-                else UndoManager.ClearTempBatch();
-
-                return added;
-            }
-            UndoManager.ClearTempBatch();
+            return UndoManager.RunInTempBatch(() => this.removeDocument(doc) && addDocument(doc));
         }
         return false;
     }

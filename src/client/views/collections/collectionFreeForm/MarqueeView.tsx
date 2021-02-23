@@ -28,6 +28,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { StyleLayers } from "../../StyleProvider";
+import { TreeView } from "../TreeView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -134,7 +135,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 e.stopPropagation();
             } else if (e.key === "f" && e.ctrlKey) {
                 e.preventDefault();
-                const root = Docs.Create.FreeformDocument([], { title: "folder", _stayInCollection: true, system: true, isFolder: true });
+                const root = Docs.Create.TreeDocument([], { title: "folder", _stayInCollection: true, isFolder: true });
                 const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem", treeViewTruncateTitleWidth: 150 });
                 Doc.GetProto(folder).isFolder = true;
                 folder.x = x;
@@ -161,8 +162,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 slide.x = x;
                 slide.y = y;
                 FormattedTextBox.SelectOnLoad = slide[Id];
+                TreeView._editTitleOnLoad = { id: slide[Id], parent: undefined };
                 this.props.addDocument?.(slide);
-                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.childLayoutString ? e.key : "";

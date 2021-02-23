@@ -937,6 +937,9 @@ export namespace DocUtils {
     }
     export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+        if (!docFilters?.length && !docRangeFilters?.length) {
+            return childDocs.filter(d => !d.cookies);  // remove documents that need a cookie if there are no filters to provide one
+        }
 
         const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
         docFilters.forEach(filter => {
@@ -952,9 +955,13 @@ export namespace DocUtils {
 
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
             if (d.z) return true;
-            for (const facetKey of Object.keys(filterFacets)) {
+            // if the document needs a cookie but no filter provides the cookie, then the document does not pass the filter
+            if (d.cookies && (!filterFacets.cookies || !Object.keys(filterFacets.cookies).some(key => d.cookies === key))) {
+                return false;
+            }
+            for (const facetKey of Object.keys(filterFacets).filter(fkey => fkey !== "cookies")) {
                 const facet = filterFacets[facetKey];
-                const matches = Object.keys(facet).filter(value => facet[value] === "match");
+                const matches = Object.keys(facet).filter(value => value !== "cookies" && facet[value] === "match");
                 const checks = Object.keys(facet).filter(value => facet[value] === "check");
                 const xs = Object.keys(facet).filter(value => facet[value] === "x");
                 const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
