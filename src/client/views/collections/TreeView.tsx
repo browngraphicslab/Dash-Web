@@ -382,7 +382,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 // if there's a sort ordering specified that can be modified on drop (eg, zorder can be modified, alphabetical can't),
                 // then the modification would be done here
                 const ordering = StrCast(this.doc[this.fieldKey + "-sortCriteria"]);
-                if (ordering === "zorder") {
+                if (ordering === "Z") {
                     const docs = TreeView.sortDocs(this.childDocs || ([] as Doc[]), ordering);
                     doc.zIndex = addBefore ? (before ? NumCast(addBefore.zIndex) - 0.5 : NumCast(addBefore.zIndex) + 0.5) : 1000;
                     docs.push(doc);
@@ -397,15 +397,13 @@ export class TreeView extends React.Component<TreeViewProps> {
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortCriteria`;
             let downX = 0, downY = 0;
-            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""}
-                onPointerDown={e => { downX = e.clientX; downY = e.clientY; }}
+            const sortings = ["up", "down", "Z", undefined];
+            const curSort = Math.max(0, sortings.indexOf(Cast(this.doc[sortKey], "string", null)));
+            return <ul key={expandKey + "more"} title={"sort: " + sortings[curSort]} className={this.doc.treeViewHideTitle ? "no-indent" : ""}
+                onPointerDown={e => { downX = e.clientX; downY = e.clientY; e.stopPropagation(); }}
                 onClick={(e) => {
                     if (this.props.active() && Math.abs(e.clientX - downX) < 3 && Math.abs(e.clientY - downY) < 3) {
-                        !this.outlineMode && (this.doc[sortKey] =
-                            (this.doc[sortKey] === "ascending" ? "descending" :
-                                (this.doc[sortKey] === "descending" ? "zorder" :
-                                    (this.doc[sortKey] === "zorder" ? undefined :
-                                        "ascending"))));
+                        !this.outlineMode && (this.doc[sortKey] = sortings[(curSort + 1) % sortings.length]);
                         e.stopPropagation();
                     }
                 }}>
@@ -461,9 +459,9 @@ export class TreeView extends React.Component<TreeViewProps> {
                     <div className={`treeView-${this.onCheckedClick ? "checkIcon" : "expandIcon"}`}>
                         <FontAwesomeIcon size="sm" icon={
                             checked === "check" ? "check" :
-                                (checked === "x" ? "times" : checked === "unchecked" ? "square" :
-                                    !this.treeViewOpen ? "caret-right" :
-                                        "caret-down")} />
+                                checked === "x" ? "times" :
+                                    checked === "unchecked" ? "square" :
+                                        !this.treeViewOpen ? "caret-right" : "caret-down"} />
                     </div>
                     {this.onCheckedClick ? (null) : <FontAwesomeIcon icon={iconType} />}
                 </div>
@@ -701,7 +699,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get renderBorder() {
         const sorting = this.doc[`${this.fieldKey}-sortCriteria`];
         return <div className={`treeView-border${this.outlineMode ? "outline" : ""}`}
-            style={{ borderColor: sorting === undefined ? undefined : sorting === "ascending" ? "crimson" : sorting === "descending" ? "blue" : "green" }}>
+            style={{ borderColor: sorting === undefined ? undefined : sorting === "up" ? "crimson" : sorting === "down" ? "blue" : "green" }}>
             {!this.treeViewOpen ? (null) : this.renderContent}
         </div>;
     }
@@ -749,10 +747,10 @@ export class TreeView extends React.Component<TreeViewProps> {
                 }
             };
             docs.sort(function (d1, d2): 0 | 1 | -1 {
-                const a = (criterion === "ascending" ? d2 : d1);
-                const b = (criterion === "ascending" ? d1 : d2);
-                const first = a[criterion === "zorder" ? "zIndex" : "title"];
-                const second = b[criterion === "zorder" ? "zIndex" : "title"];
+                const a = (criterion === "up" ? d2 : d1);
+                const b = (criterion === "up" ? d1 : d2);
+                const first = a[criterion === "Z" ? "zIndex" : "title"];
+                const second = b[criterion === "Z" ? "zIndex" : "title"];
                 if (typeof first === 'number' && typeof second === 'number') return (first - second) > 0 ? 1 : -1;
                 if (typeof first === 'string' && typeof second === 'string') return sortAlphaNum(first, second);
                 return criterion ? 1 : -1;
