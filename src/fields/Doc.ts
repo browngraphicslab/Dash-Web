@@ -195,11 +195,7 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym](clear?: boolean) {
-        const self = this[SelfProxy];
-        runInAction(() => clear && Array.from(Object.keys(self)).forEach(key => delete self[key]));
-        return this.___fields;
-    }
+    public [FieldsSym] = () => this[Self].___fields; // Object.keys(this).reduce((fields, key) => { fields[key] = this[key]; return fields; }, {} as any);
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
