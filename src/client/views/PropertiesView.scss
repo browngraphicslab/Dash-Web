@@ -820,8 +820,49 @@
     margin-top: 3px;
 }
 
+.propertiesView-addField-wrapper {
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 7px;
+    margin-top: 16px;
+    margin-bottom: 12px;
+    display: flex;
+}
+
 .propertiesView-addFieldBtn {
-    padding: 10px;
-    background-color: white;
-    border-radius: 6px;
+    padding: 5px;
+    background-color: rgb(223, 223, 223);
+    border-radius: 9px;
+    margin: 5px;
+    width: 70px;
+    text-align: center;
+    margin-right: 10px;
+
+    &:hover {
+        background-color: rgb(194, 194, 194);
+    }
+}
+
+.propertiesView-addTag {
+    background-color: #C4C4C4;
+
+    .propertiesView-addTag-wrapper {
+        display: flex;
+    }
+
+    .propertiesView-addTag-btn {
+        padding: 5px;
+        background-color: rgb(223, 223, 223);
+        border-radius: 9px;
+        margin: 5px;
+        width: 70px;
+        text-align: center;
+        margin-right: 10px;
+
+        &:hover {
+            background-color: rgb(194, 194, 194);
+        }
+    }
 }

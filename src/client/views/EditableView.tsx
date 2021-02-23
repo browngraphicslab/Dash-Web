@@ -57,6 +57,7 @@ export interface EditableProps {
     placeholder?: string;
     outline?: boolean;
     backgroundColor?: string;
+    width?: number;
 }
 
 /**
@@ -233,7 +234,8 @@ export class EditableView extends React.Component<EditableProps> {
                 style={{
                     backgroundColor: this.props.backgroundColor,
                     display: this.props.display, borderRadius: "4px", border: this.props.outline ? "0.2px solid black" : "", paddingLeft: "4px", paddingRight: "4px",
-                    textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight
+                    textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight,
+                    width: this.props.width,
                 }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
                 <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >{
