@@ -1065,7 +1065,7 @@ export namespace Doc {
     // based on the modifiers :"check", "x", undefined
     export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
         const container = target ?? FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
-        const docFilters = Cast(SelectionManager.Views()[0].Document._docFilters, listSpec("string"), []);
+        const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
                 const fields = docFilters[i].split(":"); // split key:value:modifier

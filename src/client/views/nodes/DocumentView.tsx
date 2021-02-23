@@ -120,8 +120,8 @@ export interface DocumentViewSharedProps {
     cantBrush?: boolean; // whether the document doesn't show brush highlighting
     pointerEvents?: string;
     scriptContext?: any; // can be assigned anything and will be passed as 'scriptContext' to any OnClick script that executes on this document
-    filterSaveCallback?: () => void;
-    myFiltersCallback?: (doc: Doc) => void;
+    createNewFilterDoc?: () => void;
+    updateFilterDoc?: (doc: Doc) => void;
 }
 export interface DocumentViewProps extends DocumentViewSharedProps {
     // properties specific to DocumentViews but not to FieldView

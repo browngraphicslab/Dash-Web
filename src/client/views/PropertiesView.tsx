@@ -31,6 +31,7 @@ import "./PropertiesView.scss";
 import { DefaultStyleProvider, FilteringStyleProvider } from "./StyleProvider";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { FilterBox } from "./nodes/FilterBox";
+import { List } from "../../fields/List";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -901,16 +902,25 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     checkFilterDoc() {
-        if (this.filterDoc.type === DocumentType.COL && !this.filterDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.filterDoc!);
+        if (this.filterDoc.type === DocumentType.COL && !this.filterDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.filterDoc);
     }
 
-    saveFilter = () => {
+    createNewFilterDoc = () => {
+        const temp = this.filterDoc._docFilters;
+        this.filterDoc._docFilters = new List<string>();
+        (this.filterDoc.currentFilter as Doc)._docFiltersList = temp;
         this.filterDoc.currentFilter = undefined;
         CurrentUserUtils.setupFilterDocs(this.filterDoc);
     }
 
-    myFiltersSelect = (doc: Doc) => {
+    updateFilterDoc = (doc: Doc) => {
+        const temp = doc._docFiltersList;
+        const otherTemp = this.filterDoc._docFilters;
+        this.filterDoc._docFilters = new List<string>();
+        (this.filterDoc.currentFilter as Doc)._docFiltersList = otherTemp;
         this.filterDoc.currentFilter = doc;
+        doc._docFiltersList = new List<string>();
+        this.filterDoc._docFilters = temp;
     }
 
     @computed get filtersSubMenu() {
@@ -949,8 +959,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             searchFilterDocs={returnEmptyDoclist}
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined}
-                            filterSaveCallback={this.saveFilter}
-                            myFiltersCallback={this.myFiltersSelect}
+                            createNewFilterDoc={this.createNewFilterDoc}
+                            updateFilterDoc={this.updateFilterDoc}
                             docViewPath={returnEmptyDoclist}
                             layerProvider={undefined}
                         />

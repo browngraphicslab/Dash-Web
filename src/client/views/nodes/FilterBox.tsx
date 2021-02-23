@@ -48,7 +48,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
     public _filterBoolean = "AND";
-    public static _filterScope = "Current Dashboard";
+    @observable public static _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
     // private myFiltersRef = React.createRef<HTMLDivElement>();
@@ -309,7 +309,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const flyout = DocListCast(Doc.UserDoc().savedFilters).map(doc => {
             // console.log("mapping");
             return <>
-                <div className="???" onWheel={e => e.stopPropagation()} style={{ height: 50, border: "2px" }} onPointerDown={() => this.props.myFiltersCallback?.(doc)}>
+                <div className="???" onWheel={e => e.stopPropagation()} style={{ height: 50, border: "2px" }} onPointerDown={() => this.props.updateFilterDoc?.(doc)}>
                     {StrCast(doc.title)}
                 </div>
             </>;
@@ -419,7 +419,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     </div>
                     <div className="filterBox-saveWrapper">
                         <div className="filterBox-saveBookmark"
-                            onPointerDown={this.props.filterSaveCallback}
+                            onPointerDown={this.props.createNewFilterDoc}
                         >
                             <div>NEW</div>
                         </div>
