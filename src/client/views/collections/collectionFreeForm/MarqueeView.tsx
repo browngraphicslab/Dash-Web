@@ -28,6 +28,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { StyleLayers } from "../../StyleProvider";
+import { TreeView } from "../TreeView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -161,8 +162,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 slide.x = x;
                 slide.y = y;
                 FormattedTextBox.SelectOnLoad = slide[Id];
+                TreeView._editTitleOnLoad = { id: slide[Id], parent: undefined };
                 this.props.addDocument?.(slide);
-                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.childLayoutString ? e.key : "";

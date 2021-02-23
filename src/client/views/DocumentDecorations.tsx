@@ -566,7 +566,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
         const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
-        const closeIcon = !canDelete ? (null) : (
+        const closeIcon = !canDelete ? <div></div> : (
             <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
                 <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />

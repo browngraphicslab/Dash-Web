@@ -148,12 +148,15 @@ export namespace UndoManager {
         }
     });
 
-    export function ClearTempBatch() {
-        tempEvents = undefined;
-    }
     export function RunInTempBatch<T>(fn: () => T) {
         tempEvents = [];
-        return runInAction(fn);
+        try {
+            const success = runInAction(fn);
+            if (!success) UndoManager.UndoTempBatch();
+            return success;
+        } finally {
+            tempEvents = undefined;
+        }
     }
     //TODO Make this return the return value
     export function RunInBatch<T>(fn: () => T, batchName: string) {

@@ -13,7 +13,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 
-export type dropActionType = "alias" | "copy" | "move" | "same" | "none" | undefined; // undefined = move
+export type dropActionType = "alias" | "copy" | "move" | "same" | "none" | undefined; // undefined = move, "same" = move but don't call removeDropProperties
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,

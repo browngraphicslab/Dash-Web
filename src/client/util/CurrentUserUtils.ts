@@ -558,7 +558,7 @@ export class CurrentUserUtils {
                     _width: 60,
                     _height: 60,
                     watchedDocuments,
-                    onClick: ScriptField.MakeScript(click, { scriptContext: "any" }), system: true
+                    onClick: ScriptField.MakeScript(click, { scriptContext: "any" })
                 }));
             const userDoc = menuBtns[menuBtns.length - 1];
             userDoc.userDoc = doc;

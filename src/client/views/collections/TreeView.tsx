@@ -39,14 +39,14 @@ export interface TreeViewProps {
     containingCollection: Doc;
     prevSibling?: Doc;
     renderDepth: number;
-    removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
-    moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
     addDocTab: (doc: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
     addDocument: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
+    removeDoc: ((doc: Doc | Doc[]) => boolean) | undefined;
+    moveDocument: DragManager.MoveFunction;
     indentDocument?: (editTitle: boolean) => void;
     outdentDocument?: (editTitle: boolean) => void;
     ScreenToLocalTransform: () => Transform;
@@ -263,20 +263,15 @@ export class TreeView extends React.Component<TreeViewProps> {
             e.stopPropagation();
             if (docDragData.draggedDocuments[0] === this.doc) return true;
             const parentAddDoc = (doc: Doc | Doc[]) => this.props.addDocument(doc, undefined, before);
-            let addDoc = parentAddDoc;
-            if (inside) {
-                const localAdd = (doc: Doc) => {
-                    const added = Doc.AddDocToList(this.dataDoc, this.fieldKey, doc);
-                    added && (doc.context = this.doc.context);
-                    return added;
-                };
-                addDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce(
-                    (flg: boolean, doc) => flg && localAdd(doc), true) || parentAddDoc(doc);
-            }
+            const canAdd = !StrCast((inside ? this.props.document : this.props.containingCollection)?.freezeChildren).includes("add") || docDragData.treeViewDoc === this.props.treeView.props.Document;
+            const localAdd = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) && ((doc.context = this.doc.context) || true) ? true : false;
+            const addDoc = !inside ? parentAddDoc :
+                (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc), true as boolean);
             const move = (!docDragData.dropAction || docDragData.dropAction === "move" || docDragData.dropAction === "same") && docDragData.moveDocument;
-            return docDragData.droppedDocuments.reduce((added, d) => (move ? docDragData.moveDocument?.(d, undefined, addDoc) : addDoc(d)) || added, false);
+            if (canAdd) {
+                UndoManager.RunInTempBatch(() => docDragData.droppedDocuments.reduce((added, d) => (move ? move(d, undefined, addDoc) : addDoc(d)) || added, false));
+            }
         }
-        return false;
     }
 
     refTransform = (ref: HTMLDivElement | undefined | null) => {
@@ -401,16 +396,19 @@ export class TreeView extends React.Component<TreeViewProps> {
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortCriteria`;
-            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""} onClick={(e) => {
-                if (this.props.active()) {
-                    !this.outlineMode && (this.doc[sortKey] =
-                        (this.doc[sortKey] === "ascending" ? "descending" :
-                            (this.doc[sortKey] === "descending" ? "zorder" :
-                                (this.doc[sortKey] === "zorder" ? undefined :
-                                    "ascending"))));
-                    e.stopPropagation();
-                }
-            }}>
+            let downX = 0, downY = 0;
+            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTitle ? "no-indent" : ""}
+                onPointerDown={e => { downX = e.clientX; downY = e.clientY; }}
+                onClick={(e) => {
+                    if (this.props.active() && Math.abs(e.clientX - downX) < 3 && Math.abs(e.clientY - downY) < 3) {
+                        !this.outlineMode && (this.doc[sortKey] =
+                            (this.doc[sortKey] === "ascending" ? "descending" :
+                                (this.doc[sortKey] === "descending" ? "zorder" :
+                                    (this.doc[sortKey] === "zorder" ? undefined :
+                                        "ascending"))));
+                        e.stopPropagation();
+                    }
+                }}>
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeView, this.layoutDoc,
                         this.dataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
@@ -571,7 +569,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             : <DocumentView key="title"
                 ref={action((r: any) => {
                     this._docRef = r ? r : undefined;
-                    if (this._docRef && TreeView._editTitleOnLoad?.id === this.props.document[Id] && TreeView._editTitleOnLoad.parent == this.props.parentTreeView) {
+                    if (this._docRef && TreeView._editTitleOnLoad?.id === this.props.document[Id] && TreeView._editTitleOnLoad.parent === this.props.parentTreeView) {
                         this._docRef.select(false);
                         this.setEditTitle(this._docRef);
                         TreeView._editTitleOnLoad = undefined;
@@ -772,7 +770,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         parentCollectionDoc: Doc | undefined,
         parentPrevSibling: Doc | undefined,
         add: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean,
-        remove: ((doc: Doc | Doc[]) => boolean),
+        remove: undefined | ((doc: Doc | Doc[]) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
@@ -818,7 +816,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                     newParent.treeViewOpen = true;
                     child.context = treeView.Document;
                 }
-            }
+            };
             const indent = i === 0 ? undefined : (editTitle: boolean) => dentDoc(editTitle, docs[i - 1], undefined, treeViewRefs.get(docs[i - 1]));
             const outdent = parentCollectionDoc?._viewType !== CollectionViewType.Tree ? undefined : ((editTitle: boolean) => dentDoc(editTitle, parentCollectionDoc, parentPrevSibling, parentTreeView instanceof TreeView ? parentTreeView.props.parentTreeView : undefined));
             const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => add(doc, relativeTo ?? docs[i], before !== undefined ? before : false);
