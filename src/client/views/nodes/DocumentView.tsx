@@ -378,8 +378,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
-            const ffview = this.props.CollectionFreeFormDocumentView;
-            ffview && runInAction(() => (ffview().props.CollectionFreeFormView.ChildDrag = this.props.DocumentView()));
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.ContentScale).transformDirection(x - left, y - top);
@@ -387,8 +385,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             dragData.treeViewDoc = this.props.treeViewDoc;
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;
+            const ffview = this.props.CollectionFreeFormDocumentView?.().props.CollectionFreeFormView;
+            ffview && runInAction(() => (ffview.ChildDrag = this.props.DocumentView()));
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart },
-                () => setTimeout(action(() => ffview && (ffview().props.CollectionFreeFormView.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
+                () => setTimeout(action(() => ffview && (ffview.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
         }
     }
 
