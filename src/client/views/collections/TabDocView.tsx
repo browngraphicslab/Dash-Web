@@ -337,7 +337,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                     background={this.miniMapColor}
                     document={this._document}
                     tabView={this.tabView} />
-                <Tooltip key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <Tooltip style={{ display: this._document?._viewType !== CollectionViewType.Freeform ? "none" : undefined }} key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
                     <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
                         <FontAwesomeIcon icon={"globe-asia"} size="lg" />
                     </div>
@@ -384,7 +384,8 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
         }
     }
     @computed get renderBounds() {
-        const bounds = this.props.tabView()?.ComponentView?.freeformData?.()?.bounds ?? { x: 0, y: 0, r: this.returnMiniSize(), b: this.returnMiniSize() };
+        const bounds = this.props.tabView()?.ComponentView?.freeformData?.(true)?.bounds;
+        if (!bounds) return undefined;
         const xbounds = bounds.r - bounds.x;
         const ybounds = bounds.b - bounds.y;
         const dim = Math.max(xbounds, ybounds);
@@ -394,20 +395,22 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
     returnMiniSize = () => NumCast(this.props.document._miniMapSize, 150);
     miniDown = (e: React.PointerEvent) => {
         const doc = this.props.document;
+        const renderBounds = this.renderBounds ?? { l: 0, r: 0, t: 0, b: 0, dim: 1 };
         const miniSize = this.returnMiniSize();
         doc && setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            doc._panX = clamp(NumCast(doc._panX) + delta[0] / miniSize * this.renderBounds.dim, this.renderBounds.l, this.renderBounds.l + this.renderBounds.dim);
-            doc._panY = clamp(NumCast(doc._panY) + delta[1] / miniSize * this.renderBounds.dim, this.renderBounds.t, this.renderBounds.t + this.renderBounds.dim);
+            doc._panX = clamp(NumCast(doc._panX) + delta[0] / miniSize * renderBounds.dim, renderBounds.l, renderBounds.l + renderBounds.dim);
+            doc._panY = clamp(NumCast(doc._panY) + delta[1] / miniSize * renderBounds.dim, renderBounds.t, renderBounds.t + renderBounds.dim);
             return false;
         }), emptyFunction, emptyFunction);
     }
     render() {
+        if (!this.renderBounds) return (null);
         const miniWidth = this.props.PanelWidth() / NumCast(this.props.document._viewScale, 1) / this.renderBounds.dim * 100;
         const miniHeight = this.props.PanelHeight() / NumCast(this.props.document._viewScale, 1) / this.renderBounds.dim * 100;
         const miniLeft = 50 + (NumCast(this.props.document._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this.props.document._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
-        return this.props.document.type !== DocumentType.COL || this.props.document._viewType !== CollectionViewType.Freeform || this.props.document.hideMinimap ? (null) : <>
+        return this.props.document.hideMinimap ? (null) :
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.props.background() }}>
                 <CollectionFreeFormView
                     Document={this.props.document}
@@ -447,14 +450,6 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                 <div className="miniOverlay" onPointerDown={this.miniDown} >
                     <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
                 </div>
-            </div>
-
-            <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.props.document.hideMinimap = !this.props.document.hideMinimap; })}
-                    style={{ background: DefaultStyleProvider(this.props.document, undefined, StyleProp.BackgroundColor) }} >
-                    <FontAwesomeIcon icon={"globe-asia"} size="lg" />
-                </div>
-            </Tooltip>
-        </>;
+            </div>;
     }
 }
