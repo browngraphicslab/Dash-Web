@@ -109,9 +109,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _ignoreScroll = false;
 
     @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
-    set _recording(value) {
-        this.dataDoc.audioState = value ? "recording" : undefined;
-    }
+    set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";

@@ -1199,7 +1199,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         });
         const proto = Doc.GetProto(anchor);
         proto[ViewSpecPrefix + "_viewType"] = this.layoutDoc._viewType;
-        proto[ViewSpecPrefix + "_docFilters"] = ObjectField.MakeCopy(this.layoutDoc.docFilters as ObjectField) || new List<string>([]);
+        proto.docFilters = ObjectField.MakeCopy(this.layoutDoc.docFilters as ObjectField) || new List<string>([]);
         if (Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), null) !== undefined) {
             Cast(this.dataDoc[this.props.fieldKey + "-annotations"], listSpec(Doc), []).push(anchor);
         } else {

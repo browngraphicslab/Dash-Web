@@ -62,11 +62,10 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     async componentDidMount() {
         this.props.setContentView?.(this);
-        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || DocUtils.findTemplate("detailView", StrCast(this.rootDoc.type), "");
+        //const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || DocUtils.findTemplate("detailView", StrCast(this.rootDoc.type), "");
         ///const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
-        const childText = "openInLightbox(self, shiftKey); ";
         runInAction(() => {
-            this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
+            this._childClickedScript = ScriptField.MakeScript("openInLightbox(self, shiftKey)", { this: Doc.name, shiftKey: "boolean" });//, { detailView: detailView! });
             this._viewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
         });
     }
