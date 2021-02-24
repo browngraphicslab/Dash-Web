@@ -175,9 +175,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     addDocument = (newBox: Doc | Doc[]) => {
         let retVal = false;
         if (newBox instanceof Doc) {
-            retVal = this.props.addDocument?.(newBox) || false;
-            retVal && this.bringToFront(newBox);
-            retVal && this.updateCluster(newBox);
+            if (retVal = this.props.addDocument?.(newBox) || false) {
+                this.bringToFront(newBox);
+                this.updateCluster(newBox);
+            }
         } else {
             retVal = this.props.addDocument?.(newBox) || false;
             // bcz: deal with clusters
@@ -267,11 +268,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     internalAnchorAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
-        const dragDoc = annoDragData.dropDocument!;
-        const dropPos = [NumCast(dragDoc.x), NumCast(dragDoc.y)];
-        dragDoc.x = xp - annoDragData.offset[0] + (NumCast(dragDoc.x) - dropPos[0]);
-        dragDoc.y = yp - annoDragData.offset[1] + (NumCast(dragDoc.y) - dropPos[1]);
-        this.bringToFront(dragDoc);
+        annoDragData.dropDocument!.x = xp - annoDragData.offset[0];
+        annoDragData.dropDocument!.y = yp - annoDragData.offset[1];
+        this.bringToFront(annoDragData.dropDocument!);
         return true;
     }
 
@@ -636,26 +635,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerMove = (e: PointerEvent): void => {
+        if (this.props.Document._isGroup) return; // groups don't pan when dragged -- instead let the event go through to allow the group itself to drag
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) return;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) {
-            if (this.props.active(true)) {
-                e.stopPropagation();
-            }
-            return;
-        }
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            return;
-        }
-        if (!e.cancelBubble) {
-            if (this.props.Document._isGroup) return; // groups don't pan when dragged -- instead let the event go through to allow the group itself to drag
+            if (this.props.active(true)) e.stopPropagation();
+        } else if (!e.cancelBubble) {
             if (Doc.GetSelectedTool() === InkTool.None) {
                 if (this.tryDragCluster(e, this._hitCluster)) {
-                    e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
-                    e.preventDefault();
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    return;
                 }
-                (!MarqueeView.DragMarquee || e.altKey) && this.pan(e);
+                else this.pan(e);
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
@@ -821,18 +811,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
-        else if (this.props.active(true)) {
-            if (!e.ctrlKey && MarqueeView.DragMarquee) {
-                this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            else if (!this.Document._isGroup) {
-                e.stopPropagation();
-                e.preventDefault();
-                this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
-            }
-
+        else if (this.props.active(true) && !this.Document._isGroup) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
         }
         this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
@@ -1301,22 +1283,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     layoutDocsInGrid = () => {
-        const docs = this.childLayoutPairs;
-        const startX = this.Document._panX || 0;
-        let x = startX;
-        let y = this.Document._panY || 0;
-        let i = 0;
-        const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
-        const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
-        docs.forEach(pair => {
-            pair.layout.x = x;
-            pair.layout.y = y;
-            x += width + 20;
-            if (++i === 6) {
-                i = 0;
-                x = startX;
-                y += height + 20;
-            }
+        const docs = this.childLayoutPairs.map(pair => pair.layout);
+        const width = Math.max(...docs.map(doc => NumCast(doc._width))) + 20;
+        const height = Math.max(...docs.map(doc => NumCast(doc._height))) + 20;
+        const dim = Math.ceil(Math.sqrt(docs.length));
+        docs.forEach((doc, i) => {
+            doc.x = (this.Document._panX || 0) + (i % dim) * width - width * dim / 2;
+            doc.y = (this.Document._panY || 0) + Math.floor(i / dim) * height - height * dim / 2;
         });
     }
 
