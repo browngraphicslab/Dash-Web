@@ -38,7 +38,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     trySelectCluster: (addToSel: boolean) => boolean;
-    nudge?: (x: number, y: number) => boolean;
+    nudge?: (x: number, y: number, nudgeTime?: number) => boolean;
     ungroup?: () => void;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
