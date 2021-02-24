@@ -105,7 +105,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _recordingStart: number = 0;
-    private _pause: boolean = false;
     private _ignoreScroll = false;
 
     @computed get _recording() { return this.dataDoc?.audioState === "recording"; }
@@ -1649,6 +1648,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     sidebarContentScaling = () => (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
     fitToBox = () => this.props.Document._fitToBox;
+    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.SidebarKey);
+    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.SidebarKey);
+    sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.SidebarKey);
     @computed get sidebarCollection() {
         const collectionProps: SubCollectionViewProps & collectionFreeformViewProps = {
             ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
@@ -1660,16 +1662,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             yMargin: 0,
             chromeStatus: "enabled",
             scaleField: this.SidebarKey + "-scale",
-            isAnnotationOverlay: true,
+            isAnnotationOverlay: false,
             fieldKey: this.SidebarKey,
             fitContentsToDoc: this.fitToBox,
             select: emptyFunction,
             active: this.annotationsActive,
             scaling: this.sidebarContentScaling,
             whenActiveChanged: this.whenActiveChanged,
-            removeDocument: this.removeDocument,
-            moveDocument: this.moveDocument,
-            addDocument: this.addDocument,
+            removeDocument: this.sidebarRemDocument,
+            moveDocument: this.sidebarMoveDocument,
+            addDocument: this.sidebarAddDocument,
             CollectionView: undefined,
             ScreenToLocalTransform: this.sidebarScreenToLocal,
             renderDepth: this.props.renderDepth + 1,
