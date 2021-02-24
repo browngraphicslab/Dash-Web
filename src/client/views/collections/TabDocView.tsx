@@ -45,16 +45,14 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     _mainCont: HTMLDivElement | null = null;
     _tabReaction: IReactionDisposer | undefined;
     @observable _activated: boolean = false;
-
-    @observable private _panelWidth = 0;
-    @observable private _panelHeight = 0;
-    @observable private _isActive: boolean = false;
-    @observable private _document: Doc | undefined;
-    @observable private _view: DocumentView | undefined;
+    @observable _panelWidth = 0;
+    @observable _panelHeight = 0;
+    @observable _isActive: boolean = false;
+    @observable _document: Doc | undefined;
+    @observable _view: DocumentView | undefined;
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
     @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
-
 
     get stack() { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
@@ -214,19 +212,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    /**
-     * Adds a document to the presentation view
-     **/
-    @undoBatch
-    @action
-    public static UnpinDoc(doc: Doc) {
-        const curPres = CurrentUserUtils.ActivePresentation;
-        if (curPres) {
-            const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
-            ind !== -1 && Doc.RemoveDocFromList(curPres, "data", DocListCast(curPres.data)[ind]);
-        }
-    }
-
     componentDidMount() {
         const selected = () => SelectionManager.Views().some(v => v.props.Document === this._document);
         new _global.ResizeObserver(action((entries: any) => {
@@ -313,25 +298,9 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     PanelWidth = () => this._panelWidth;
     PanelHeight = () => this._panelHeight;
-
-    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
-        if (doc) {
-            switch (property.split(":")[0]) {
-                default: return DefaultStyleProvider(doc, props, property);
-                case StyleProp.PointerEvents: return "none";
-                case StyleProp.DocContents:
-                    const background = doc.type === DocumentType.PDF ? "red" : doc.type === DocumentType.IMG ? "blue" : doc.type === DocumentType.RTF ? "orange" :
-                        doc.type === DocumentType.VID ? "purple" : doc.type === DocumentType.WEB ? "yellow" : "gray";
-                    return doc.type === DocumentType.COL ?
-                        undefined :
-                        <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
-            }
-        }
-    }
     miniMapColor = () => this.tabColor;
-    miniPanelWidth = () => this.PanelWidth();
-    miniPanelHeight = () => this.PanelHeight();
     tabView = () => this._view;
+
     @computed get layerProvider() { return this._document && DefaultLayerProvider(this._document); }
     @computed get docView() {
         TraceMobx();
@@ -363,8 +332,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 pinToPres={TabDocView.PinDoc} />
                 <TabMinimapView key="minimap"
                     addDocTab={this.addDocTab}
-                    PanelHeight={this.miniPanelHeight}
-                    PanelWidth={this.miniPanelWidth}
+                    PanelHeight={this.PanelHeight}
+                    PanelWidth={this.PanelWidth}
                     background={this.miniMapColor}
                     document={this._document}
                     tabView={this.tabView} />
@@ -400,6 +369,20 @@ interface TabMinimapViewProps {
 }
 @observer
 export class TabMinimapView extends React.Component<TabMinimapViewProps> {
+    static miniStyleProvider = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string): any => {
+        if (doc) {
+            switch (property.split(":")[0]) {
+                default: return DefaultStyleProvider(doc, props, property);
+                case StyleProp.PointerEvents: return "none";
+                case StyleProp.DocContents:
+                    const background = doc.type === DocumentType.PDF ? "red" : doc.type === DocumentType.IMG ? "blue" : doc.type === DocumentType.RTF ? "orange" :
+                        doc.type === DocumentType.VID ? "purple" : doc.type === DocumentType.WEB ? "yellow" : "gray";
+                    return doc.type === DocumentType.COL ?
+                        undefined :
+                        <div style={{ width: doc[WidthSym](), height: doc[HeightSym](), position: "absolute", display: "block", background }} />;
+            }
+        }
+    }
     @computed get renderBounds() {
         const bounds = this.props.tabView()?.ComponentView?.freeformData?.()?.bounds ?? { x: 0, y: 0, r: this.returnMiniSize(), b: this.returnMiniSize() };
         const xbounds = bounds.r - bounds.x;
@@ -424,7 +407,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
         const miniLeft = 50 + (NumCast(this.props.document._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
         const miniTop = 50 + (NumCast(this.props.document._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
         const miniSize = this.returnMiniSize();
-        return this.props.document._viewType !== CollectionViewType.Freeform || this.props.document.hideMinimap ? (null) : <>
+        return this.props.document.type !== DocumentType.COL || this.props.document._viewType !== CollectionViewType.Freeform || this.props.document.hideMinimap ? (null) : <>
             <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.props.background() }}>
                 <CollectionFreeFormView
                     Document={this.props.document}
@@ -452,7 +435,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     renderDepth={0}
                     whenActiveChanged={emptyFunction}
                     focus={DocUtils.DefaultFocus}
-                    styleProvider={TabDocView.miniStyleProvider}
+                    styleProvider={TabMinimapView.miniStyleProvider}
                     layerProvider={undefined}
                     addDocTab={this.props.addDocTab}
                     pinToPres={TabDocView.PinDoc}
