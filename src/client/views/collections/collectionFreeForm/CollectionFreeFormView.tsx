@@ -120,6 +120,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentVals() {
         return {
+            bounds: this.contentBounds,
             panX: (this.contentBounds.x + this.contentBounds.r) / 2,
             panY: (this.contentBounds.y + this.contentBounds.b) / 2,
             scale: !this.childDocs.length ? 1 :
@@ -1214,15 +1215,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._disposers.layoutComputation = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
-        if (!this.props.isAnnotationOverlay) {
-            this._disposers.contentBounds = reaction(() => this.contentBounds,
-                bounds => (!this.fitToContent && this._layoutElements?.length) && setTimeout(() => {
-                    const rbounds = Cast(this.Document._renderContentBounds, listSpec("number"), [0, 0, 0, 0]);
-                    if (rbounds[0] !== bounds.x || rbounds[1] !== bounds.y || rbounds[2] !== bounds.r || rbounds[3] !== bounds.b) {
-                        this.Document._renderContentBounds = new List<number>([bounds.x, bounds.y, bounds.r, bounds.b]);
-                    }
-                }));
-        }
 
         this._marqueeRef.current?.addEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }

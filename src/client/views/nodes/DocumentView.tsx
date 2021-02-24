@@ -83,7 +83,7 @@ export interface DocComponentView {
     forward?: () => boolean;
     url?: () => string;
     submitURL?: (url: string) => boolean;
-    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number }>;
+    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number, bounds: { x: number, y: number, r: number, b: number } }>;
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;

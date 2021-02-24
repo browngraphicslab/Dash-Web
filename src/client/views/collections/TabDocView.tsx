@@ -9,7 +9,6 @@ import * as ReactDOM from 'react-dom';
 import { DataSym, Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
-import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, returnEmptyDoclist, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
@@ -55,13 +54,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
     @computed get layoutDoc() { return this._document && Doc.Layout(this._document); }
     @computed get tabColor() { return StrCast(this._document?._backgroundColor, StrCast(this._document?.backgroundColor, DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor))); }
-    @computed get renderBounds() {
-        const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
-        const xbounds = bounds[2] - bounds[0];
-        const ybounds = bounds[3] - bounds[1];
-        const dim = Math.max(xbounds, ybounds);
-        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
-    }
+
 
     get stack() { return (this.props as any).glContainer.parent.parent; }
     get tab() { return (this.props as any).glContainer.tab; }
@@ -290,75 +283,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
         }
     }
 
-    childLayoutTemplate = () => Cast(this._document?.childLayoutTemplate, Doc, null);
-    returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
-    miniDown = (e: React.PointerEvent) => {
-        const doc = this._document;
-        const miniSize = this.returnMiniSize();
-        doc && setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            doc._panX = clamp(NumCast(doc._panX) + delta[0] / miniSize * this.renderBounds.dim, this.renderBounds.l, this.renderBounds.l + this.renderBounds.dim);
-            doc._panY = clamp(NumCast(doc._panY) + delta[1] / miniSize * this.renderBounds.dim, this.renderBounds.t, this.renderBounds.t + this.renderBounds.dim);
-            return false;
-        }), emptyFunction, emptyFunction);
-    }
     getCurrentFrame = () => {
         return NumCast(Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null)._currentFrame);
-    }
-    renderMiniMap() {
-        const miniWidth = this.PanelWidth() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
-        const miniHeight = this.PanelHeight() / NumCast(this._document?._viewScale, 1) / this.renderBounds.dim * 100;
-        const miniLeft = 50 + (NumCast(this._document?._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
-        const miniTop = 50 + (NumCast(this._document?._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
-        const miniSize = this.returnMiniSize();
-        return <>
-            <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.tabColor }}>
-                <CollectionFreeFormView
-                    Document={this._document!}
-                    CollectionView={undefined}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    parentActive={returnFalse}
-                    docViewPath={returnEmptyDoclist}
-                    childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
-                    noOverlay={true} // don't render overlay Docs since they won't scale
-                    active={returnTrue}
-                    select={emptyFunction}
-                    dropAction={undefined}
-                    isSelected={returnFalse}
-                    dontRegisterView={true}
-                    fieldKey={Doc.LayoutFieldKey(this._document!)}
-                    bringToFront={emptyFunction}
-                    rootSelected={returnTrue}
-                    addDocument={returnFalse}
-                    moveDocument={returnFalse}
-                    removeDocument={returnFalse}
-                    PanelWidth={this.returnMiniSize}
-                    PanelHeight={this.returnMiniSize}
-                    ScreenToLocalTransform={Transform.Identity}
-                    renderDepth={0}
-                    whenActiveChanged={emptyFunction}
-                    focus={DocUtils.DefaultFocus}
-                    styleProvider={TabDocView.miniStyleProvider}
-                    layerProvider={undefined}
-                    addDocTab={this.addDocTab}
-                    pinToPres={TabDocView.PinDoc}
-                    docFilters={CollectionDockingView.Instance.docFilters}
-                    docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
-                    searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
-                    fitContentsToDoc={returnTrue}
-                />
-                <div className="miniOverlay" onPointerDown={this.miniDown} >
-                    <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
-                </div>
-            </div>
-
-            <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })}
-                    style={{ background: DefaultStyleProvider(this._document, undefined, StyleProp.BackgroundColor) }} >
-                    <FontAwesomeIcon icon={"globe-asia"} size="lg" />
-                </div>
-            </Tooltip>
-        </>;
     }
     @action
     focusFunc = (doc: Doc, options?: DocFocusOptions) => {
@@ -402,6 +328,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
             }
         }
     }
+    miniMapColor = () => this.tabColor;
+    miniPanelWidth = () => this.PanelWidth();
+    miniPanelHeight = () => this.PanelHeight();
+    tabView = () => this._view;
     @computed get layerProvider() { return this._document && DefaultLayerProvider(this._document); }
     @computed get docView() {
         TraceMobx();
@@ -431,14 +361,18 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 docViewPath={returnEmptyDoclist}
                 bringToFront={emptyFunction}
                 pinToPres={TabDocView.PinDoc} />
-                {this._document._viewType !== CollectionViewType.Freeform ? (null) :
-                    <>{this._document.hideMinimap ? (null) : this.renderMiniMap()}
-                        <Tooltip key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
-                            <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
-                                <FontAwesomeIcon icon={"globe-asia"} size="lg" />
-                            </div>
-                        </Tooltip>
-                    </>}
+                <TabMinimapView key="minimap"
+                    addDocTab={this.addDocTab}
+                    PanelHeight={this.miniPanelHeight}
+                    PanelWidth={this.miniPanelWidth}
+                    background={this.miniMapColor}
+                    document={this._document}
+                    tabView={this.tabView} />
+                <Tooltip key="ttip" title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                    <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this._document!.hideMinimap = !this._document!.hideMinimap; })} >
+                        <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+                    </div>
+                </Tooltip>
             </>;
     }
 
@@ -453,5 +387,91 @@ export class TabDocView extends React.Component<TabDocViewProps> {
                 {this.docView}
             </div >
         );
+    }
+}
+
+interface TabMinimapViewProps {
+    document: Doc;
+    tabView: () => DocumentView | undefined;
+    addDocTab: (doc: Doc, where: string) => boolean;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
+    background: () => string;
+}
+@observer
+export class TabMinimapView extends React.Component<TabMinimapViewProps> {
+    @computed get renderBounds() {
+        const bounds = this.props.tabView()?.ComponentView?.freeformData?.()?.bounds ?? { x: 0, y: 0, r: this.returnMiniSize(), b: this.returnMiniSize() };
+        const xbounds = bounds.r - bounds.x;
+        const ybounds = bounds.b - bounds.y;
+        const dim = Math.max(xbounds, ybounds);
+        return { l: bounds.x + xbounds / 2 - dim / 2, t: bounds.y + ybounds / 2 - dim / 2, cx: bounds.x + xbounds / 2, cy: bounds.y + ybounds / 2, dim };
+    }
+    childLayoutTemplate = () => Cast(this.props.document.childLayoutTemplate, Doc, null);
+    returnMiniSize = () => NumCast(this.props.document._miniMapSize, 150);
+    miniDown = (e: React.PointerEvent) => {
+        const doc = this.props.document;
+        const miniSize = this.returnMiniSize();
+        doc && setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            doc._panX = clamp(NumCast(doc._panX) + delta[0] / miniSize * this.renderBounds.dim, this.renderBounds.l, this.renderBounds.l + this.renderBounds.dim);
+            doc._panY = clamp(NumCast(doc._panY) + delta[1] / miniSize * this.renderBounds.dim, this.renderBounds.t, this.renderBounds.t + this.renderBounds.dim);
+            return false;
+        }), emptyFunction, emptyFunction);
+    }
+    render() {
+        const miniWidth = this.props.PanelWidth() / NumCast(this.props.document._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniHeight = this.props.PanelHeight() / NumCast(this.props.document._viewScale, 1) / this.renderBounds.dim * 100;
+        const miniLeft = 50 + (NumCast(this.props.document._panX) - this.renderBounds.cx) / this.renderBounds.dim * 100 - miniWidth / 2;
+        const miniTop = 50 + (NumCast(this.props.document._panY) - this.renderBounds.cy) / this.renderBounds.dim * 100 - miniHeight / 2;
+        const miniSize = this.returnMiniSize();
+        return this.props.document._viewType !== CollectionViewType.Freeform || this.props.document.hideMinimap ? (null) : <>
+            <div className="miniMap" style={{ width: miniSize, height: miniSize, background: this.props.background() }}>
+                <CollectionFreeFormView
+                    Document={this.props.document}
+                    CollectionView={undefined}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    parentActive={returnFalse}
+                    docViewPath={returnEmptyDoclist}
+                    childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
+                    noOverlay={true} // don't render overlay Docs since they won't scale
+                    active={returnTrue}
+                    select={emptyFunction}
+                    dropAction={undefined}
+                    isSelected={returnFalse}
+                    dontRegisterView={true}
+                    fieldKey={Doc.LayoutFieldKey(this.props.document)}
+                    bringToFront={emptyFunction}
+                    rootSelected={returnTrue}
+                    addDocument={returnFalse}
+                    moveDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    PanelWidth={this.returnMiniSize}
+                    PanelHeight={this.returnMiniSize}
+                    ScreenToLocalTransform={Transform.Identity}
+                    renderDepth={0}
+                    whenActiveChanged={emptyFunction}
+                    focus={DocUtils.DefaultFocus}
+                    styleProvider={TabDocView.miniStyleProvider}
+                    layerProvider={undefined}
+                    addDocTab={this.props.addDocTab}
+                    pinToPres={TabDocView.PinDoc}
+                    docFilters={CollectionDockingView.Instance.docFilters}
+                    docRangeFilters={CollectionDockingView.Instance.docRangeFilters}
+                    searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
+                    fitContentsToDoc={returnTrue}
+                />
+                <div className="miniOverlay" onPointerDown={this.miniDown} >
+                    <div className="miniThumb" style={{ width: `${miniWidth}% `, height: `${miniHeight}% `, left: `${miniLeft}% `, top: `${miniTop}% `, }} />
+                </div>
+            </div>
+
+            <Tooltip title={<div className="dash-tooltip">{"toggle minimap"}</div>}>
+                <div className="miniMap-hidden" onPointerDown={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.props.document.hideMinimap = !this.props.document.hideMinimap; })}
+                    style={{ background: DefaultStyleProvider(this.props.document, undefined, StyleProp.BackgroundColor) }} >
+                    <FontAwesomeIcon icon={"globe-asia"} size="lg" />
+                </div>
+            </Tooltip>
+        </>;
     }
 }
