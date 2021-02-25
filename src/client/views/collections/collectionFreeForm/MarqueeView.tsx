@@ -167,7 +167,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.childLayoutString ? e.key : "";
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
-                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0));
+                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0, this.props.isAnnotationOverlay ? this.props.Document : undefined));
                 e.stopPropagation();
             }
     }
@@ -652,7 +652,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     render() {
         return <div className="marqueeView"
             style={{
-                overflow: (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" :
+                overflow: //(!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" :
                     StrCast(this.props.Document._overflow),
                 cursor: "hand"
             }}

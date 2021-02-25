@@ -101,13 +101,13 @@ export class TreeView extends React.Component<TreeViewProps> {
     @observable _dref: DocumentView | undefined | null;
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
     get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
-    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.fileSysMode ? "data" : Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields"); }
+    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.fileSysMode ? (this.doc.isFolder ? "data" : "layout") : Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields"); }
     get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs && !this.fileSysMode ? this.fieldKey : this.defaultExpandedView); }
 
     @computed get doc() { TraceMobx(); return this.props.document; }
     @computed get outlineMode() { return this.props.treeView.doc.treeViewType === "outline"; }
     @computed get fileSysMode() { return this.props.treeView.doc.treeViewType === "fileSystem"; }
-    @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
+    @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && Doc.GetT(this.doc, "treeViewOpen", "boolean", true)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.treeViewDefaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.doc[DataSym]; }
@@ -123,7 +123,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
-            DocListCastOrNull(this.doc[field])); // otherwise use the document's data field
+            DocListCastOrNull(this.doc[field]))?.filter(doc => !this.fileSysMode || field !== "aliases" || Doc.GetT(doc, "context", Doc, true)); // otherwise use the document's data field
     }
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
@@ -477,8 +477,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.fileSysMode) {
-                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "fields" :
-                                this.treeViewExpandedView === "fields" ? "aliases" : "layout";
+                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "aliases" :
+                                this.treeViewExpandedView === "aliases" && !Doc.UserDoc().noviceMode ? "fields" : "layout";
                         } else if (this.treeViewOpen) {
                             this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
                                 this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields") :
@@ -495,7 +495,11 @@ export class TreeView extends React.Component<TreeViewProps> {
     }
 
     showContextMenu = (e: React.MouseEvent) => simulateMouseClick(this._docRef?.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
-    contextMenuItems = () => this.doc.isFolder ? [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] : Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
+    contextMenuItems = () => this.doc.isFolder ?
+        [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] : Doc.IsSystem(this.doc) ? [] :
+            this.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
+                [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }] :
+                [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }];
     truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, this.props.panelWidth());
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);

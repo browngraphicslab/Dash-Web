@@ -13,7 +13,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 
-export type dropActionType = "alias" | "copy" | "move" | "same" | "none" | undefined; // undefined = move, "same" = move but don't call removeDropProperties
+export type dropActionType = "alias" | "copy" | "move" | "same" | "proto" | "none" | undefined; // undefined = move, "same" = move but don't call removeDropProperties
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -221,8 +221,9 @@ export namespace DragManager {
                 docDragData.droppedDocuments =
                     dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                         docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
-                            docDragData.dropAction === "copy" ? Doc.MakeClone(d) : d);
-                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
+                            docDragData.dropAction === "proto" ? Doc.GetProto(d) :
+                                docDragData.dropAction === "copy" ? Doc.MakeClone(d) : d);
+                !["same", "proto"].includes(docDragData.dropAction as any) && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
                     const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
                     const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
                     remProps.map(prop => drop[prop] = undefined);

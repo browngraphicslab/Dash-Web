@@ -221,12 +221,13 @@ export class DocumentManager {
     }
 
 }
-Scripting.addGlobal(function DocFocus(doc: any) {
+Scripting.addGlobal(function DocFocusOrOpen(doc: any) {
     const dv = DocumentManager.Instance.getDocumentView(doc);
     if (dv && dv?.props.Document === doc) dv.props.focus(doc, { willZoom: true });
     else {
-        const context = Cast(doc.context, Doc, null);
-        CollectionDockingView.AddSplit(context || doc, "right") && context &&
+        const context = doc.context !== Doc.UserDoc().myFilesystem && Cast(doc.context, Doc, null);
+        const showDoc = context || doc;
+        CollectionDockingView.AddSplit(showDoc === Doc.GetProto(showDoc) ? Doc.MakeAlias(showDoc) : showDoc, "right") && context &&
             setTimeout(() => DocumentManager.Instance.getDocumentView(Doc.GetProto(doc))?.focus(doc));
     }
 });

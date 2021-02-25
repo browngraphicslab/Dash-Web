@@ -46,7 +46,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             this._docFilters && (this._docFilters.length = 0);
             this._future = this._history = [];
         } else {
-            TabDocView.PinDoc(doc, { hidePresBox: true });
+            //TabDocView.PinDoc(doc, { hidePresBox: true });
             this._history ? this._history.push({ doc, target }) : this._history = [{ doc, target }];
             if (doc !== LightboxView.LightboxDoc) {
                 this._savedState = {

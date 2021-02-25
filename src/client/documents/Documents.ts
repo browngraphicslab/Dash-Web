@@ -178,6 +178,7 @@ export interface DocumentOptions {
     _schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
     dockingConfig?: string;
     annotationOn?: Doc;
+    isPushpin?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
     iconShape?: string; // shapes of the fonticon border
@@ -610,7 +611,6 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
-            dataDoc.aliases = new List<Doc>([viewDoc]);
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -619,6 +619,8 @@ export namespace Docs {
 
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
+
+            !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -796,7 +798,9 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            documents.map(d => d.context = inst);
+            return inst;
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
