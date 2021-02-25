@@ -76,14 +76,13 @@ export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
-    getAnchor?: () => Doc;
+    getAnchor?: () => Doc; // returns an Anchor Doc that represents the current state of the doc's componentview (e.g., the current playhead location of a an audio/video box)
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
-    setViewSpec?: (anchor: Doc, preview: boolean) => void;
-    back?: () => boolean;
-    forward?: () => boolean;
-    url?: () => string;
-    submitURL?: (url: string) => boolean;
-    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number, bounds: { x: number, y: number, r: number, b: number } }>;
+    setViewSpec?: (anchor: Doc, preview: boolean) => void;  // sets viewing information for a componentview, typically when following a link. 'preview' tells the view to use the values without writing to the document
+    reverseNativeScaling?: () => boolean; // DocumentView's setup screenToLocal based on the doc having a nativeWidth/Height.  However, some content views (e.g., FreeFormView w/ fitToBox set) may ignore the native dimensions so this flags the DocumentView to not do Nativre scaling.
+    menuControls?: any; // controls to display in the top menu bar when the document is selected.
+    // this is kind of hacky since it's not really a generic interface. need to think about how to do this better (it's used to fit a tab's contents to view when shown in a lightbox and to setup the minimap)
+    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number, bounds: { x: number, y: number, r: number, b: number } }>;  // the content bounds, pan position and zoom scale of a content view (typically for FreeformViews)
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -990,8 +989,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath(), this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
+    @computed get nativeWidth() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
+    @computed get nativeHeight() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
     @computed get nativeScaling() {
         if (this.nativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.nativeHeight > this.props.PanelWidth() / this.nativeWidth)) {
             return this.props.PanelWidth() / this.nativeWidth;  // width-limited or fitWidth

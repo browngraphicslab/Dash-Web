@@ -560,7 +560,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get isText() {
         return this.selectedDoc?.type === DocumentType.RTF || (RichTextMenu.Instance?.view as any) ? true : false;
     }
-    @computed get webBoxUrl() { return this.selectedDocumentView?.ComponentView?.url?.(); }
 
     @undoBatch
     @action
@@ -733,58 +732,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
             </div>;
     }
-
-    onWebUrlDrop = (e: React.DragEvent) => {
-        const { dataTransfer } = e;
-        const html = dataTransfer.getData("text/html");
-        const uri = dataTransfer.getData("text/uri-list");
-        const url = uri || html || this.webBoxUrl || "";
-        const newurl = url.startsWith(window.location.origin) ?
-            url.replace(window.location.origin, this.webBoxUrl?.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
-        this.submitWebUrl(newurl);
-        e.stopPropagation();
-    }
-    onWebUrlValueKeyDown = (e: React.KeyboardEvent) => {
-        e.key === "Enter" && this.submitWebUrl(this._keyInput.current!.value);
-        e.stopPropagation();
-    }
-    submitWebUrl = (url: string) => this.selectedDocumentView?.ComponentView?.submitURL?.(url);
-    webUrlForward = () => this.selectedDocumentView?.ComponentView?.forward?.();
-    webUrlBack = () => this.selectedDocumentView?.ComponentView?.back?.();
-
-    private _keyInput = React.createRef<HTMLInputElement>();
-
-    @computed get urlEditor() {
-        return (
-            <div className="collectionMenu-webUrlButtons" onDrop={this.onWebUrlDrop} onDragOver={e => e.preventDefault()} >
-                <input className="collectionMenu-urlInput" key={this.webBoxUrl}
-                    placeholder="ENTER URL"
-                    defaultValue={this.webBoxUrl}
-                    onDrop={this.onWebUrlDrop}
-                    onDragOver={e => e.preventDefault()}
-                    onKeyDown={this.onWebUrlValueKeyDown}
-                    onClick={(e) => {
-                        this._keyInput.current!.select();
-                        e.stopPropagation();
-                    }}
-                    ref={this._keyInput}
-                />
-                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", maxWidth: "250px", }}>
-                    <button className="submitUrl" onClick={() => this.submitWebUrl(this._keyInput.current!.value)} onDragOver={e => e.stopPropagation()} onDrop={this.onWebUrlDrop}>
-                        GO
-                    </button>
-                    <button className="submitUrl" onClick={this.webUrlBack}>
-                        <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
-                    </button>
-                    <button className="submitUrl" onClick={this.webUrlForward}>
-                        <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-
     @observable viewType = this.selectedDoc?._viewType;
 
     render() {
@@ -811,9 +758,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </>
                     : null}
 
-                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
-                    this.urlEditor
-                }
+                {!this.selectedDocumentView?.ComponentView?.menuControls ? (null) : this.selectedDocumentView?.ComponentView?.menuControls?.()}
                 {!this.isText ?
                     <>
                         {this.drawButtons}

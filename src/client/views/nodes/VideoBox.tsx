@@ -552,7 +552,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
                         fieldKey={this.annotationKey}
                         isAnnotationOverlay={true}
-                        forceScaling={true}
+                        annotationLayerHostsContent={true}
                         select={emptyFunction}
                         active={this.annotationsActive}
                         scaling={returnOne}

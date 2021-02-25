@@ -69,7 +69,7 @@ type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof collectionSch
 const PanZoomDocument = makeInterface(panZoomSchema, collectionSchema, documentSchema, pageSchema);
 export type collectionFreeformViewProps = {
     parentActive: (outsideReaction: boolean) => boolean;
-    forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
+    annotationLayerHostsContent?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
     scaleField?: string;
@@ -157,10 +157,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     freeformData = (force?: boolean) => this.fitToContent || force ? this.fitToContentVals : undefined;
     freeformDocFilters = () => this._focusFilters || this.docFilters();
     freeformRangeDocFilters = () => this._focusRangeFilters || this.docRangeFilters();
+    reverseNativeScaling = () => this.fitToContent ? true : false;
     panX = () => this.freeformData()?.panX ?? NumCast(this.Document._panX);
     panY = () => this.freeformData()?.panY ?? NumCast(this.Document._panY);
     zoomScaling = () => (this.freeformData()?.scale ?? NumCast(this.Document[this.scaleFieldKey], 1));
-    contentTransform = () => `translate(${this.cachedCenteringShiftX}px, ${this.cachedCenteringShiftY}px) scale(${this.zoomScaling()}) translate(${-this.panX()}px, ${-this.panY()}px)`
+    contentTransform = () => `translate(${this.cachedCenteringShiftX}px, ${this.cachedCenteringShiftY}px) scale(${this.zoomScaling()}) translate(${-this.panX()}px, ${-this.panY()}px)`;
     getTransform = () => this.cachedGetTransform.copy();
     getLocalTransform = () => this.cachedGetLocalTransform.copy();
     getContainerTransform = () => this.cachedGetContainerTransform.copy();
@@ -1274,11 +1275,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @undoBatch
-    toggleNativeDimensions = () => Doc.toggleNativeDimensions(this.layoutDoc, 1, this.nativeWidth, this.nativeHeight);
+    toggleNativeDimensions = () => Doc.toggleNativeDimensions(this.layoutDoc, 1, this.nativeWidth, this.nativeHeight)
 
     @undoBatch
     @action
-    toggleLockTransform = () => this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true;
+    toggleLockTransform = () => this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true
 
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.isAnnotationOverlay || this.props.Document.annotationOn || !ContextMenu.Instance) return;
@@ -1462,7 +1463,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get contentScaling() {
-        if (this.props.isAnnotationOverlay && !this.props.forceScaling) return 0;
+        if (this.props.isAnnotationOverlay && !this.props.annotationLayerHostsContent) return 0;
         const nw = this.nativeWidth;
         const nh = this.nativeHeight;
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
@@ -1484,10 +1485,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,
-                transform: this.contentScaling ? `scale(${this.contentScaling})` : "",
-                transformOrigin: this.contentScaling ? "left top" : "",
-                width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
-                height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
+                transform: `scale(${this.contentScaling || 1})`,
+                width: `${100 / (this.contentScaling || 1)}%`,
+                height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
             }}>
             {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
