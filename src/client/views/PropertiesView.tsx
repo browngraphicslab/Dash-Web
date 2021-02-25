@@ -212,12 +212,16 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 }
             }
 
+            let top = 0;
+
             const tagDisplay = <div className="propertiesView-tags" style={{ display: "flex" }}>
                 <div style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>Tags:</div>
-                <div>
+                <div style={{
+                    textAlign: "right", alignSelf: "right", alignItems: "right", justifyContent: "flex-end", float: "right", width: "100%"
+                }}>
                     {tags.map(tag => <div className="propertiesView-tags-wrapper" style={{
                         display: "flex", textAlign: "right",
-                        alignSelf: "right", alignItems: "right", justifyContent: "right"
+                        alignSelf: "right", alignItems: "right", justifyContent: "flex-end"
                     }}>
                         <div className="propertiesView-tags-name" style={{ justifyContent: "right", marginRight: "5px" }}>{"#" + tag}</div>
                         <div className="propertiesView-tags-close" style={{ justifyContent: "right", marginTop: "3px" }}
