@@ -80,9 +80,8 @@ export interface DocComponentView {
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
     setViewSpec?: (anchor: Doc, preview: boolean) => void;  // sets viewing information for a componentview, typically when following a link. 'preview' tells the view to use the values without writing to the document
     reverseNativeScaling?: () => boolean; // DocumentView's setup screenToLocal based on the doc having a nativeWidth/Height.  However, some content views (e.g., FreeFormView w/ fitToBox set) may ignore the native dimensions so this flags the DocumentView to not do Nativre scaling.
-    menuControls?: any; // controls to display in the top menu bar when the document is selected.
-    // this is kind of hacky since it's not really a generic interface. need to think about how to do this better (it's used to fit a tab's contents to view when shown in a lightbox and to setup the minimap)
-    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number, bounds: { x: number, y: number, r: number, b: number } }>;  // the content bounds, pan position and zoom scale of a content view (typically for FreeformViews)
+    shrinkWrap?: () => boolean;  // requests a document to display all of its contents with no white space.  currently only implemented (needed?) for freeform views
+    menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;

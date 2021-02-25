@@ -273,12 +273,10 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
     @action
     focusFunc = (doc: Doc, options?: DocFocusOptions) => {
-        const vals = (!options?.originalTarget || options?.originalTarget === this._document) && this.view?.ComponentView?.freeformData?.(true);
-        if (vals && this._document) {
+        const shrinkwrap = options?.originalTarget === this._document && this.view?.ComponentView?.shrinkWrap;
+        if (shrinkwrap && this._document) {
             const focusSpeed = 1000;
-            this._document._panX = vals.panX;
-            this._document._panY = vals.panY;
-            this._document._viewScale = vals.scale;
+            shrinkwrap();
             this._document._viewTransition = `transform ${focusSpeed}ms`;
             setTimeout(action(() => {
                 this._document!._viewTransition = undefined;

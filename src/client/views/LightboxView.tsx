@@ -13,7 +13,7 @@ import { SelectionManager } from '../util/SelectionManager';
 import { Transform } from '../util/Transform';
 import { TabDocView } from './collections/TabDocView';
 import "./LightboxView.scss";
-import { DocumentView } from './nodes/DocumentView';
+import { DocumentView, ViewAdjustment } from './nodes/DocumentView';
 import { DefaultStyleProvider } from './StyleProvider';
 
 interface LightboxViewProps {
@@ -103,8 +103,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             [...DocListCast(doc[Doc.LayoutFieldKey(doc)]),
             ...DocListCast(doc[Doc.LayoutFieldKey(doc) + "-annotations"]),
             ...(LightboxView._future ?? [])
-            ]
-                .sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
+            ].sort((a: Doc, b: Doc) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)));
     }
     docFilters = () => LightboxView._docFilters || [];
     addDocTab = LightboxView.AddDocTab;
@@ -113,8 +112,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         const target = LightboxView._docTarget = LightboxView._future?.pop();
         const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
         if (docView && target) {
-            docView.focus(target, { willZoom: true, scale: 0.9 });
-            if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target: LightboxView._docTarget });
+            docView.focus(target, { originalTarget: target, willZoom: true, scale: 0.9 });
+            if (LightboxView._history?.lastElement().target !== target) LightboxView._history?.push({ doc, target });
         } else {
             if (!target && LightboxView.path.length) {
                 const saved = LightboxView._savedState;
@@ -149,16 +148,14 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             return;
         }
         const { doc, target } = LightboxView._history?.lastElement();
-        const docView = target && DocumentManager.Instance.getLightboxDocumentView(target);
-        if (docView && target) {
-            LightboxView._doc = doc;
-            LightboxView._docTarget = target || doc;
-            if (LightboxView._future?.lastElement() !== previous.target || previous.doc) LightboxView._future?.push(previous.target || previous.doc);
-            docView.focus(target, { willZoom: true, scale: 0.9 });
-        } else {
-            LightboxView._doc = doc;
-            LightboxView._docTarget = target || doc;
-        }
+        const docView = DocumentManager.Instance.getLightboxDocumentView(target || doc);
+        const focusSpeed = 1000;
+        doc._viewTransition = `transform ${focusSpeed}ms`;
+        LightboxView._doc = doc;
+        LightboxView._docTarget = target || doc;
+        docView?.focus(doc, { willZoom: true, scale: 0.9 });
+        setTimeout(() => doc._viewTransition = undefined, focusSpeed);
+        if (LightboxView._future?.lastElement() !== previous.target || previous.doc) LightboxView._future?.push(previous.target || previous.doc);
         LightboxView._tourMap = DocListCast(LightboxView._docTarget?.links).map(link => {
             const opp = LinkManager.getOppositeAnchor(link, LightboxView._docTarget!);
             return opp?.TourMap ? opp : undefined;
@@ -208,11 +205,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     <DocumentView ref={action((r: DocumentView | null) => {
                         LightboxView._docView = r !== null ? r : undefined;
                         setTimeout(action(() => {
-                            const vals = r?.ComponentView?.freeformData?.();
-                            if (vals && r) {
-                                r.layoutDoc._panX = vals.panX;
-                                r.layoutDoc._panY = vals.panY;
-                                r.layoutDoc._viewScale = vals.scale;
+                            if (r && LightboxView._docTarget === r.props.Document) {
+                                r.ComponentView?.shrinkWrap?.();
                             }
                             r && (LightboxView._docTarget = undefined);
                         }));

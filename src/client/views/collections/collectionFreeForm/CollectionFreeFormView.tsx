@@ -120,9 +120,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.props.layerProvider?.(this.layoutDoc) === false && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     @computed get fitToContentVals() {
         return {
-            bounds: this.contentBounds,
-            panX: (this.contentBounds.x + this.contentBounds.r) / 2,
-            panY: (this.contentBounds.y + this.contentBounds.b) / 2,
+            bounds: { ...this.contentBounds, cx: (this.contentBounds.x + this.contentBounds.r) / 2, cy: (this.contentBounds.y + this.contentBounds.b) / 2 },
             scale: !this.childDocs.length ? 1 :
                 Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
                     this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x))
@@ -154,12 +152,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.props.parentActive?.(outsideReaction) || this.backgroundActive || this.layoutDoc._viewType === CollectionViewType.Pile ? true : false;
     elementFunc = () => this._layoutElements;
+    shrinkWrap = () => {
+        const vals = this.fitToContentVals;
+        this.layoutDoc._panX = vals.bounds.cx;
+        this.layoutDoc._panY = vals.bounds.cy;
+        this.layoutDoc._viewScale = vals.scale;
+    }
     freeformData = (force?: boolean) => this.fitToContent || force ? this.fitToContentVals : undefined;
     freeformDocFilters = () => this._focusFilters || this.docFilters();
     freeformRangeDocFilters = () => this._focusRangeFilters || this.docRangeFilters();
     reverseNativeScaling = () => this.fitToContent ? true : false;
-    panX = () => this.freeformData()?.panX ?? NumCast(this.Document._panX);
-    panY = () => this.freeformData()?.panY ?? NumCast(this.Document._panY);
+    panX = () => this.freeformData()?.bounds.cx ?? NumCast(this.Document._panX);
+    panY = () => this.freeformData()?.bounds.cy ?? NumCast(this.Document._panY);
     zoomScaling = () => (this.freeformData()?.scale ?? NumCast(this.Document[this.scaleFieldKey], 1));
     contentTransform = () => `translate(${this.cachedCenteringShiftX}px, ${this.cachedCenteringShiftY}px) scale(${this.zoomScaling()}) translate(${-this.panX()}px, ${-this.panY()}px)`;
     getTransform = () => this.cachedGetTransform.copy();
