@@ -115,11 +115,11 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get fieldKey() { TraceMobx(); const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
     @computed get childDocs() { TraceMobx(); return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
+    @computed get childAliases() { return this.childDocList("aliases"); }
     @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
     @computed get selected() { return SelectionManager.Views().length && SelectionManager.Views()[0].props.Document === this.props.document; }
 
     childDocList(field: string) {
-        if (this.fileSysMode && !this.doc.isFolder) return [] as Doc[];
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
@@ -376,7 +376,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @computed get renderContent() {
         TraceMobx();
         const expandKey = this.treeViewExpandedView;
-        if (["links", "annotations", this.fieldKey].includes(expandKey)) {
+        if (["links", "annotations", "aliases", this.fieldKey].includes(expandKey)) {
             const key = expandKey === "annotations" ? this.fieldKey + "-annotations" : expandKey;
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
             const localAdd = (doc: Doc, addBefore?: Doc, before?: boolean) => {
@@ -395,7 +395,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 return added;
             };
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc, addBefore, before), true);
-            const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
+            const docs = expandKey === "aliases" ? this.childAliases : expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortCriteria`;
             let downX = 0, downY = 0;
             const sortings = ["up", "down", "Z", undefined];
@@ -422,7 +422,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 </div>
             </ul>;
         }
-        return <ul>{this.renderEmbeddedDocument(false)}</ul>;
+        return <ul>{this.renderEmbeddedDocument(false)}</ul>; // "layout"
     }
 
     get onCheckedClick() { return this.doc.type === DocumentType.COL ? undefined : this.props.onCheckedClick?.() ?? ScriptCast(this.doc.onCheckedClick); }
@@ -477,7 +477,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.fileSysMode) {
-                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "fields" : "layout";
+                            this.doc.treeViewExpandedView = this.doc.isFolder ? this.fieldKey : this.treeViewExpandedView === "layout" ? "fields" :
+                                this.treeViewExpandedView === "fields" ? "aliases" : "layout";
                         } else if (this.treeViewOpen) {
                             this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
                                 this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields") :
