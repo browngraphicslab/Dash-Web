@@ -71,19 +71,18 @@ export interface DocFocusOptions {
     scale?: number;       // percent of containing frame to zoom into document
     afterFocus?: DocAfterFocusFunc;  // function to call after focusing on a document
     docTransform?: Transform; // when a document can't be panned and zoomed within its own container (say a group), then we need to continue to move up the render hierarchy to find something that can pan and zoom.  when this happens the docTransform must accumulate all the transforms of each level of the hierarchy
+    instant?: boolean; // whether focus should happen instantly (as opposed to smooth zoom)
 }
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>;
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
 export type StyleProviderFunc = (doc: Opt<Doc>, props: Opt<DocumentViewProps | FieldViewProps>, property: string) => any;
 export interface DocComponentView {
-    getAnchor?: () => Doc;
+    getAnchor?: () => Doc; // returns an Anchor Doc that represents the current state of the doc's componentview (e.g., the current playhead location of a an audio/video box)
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
-    setViewSpec?: (anchor: Doc, preview: boolean) => void;
-    back?: () => boolean;
-    forward?: () => boolean;
-    url?: () => string;
-    submitURL?: (url: string) => boolean;
-    freeformData?: (force?: boolean) => Opt<{ panX: number, panY: number, scale: number }>;
+    setViewSpec?: (anchor: Doc, preview: boolean) => void;  // sets viewing information for a componentview, typically when following a link. 'preview' tells the view to use the values without writing to the document
+    reverseNativeScaling?: () => boolean; // DocumentView's setup screenToLocal based on the doc having a nativeWidth/Height.  However, some content views (e.g., FreeFormView w/ fitToBox set) may ignore the native dimensions so this flags the DocumentView to not do Nativre scaling.
+    shrinkWrap?: () => void;  // requests a document to display all of its contents with no white space.  currently only implemented (needed?) for freeform views
+    menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
 }
 export interface DocumentViewSharedProps {
     renderDepth: number;
@@ -378,8 +377,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     startDragging(x: number, y: number, dropAction: dropActionType) {
         if (this._mainCont.current) {
-            const ffview = this.props.CollectionFreeFormDocumentView;
-            ffview && runInAction(() => (ffview().props.CollectionFreeFormView.ChildDrag = this.props.DocumentView()));
             const dragData = new DragManager.DocumentDragData([this.props.Document]);
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.ContentScale).inverse().transformPoint(0, 0);
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.ContentScale).transformDirection(x - left, y - top);
@@ -387,8 +384,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             dragData.treeViewDoc = this.props.treeViewDoc;
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;
+            const ffview = this.props.CollectionFreeFormDocumentView?.().props.CollectionFreeFormView;
+            ffview && runInAction(() => (ffview.ChildDrag = this.props.DocumentView()));
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart },
-                () => setTimeout(action(() => ffview && (ffview().props.CollectionFreeFormView.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
+                () => setTimeout(action(() => ffview && (ffview.ChildDrag = undefined)))); // this needs to happen after the drop event is processed.
         }
     }
 
@@ -990,8 +989,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath(), this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
+    @computed get nativeWidth() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
+    @computed get nativeHeight() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
     @computed get nativeScaling() {
         if (this.nativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.nativeHeight > this.props.PanelWidth() / this.nativeWidth)) {
             return this.props.PanelWidth() / this.nativeWidth;  // width-limited or fitWidth

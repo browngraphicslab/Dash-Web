@@ -46,6 +46,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
+    private _keyInput = React.createRef<HTMLInputElement>();
     private _ignoreScroll = false;
     private _initialScroll: Opt<number>;
     @observable private _marqueeing: number[] | undefined;
@@ -260,6 +261,52 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             console.log("WebBox URL error:" + this._url);
         }
         return true;
+    }
+
+    menuControls = () => this.urlEditor;
+    onWebUrlDrop = (e: React.DragEvent) => {
+        const { dataTransfer } = e;
+        const html = dataTransfer.getData("text/html");
+        const uri = dataTransfer.getData("text/uri-list");
+        const url = uri || html || this._url || "";
+        const newurl = url.startsWith(window.location.origin) ?
+            url.replace(window.location.origin, this._url?.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitURL(newurl);
+        e.stopPropagation();
+    }
+    onWebUrlValueKeyDown = (e: React.KeyboardEvent) => {
+        e.key === "Enter" && this.submitURL(this._keyInput.current!.value);
+        e.stopPropagation();
+    }
+
+    @computed get urlEditor() {
+        return (
+            <div className="collectionMenu-webUrlButtons" onDrop={this.onWebUrlDrop} onDragOver={e => e.preventDefault()} >
+                <input className="collectionMenu-urlInput" key={this._url}
+                    placeholder="ENTER URL"
+                    defaultValue={this._url}
+                    onDrop={this.onWebUrlDrop}
+                    onDragOver={e => e.preventDefault()}
+                    onKeyDown={this.onWebUrlValueKeyDown}
+                    onClick={(e) => {
+                        this._keyInput.current!.select();
+                        e.stopPropagation();
+                    }}
+                    ref={this._keyInput}
+                />
+                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", maxWidth: "250px", }}>
+                    <button className="submitUrl" onClick={() => this.submitURL(this._keyInput.current!.value)} onDragOver={e => e.stopPropagation()} onDrop={this.onWebUrlDrop}>
+                        GO
+                    </button>
+                    <button className="submitUrl" onClick={this.back}>
+                        <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
+                    </button>
+                    <button className="submitUrl" onClick={this.forward}>
+                        <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     editToggleBtn() {

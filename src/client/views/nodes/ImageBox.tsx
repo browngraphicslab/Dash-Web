@@ -381,7 +381,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
-                forceScaling={true}
+                annotationLayerHostsContent={true}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 select={emptyFunction}

@@ -2,7 +2,6 @@ import React = require("react");
 import { observer } from "mobx-react";
 import "./LinkDescriptionPopup.scss";
 import { observable, action } from "mobx";
-import { EditableView } from "../EditableView";
 import { LinkManager } from "../../util/LinkManager";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 

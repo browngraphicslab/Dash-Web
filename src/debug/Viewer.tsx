@@ -138,8 +138,7 @@ class DebugViewer extends React.Component<{ field: FieldResult, setValue(value: 
             return <p>Unrecognized field type</p>;
         }
 
-        return <EditableView GetValue={() => Field.toScriptString(field)} SetValue={this.props.setValue}
-            contents={content}></EditableView>;
+        return <EditableView GetValue={() => Field.toScriptString(field)} SetValue={this.props.setValue} contents={content} />;
     }
 }
 

@@ -6,7 +6,7 @@ import { Doc, DocListCast, DataSym } from "../../../fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { StrCast, NumCast } from "../../../fields/Types";
-import { numberRange, setupMoveUpEvents, emptyFunction } from "../../../Utils";
+import { numberRange, setupMoveUpEvents, emptyFunction, returnEmptyString } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
@@ -249,14 +249,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
         const style = this.props.parent;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
-        const newEditableViewProps = {
-            GetValue: () => "",
-            SetValue: this.addDocument,
-            textCallback: this.textCallback,
-            contents: "+ NEW",
-            HeadingObject: this.props.headingObject,
-            toggle: this.toggleVisibility,
-        };
         const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
@@ -267,7 +259,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             //width: style.columnWidth / style.numGroupColumns,
                             padding: `${NumCast(this.props.parent.layoutDoc._yPadding, this.props.parent.yMargin)}px 0px 0px 0px`
                         }}>
-                        <EditableView {...newEditableViewProps} />
+                        <EditableView
+                            GetValue={returnEmptyString}
+                            SetValue={this.addDocument}
+                            textCallback={this.textCallback}
+                            contents={"+ NEW"}
+                            toggle={this.toggleVisibility} />
                     </div> : null
                 }
                 <div className={`collectionStackingView-masonryGrid`}
@@ -288,17 +285,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const noChrome = this.props.parent.props.Document._chromeStatus === "disabled";
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const evContents = this.heading ? this.heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
-        const headerEditableViewProps = {
-            GetValue: () => evContents,
-            SetValue: this.headingChanged,
-            contents: evContents,
-            oneLine: true,
-            HeadingObject: this.props.headingObject,
-            toggle: this.toggleVisibility,
-        };
+        const editableHeaderView = <EditableView
+            GetValue={() => evContents}
+            SetValue={this.headingChanged}
+            contents={evContents}
+            oneLine={true}
+            toggle={this.toggleVisibility} />;
         return this.props.parent.props.Document.miniHeaders ?
             <div className="collectionStackingView-miniHeader">
-                <EditableView {...headerEditableViewProps} />
+                {editableHeaderView}
             </div> :
             !this.props.headingObject ? (null) :
                 <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
@@ -306,7 +301,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                         style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this.color : "lightgrey" }}>
-                        {noChrome ? evContents : <EditableView {...headerEditableViewProps} />}
+                        {noChrome ? evContents : editableHeaderView}
                         {noChrome || evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
                                 <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>

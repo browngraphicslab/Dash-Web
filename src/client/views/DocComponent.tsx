@@ -156,15 +156,15 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
-        moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean {
-            return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc) ? addDocument(doc) : false;
+        moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean, annotationKey?: string): boolean {
+            return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc, annotationKey) ? addDocument(doc) : false;
         }
         @action.bound
-        addDocument(doc: Doc | Doc[]): boolean {
+        addDocument(doc: Doc | Doc[], annotationKey?: string): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
             docs.map(doc => doc.context = Doc.GetProto(doc).annotationOn = this.props.Document);
             const targetDataDoc = this.props.Document[DataSym];
-            const docList = DocListCast(targetDataDoc[this.annotationKey]);
+            const docList = DocListCast(targetDataDoc[annotationKey ?? this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
@@ -184,12 +184,12 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     }
 
                     if (effectiveAcl === AclAddonly) {
-                        added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
+                        added.map(doc => Doc.AddDocToList(targetDataDoc, annotationKey ?? this.annotationKey, doc));
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
-                        (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
-                        targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                        (targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>).push(...added);
+                        targetDataDoc[(annotationKey ?? this.annotationKey) + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }
             }

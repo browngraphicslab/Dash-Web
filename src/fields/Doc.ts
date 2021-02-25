@@ -25,6 +25,7 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
 import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
+import { prefix } from "@fortawesome/free-regular-svg-icons";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -195,11 +196,7 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym](clear?: boolean) {
-        const self = this[SelfProxy];
-        runInAction(() => clear && Array.from(Object.keys(self)).forEach(key => delete self[key]));
-        return this.___fields;
-    }
+    public [FieldsSym] = () => this[Self].___fields; // Object.keys(this).reduce((fields, key) => { fields[key] = this[key]; return fields; }, {} as any);
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
@@ -234,10 +231,11 @@ export class Doc extends RefField {
         const sameAuthor = this.author === Doc.CurrentUserEmail;
         if (set) {
             for (const key in set) {
-                if (!key.startsWith("fields.")) {
+                const fprefix = "fields.";
+                if (!key.startsWith(fprefix)) {
                     continue;
                 }
-                const fKey = key.substring(7);
+                const fKey = key.substring(fprefix.length);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
                     const prev = GetEffectiveAcl(this);
@@ -250,9 +248,6 @@ export class Doc extends RefField {
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
                     }
-                    // if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
-                    //     this[FieldsSym](true);
-                    // }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];

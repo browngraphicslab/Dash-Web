@@ -38,7 +38,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     trySelectCluster: (addToSel: boolean) => boolean;
-    nudge?: (x: number, y: number) => boolean;
+    nudge?: (x: number, y: number, nudgeTime?: number) => boolean;
     ungroup?: () => void;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -46,7 +46,6 @@ interface MarqueeViewProps {
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
     private _commandExecuted = false;
-    @observable public static DragMarquee = false;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -220,8 +219,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._downY = this._lastY = e.clientY;
         if (!(e.nativeEvent as any).marqueeHit) {
             (e.nativeEvent as any).marqueeHit = true;
-            // allow marquee if right click OR alt+left click OR space bar + left click
-            if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
+            // allow marquee if right click OR alt+left click
+            if (e.button === 2 || (e.button === 0 && e.altKey)) {
                 // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
                 this.setPreviewCursor(e.clientX, e.clientY, true);
                 // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
@@ -251,9 +250,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey || MarqueeView.DragMarquee) {
-            e.preventDefault();
-        }
+        e.altKey && e.preventDefault();
     }
 
     @action
@@ -290,9 +287,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
         this.cleanupInteractions(true, this._commandExecuted);
 
-        if (e.altKey || MarqueeView.DragMarquee) {
-            e.preventDefault();
-        }
+        e.altKey && e.preventDefault();
     }
 
     clearSelection() {
@@ -659,7 +654,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             style={{
                 overflow: (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" :
                     StrCast(this.props.Document._overflow),
-                cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand"
+                cursor: "hand"
             }}
             onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>

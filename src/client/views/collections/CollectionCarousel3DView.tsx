@@ -40,7 +40,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
-            const script = ScriptField.MakeScript("child._showCaption = 'caption'", { child: Doc.name }, { child: childPair.layout });
+            const script = ScriptField.MakeScript("this._showCaption = 'caption'", { this: Doc.name });
             const onChildClick = script && (() => script);
             return <DocumentView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
                 onDoubleClick={this.onChildDoubleClick}
@@ -63,8 +63,8 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 <div key={childPair.layout[Id]}
                     className={`collectionCarousel3DView-item${index === currentIndex ? "-active" : ""} ${index}`}
                     style={index === currentIndex ?
-                        { opacity: '1', transform: 'scale(1.3)' } :
-                        { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
+                        { opacity: '1', transform: 'scale(1.3)', width: this.panelWidth() } :
+                        { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none', width: this.panelWidth() }}>
                     {displayDoc(childPair)}
                 </div>);
         }));
@@ -166,10 +166,10 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     render() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        const translateX = 33 * (1 - index);
+        const translateX = this.panelWidth() * (1 - index);
 
         return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
-            <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}%` }}>
+            <div className="carousel-wrapper" style={{ transform: `translateX(${translateX}px)` }}>
                 {this.content}
             </div>
             {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
