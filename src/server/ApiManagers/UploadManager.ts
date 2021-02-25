@@ -142,7 +142,9 @@ export default class UploadManager extends ApiManager {
                         const field = doc.fields[key];
                         if (field === undefined || field === null) { continue; }
 
-                        if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
+                        if (field.__type === "Doc") {
+                            mapFn(field);
+                        } else if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                             field.fieldId = getId(field.fieldId);
                         } else if (field.__type === "script" || field.__type === "computed") {
                             if (field.captures) {
@@ -189,22 +191,23 @@ export default class UploadManager extends ApiManager {
                                     }
                                 });
                                 const json = zip.getEntry("doc.json");
-                                let docs: any;
                                 try {
                                     const data = JSON.parse(json.getData().toString("utf8"));
-                                    docs = data.docs;
-                                    id = data.id;
-                                    docs = Object.keys(docs).map(key => docs[key]);
+                                    const datadocs = data.docs;
+                                    id = getId(data.id);
+                                    const docs = Object.keys(datadocs).map(key => datadocs[key]);
                                     docs.forEach(mapFn);
-                                    await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
-                                        err && console.log(err);
-                                        res();
-                                    }, true))));
+                                    await Promise.all(docs.map((doc: any) => new Promise(res => {
+                                        Database.Instance.replace(doc.id, doc, (err, r) => {
+                                            err && console.log(err);
+                                            res();
+                                        }, true);
+                                    })));
                                 } catch (e) { console.log(e); }
                                 unlink(path_2, () => { });
                             }
                             SolrManager.update();
-                            res.send(JSON.stringify(id ? getId(id) : "error"));
+                            res.send(JSON.stringify(id || "error"));
                         } catch (e) { console.log(e); }
                         resolve();
                     });

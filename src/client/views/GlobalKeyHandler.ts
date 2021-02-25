@@ -147,13 +147,14 @@ export class KeyManager {
                 break;
             case "delete":
             case "backspace":
-                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
-                    return { stopPropagation: false, preventDefault: false };
+                if (document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+                    const selected = SelectionManager.Views().slice();
+                    UndoManager.RunInBatch(() => {
+                        SelectionManager.DeselectAll();
+                        selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document));
+                    }, "delete");
+                    return { stopPropagation: true, preventDefault: true };
                 }
-
-                const selected = SelectionManager.Views().slice();
-                UndoManager.RunInBatch(() => selected.map(dv => !dv.props.Document._stayInCollection && dv.props.removeDocument?.(dv.props.Document)), "delete");
-                SelectionManager.DeselectAll();
                 break;
             case "arrowleft": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge(-1, 0)), "nudge left"); break;
             case "arrowright": UndoManager.RunInBatch(() => SelectionManager.Views().map(dv => dv.props.CollectionFreeFormDocumentView?.().nudge?.(1, 0)), "nudge right"); break;

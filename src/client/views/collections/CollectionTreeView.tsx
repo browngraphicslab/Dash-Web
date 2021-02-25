@@ -206,7 +206,7 @@ export class
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument?.(d, target, addDoc) || false;
         return TreeView.GetChildElements(this.treeChildren, this, this.doc, this.props.DataDoc, this.props.fieldKey, this.props.ContainingCollectionDoc, undefined, addDoc, this.remove,
-            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, this.props.ScreenToLocalTransform,
+            moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, returnTrue, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
             this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null), this);

@@ -10,6 +10,8 @@ import { LightboxView } from '../views/LightboxView';
 import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
 import { CurrentUserUtils } from './CurrentUserUtils';
+import { TabDocView } from '../views/collections/TabDocView';
+import { UndoManager } from './UndoManager';
 
 export class DocumentManager {
 
@@ -219,4 +221,12 @@ export class DocumentManager {
     }
 
 }
-Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, { willZoom: true })); });
+Scripting.addGlobal(function DocFocus(doc: any) {
+    const dv = DocumentManager.Instance.getDocumentView(doc);
+    if (dv && dv?.props.Document === doc) dv.props.focus(doc, { willZoom: true });
+    else {
+        const context = Cast(doc.context, Doc, null);
+        CollectionDockingView.AddSplit(context || doc, "right") && context &&
+            setTimeout(() => DocumentManager.Instance.getDocumentView(Doc.GetProto(doc))?.focus(doc));
+    }
+});
