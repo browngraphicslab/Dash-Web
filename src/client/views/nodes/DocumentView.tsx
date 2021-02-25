@@ -71,6 +71,7 @@ export interface DocFocusOptions {
     scale?: number;       // percent of containing frame to zoom into document
     afterFocus?: DocAfterFocusFunc;  // function to call after focusing on a document
     docTransform?: Transform; // when a document can't be panned and zoomed within its own container (say a group), then we need to continue to move up the render hierarchy to find something that can pan and zoom.  when this happens the docTransform must accumulate all the transforms of each level of the hierarchy
+    instant?: boolean; // whether focus should happen instantly (as opposed to smooth zoom)
 }
 export type DocAfterFocusFunc = (notFocused: boolean) => Promise<ViewAdjustment>;
 export type DocFocusFunc = (doc: Doc, options?: DocFocusOptions) => void;
@@ -80,7 +81,7 @@ export interface DocComponentView {
     scrollFocus?: (doc: Doc, smooth: boolean) => Opt<number>; // returns the duration of the focus
     setViewSpec?: (anchor: Doc, preview: boolean) => void;  // sets viewing information for a componentview, typically when following a link. 'preview' tells the view to use the values without writing to the document
     reverseNativeScaling?: () => boolean; // DocumentView's setup screenToLocal based on the doc having a nativeWidth/Height.  However, some content views (e.g., FreeFormView w/ fitToBox set) may ignore the native dimensions so this flags the DocumentView to not do Nativre scaling.
-    shrinkWrap?: () => boolean;  // requests a document to display all of its contents with no white space.  currently only implemented (needed?) for freeform views
+    shrinkWrap?: () => void;  // requests a document to display all of its contents with no white space.  currently only implemented (needed?) for freeform views
     menuControls?: () => JSX.Element; // controls to display in the top menu bar when the document is selected.
 }
 export interface DocumentViewSharedProps {

@@ -914,7 +914,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 HistoryUtil.pushState(state);
             }
         }
-        const LightboxState = LightboxView.GetSavedState(this.props.Document);
         SelectionManager.DeselectAll();
         if (this.props.Document.scrollHeight) {
             this.props.focus(doc, options);
@@ -931,7 +930,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
             // focus on the document in the collection
             const didMove = !cantTransform && !doc.z && (panX !== savedState.panX || panY !== savedState.panY || scale !== undefined);
-            const focusSpeed = didMove ? (doc.focusSpeed !== undefined ? Number(doc.focusSpeed) : 500) : 0;
+            const focusSpeed = options?.instant ? 0 : didMove ? (doc.focusSpeed !== undefined ? Number(doc.focusSpeed) : 500) : 0;
             // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
             if (didMove) {
                 this.setPan(panX, panY, focusSpeed, true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
@@ -945,10 +944,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 doc.hidden && Doc.UnHighlightDoc(doc);
                 const resetView = options?.afterFocus ? await options?.afterFocus(moved) : ViewAdjustment.doNothing;
                 if (resetView) {
-                    const restoreState = LightboxView.LightboxDoc !== this.props.Document && LightboxState ? LightboxState : savedState;
-                    this.Document._panX = restoreState.panX;
-                    this.Document._panY = restoreState.panY;
-                    this.Document[this.scaleFieldKey] = restoreState.scale;
+                    const restoreState = !LightboxView.LightboxDoc || LightboxView.LightboxDoc === this.props.Document && savedState;
+                    if (typeof restoreState !== "boolean") {
+                        this.Document._panX = restoreState.panX;
+                        this.Document._panY = restoreState.panY;
+                        this.Document[this.scaleFieldKey] = restoreState.scale;
+                    }
                     runInAction(() => this._viewTransition = 0);
                 }
                 return resetView;

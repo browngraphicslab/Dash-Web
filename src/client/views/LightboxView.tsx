@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable } from 'mobx';
+import { action, computed, observable, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -28,32 +28,33 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     @computed public static get LightboxDoc() { return this._doc; }
     @observable private static _doc: Opt<Doc>;
     @observable private static _docTarget: Opt<Doc>;
-    @observable private static _tourMap: Opt<Doc[]> = [];   // list of all tours available from the current target
     @observable private static _docFilters: string[] = []; // filters
-    private static _savedState: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, transition: Opt<string> }>;
+    @observable private static _tourMap: Opt<Doc[]> = [];   // list of all tours available from the current target
+    private static _savedState: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number> }>;
     private static _history: Opt<{ doc: Doc, target?: Doc }[]> = [];
     private static _future: Opt<Doc[]> = [];
     private static _docView: Opt<DocumentView>;
-    static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<{ doc: Doc, target?: Doc }[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number>, transition: Opt<string> }> }[] = [];
+    static path: { doc: Opt<Doc>, target: Opt<Doc>, history: Opt<{ doc: Doc, target?: Doc }[]>, future: Opt<Doc[]>, saved: Opt<{ panX: Opt<number>, panY: Opt<number>, scale: Opt<number> }> }[] = [];
     @action public static SetLightboxDoc(doc: Opt<Doc>, target?: Doc, future?: Doc[]) {
+        if (this.LightboxDoc && this.LightboxDoc !== doc && this._savedState) {
+            this.LightboxDoc._panX = this._savedState.panX;
+            this.LightboxDoc._panY = this._savedState.panY;
+            this.LightboxDoc._viewScale = this._savedState.scale;
+            this.LightboxDoc._viewTransition = undefined;
+        }
         if (!doc) {
             this._docFilters && (this._docFilters.length = 0);
-            if (this.LightboxDoc) {
-                this.LightboxDoc._panX = this._savedState?.panX;
-                this.LightboxDoc._panY = this._savedState?.panY;
-                this.LightboxDoc._viewScale = this._savedState?.scale;
-                this.LightboxDoc._viewTransition = this._savedState?.transition;
-            }
             this._future = this._history = [];
         } else {
             TabDocView.PinDoc(doc, { hidePresBox: true });
             this._history ? this._history.push({ doc, target }) : this._history = [{ doc, target }];
-            this._savedState = {
-                panX: Cast(doc._panX, "number", null),
-                panY: Cast(doc._panY, "number", null),
-                scale: Cast(doc._viewScale, "number", null),
-                transition: Cast(doc._viewTransition, "string", null)
-            };
+            if (doc !== LightboxView.LightboxDoc) {
+                this._savedState = {
+                    panX: Cast(doc._panX, "number", null),
+                    panY: Cast(doc._panY, "number", null),
+                    scale: Cast(doc._viewScale, "number", null),
+                };
+            }
         }
         if (future) {
             this._future = future.slice().sort((a, b) => NumCast(b._timecodeToShow) - NumCast(a._timecodeToShow)).sort((a, b) => DocListCast(a.links).length - DocListCast(b.links).length);
@@ -92,6 +93,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
     }
 
     // adds a cookie to the lightbox view - the cookie becomes part of a filter which will display any documents whose cookie metadata field matches this cookie
+    @action
     public static SetCookie(cookie: string) {
         if (this.LightboxDoc && cookie) {
             this._docFilters = (f => this._docFilters ? [this._docFilters.push(f) as any, this._docFilters][1] : [f])(`cookies:${cookie}:provide`);
@@ -117,11 +119,11 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         } else {
             if (!target && LightboxView.path.length) {
                 const saved = LightboxView._savedState;
-                if (LightboxView.LightboxDoc) {
-                    LightboxView.LightboxDoc._panX = saved?.panX;
-                    LightboxView.LightboxDoc._panY = saved?.panY;
-                    LightboxView.LightboxDoc._viewScale = saved?.scale;
-                    LightboxView.LightboxDoc._viewTransition = saved?.transition;
+                if (LightboxView.LightboxDoc && saved) {
+                    LightboxView.LightboxDoc._panX = saved.panX;
+                    LightboxView.LightboxDoc._panY = saved.panY;
+                    LightboxView.LightboxDoc._viewScale = saved.scale;
+                    LightboxView.LightboxDoc._viewTransition = undefined;
                 }
                 const pop = LightboxView.path.pop();
                 if (pop) {
@@ -149,12 +151,17 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         }
         const { doc, target } = LightboxView._history?.lastElement();
         const docView = DocumentManager.Instance.getLightboxDocumentView(target || doc);
-        const focusSpeed = 1000;
-        doc._viewTransition = `transform ${focusSpeed}ms`;
-        LightboxView._doc = doc;
-        LightboxView._docTarget = target || doc;
-        docView?.focus(doc, { willZoom: true, scale: 0.9 });
-        setTimeout(() => doc._viewTransition = undefined, focusSpeed);
+        if (docView) {
+            LightboxView._docTarget = undefined;
+            const focusSpeed = 1000;
+            doc._viewTransition = `transform ${focusSpeed}ms`;
+            if (!target) docView.ComponentView?.shrinkWrap?.();
+            else docView.focus(target, { willZoom: true, scale: 0.9 });
+            setTimeout(() => doc._viewTransition = undefined, focusSpeed);
+        }
+        else {
+            LightboxView.SetLightboxDoc(doc, target);
+        }
         if (LightboxView._future?.lastElement() !== previous.target || previous.doc) LightboxView._future?.push(previous.target || previous.doc);
         LightboxView._tourMap = DocListCast(LightboxView._docTarget?.links).map(link => {
             const opp = LinkManager.getOppositeAnchor(link, LightboxView._docTarget!);
@@ -185,6 +192,8 @@ export class LightboxView extends React.Component<LightboxViewProps> {
         setTimeout(LightboxView.Next);
     }
 
+    future = () => LightboxView._future;
+    tourMap = () => LightboxView._tourMap;
     fitToBox = () => LightboxView._docTarget === LightboxView.LightboxDoc;
     render() {
         let downx = 0, downy = 0;
@@ -204,11 +213,13 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                 }}>
                     <DocumentView ref={action((r: DocumentView | null) => {
                         LightboxView._docView = r !== null ? r : undefined;
-                        setTimeout(action(() => {
-                            if (r && LightboxView._docTarget === r.props.Document) {
-                                r.ComponentView?.shrinkWrap?.();
-                            }
-                            r && (LightboxView._docTarget = undefined);
+                        r && setTimeout(action(() => {
+                            const target = LightboxView._docTarget;
+                            const doc = LightboxView._doc;
+                            const targetView = target && DocumentManager.Instance.getLightboxDocumentView(target);
+                            if (doc === r.props.Document && (!target || target === doc)) r.ComponentView?.shrinkWrap?.();
+                            else target && targetView?.focus(target, { willZoom: true, scale: 0.9, instant: true });
+                            LightboxView._docTarget = undefined;
                         }));
                     })}
                         Document={LightboxView.LightboxDoc}
@@ -246,13 +257,25 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         e.stopPropagation();
                         LightboxView.Next();
                     })}
-                {this.navBtn("50%", 0, 0, "chevron-down",
-                    () => LightboxView.LightboxDoc && LightboxView._future?.length ? "" : "none", e => {
-                        e.stopPropagation();
-                        this.stepInto();
-                    },
-                    StrCast(LightboxView._tourMap?.lastElement()?.TourMap)
-                )}
+                <LightboxTourBtn navBtn={this.navBtn} future={this.future} stepInto={this.stepInto} tourMap={this.tourMap} />
             </div>;
+    }
+}
+interface LightboxTourBtnProps {
+    navBtn: (left: Opt<string | number>, bottom: Opt<number>, top: number, icon: string, display: () => string, click: (e: React.MouseEvent) => void, color?: string) => JSX.Element;
+    tourMap: () => Opt<Doc[]>;
+    future: () => Opt<Doc[]>;
+    stepInto: () => void;
+}
+@observer
+export class LightboxTourBtn extends React.Component<LightboxTourBtnProps> {
+    render() {
+        return this.props.navBtn("50%", 0, 0, "chevron-down",
+            () => LightboxView.LightboxDoc && this.props.future()?.length ? "" : "none", e => {
+                e.stopPropagation();
+                this.props.stepInto();
+            },
+            StrCast(this.props.tourMap()?.lastElement()?.TourMap)
+        )
     }
 }
