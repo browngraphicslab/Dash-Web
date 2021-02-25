@@ -876,4 +876,26 @@
             background-color: rgb(223, 223, 223);
         }
     }
+
+    .propertiesView-tags {
+        display: flex;
+    }
+
+    .propertiesView-tags-wrapper {
+        text-align: right;
+        align-self: right;
+        align-items: right;
+        justify-content: right;
+        display: flex;
+
+        .propertiesView-tags-name {
+            justify-content: right;
+            margin-right: 5px;
+        }
+
+        .propertiesView-tags-close {
+            justify-content: right;
+            margin-top: 3px;
+        }
+    }
 }

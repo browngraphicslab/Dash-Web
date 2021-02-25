@@ -159,14 +159,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             return rows;
         }
     }
-
     @computed get noviceFields() {
+        const tags: string[] = [];
+
         if (this.dataDoc) {
             const ids: { [key: string]: string } = {};
             const docs = SelectionManager.Views().length < 2 ? [this.dataDoc] : SelectionManager.Views().map(dv => dv.dataDoc);
             docs.forEach(doc => Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key)));
             const rows: JSX.Element[] = [];
-            const noviceReqFields = ["author", "creationDate", "tags"];
+            const noviceReqFields = ["author", "creationDate"];
             const noviceLayoutFields = ["_curPage"];
             const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("acl"))),
             ...noviceReqFields, ...noviceLayoutFields];
@@ -175,10 +176,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 docs.forEach(doc => docvals.add(doc[key]));
                 const contents = Array.from(docvals.keys()).length > 1 ? "-multiple" : docs[0][key];
                 if (key[0] === "#") {
-                    rows.push(<div className="propertiesView-uneditable-field" key={key}>
-                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
-                        &nbsp;
-                    </div>);
+                    tags.push(key.split("#")[1]);
+                    // rows.push(<div className="propertiesView-uneditable-field" key={key}>
+                    //     <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
+                    //     &nbsp;
+                    // </div>);
                 } else if (contents !== undefined) {
                     const value = Field.toString(contents as Field);
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
@@ -195,7 +197,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             height={13}
                             fontSize={10}
                             GetValue={() => contents !== undefined ? Field.toString(contents as Field) : "null"}
-                            SetValue={(value: string) => { console.log("change"); docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
+                            SetValue={(value: string) => { docs.map(doc => KeyValueBox.SetField(doc, key, value, true)); return true; }}
                         />;
 
                         rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "5px" }} key={key}>
@@ -204,11 +206,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             <div className="propertiesView-editableField">
                                 {contentElement}
                             </div>
-                            <div className="propertiesView-closeFieldIcon" onClick={() => console.log("remove")}><FontAwesomeIcon icon="times" size="sm" /></div>
+                            <div className="propertiesView-closeFieldIcon" onClick={() => { docs.map(doc => doc[key] = undefined); }}><FontAwesomeIcon icon="times" size="sm" /></div>
                         </div>);
                     }
                 }
             }
+
+            const tagDisplay = <div className="propertiesView-tags" style={{ display: "flex" }}>
+                <div style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>Tags:</div>
+                <div>
+                    {tags.map(tag => <div className="propertiesView-tags-wrapper" style={{
+                        display: "flex", textAlign: "right",
+                        alignSelf: "right", alignItems: "right", justifyContent: "right"
+                    }}>
+                        <div className="propertiesView-tags-name" style={{ justifyContent: "right", marginRight: "5px" }}>{"#" + tag}</div>
+                        <div className="propertiesView-tags-close" style={{ justifyContent: "right", marginTop: "3px" }}
+                            onClick={() => { docs.map(doc => doc["#" + tag] = undefined); tags.splice(tags.indexOf(tag), 1); }}><FontAwesomeIcon icon="times" size="sm" /></div>
+                    </div>)}
+                </div>
+            </div>;
+
+            rows.push(tagDisplay);
             rows.push(this.addFieldButtons);
             rows.push(<div className="propertiesView-field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
@@ -918,8 +936,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-addTag-btn">Add</div>
             </div>
         </div>;
-        MainViewPopup.setWidth(180);
-        MainViewPopup.setHeight(90);
+        MainViewPopup.setWidth(160);
+        MainViewPopup.setHeight(65);
         MainViewPopup.setBackgroundColor("#C4C4C4");
         MainViewPopup.setX(e.clientX - 150);
         MainViewPopup.setY(e.clientY + 5);
