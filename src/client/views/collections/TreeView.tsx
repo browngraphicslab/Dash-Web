@@ -499,7 +499,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         [{ script: ScriptField.MakeFunction(`scriptContext.makeFolder()`, { scriptContext: "any" })!, label: "New Folder" }] : Doc.IsSystem(this.doc) ? [] :
             this.fileSysMode && this.doc === Doc.GetProto(this.doc) ?
                 [{ script: ScriptField.MakeFunction(`openOnRight(getAlias(self))`)!, label: "Open Alias" }] :
-                [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }];
+                [{ script: ScriptField.MakeFunction(`DocFocusOrOpen(self)`)!, label: "Focus or Open" }]
     truncateTitleWidth = () => NumCast(this.props.treeView.props.Document.treeViewTruncateTitleWidth, this.props.panelWidth());
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
     onChildDoubleClick = () => (!this.outlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);

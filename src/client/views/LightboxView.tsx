@@ -276,6 +276,6 @@ export class LightboxTourBtn extends React.Component<LightboxTourBtnProps> {
                 this.props.stepInto();
             },
             StrCast(this.props.tourMap()?.lastElement()?.TourMap)
-        )
+        );
     }
 }
