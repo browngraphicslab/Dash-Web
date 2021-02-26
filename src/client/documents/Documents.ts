@@ -620,7 +620,8 @@ export namespace Docs {
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
 
-            !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
+            !Doc.IsSystem(dataDoc) && proto.type !== DocumentType.PDFANNO && proto.type !== DocumentType.LINK && proto.type !== DocumentType.LINKANCHOR &&
+                !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
