@@ -163,7 +163,7 @@ export namespace Database {
         }
 
         public async insert(value: any, collectionName = DocumentsCollection) {
-            if (this.db && value) {
+            if (this.db && value !== null) {
                 if ("id" in value) {
                     value._id = value.id;
                     delete value.id;
@@ -185,7 +185,7 @@ export namespace Database {
                 newProm = prom ? prom.then(run) : run();
                 this.currentWrites[id] = newProm;
                 return newProm;
-            } else if (value) {
+            } else if (value !== null) {
                 this.onConnect.push(() => this.insert(value, collectionName));
             }
         }
