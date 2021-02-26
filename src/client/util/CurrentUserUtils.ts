@@ -1069,6 +1069,7 @@ export class CurrentUserUtils {
     }
 
     public static async loadUserDocument(id: string) {
+        //await Docs.setupFieldInfos();
         this.curr_id = id;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
             const { userDocumentId, sharingDocumentId, linkDatabaseId } = JSON.parse(ids);

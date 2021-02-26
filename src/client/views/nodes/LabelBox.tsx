@@ -59,7 +59,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     }
 
     @observable _mouseOver = false;
-    @computed get backColor() { return this.clicked || this._mouseOver ? StrCast(this.layoutDoc.hovercolor) : "unset"; }
+    @computed get backColor() { return this.clicked || this._mouseOver ? StrCast(this.layoutDoc._hovercolor) : "unset"; }
 
     @observable clicked = false;
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")

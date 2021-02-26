@@ -1,12 +1,10 @@
-import { MainView } from "./MainView";
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import { AssignAllExtensions } from "../../extensions/General/Extensions";
 import { Docs } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import * as ReactDOM from 'react-dom';
-import * as React from 'react';
-import { DocServer } from "../DocServer";
-import { AssignAllExtensions } from "../../extensions/General/Extensions";
-import { Networking } from "../Network";
 import { CollectionView } from "./collections/CollectionView";
+import { MainView } from "./MainView";
 
 AssignAllExtensions();
 
