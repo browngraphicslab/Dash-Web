@@ -24,9 +24,8 @@ export namespace SerializationHelper {
 
         serializing++;
         if (!(obj.constructor.name in reverseMap)) {
-            console.log("Error: " + `type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`, obj);
+            serializing--;
             throw Error("Error: " + `type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`);
-            return undefined;
         }
 
         const json = serialize(obj);
@@ -54,9 +53,7 @@ export namespace SerializationHelper {
         }
 
         if (!(obj.__type in serializationTypes)) {
-            console.log(`type '${obj.__type}' not registered. Make sure you register it using a @Deserializable decorator`);
             throw Error(`type '${obj.__type}' not registered. Make sure you register it using a @Deserializable decorator`);
-            return undefined;
         }
 
         const type = serializationTypes[obj.__type];

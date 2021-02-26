@@ -289,7 +289,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
         //     console.log(prop + " is deprecated - switch to _" + prop);
         //     prop = "_" + prop;
         // }
-        if (!prop.startsWith("__")) prop = prop.substring(1);
+        if (!prop.startsWith("__") && value !== undefined) prop = prop.substring(1);
         if (target.__LAYOUT__) {
             target.__LAYOUT__[prop] = value;
             return true;
@@ -326,7 +326,7 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
     }
-    return getFieldImpl(target, prop, receiver) ?? (search ? getFieldImpl(target, (prop as any as string).substring(1), receiver) : undefined);
+    return (search ? getFieldImpl(target, (prop as any as string).substring(1), receiver) : undefined) ?? getFieldImpl(target, prop, receiver);
 }
 
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
