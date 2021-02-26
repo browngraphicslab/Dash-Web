@@ -1050,6 +1050,7 @@ export class CurrentUserUtils {
         //     }
         // });
         setTimeout(() => DocServer.UPDATE_SERVER_CACHE(), 2500);
+        doc.fieldInfos = Docs.FieldInfos;
         return doc;
     }
 
@@ -1069,7 +1070,7 @@ export class CurrentUserUtils {
     }
 
     public static async loadUserDocument(id: string) {
-        //await Docs.setupFieldInfos();
+        await Docs.setupFieldInfos();
         this.curr_id = id;
         await rp.get(Utils.prepend("/getUserDocumentIds")).then(ids => {
             const { userDocumentId, sharingDocumentId, linkDatabaseId } = JSON.parse(ids);

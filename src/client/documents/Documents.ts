@@ -239,7 +239,7 @@ export interface DocumentOptions {
     border?: string; //for searchbox
     _hovercolor?: string;
 }
-/*
+
 let _docOptions: DocumentOptions = {
     system: { type: "string", description: "is document created/owned by the system", dflt: false },
     _autoHeight: { type: "boolean", description: "whether document automatically resizes vertically to display contents", dflt: false },
@@ -255,7 +255,9 @@ let _docOptions: DocumentOptions = {
     _dimMagnitude: { type: "number", description: "magnitude of collectionMulti{row,col} element's width or height" },
     _dimUnit: { type: "string", description: "units of collectionMulti{row,col} element's width or height - 'px' or '*' for pixels or relative units" },
     _fitWidth: { type: "boolean", description: "whether document should scale its contents to fit its rendered width or not (e.g., for PDFviews)" }
-    /*_fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+
+}
+/*_fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
     _showTitle?: string; // field name to display in header (:hover is an optional suffix)
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
@@ -426,12 +428,12 @@ export namespace Docs {
 
     export let FieldInfos: Doc | undefined;
     export async function setupFieldInfos() {
-        const fieldDocs = await DocServer.GetRefField("FIELDS");
+        const fieldDocs = await DocServer.GetRefField("FieldInfos");
         if (fieldDocs instanceof Doc) {
             Docs.FieldInfos = fieldDocs;
         } else {
             runInAction(() => {
-                const infos = Docs.FieldInfos = new Doc("FIELDS", true);
+                const infos = Docs.FieldInfos = new Doc("FieldInfos", true);
                 const keys = Object.keys(_docOptions);
                 for (let i = 0; i < keys.length; i++) {
                     const key = keys[i];
