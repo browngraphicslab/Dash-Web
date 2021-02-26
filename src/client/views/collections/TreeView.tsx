@@ -123,7 +123,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
-            DocListCastOrNull(this.doc[field]))?.filter(doc => !this.fileSysMode || field !== "aliases" || Doc.GetT(doc, "context", Doc, true)); // otherwise use the document's data field
+            DocListCastOrNull(this.doc[field]))?.filter(doc => !this.fileSysMode || field !== "aliases");// || Doc.GetT(doc, "context", Doc, true)); // otherwise use the document's data field
     }
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
