@@ -226,7 +226,7 @@ export class CurrentUserUtils {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
                 _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -246,7 +246,7 @@ export class CurrentUserUtils {
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Note");
             doc["template-note-Note"] = new PrefetchProxy(noteView);
         }
-        if (true || doc["template-note-Idea"] === undefined) {
+        if (doc["template-note-Idea"] === undefined) {
             const noteView = Docs.Create.TextDocument("", { title: "text", backgroundColor: "pink", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Idea");
             doc["template-note-Idea"] = new PrefetchProxy(noteView);
@@ -505,7 +505,7 @@ export class CurrentUserUtils {
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
                 title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -534,7 +534,7 @@ export class CurrentUserUtils {
         if (doc.mySearchPanelDoc === undefined) {
             doc.mySearchPanelDoc = new PrefetchProxy(Docs.Create.SearchDocument({
                 _width: 500, _height: 300, backgroundColor: "dimGray", ignoreClick: true, _searchDoc: true,
-                childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", system: true
+                childDropAction: "alias", _lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", system: true
             })) as any as Doc;
         }
     }
@@ -569,7 +569,7 @@ export class CurrentUserUtils {
                 _backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
-                _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled", system: true
+                _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, _lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
         }
         // this resets all sidebar buttons to being deactivated
@@ -602,7 +602,7 @@ export class CurrentUserUtils {
     // Sets up mobileMenu stacking document
     static setupMobileMenu() {
         const menu = new PrefetchProxy(Docs.Create.StackingDocument(this.setupMobileButtons(), {
-            _width: 980, ignoreClick: true, lockedPosition: false, _chromeStatus: "disabled", title: "home", _yMargin: 100, system: true
+            _width: 980, ignoreClick: true, _lockedPosition: false, _chromeStatus: "disabled", title: "home", _yMargin: 100, system: true
         }));
         return menu;
     }
@@ -621,7 +621,7 @@ export class CurrentUserUtils {
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data =>
             this.mobileButton({
                 title: data.title,
-                lockedPosition: true,
+                _lockedPosition: true,
                 onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
                 _backgroundColor: data.backgroundColor, system: true
             },
@@ -670,7 +670,7 @@ export class CurrentUserUtils {
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
             clipboard: data.clipboard,
             onPointerUp: data.pointerUp ? ScriptField.MakeScript(data.pointerUp) : undefined, onPointerDown: data.pointerDown ? ScriptField.MakeScript(data.pointerDown) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activeInkPen: data.activeInkPen, pointerHack: true,
+            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activeInkPen: data.activeInkPen,
             backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory, system: true
         }));
     }
@@ -678,7 +678,7 @@ export class CurrentUserUtils {
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
             const thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
-                _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
+                _width: 100, _height: 50, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
                 _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white", system: true
             });
             thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], {
@@ -696,13 +696,13 @@ export class CurrentUserUtils {
     static setupMobileUploadDoc(userDoc: Doc) {
         // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
         const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
-            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true, system: true
+            title: "Upload Images From the Web", _chromeStatus: "enabled", _lockedPosition: true, system: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {
-            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true, system: true
+            title: "Mobile Upload Collection", backgroundColor: "white", _lockedPosition: true, system: true
         });
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true
+            _width: screen.width, _lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true
         });
     }
 
@@ -722,7 +722,7 @@ export class CurrentUserUtils {
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
-                _width: 500, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", system: true
+                _width: 500, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
         }
         // setup a color picker
@@ -735,7 +735,7 @@ export class CurrentUserUtils {
 
         if (doc.myTools === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
+                title: "My Tools", _width: 500, _yMargin: 20, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled", forceActive: true, system: true, _stayInCollection: true, _hideContextMenu: true,
             })) as any as Doc;
 
             doc.myTools = toolsStack;
@@ -750,7 +750,7 @@ export class CurrentUserUtils {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
@@ -766,7 +766,7 @@ export class CurrentUserUtils {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
             (doc.myPresentations as any as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
@@ -786,7 +786,7 @@ export class CurrentUserUtils {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem",
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
         }
         return doc.myFilesystem as any as Doc;
@@ -794,13 +794,12 @@ export class CurrentUserUtils {
 
     static setupRecentlyClosedDocs(doc: Doc) {
         // setup Recently Closed library item
-        doc.myRecentlyClosedDocs === undefined;
         if (doc.myRecentlyClosedDocs === undefined) {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Recently Closed", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
@@ -815,7 +814,7 @@ export class CurrentUserUtils {
                 title: "FilterDoc", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
         }
         const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
@@ -831,7 +830,7 @@ export class CurrentUserUtils {
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
     }
@@ -861,7 +860,7 @@ export class CurrentUserUtils {
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
         ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true, system: true
+        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true, system: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
@@ -915,7 +914,7 @@ export class CurrentUserUtils {
             if (!sharedDocs) {
                 sharedDocs = Docs.Create.StackingDocument([], {
                     title: "My SharedDocs", childDropAction: "alias", system: true, contentPointerEvents: "none", childLimitHeight: 0, _yMargin: 50, _gridGap: 15,
-                    _showTitle: "title", ignoreClick: true, lockedPosition: true,
+                    _showTitle: "title", ignoreClick: true, _lockedPosition: true,
                 }, sharingDocumentId + "outer", sharingDocumentId);
                 (sharedDocs as Doc)["acl-Public"] = Doc.GetProto(sharedDocs as Doc)["acl-Public"] = SharingPermissions.Add;
             }
@@ -931,13 +930,13 @@ export class CurrentUserUtils {
         if (doc.myImportDocs === undefined) {
             doc.myImportDocs = new PrefetchProxy(Docs.Create.StackingDocument([], {
                 title: "My ImportDocuments", forceActive: true, ignoreClick: true, _showTitle: "title", _stayInCollection: true, _hideContextMenu: true, childLimitHeight: 0,
-                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, lockedPosition: true, _chromeStatus: "disabled", system: true
+                childDropAction: "alias", _autoHeight: true, _yMargin: 50, _gridGap: 15, _lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
         }
         if (doc.myImportPanel === undefined) {
             const uploads = Cast(doc.myImportDocs, Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _stayInCollection: true, _hideContextMenu: true, title: "Import", icon: "upload", system: true });
-            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, lockedPosition: true, system: true }));
+            doc.myImportPanel = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "My ImportPanel", _yMargin: 20, ignoreClick: true, _stayInCollection: true, _hideContextMenu: true, _lockedPosition: true, system: true }));
         }
     }
 

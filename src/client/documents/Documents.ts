@@ -109,15 +109,26 @@ export class DocumentOptions {
     _dimUnit?: DIMt = new DimInfo("units of collectionMulti{row,col} element's width or height - 'px' or '*' for pixels or relative units", true);
     _fitWidth?: BOOLt = new BoolInfo("whether document should scale its contents to fit its rendered width or not (e.g., for PDFviews)", true);
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+    color?: string; // foreground color data doc
+    _color?: string;  // foreground color for each template layout doc (overrides color)
+    _clipWidth?: number; // percent transition from before to after in comparisonBox
+    _lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
     _showTitle?: string; // field name to display in header (:hover is an optional suffix)
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
+    _layerTags?: List<string>; // layer tags a document has (used for tab filtering "layers" in document tab)
     _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
+    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
+    _hideContextMenu?: boolean; // whether the context menu can be shown
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
+    _viewScale?: number; // how much a freeform view has been scaled (zoomed)
+    _overflow?: string; // set overflow behavior
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     _xPadding?: number;
@@ -125,54 +136,8 @@ export class DocumentOptions {
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
-    "_carousel-caption-xMargin"?: number;
-    "_carousel-caption-yMargin"?: number;
-    x?: number;
-    y?: number;
-    z?: number;
-    author?: string;
-    _hideContextMenu?: boolean; // whether the context menu can be shown
-    layoutKey?: string;
-    type?: string;
-    title?: string;
-    version?: string; // version identifier for a document
-    label?: string;
-    hidden?: boolean;
-    toolTip?: string; // tooltip to display on hover
-    dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
-    description?: string; // added for links
-    _viewScale?: number;
-    _overflow?: string;
-    forceActive?: boolean;
-    layout?: string | Doc; // default layout string for a document
-    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
-    childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
-    childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
-    childLayoutString?: string; // template string for collection to use to render its children
-    hideLinkButton?: boolean; // whether the blue link counter button should be hidden
-    hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
-    _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
-    isTemplateForField?: string; // the field key for which the containing document is a rendering template
-    isTemplateDoc?: boolean;
-    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
-    targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
-    templates?: List<string>;
-    hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
-    color?: string; // foreground color data doc
-    _color?: string;  // foreground color for each template layout doc (overrides color)
-    _clipWidth?: number; // percent transition from before to after in comparisonBox
-    caption?: RichTextField;
-    ignoreClick?: boolean;
-    lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
-    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
-    opacity?: number;
-    defaultBackgroundColor?: string;
-    _layers?: List<string>;
-    _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
-    isLinkButton?: boolean;
-    isFolder?: boolean;
     _columnWidth?: number;
+    _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     _fontSize?: string;
     _fontWeight?: number;
     _fontFamily?: string;
@@ -182,6 +147,42 @@ export class DocumentOptions {
     _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
     _timecodeToHide?: number; // the time that a document should be hidden
     _timelineLabel?: boolean; // whether the document exists on a timeline
+    "_carousel-caption-xMargin"?: number;
+    "_carousel-caption-yMargin"?: number;
+    x?: number;
+    y?: number;
+    z?: number;
+    author?: string;
+    layoutKey?: string;
+    type?: string;
+    title?: string;
+    version?: string; // version identifier for a document
+    label?: string;
+    hidden?: boolean;
+    toolTip?: string; // tooltip to display on hover
+    dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
+    description?: string; // added for links
+    forceActive?: boolean;
+    layout?: string | Doc; // default layout string for a document
+    contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
+    childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
+    childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
+    childLayoutString?: string; // template string for collection to use to render its children
+    hideLinkButton?: boolean; // whether the blue link counter button should be hidden
+    hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
+    isTemplateForField?: string; // the field key for which the containing document is a rendering template
+    isTemplateDoc?: boolean;
+    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
+    targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
+    templates?: List<string>;
+    hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
+    caption?: RichTextField;
+    ignoreClick?: boolean;
+    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
+    opacity?: number;
+    defaultBackgroundColor?: string;
+    isLinkButton?: boolean;
+    isFolder?: boolean;
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -230,7 +231,6 @@ export class DocumentOptions {
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
     cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
-    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
@@ -246,16 +246,13 @@ export class DocumentOptions {
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
-    // [key: string]: Opt<Field>;
-    pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
-    selectedIndex?: number;
+    selectedIndex?: number; // which item in a linear view has been selected using the "thumb doc" ui
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
-    isLabel?: boolean;         // whether the document is a label or not (video / audio)
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     border?: string; //for searchbox
     _hovercolor?: string;
@@ -769,7 +766,7 @@ export namespace Docs {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
                 isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
-                treeViewExpandedView: "fields", removeDropProperties: new List(["_layers", "isLinkButton"]), ...options
+                treeViewExpandedView: "fields", removeDropProperties: new List(["_layerTags", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 

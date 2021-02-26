@@ -106,7 +106,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                                 const alias = Doc.MakeAlias(otherdoc);
                                 alias.x = wid;
                                 alias.y = 0;
-                                alias.lockedPosition = false;
+                                alias._lockedPosition = false;
                                 wid += otherdoc[WidthSym]();
                                 Doc.AddDocToList(Doc.GetProto(target), "data", alias);
                             }

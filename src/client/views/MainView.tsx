@@ -228,7 +228,7 @@ export class MainView extends React.Component {
     createNewPresentation = async () => {
         if (!await this.userDoc.myPresentations) {
             this.userDoc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", _lockedPosition: true, treeViewOpen: true, system: true
             }));
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
@@ -319,8 +319,8 @@ export class MainView extends React.Component {
                         <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
                             <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
                         </div>
-                        <div className={`styleProvider-treeView-lock${doc.lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "lockedPosition")}>
-                            <FontAwesomeIcon icon={doc.lockedPosition ? "lock" : "unlock"} size="sm" />
+                        <div className={`styleProvider-treeView-lock${doc._lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "_lockedPosition")}>
+                            <FontAwesomeIcon icon={doc._lockedPosition ? "lock" : "unlock"} size="sm" />
                         </div>
                     </>;
         }

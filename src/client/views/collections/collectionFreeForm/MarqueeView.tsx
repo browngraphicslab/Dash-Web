@@ -363,7 +363,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
         newCollection.system = undefined;
-        newCollection.layers = new List<string>(layers);
+        newCollection._layerTags = new List<string>(layers);
         newCollection._width = this.Bounds.width;
         newCollection._height = this.Bounds.height;
         newCollection._isGroup = makeGroup;

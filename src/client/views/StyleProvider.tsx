@@ -44,9 +44,9 @@ function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkSc
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {
-        const layers = StrListCast(doc.layers);
+        const layers = StrListCast(doc._layerTags);
         if (!layers.includes(StyleLayers.Background)) {
-            if (!layers.length) doc.layers = new List<string>([StyleLayers.Background]);
+            if (!layers.length) doc._layerTags = new List<string>([StyleLayers.Background]);
             else layers.push(StyleLayers.Background);
         }
         else layers.splice(layers.indexOf(StyleLayers.Background), 1);
@@ -65,7 +65,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
-    const isBackground = () => StrListCast(doc?.layers).includes(StyleLayers.Background);
+    const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
@@ -184,15 +184,15 @@ export function DefaultLayerProvider(thisDoc: Doc) {
         if (assign) {
             const activeLayer = StrCast(thisDoc?.activeLayer);
             if (activeLayer) {
-                const layers = Cast(doc.layers, listSpec("string"), []);
+                const layers = Cast(doc._layerTags, listSpec("string"), []);
                 if (layers.length && !layers.includes(activeLayer)) layers.push(activeLayer);
-                else if (!layers.length) doc.layers = new List<string>([activeLayer]);
+                else if (!layers.length) doc._layerTags = new List<string>([activeLayer]);
                 if (activeLayer === "red" || activeLayer === "green" || activeLayer === "blue") doc._backgroundColor = activeLayer;
             }
             return true;
         } else {
             if (Doc.AreProtosEqual(doc, thisDoc)) return true;
-            const layers = StrListCast(doc.layers);
+            const layers = StrListCast(doc._layerTags);
             if (!layers.length && !thisDoc?.activeLayer) return true;
             if (layers.includes(StrCast(thisDoc?.activeLayer))) return true;
             return false;

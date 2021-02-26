@@ -280,7 +280,6 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     let prop = in_prop;
     const effectiveAcl = getPropAcl(target, prop);
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
-
     // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
     if (typeof prop === "string" && prop.startsWith("acl") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined, "None"].includes(value))) return true;
     // if (typeof prop === "string" && prop.startsWith("acl") && !["Can Edit", "Can Augment", "Can View", "Not Shared", undefined].includes(value)) return true;

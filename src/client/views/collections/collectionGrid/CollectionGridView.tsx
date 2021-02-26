@@ -235,7 +235,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 i, y, h,
                 x: x + w > this.numCols ? 0 : x, // handles wrapping around of nodes when numCols decreases
                 w: Math.min(w, this.numCols), // reduces width if greater than numCols
-                static: BoolCast(this.childLayoutPairs.find(({ layout }) => layout[Id] === i)?.layout.lockedPosition, false) // checks if the lock position item has been selected in the context menu
+                static: BoolCast(this.childLayoutPairs.find(({ layout }) => layout[Id] === i)?.layout._lockedPosition, false) // checks if the lock position item has been selected in the context menu
             })) :
             this.savedLayoutList.map((layout, index) => { Object.assign(layout, this.unflexedPosition(index)); return layout; });
     }
