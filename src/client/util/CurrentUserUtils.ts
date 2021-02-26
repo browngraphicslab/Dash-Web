@@ -786,7 +786,7 @@ export class CurrentUserUtils {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem",
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "proto", system: true
             }));
         }
         return doc.myFilesystem as any as Doc;

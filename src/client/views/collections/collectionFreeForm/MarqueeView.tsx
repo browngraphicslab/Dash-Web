@@ -359,6 +359,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
             Doc.GetProto(doc).data = new List<Doc>(selected);
             Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
+            !this.props.isAnnotationOverlay && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", Doc.GetProto(doc));
             doc._panX = doc._panY = 0;
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
