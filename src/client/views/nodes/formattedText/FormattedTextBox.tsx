@@ -231,8 +231,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         AnchorMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
             e.preventDefault();
             e.stopPropagation();
-            const targetCreator = () => {
-                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.rootDoc.title, 0, 0, 100, 100);
+            const targetCreator = (annotationOn?: Doc) => {
+                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.rootDoc.title, 0, 0, 100, 100, undefined, annotationOn);
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
             };

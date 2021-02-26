@@ -67,8 +67,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         AnchorMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
             e.preventDefault();
             e.stopPropagation();
-            const targetCreator = () => {
-                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100);
+            const targetCreator = (asAnnotation?: Doc) => {
+                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100, undefined, asAnnotation);
                 FormattedTextBox.SelectOnLoad = target[Id];
                 return target;
             };

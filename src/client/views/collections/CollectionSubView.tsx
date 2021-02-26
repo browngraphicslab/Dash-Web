@@ -227,7 +227,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             else if (de.complete.annoDragData && (!this.props.isAnnotationOverlay || de.complete.annoDragData.dragDocument === this.props.Document)) {
                 e.stopPropagation();
                 de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
-                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator();
+                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator(this.props.isAnnotationOverlay ? this.props.Document : undefined);
                 return de.complete.annoDragData.dropDocument && this.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
