@@ -224,8 +224,8 @@ export class CurrentUserUtils {
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
-                hidden: ComputedField.MakeFunction("self.userDoc.noviceMode") as any,
-                userDoc: doc, _stayInCollection: true, _hideContextMenu: true,
+                hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
+                _stayInCollection: true, _hideContextMenu: true,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
@@ -242,23 +242,23 @@ export class CurrentUserUtils {
     // setup the different note type skins
     static setupNoteTemplates(doc: Doc) {
         if (doc["template-note-Note"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow", system: true });
+            const noteView = Docs.Create.TextDocument("", { title: "text", isTemplateDoc: true, backgroundColor: "yellow", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Note");
             doc["template-note-Note"] = new PrefetchProxy(noteView);
         }
-        if (doc["template-note-Idea"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Idea", backgroundColor: "pink", system: true });
+        if (true || doc["template-note-Idea"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", backgroundColor: "pink", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Idea");
             doc["template-note-Idea"] = new PrefetchProxy(noteView);
         }
         if (doc["template-note-Topic"] === undefined) {
-            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightblue", system: true });
+            const noteView = Docs.Create.TextDocument("", { title: "text", backgroundColor: "lightblue", system: true });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
             doc["template-note-Topic"] = new PrefetchProxy(noteView);
         }
         if (doc["template-note-Todo"] === undefined) {
             const noteView = Docs.Create.TextDocument("", {
-                title: "text", style: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
+                title: "text", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
                 layout: FormattedTextBox.LayoutString("Todo"), caption: RichTextField.DashField("taskStatus"), system: true
             });
             noteView.isTemplateDoc = makeTemplate(noteView, true, "Todo");
@@ -498,8 +498,7 @@ export class CurrentUserUtils {
             _stayInCollection: true,
             dragFactory,
             clickFactory,
-            userDoc: noviceMode ? undefined as any : doc,
-            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"),
+            hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
             system: true
         }));
 
@@ -560,9 +559,8 @@ export class CurrentUserUtils {
                     watchedDocuments,
                     onClick: ScriptField.MakeScript(click, { scriptContext: "any" })
                 }));
-            const userDoc = menuBtns[menuBtns.length - 1];
-            userDoc.userDoc = doc;
-            userDoc.hidden = ComputedField.MakeFunction("self.userDoc.noviceMode");
+            // hack -- last button is assumed to be the userDoc
+            menuBtns[menuBtns.length - 1].hidden = ComputedField.MakeFunction("IsNoviceMode()");
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
@@ -1235,6 +1233,8 @@ Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
         view && SelectionManager.SelectView(view, false);
     }
 });
+Scripting.addGlobal(function IsNoviceMode() { return Doc.UserDoc().noviceMode; },
+    "is Dash in novice mode");
 Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
     "creates a snapshot copy of a dashboard");
 Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },

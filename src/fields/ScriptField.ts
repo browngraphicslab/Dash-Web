@@ -55,8 +55,8 @@ async function deserializeScript(script: ScriptField) {
     if (script.script.originalScript === 'convertToButtons(dragData)') {
         return (script as any).script = (ScriptField.ConvertToButtons ?? (ScriptField.ConvertToButtons = ComputedField.MakeFunction('convertToButtons(dragData)', { dragData: "DocumentDragData" })))?.script;
     }
-    if (script.script.originalScript === 'self.userDoc.noviceMode') {
-        return (script as any).script = (ScriptField.NoviceMode ?? (ScriptField.NoviceMode = ComputedField.MakeFunction('self.userDoc.noviceMode')))?.script;
+    if (script.script.originalScript === 'IsNoviceMode()') {
+        return (script as any).script = (ScriptField.NoviceMode ?? (ScriptField.NoviceMode = ComputedField.MakeFunction('IsNoviceMode()')))?.script;
     }
     if (script.script.originalScript === `selectMainMenu(self)`) {
         return (script as any).script = (ScriptField.SelectMenu ?? (ScriptField.SelectMenu = ComputedField.MakeFunction('selectMainMenu(self)')))?.script;

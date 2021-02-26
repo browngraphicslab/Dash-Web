@@ -90,7 +90,6 @@ type PEVt = PEInfo | "none" | "all";
 type DROPt = DAInfo | dropActionType;
 export class DocumentOptions {
     system?: BOOLt = new BoolInfo("is this a system created/owned doc");
-    userDoc?: DOCt = new DocInfo("the user doc");
     dropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto this doc ");
     childDropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto a child of a collection ");
     targetDropAction?: DROPt = new DAInfo("what should happen to the source document when ??? ");
@@ -140,8 +139,6 @@ export class DocumentOptions {
     label?: string;
     hidden?: boolean;
     toolTip?: string; // tooltip to display on hover
-    style?: string;
-    page?: number;
     dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
     _viewScale?: number;
