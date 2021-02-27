@@ -93,6 +93,7 @@ export class DocumentOptions {
     dropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto this doc ");
     childDropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto a child of a collection ");
     targetDropAction?: DROPt = new DAInfo("what should happen to the source document when ??? ");
+    color?: string; // foreground color data doc
     backgroundColor?: STRt = new StrInfo("background color for data doc");
     _backgroundColor?: STRt = new StrInfo("background color for each template layout doc (overrides backgroundColor)", true);
     _autoHeight?: BOOLt = new BoolInfo("whether document automatically resizes vertically to display contents", true);
@@ -109,9 +110,6 @@ export class DocumentOptions {
     _dimUnit?: DIMt = new DimInfo("units of collectionMulti{row,col} element's width or height - 'px' or '*' for pixels or relative units", true);
     _fitWidth?: BOOLt = new BoolInfo("whether document should scale its contents to fit its rendered width or not (e.g., for PDFviews)", true);
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
-    color?: string; // foreground color data doc
-    _color?: string;  // foreground color for each template layout doc (overrides color)
-    _clipWidth?: number; // percent transition from before to after in comparisonBox
     _lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
@@ -122,6 +120,7 @@ export class DocumentOptions {
     _chromeStatus?: string;
     _layerTags?: List<string>; // layer tags a document has (used for tab filtering "layers" in document tab)
     _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
+    _forceActive?: boolean; // flag to handle pointer events when not selected (or otherwise active)
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     _hideContextMenu?: boolean; // whether the context menu can be shown
@@ -141,7 +140,8 @@ export class DocumentOptions {
     _fontSize?: string;
     _fontWeight?: number;
     _fontFamily?: string;
-    _curPage?: number;
+    _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
+    _curPage?: number; // current page of a PDF or other? paginated document
     _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
@@ -162,7 +162,6 @@ export class DocumentOptions {
     toolTip?: string; // tooltip to display on hover
     dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
-    forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
@@ -177,7 +176,6 @@ export class DocumentOptions {
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
     caption?: RichTextField;
-    ignoreClick?: boolean;
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
@@ -200,18 +198,16 @@ export class DocumentOptions {
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
-    _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
-    _columnHeaders?: List<SchemaHeaderField>; // headers for stacking views
-    _schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
+    columnHeaders?: List<SchemaHeaderField>; // headers for stacking views
+    schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
+    clipWidth?: number; // percent transition from before to after in comparisonBox
     dockingConfig?: string;
     annotationOn?: Doc;
     isPushpin?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
-    dbDoc?: Doc;
     iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
-    ischecked?: ScriptField; // returns whether a font icon box is checked
-    activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    ignoreClick?: boolean;
     onClick?: ScriptField;
     onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
@@ -222,7 +218,7 @@ export class DocumentOptions {
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
-    clipboard?: Doc;
+    cloneFieldFilter?: List<string>; // fields not to copy when the document is clonedclipboard?: Doc;
     useCors?: boolean;
     icon?: string;
     target?: Doc; // available for use in scripts as the primary target document
@@ -230,7 +226,6 @@ export class DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
-    cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
@@ -245,17 +240,17 @@ export class DocumentOptions {
     treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
-    limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
+    docMaxHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number; // which item in a linear view has been selected using the "thumb doc" ui
-    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
+    clipboard?: Doc;
     searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     border?: string; //for searchbox
-    _hovercolor?: string;
+    hoverBackgroundColor?: string; // background color of a label when hovered
 }
 export namespace Docs {
 
@@ -724,7 +719,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -868,7 +863,7 @@ export namespace Docs {
         }
 
         export function SchemaDocument(schemaHeaders: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {

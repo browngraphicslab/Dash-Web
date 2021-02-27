@@ -84,15 +84,15 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
-        case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
-        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
+        case StyleProp.Hidden: return BoolCast(doc?._hidden);
+        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
         case StyleProp.TitleHeight: return 15;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
-            let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            let docColor: Opt<string> = StrCast(doc?._backgroundColor);
             if (!docProps) {
                 if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
                 switch (doc?.type) {

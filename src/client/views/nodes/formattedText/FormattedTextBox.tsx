@@ -967,6 +967,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._disposers.height = reaction(
             () => Cast(this.layoutDoc._height, "number", null),
             action(height => {
+                this.rootDoc[this.fieldKey + "-height"] = height;
                 if (height !== undefined && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
                     this.layoutDoc._delayAutoHeight = height;
                 }
@@ -1016,8 +1017,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }, { fireImmediately: true }
         );
         quickScroll = undefined;
-
-        setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight)));
     }
 
     pushToGoogleDoc = async () => {
@@ -1601,15 +1600,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
 
     @action
-    tryUpdateHeight(limitHeight?: number) {
-        let scrollHeight = this.ProseRef?.scrollHeight || 0;
+    tryUpdateHeight() {
+        let scrollHeight = Math.min(NumCast(this.layoutDoc.docMaxHeight, 10000), (this.ProseRef?.scrollHeight || 0) * NumCast(this.layoutDoc._viewScale, 1));
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
-            if (limitHeight && scrollHeight > limitHeight) {
-                scrollHeight = limitHeight;
-                this.layoutDoc.limitHeight = undefined;
-                this.layoutDoc._autoHeight = false;
-            }
             const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight);
             const dh = NumCast(this.rootDoc._height);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + this.titleHeight);
@@ -1617,7 +1610,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
                 console.log("Delayed height adjustment...");
                 setTimeout(() => {
-                    this.rootDoc._height = newHeight;
+                    this.rootDoc[this.fieldKey + "-height"] = this.rootDoc._height = newHeight;
                     this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 }, 10);
             } else {
@@ -1711,7 +1704,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     transformOrigin: "top left",
                     width: `${100 / scale}%`,
                     height: `${100 / scale}%`,
-                    overflowY: this.layoutDoc._autoHeight ? "hidden" : undefined,
+                    // overflowY: this.layoutDoc._autoHeight ? "hidden" : undefined,
                     ...this.styleFromLayoutString(scale)   // this converts any expressions in the format string to style props.  e.g., <FormattedTextBox height='{this._headerHeight}px' >
                 }}>
                 <div className={`formattedTextBox-cont`} ref={this._ref}

@@ -50,7 +50,6 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
         const button = <button className={`menuButton-${shape}`} onContextMenu={this.specificContextMenu}
             style={{
-                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,
                 backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "",
             }}>
             <div className="menuButton-wrap">

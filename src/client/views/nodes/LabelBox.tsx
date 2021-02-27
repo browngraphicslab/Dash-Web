@@ -59,9 +59,8 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     }
 
     @observable _mouseOver = false;
-    @computed get backColor() { return this.clicked || this._mouseOver ? StrCast(this.layoutDoc._hovercolor) : "unset"; }
+    @computed get hoverColor() { return this._mouseOver ? StrCast(this.layoutDoc._hoverBackgroundColor) : "unset"; }
 
-    @observable clicked = false;
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
         const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
@@ -70,15 +69,12 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         const label = typeof this.rootDoc[this.fieldKey] === "string" ? StrCast(this.rootDoc[this.fieldKey]) : StrCast(this.rootDoc.title);
         return (
             <div className="labelBox-outerDiv"
-                onClick={action(() => this.clicked = !this.clicked)}
                 onMouseLeave={action(() => this._mouseOver = false)}
                 onMouseOver={action(() => this._mouseOver = true)}
                 ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.BoxShadow) }}>
                 <div className="labelBox-mainButton" style={{
-                    background: StrCast(this.layoutDoc.backgroundColor),
-                    backgroundColor: this.backColor,
-                    color: StrCast(this.layoutDoc.color, "inherit"),
+                    backgroundColor: this.hoverColor,
                     fontSize: StrCast(this.layoutDoc._fontSize) || "inherit",
                     fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
