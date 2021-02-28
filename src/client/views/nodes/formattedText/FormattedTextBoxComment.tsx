@@ -85,7 +85,7 @@ export class FormattedTextBoxComment {
     static update(textBox: FormattedTextBox, view: EditorView, lastState?: EditorState, hrefs: string = "") {
         FormattedTextBoxComment.textBox = textBox;
         if ((hrefs || !lastState?.doc.eq(view.state.doc) || !lastState?.selection.eq(view.state.selection))) {
-            FormattedTextBoxComment.setupPreview(view, textBox, hrefs ? hrefs.trim().split(" ") : undefined);
+            FormattedTextBoxComment.setupPreview(view, textBox, hrefs?.trim().split(" "));
         }
     }
 

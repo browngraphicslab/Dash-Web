@@ -832,8 +832,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
         }
 
-        export function TextanchorDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options });
+        export function TextanchorDocument(options: DocumentOptions = {}, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options }, id);
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {

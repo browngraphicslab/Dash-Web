@@ -184,22 +184,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     getAnchor = () => this.makeLinkAnchor(undefined, "add:right", undefined, "Anchored Selection");
 
     doLinkOnDeselect() {
-
         Array.from(this._linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
-
-            const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+            const anchorId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+            const linkId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key + "link");
             DocServer.GetRefField(value).then(doc => {
-                DocServer.GetRefField(id).then(linkDoc => {
-                    this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
-                    DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                    if (linkDoc) {
-                        (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc;
-                    } else {
-                        DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
-                    }
-                });
+                this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
+                DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
+                const anchor = Docs.Create.TextanchorDocument({}, anchorId);
+                this.addDocument(anchor);
+                DocUtils.MakeLink({ doc: anchor }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", linkId);
             });
         });
 
@@ -258,8 +253,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     const value = split[split.length - 1];
                     this._linkOnDeselect.set(key, value);
 
-                    const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const allAnchors = [{ href: Utils.prepend("/doc/" + id), title: value, anchorId: id }];
+                    const anchorId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+                    const linkId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key + "link");
+                    const allAnchors = [{ href: Utils.prepend("/doc/" + anchorId), title: value, anchorId }];
                     const link = this._editorView.state.schema.marks.linkAnchor.create({ allAnchors, location: "add:right", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
@@ -1236,7 +1232,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
-            const target = (e.target as any).parentElement; // hrefs are store don the database of the <a> node that wraps the hyerlink <span>
+            let target = (e.target as any).parentElement; // hrefs are stored on the database of the <a> node that wraps the hyerlink <span>
+            while (target && !target.dataset?.targethrefs) target = target.parentElement;
             FormattedTextBoxComment.update(this, editor, undefined, target?.dataset?.targethrefs);
         }
         (e.nativeEvent as any).formattedHandled = true;
@@ -1500,10 +1497,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / (this.props.scaling?.() || 1), 0).scale(1 / NumCast(this.layoutDoc._viewScale, 1));
 
     @computed get audioHandle() {
-        return !this.layoutDoc._showAudio ? (null) :
-            <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
-                <FontAwesomeIcon className="formattedTextBox-audioFont" style={{ color: this._recording ? "red" : "blue", transitionDelay: "0.6s", opacity: this._recording ? 1 : 0.25, }} icon={"microphone"} size="sm" />
-            </div>;
+        return <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
+            <FontAwesomeIcon className="formattedTextBox-audioFont" style={{ color: this._recording ? "red" : "blue", transitionDelay: "0.6s", opacity: this._recording ? 1 : 0.25, }} icon={"microphone"} size="sm" />
+        </div>;
     }
     @computed get sidebarHandle() {
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
@@ -1542,11 +1538,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 noSidebar={true}
                 fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />
         }
-        return this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
-            <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
-                style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                {renderComponent(StrCast(this.layoutDoc.sidebarViewType))}
-            </div>;
+        return <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
+            style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
+            {renderComponent(StrCast(this.layoutDoc.sidebarViewType))}
+        </div>;
     }
     render() {
         TraceMobx();
@@ -1609,8 +1604,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         />
                     </div>
                     {this.sidebarCollection}
-                    {this.sidebarHandle}
-                    {this.audioHandle}
+                    {this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarHandle}
+                    {!this.layoutDoc._showAudio ? (null) : this.audioHandle}
                 </div>
             </div>
         );
