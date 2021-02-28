@@ -255,36 +255,6 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
     // bind("Mod-Enter", cmd);
     bind("Shift-Enter", cmd);
 
-
-    bind(":", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        const range = state.selection.$from.blockRange(state.selection.$to, (node: any) => {
-            return !node.marks || !node.marks.find((m: any) => m.type === schema.marks.metadata);
-        });
-
-        const path = (state.doc.resolve(state.selection.from - 1) as any).path;
-
-        const spaceSeparator = path[path.length - 3].childCount > 1 ? 0 : -1;
-
-        const anchor = range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator;
-
-        if (anchor >= 0) {
-
-            const textsel = TextSelection.create(state.doc, anchor, range!.end);
-
-            const text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
-
-            let whitespace = text.length - 1;
-
-            for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
-            if (text.endsWith(":")) {
-                dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any).
-                    addMark(textsel.from + whitespace + 1, textsel.to - 2, schema.marks.metadataKey.create() as any));
-            }
-        }
-
-        return false;
-    });
-
     return keys;
 }
 

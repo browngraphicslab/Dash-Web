@@ -110,7 +110,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _focusSpeed: Opt<number>;
     private _keymap: any = undefined;
     private _rules: RichTextRules | undefined;
-    private _linkOnDeselect: Map<string, string> = new Map();
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     @computed get sidebarColor() { return StrCast(this.layoutDoc.sidebarColor, StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "#e4e4e4")); }
@@ -183,24 +182,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     getAnchor = () => this.makeLinkAnchor(undefined, "add:right", undefined, "Anchored Selection");
 
-    doLinkOnDeselect() {
-        Array.from(this._linkOnDeselect.entries()).map(entry => {
-            const key = entry[0];
-            const value = entry[1];
-            const anchorId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-            const linkId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key + "link");
-            DocServer.GetRefField(value).then(doc => {
-                this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
-                DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                const anchor = Docs.Create.TextanchorDocument({}, anchorId);
-                this.addDocument(anchor);
-                DocUtils.MakeLink({ doc: anchor }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", linkId);
-            });
-        });
-
-        this._linkOnDeselect.clear();
-    }
-
     @action
     setupAnchorMenu = () => {
         AnchorMenu.Instance.Status = "marquee";
@@ -239,31 +220,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
-            if (metadata) {
-                const range = tx.selection.$from.blockRange(tx.selection.$to);
-                let text = range ? tx.doc.textBetween(range.start, range.end) : "";
-                let textEndSelection = tx.selection.to;
-                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] !== " "; textEndSelection++) { }
-                text = text.substr(0, textEndSelection - range!.start);
-                text = text.split(" ")[text.split(" ").length - 1];
-                const split = text.split("::");
-                if (split.length > 1 && split[1]) {
-                    const key = split[0];
-                    const value = split[split.length - 1];
-                    this._linkOnDeselect.set(key, value);
-
-                    const anchorId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const linkId = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key + "link");
-                    const allAnchors = [{ href: Utils.prepend("/doc/" + anchorId), title: value, anchorId }];
-                    const link = this._editorView.state.schema.marks.linkAnchor.create({ allAnchors, location: "add:right", title: value });
-                    const mval = this._editorView.state.schema.marks.metadataVal.create();
-                    const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
-                    tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
-                    this.dataDoc[key] = value;
-                }
-            }
-
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
 
@@ -274,14 +230,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
-            let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
-            const removeSelection = (json: string | undefined) => {
-                return json?.indexOf("\"storedMarks\"") === -1 ? json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
-            };
+            const removeSelection = (json: string | undefined) => json?.indexOf("\"storedMarks\"") === -1 ?
+                json?.replace(/"selection":.*/, "") : json?.replace(/"selection":"\"storedMarks\""/, "\"storedMarks\"");
 
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
+                let unchanged = true;
                 if (this._applyingChange !== this.fieldKey && removeSelection(json) !== removeSelection(curProto?.Data)) {
                     this._applyingChange = this.fieldKey;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
@@ -293,9 +248,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             this.dataDoc[this.props.fieldKey + "-noTemplate"] = true;//(curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                             ScriptCast(this.layoutDoc.onTextChanged, null)?.script.run({ this: this.layoutDoc, self: this.rootDoc, text: curText });
                             unchanged = false;
-
                         }
-
                     } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                         this.dataDoc[this.props.fieldKey] = undefined;
                         this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
@@ -365,25 +318,29 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let node = this._editorView.state.doc;
             while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
-            const titlestr = str.substr(0, Math.min(40, str.length));
-            this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+            this.dataDoc.title = "-" + str.substr(0, Math.min(40, str.length)) + (str.length > 40 ? "..." : "");
         }
     }
 
     // needs a better API for taking in a set of words with target documents instead of just one target
     public hyperlinkTerms = (terms: string[], target: Doc) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
-            const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
-            const tr = this._editorView.state.tr;
-            const flattened: TextSelection[] = [];
-            res.map(r => r.map(h => flattened.push(h)));
-            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
-            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-            const anchor = new Doc();
-            const alink = DocUtils.MakeLink({ doc: anchor }, { doc: target }, "automatic")!;
-            const allAnchors = [{ href: Utils.prepend("/doc/" + anchor[Id]), title: "a link", anchorId: anchor[Id] }];
-            const link = this._editorView.state.schema.marks.linkAnchor.create({ allAnchors, title: "a link", location });
-            this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
+            const res1 = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            let tr = this._editorView.state.tr;
+            const flattened1: TextSelection[] = [];
+            res1.map(r => r.map(h => flattened1.push(h)));
+            flattened1.forEach((flat, i) => {
+                const flattened: TextSelection[] = [];
+                const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+                res.map(r => r.map(h => flattened.push(h)));
+                this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+                const anchor = Docs.Create.TextanchorDocument();
+                const alink = DocUtils.MakeLink({ doc: anchor }, { doc: target }, "automatic")!;
+                const allAnchors = [{ href: Utils.prepend("/doc/" + anchor[Id]), title: "a link", anchorId: anchor[Id] }];
+                const link = this._editorView!.state.schema.marks.linkAnchor.create({ allAnchors, title: "auto link", location });
+                tr = tr.addMark(flattened[i].from, flattened[i].to, link);
+            });
+            this._editorView.dispatch(tr);
         }
     }
     public highlightSearchTerms = (terms: string[], backward: boolean) => {
@@ -1201,7 +1158,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         this._downX = e.clientX;
         this._downY = e.clientY;
-        this.doLinkOnDeselect();
         this._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (e.button === 0 && (this.props.rootSelected(true) || this.props.isSelected(true)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -1245,7 +1201,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @action
     onDoubleClick = (e: React.MouseEvent): void => {
-        this.doLinkOnDeselect();
         FormattedTextBoxComment.textBox = this;
         if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
@@ -1406,7 +1361,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         this.endUndoTypingBatch();
-        this.doLinkOnDeselect();
 
         FormattedTextBox.LiveTextUndo?.end();
         FormattedTextBox.LiveTextUndo = undefined;
