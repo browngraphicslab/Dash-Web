@@ -680,7 +680,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
-        !Doc.UserDoc().noviceMode && appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
         cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = cm.findByDescription("Options...");
@@ -690,66 +689,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         optionItems.push({ description: `${!Doc.NativeWidth(this.layoutDoc) || !Doc.NativeHeight(this.layoutDoc) ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
-    }
-
-    progressivizeText = () => {
-        const list = this.ProseRef?.getElementsByTagName("li");
-        const mainBulletText: string[] = [];
-        const mainBulletList: Doc[] = [];
-        if (list) {
-            const newBullets: Doc[] = this.recursiveProgressivize(1, list)[0];
-            mainBulletList.push.apply(mainBulletList, newBullets);
-        }
-        const title = Docs.Create.TextDocument(StrCast(this.rootDoc.title), { title: "Title", _width: 800, _height: 70, x: 20, y: -10, _fontSize: '20pt', backgroundColor: "rgba(0,0,0,0)", appearFrame: 0, _fontWeight: 700 });
-        mainBulletList.push(title);
-        const doc = Docs.Create.FreeformDocument(mainBulletList, {
-            title: StrCast(this.rootDoc.title),
-            x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
-            _width: 400, _height: 225, _fitToBox: true,
-        });
-        this.props.addDocument?.(doc);
-    }
-
-    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): [Doc[], number] => {
-        const mainBulletList: Doc[] = [];
-        let b = d ? d : 0;
-        let yLoc = y ? y : 0;
-        let nestCount = 0;
-        let count: string = before ? before : '';
-        const fontSize: string = (16 - (nestDepth * 2)) + 'pt';
-        const xLoc: number = (nestDepth * 20);
-        const width: number = 390 - xLoc;
-        const height: number = 55 - (nestDepth * 5);
-        Array.from(list).forEach(listItem => {
-            const mainBullets: number = Number(listItem.getAttribute("data-bulletstyle"));
-            if (mainBullets === nestDepth) {
-                if (listItem.childElementCount > 1) {
-                    b++;
-                    nestCount++;
-                    yLoc += height;
-                    count = before ? count + nestCount + "." : nestCount + ".";
-                    const text = listItem.getElementsByTagName("p")[0].innerText;
-                    const length = text.length;
-                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
-                    // yLoc += NumCast(bullet1._height);
-                    mainBulletList.push(bullet1);
-                    const newList = this.recursiveProgressivize(nestDepth + 1, listItem.getElementsByTagName("li"), b, yLoc, count);
-                    mainBulletList.push.apply(mainBulletList, newList[0]);
-                    yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
-                } else {
-                    b++;
-                    nestCount++;
-                    yLoc += height;
-                    count = before ? count + nestCount + "." : nestCount + ".";
-                    const text = listItem.innerText;
-                    const length = text.length;
-                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
-                    // yLoc += NumCast(bullet1._height);
-                    mainBulletList.push(bullet1);
-                }
-            }
-        });
-        return [mainBulletList, yLoc];
     }
 
     recordDictation = () => {
@@ -894,14 +833,24 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return this.focusSpeed;
     }
 
+    resetNativeHeight = (scrollHeight: number) => {
+        const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight);
+        this.rootDoc[this.fieldKey + "-height"] = scrollHeight * (this.props.scaling?.() || 1) + this.titleHeight;
+        if (nh) {
+            this.layoutDoc._nativeHeight = scrollHeight;
+        }
+    }
+
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.IsActive);
         this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.scrollHeight = reaction(() => NumCast(this.rootDoc[this.fieldKey + "-scrollHeight"]),
+            scrollHeight => this.layoutDoc.autoHeight && this.resetNativeHeight(scrollHeight));
         this._disposers.sidebarheight = reaction(
-            () => ({ annoHeight: NumCast(this.rootDoc[this.annotationKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
-            ({ annoHeight, textHeight }) => {
-                this.layoutDoc._autoHeight && (this.rootDoc._height = Math.max(annoHeight, textHeight));
+            () => ({ sidebarHeight: NumCast(this.rootDoc[this.SidebarKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
+            ({ sidebarHeight, textHeight }) => {
+                this.layoutDoc._autoHeight && this.props.setHeight(Math.max(sidebarHeight, textHeight));
             });
         this._disposers.links = reaction(() => DocListCast(this.Document.links), // if a link is deleted, then remove all hyperlinks that reference it from the text's marks
             newLinks => {
@@ -958,20 +907,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
         );
         this._disposers.autoHeight = reaction(
-            () => ({
-                width: NumCast(this.layoutDoc._width),
-                autoHeight: this.layoutDoc?._autoHeight
-            }),
-            ({ width, autoHeight }) => width !== undefined && setTimeout(() => this.tryUpdateHeight(), 0)
-        );
-        this._disposers.height = reaction(
-            () => Cast(this.layoutDoc._height, "number", null),
-            action(height => {
-                this.rootDoc[this.fieldKey + "-height"] = height;
-                if (height !== undefined && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
-                    this.layoutDoc._delayAutoHeight = height;
-                }
-            })
+            () => ({ width: NumCast(this.layoutDoc._width), autoHeight: this.layoutDoc?._autoHeight }),
+            ({ width, autoHeight }) => width && autoHeight && this.resetNativeHeight(NumCast(this.layoutDoc[this.fieldKey + "-scrollHeight"]))
         );
 
         this.setupEditor(this.config, this.props.fieldKey);
@@ -1599,28 +1536,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     get titleHeight() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin) || 0; }
 
-    @action
     tryUpdateHeight() {
-        let scrollHeight = Math.min(NumCast(this.layoutDoc.docMaxHeight, 10000), (this.ProseRef?.scrollHeight || 0) * NumCast(this.layoutDoc._viewScale, 1));
-        if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight);
-            const dh = NumCast(this.rootDoc._height);
-            const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + this.titleHeight);
-            if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
-                // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
-                console.log("Delayed height adjustment...");
-                setTimeout(() => {
-                    this.rootDoc[this.fieldKey + "-height"] = this.rootDoc._height = newHeight;
-                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
-                }, 10);
-            } else {
-                try {
-                    const boxHeight = Number(getComputedStyle(this._boxRef.current!).height.replace("px", "")) * NumCast(this.Document._viewScale, 1);
-                    const outer = this.rootDoc[HeightSym]() - boxHeight - this.titleHeight;
-                    this.rootDoc[this.fieldKey + "-height"] = newHeight + Math.max(0, outer);
-                } catch (e) { console.log("Error in tryUpdateHeight"); }
-            }
-        } //else this.rootDoc[this.fieldKey + "-height"] = 0;
+        const proseHeight = this.ProseRef?.scrollHeight || 0;
+        const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
+        if (scrollHeight && this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+            if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
+                this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+            } else setTimeout(() => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight, 10); // if we have a template that hasn't been resolved yet,   we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+        }
     }
 
     @computed get audioHandle() {
@@ -1644,39 +1567,40 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.SidebarKey);
     sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.SidebarKey);
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.SidebarKey);
+    setSidebarHeight = (height: number) => this.rootDoc[this.SidebarKey + "-height"] = height;
     @computed get sidebarCollection() {
-        const collectionProps: SubCollectionViewProps & collectionFreeformViewProps = {
-            ...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit,
-            NativeWidth: returnZero,
-            NativeHeight: returnZero,
-            PanelHeight: this.props.PanelHeight,
-            PanelWidth: this.sidebarWidth,
-            xMargin: 0,
-            yMargin: 0,
-            chromeStatus: "enabled",
-            scaleField: this.SidebarKey + "-scale",
-            isAnnotationOverlay: false,
-            fieldKey: this.SidebarKey,
-            fitContentsToDoc: this.fitToBox,
-            select: emptyFunction,
-            active: this.annotationsActive,
-            scaling: this.sidebarContentScaling,
-            whenActiveChanged: this.whenActiveChanged,
-            removeDocument: this.sidebarRemDocument,
-            moveDocument: this.sidebarMoveDocument,
-            addDocument: this.sidebarAddDocument,
-            CollectionView: undefined,
-            ScreenToLocalTransform: this.sidebarScreenToLocal,
-            renderDepth: this.props.renderDepth + 1,
-        };
+        const renderComponent = (tag: string) => {
+            const ComponentTag = tag === "freeform" ? CollectionFreeFormView : tag === "translation" ? FormattedTextBox : CollectionStackingView;
+            return <ComponentTag
+                {...OmitKeys(this.props, ["NativeWidth", "NativeHeight"]).omit}
+                NativeWidth={returnZero}
+                NativeHeight={returnZero}
+                PanelHeight={this.props.PanelHeight}
+                PanelWidth={this.sidebarWidth}
+                xMargin={0}
+                yMargin={0}
+                chromeStatus={"enabled"}
+                scaleField={this.SidebarKey + "-scale"}
+                isAnnotationOverlay={false}
+                setHeight={this.setSidebarHeight}
+                fitContentsToDoc={this.fitToBox}
+                select={emptyFunction}
+                active={this.annotationsActive}
+                scaling={this.sidebarContentScaling}
+                whenActiveChanged={this.whenActiveChanged}
+                removeDocument={this.sidebarRemDocument}
+                moveDocument={this.sidebarMoveDocument}
+                addDocument={this.sidebarAddDocument}
+                CollectionView={undefined}
+                ScreenToLocalTransform={this.sidebarScreenToLocal}
+                renderDepth={this.props.renderDepth + 1}
+                noSidebar={true}
+                fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />
+        }
         return this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) :
             <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                 style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                {this.layoutDoc.sidebarViewType === "translation" ?
-                    <FormattedTextBox {...collectionProps} noSidebar={true} fieldKey={`${this.fieldKey}-translation`} /> :
-                    this.layoutDoc.sidebarViewType === CollectionViewType.Freeform ?
-                        <CollectionFreeFormView {...collectionProps} /> :
-                        <CollectionStackingView {...collectionProps} />}
+                {renderComponent(StrCast(this.layoutDoc.sidebarViewType))}
             </div>;
     }
 

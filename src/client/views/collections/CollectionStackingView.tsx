@@ -140,8 +140,10 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             () => this.pivotField,
             () => this.layoutDoc._columnHeaders = new List()
         );
-        this._autoHeightDisposer = reaction(() => this.layoutDoc._autoHeight, this.forceAutoHeight);
+        this._autoHeightDisposer = reaction(() => this.layoutDoc._autoHeight,
+            () => this.props.setHeight(this.headerMargin + this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0)));
     }
+
     componentWillUnmount() {
         super.componentWillUnmount();
         this._pivotFieldDisposer?.();
@@ -369,11 +371,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                             const height = this.headerMargin +
                                 Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER),
                                     Math.max(...this.refList.map(r => NumCast(Doc.Layout(doc)._viewScale, 1) * Number(getComputedStyle(r).height.replace("px", "")))));
-                            if (this.props.isAnnotationOverlay) {
-                                doc[this.props.fieldKey + "-height"] = height;
-                            } else {
-                                Doc.Layout(doc)._height = height * NumCast(Doc.Layout(doc)._viewScale, 1);
-                            }
+                            this.props.setHeight(height * NumCast(Doc.Layout(doc)._viewScale, 1));
                         }
                     }));
                     this.observer.observe(ref);
@@ -398,11 +396,6 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         return new Transform(-translateX, -translateY, 1).scale(this.props.ScreenToLocalTransform().Scale);
     }
 
-    forceAutoHeight = () => {
-        const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-        Doc.Layout(doc)._height = this.headerMargin + this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-    }
-
     sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
@@ -422,7 +415,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             const height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
-                            Doc.Layout(doc)._height = this.headerMargin + Math.max(height, NumCast(doc[this.props.fieldKey + "-height"]));
+                            this.props.setHeight(this.headerMargin + height);
                         }
                     }));
                     this.observer.observe(ref);

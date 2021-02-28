@@ -482,6 +482,7 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     fieldKey={"data"}
                     dropAction={"alias"}
+                    setHeight={returnFalse}
                     parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
@@ -552,6 +553,7 @@ export class MainView extends React.Component {
                 isSelected={returnTrue}
                 active={returnTrue}
                 select={returnTrue}
+                setHeight={returnFalse}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
@@ -589,6 +591,7 @@ export class MainView extends React.Component {
                     styleProvider={undefined}
                     isSelected={returnFalse}
                     select={returnFalse}
+                    setHeight={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
                     parentActive={returnFalse}
@@ -661,6 +664,7 @@ export class MainView extends React.Component {
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}
+                            setHeight={returnFalse}
                             layerProvider={undefined}
                             styleProvider={undefined}
                             addDocTab={returnFalse}

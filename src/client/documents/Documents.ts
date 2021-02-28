@@ -240,7 +240,7 @@ export class DocumentOptions {
     treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
-    docMaxHeight?: number; // maximum height for newly created (eg, from pasting) text documents
+    docMaxAutoHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";

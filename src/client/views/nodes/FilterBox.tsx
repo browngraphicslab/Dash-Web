@@ -185,6 +185,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     fieldKey={this.props.fieldKey}
                     CollectionView={undefined}
                     cantBrush={true}
+                    setHeight={returnFalse} // if the tree view can trigger the height of the filter box to change, then this needs to be filled in.
                     onChildClick={this.suppressChildClick}
                     docFilters={returnEmptyFilter}
                     docRangeFilters={returnEmptyFilter}

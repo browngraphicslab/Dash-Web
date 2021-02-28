@@ -369,8 +369,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.Views().forEach(action((element: DocumentView) =>
-                ((element.rootDoc.type === DocumentType.RTF ||
-                    element.rootDoc.type === DocumentType.COMPARISON ||
+                ((element.rootDoc.type === DocumentType.COMPARISON ||
                     (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
                     && Doc.NativeHeight(element.layoutDoc)) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
@@ -431,7 +430,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
                     }
-                    if (e.ctrlKey || (!dragBottom || !docView.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                    if (e.ctrlKey && !dragBottom) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
                         if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                         else dW = dH * nwidth / nheight;
                     }
@@ -441,10 +440,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
-                if (fixedAspect && (!nwidth || !nheight)) {
-                    doc._nativeWidth = nwidth = doc._width || 0;
-                    doc._nativeHeight = nheight = doc._height || 0;
-                }
                 if (e.ctrlKey && [DocumentType.IMG, DocumentType.SCREENSHOT, DocumentType.VID].includes(doc.type as DocumentType)) {
                     dW !== 0 && runInAction(() => {
                         const dataDoc = doc[DataSym];
@@ -454,22 +449,24 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                         Doc.SetNativeHeight(dataDoc, nh + (dW > 0 ? 10 : -10) * nh / nw);
                     });
                 }
-                else if (nwidth > 0 && nheight > 0) {
-                    if (Math.abs(dW) > Math.abs(dH) || dragRight) {
-                        if (!fixedAspect || (dragRight && e.ctrlKey)) {
+                else if (fixedAspect) {
+                    if ((Math.abs(dW) > Math.abs(dH) && (!dragBottom || !e.ctrlKey)) || dragRight) {
+                        if (dragRight && e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * Doc.NativeWidth(doc);
+                        } else {
+                            if (!doc._fitWidth) doc._height = nheight / nwidth * actualdW;
+                            else if (!e.ctrlKey) doc._height = actualdH;
                         }
                         doc._width = actualdW;
-                        if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect || (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth))) {
+                        if (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth)) { // frozen web pages and others that fitWidth can't grow horizontally to match a vertical resize so the only choice is to change the nativeheight even if the ctrl key isn't used
                             doc._nativeHeight = actualdH / (doc._height || 1) * Doc.NativeHeight(doc);
+                        } else {
+                            if (!doc._fitWidth) doc._width = nwidth / nheight * actualdH;
+                            else if (!e.ctrlKey) doc._width = actualdW;
                         }
                         doc._height = actualdH;
-                        if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
@@ -486,7 +483,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         SelectionManager.Views().map(dv => {
             if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
                 dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
-                dv.layoutDoc._autoHeight = true;
+                if (dv.layoutDoc._autoHeight) dv.layoutDoc._autoHeight = false;
+                setTimeout(() => dv.layoutDoc._autoHeight = true);
             }
             dv.layoutDoc._delayAutoHeight = undefined;
         });

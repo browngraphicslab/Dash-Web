@@ -109,6 +109,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     scaling?: () => number,
+    setHeight: (height: number) => void,
     layoutKey: string,
     hideOnLeave?: boolean,
 }> {

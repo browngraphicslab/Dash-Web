@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
@@ -753,6 +753,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
+    setHeight = (height: number) => this.rootDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -778,6 +779,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
+                setHeight={this.setHeight}
                 contentsActive={this.setContentsActive}
                 parentActive={this.parentActive}
                 ScreenToLocalTransform={this.screenToLocal}
@@ -974,6 +976,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public static ROOT_DIV = "documentView-effectsWrapper";
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     public ContentRef = React.createRef<HTMLDivElement>();
+    private _disposers: { [name: string]: IReactionDisposer } = {};
 
     @observable public docView: DocumentViewInternal | undefined | null;
 
@@ -1070,9 +1073,20 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     }
 
     componentDidMount() {
+        this._disposers.height = reaction(
+            () => NumCast(this.layoutDoc._height),
+            action(height => {
+                const docMax = NumCast(this.layoutDoc.docMaxAutoHeight);
+                if (docMax && docMax < height) this.layoutDoc.docMaxAutoHeight = height;
+                if (height && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
+                    this.layoutDoc._delayAutoHeight = height;
+                }
+            })
+        );
         !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);
     }
     componentWillUnmount() {
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
     }
 

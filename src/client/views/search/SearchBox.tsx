@@ -565,7 +565,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     removeDocument={returnFalse}
                                     PanelHeight={this.open ? this.returnHeight : returnZero}
                                     PanelWidth={this.open ? this.returnLength : returnZero}
-                                    overflow={length > window.innerWidth || this.children > 6 ? true : false}
+                                    scrollOverflow={length > window.innerWidth || this.children > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />

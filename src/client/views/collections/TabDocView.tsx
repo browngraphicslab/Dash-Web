@@ -420,6 +420,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
+                    setHeight={returnFalse}
                     active={returnTrue}
                     select={emptyFunction}
                     dropAction={undefined}
