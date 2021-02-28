@@ -845,13 +845,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this.props.contentsActive?.(this.IsActive);
         this._cachedLinks = DocListCast(this.Document.links);
-        this._disposers.scrollHeight = reaction(() => NumCast(this.rootDoc[this.fieldKey + "-scrollHeight"]),
+        this._disposers.autoHeight = reaction(() => ({ width: NumCast(this.layoutDoc._width), autoHeight: this.layoutDoc?._autoHeight }),
+            ({ width, autoHeight }) => width && autoHeight && this.resetNativeHeight(NumCast(this.layoutDoc[this.fieldKey + "-scrollHeight"]))
+        );
+        this._disposers.scrollHeight = reaction(() => NumCast(this.rootDoc[this.fieldKey + "-scrollHeight"]), // if the scroll height changes (from typing), then update the native height if autoHeight is on
             scrollHeight => this.layoutDoc.autoHeight && this.resetNativeHeight(scrollHeight));
-        this._disposers.sidebarheight = reaction(
+        this._disposers.height = reaction(() => NumCast(this.layoutDoc._height),  // if the document height is changed, then make sure the main text height is no bigger than the document height
+            height => height < NumCast(this.rootDoc[this.fieldKey + "-height"]) && (this.rootDoc[this.fieldKey + "-height"] = height));
+        this._disposers.componentHeights = reaction(  // set the document height when one of the component heights changes and autoHeight is on
             () => ({ sidebarHeight: NumCast(this.rootDoc[this.SidebarKey + "-height"]), textHeight: NumCast(this.rootDoc[this.fieldKey + "-height"]) }),
-            ({ sidebarHeight, textHeight }) => {
-                this.layoutDoc._autoHeight && this.props.setHeight(Math.max(sidebarHeight, textHeight));
-            });
+            ({ sidebarHeight, textHeight }) => this.layoutDoc._autoHeight && this.props.setHeight(Math.max(sidebarHeight, textHeight)));
         this._disposers.links = reaction(() => DocListCast(this.Document.links), // if a link is deleted, then remove all hyperlinks that reference it from the text's marks
             newLinks => {
                 this._cachedLinks.forEach(l => !newLinks.includes(l) && this.RemoveLinkFromDoc(l));
@@ -905,10 +908,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.pushToGoogleDoc();
                 }
             }
-        );
-        this._disposers.autoHeight = reaction(
-            () => ({ width: NumCast(this.layoutDoc._width), autoHeight: this.layoutDoc?._autoHeight }),
-            ({ width, autoHeight }) => width && autoHeight && this.resetNativeHeight(NumCast(this.layoutDoc[this.fieldKey + "-scrollHeight"]))
         );
 
         this.setupEditor(this.config, this.props.fieldKey);

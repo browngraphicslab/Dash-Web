@@ -292,10 +292,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._rotateUndo = undefined;
     }
 
-
-
-    _initialAutoHeight = false;
-    _dragHeights = new Map<Doc, number>();
+    _dragHeights = new Map<Doc, { start: number, lowest: number }>();
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -323,12 +320,9 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;
-        this._initialAutoHeight = true;
         DragManager.docsBeingDragged = SelectionManager.Views().map(dv => dv.rootDoc);
-        SelectionManager.Views().map(dv => {
-            this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
-            dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
-        });
+        SelectionManager.Views().map(dv =>
+            this._dragHeights.set(dv.layoutDoc, { start: NumCast(dv.layoutDoc._height), lowest: NumCast(dv.layoutDoc._height) }));
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
@@ -471,9 +465,11 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 } else {
                     dW && (doc._width = actualdW);
                     dH && (doc._height = actualdH);
-                    dH && this._initialAutoHeight && (doc._autoHeight = this._initialAutoHeight = false);
+                    dH && (doc._autoHeight = false);
                 }
             }
+            const val = this._dragHeights.get(docView.layoutDoc);
+            if (val) this._dragHeights.set(docView.layoutDoc, { start: val.start, lowest: Math.min(val.lowest, NumCast(docView.layoutDoc._height)) });
         }));
         return false;
     }
@@ -481,12 +477,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.Views().map(dv => {
-            if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
+            const hgts = this._dragHeights.get(dv.layoutDoc);
+            if (hgts && hgts.lowest < hgts.start && hgts.lowest <= 20) {
                 dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
                 if (dv.layoutDoc._autoHeight) dv.layoutDoc._autoHeight = false;
                 setTimeout(() => dv.layoutDoc._autoHeight = true);
             }
-            dv.layoutDoc._delayAutoHeight = undefined;
         });
         this._resizeHdlId = "";
         this.Interacting = false;

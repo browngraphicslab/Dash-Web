@@ -1071,16 +1071,12 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     screenToLocalTransform = () => {
         return this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
     }
-
     componentDidMount() {
         this._disposers.height = reaction(
             () => NumCast(this.layoutDoc._height),
             action(height => {
                 const docMax = NumCast(this.layoutDoc.docMaxAutoHeight);
                 if (docMax && docMax < height) this.layoutDoc.docMaxAutoHeight = height;
-                if (height && height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
-                    this.layoutDoc._delayAutoHeight = height;
-                }
             })
         );
         !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);

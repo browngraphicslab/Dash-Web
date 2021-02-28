@@ -101,7 +101,7 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
