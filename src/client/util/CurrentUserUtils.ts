@@ -428,7 +428,7 @@ export class CurrentUserUtils {
             ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyNote === undefined) {
-            doc.emptyNote = Docs.Create.TextDocument("", { _width: 200, title: "text note", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyNote = Docs.Create.TextDocument("", { _width: 200, title: "text note", _autoHeight: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyNote as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyImage === undefined) {

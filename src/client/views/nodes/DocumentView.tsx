@@ -605,13 +605,17 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 "linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
-        if (de.complete.annoDragData) de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
-        const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
-        if (linkSource && linkSource !== this.props.Document) {
+        const linkdrag = de.complete.annoDragData ?? de.complete.linkDragData;
+        if (linkdrag) linkdrag.linkSourceDoc = linkdrag.linkSourceGetAnchor();
+        if (linkdrag?.linkSourceDoc) {
             e.stopPropagation();
-            const dropDoc = this._componentView?.getAnchor?.() || this.rootDoc;
-            if (de.complete.annoDragData) de.complete.annoDragData.dropDocument = dropDoc;
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            if (de.complete.annoDragData && !de.complete.annoDragData.dropDocument) {
+                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator(undefined);
+            }
+            if (de.complete.annoDragData || this.rootDoc !== linkdrag.linkSourceDoc.context) {
+                const dropDoc = de.complete.annoDragData?.dropDocument ?? this._componentView?.getAnchor?.() ?? this.props.Document;
+                de.complete.linkDocument = DocUtils.MakeLink({ doc: linkdrag.linkSourceDoc }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            }
         }
     }
 
@@ -947,7 +951,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
         const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];
-        let highlighting = !this.props.cantBrush && highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        const excludeTypes = !this.props.treeViewDoc ? [DocumentType.FONTICON, DocumentType.INK] : [DocumentType.FONTICON];
+        let highlighting = !this.props.cantBrush && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :

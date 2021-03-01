@@ -65,13 +65,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
+    const isAnnotated = property.includes(":annotated");
     const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
-        case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
+        case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.HideLinkButton: return isAnchor || props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
@@ -157,7 +158,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (isAnchor && docProps) return "none";
             if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
-            if (opacity() === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
+            if (opacity() === 0 || (doc?.type === DocumentType.INK && !docProps?.treeViewDoc) || doc?.isInkMask) return "none";
             if (layer === false && !selected && !SnappingManager.GetIsDragging()) return "none";
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;

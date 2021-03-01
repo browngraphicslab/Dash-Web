@@ -204,13 +204,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this._disposers.selection = reaction(() => this.props.isSelected(),
-            selected => {
-                if (!selected) {
-                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.clear();
-                }
-            },
-            { fireImmediately: true });
+            selected => !selected && setTimeout(() => {
+                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                this._savedAnnotations.clear();
+            }));
         this._disposers.triggerVideo = reaction(
             () => !LinkDocPreview.LinkInfo && this.props.renderDepth !== -1 ? NumCast(this.Document._triggerVideo, null) : undefined,
             time => time !== undefined && setTimeout(() => {

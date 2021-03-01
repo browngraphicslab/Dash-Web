@@ -254,7 +254,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         const before = pt[1] < rect.top + rect.height / 2;
         const inside = this.fileSysMode && !this.doc.isFolder ? false : pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && this.childDocList.length);
         if (de.complete.linkDragData) {
-            const sourceDoc = de.complete.linkDragData.linkSourceDocument;
+            const sourceDoc = de.complete.linkDragData.linkSourceGetAnchor();
             const destDoc = this.doc;
             DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link", "");
             e.stopPropagation();

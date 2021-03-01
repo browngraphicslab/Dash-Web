@@ -138,13 +138,13 @@ export namespace DragManager {
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
-        constructor(linkSourceDoc: Doc) {
-            this.linkSourceDocument = linkSourceDoc;
+        constructor(dragDoc: Doc, linkSourceGetAnchor: () => Doc) {
+            this.dragDocument = dragDoc;
+            this.linkSourceGetAnchor = linkSourceGetAnchor;
         }
-        droppedDocuments: Doc[] = [];
-        linkSourceDocument: Doc;
-        dontClearTextBox?: boolean;
-        linkDropCallback?: (data: { linkDocument: Doc }) => void;
+        dragDocument: Doc;
+        linkSourceGetAnchor: () => Doc;
+        linkSourceDoc?: Doc;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -154,23 +154,18 @@ export namespace DragManager {
     }
     // used by PDFs,Text,Image,Video,Web to conditionally (if the drop completes) create a text annotation when dragging the annotate button from the AnchorMenu when a text/region selection has been made.
     // this is pretty clunky and should be rethought out using linkDrag or DocumentDrag
-    export class AnchorAnnoDragData {
-        constructor(dragDoc: Doc, annotationDocCreator: () => Doc, dropDocCreator: (annotationOn?: Doc) => Doc) {
-            this.dragDocument = dragDoc;
+    export class AnchorAnnoDragData extends LinkDragData {
+        constructor(dragDoc: Doc, linkSourceGetAnchor: () => Doc, dropDocCreator: (annotationOn: Doc | undefined) => Doc) {
+            super(dragDoc, linkSourceGetAnchor);
             this.dropDocCreator = dropDocCreator;
-            this.annotationDocCreator = annotationDocCreator;
             this.offset = [0, 0];
         }
-        targetContext: Doc | undefined;
-        dragDocument: Doc;
-        annotationDocCreator: () => Doc;
-        dropDocCreator: (asAnnotation?: Doc) => Doc;
+        linkSourceDoc?: Doc;
+        dropDocCreator: (annotationOn: Doc | undefined) => Doc;
         dropDocument?: Doc;
-        annotationDocument?: Doc;
         offset: number[];
         dropAction: dropActionType;
         userDropAction: dropActionType;
-        linkDropCallback?: (data: { linkDocument: Doc }) => void;
     }
 
     export function MakeDropTarget(
@@ -258,8 +253,8 @@ export namespace DragManager {
     }
 
     // drags a linker button and creates a link on drop
-    export function StartLinkDrag(ele: HTMLElement, sourceDoc: Doc, downX: number, downY: number, options?: DragOptions) {
-        StartDrag([ele], new DragManager.LinkDragData(sourceDoc), downX, downY, options);
+    export function StartLinkDrag(ele: HTMLElement, sourceDoc: Doc, sourceDocGetAnchor: undefined | (() => Doc), downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], new DragManager.LinkDragData(sourceDoc, () => sourceDocGetAnchor?.() ?? sourceDoc), downX, downY, options);
     }
 
     // drags a column from a schema view

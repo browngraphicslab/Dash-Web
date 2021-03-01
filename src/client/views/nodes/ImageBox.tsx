@@ -62,13 +62,10 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     componentDidMount() {
         this._disposers.selection = reaction(() => this.props.isSelected(),
-            selected => {
-                if (!selected) {
-                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.clear();
-                }
-            },
-            { fireImmediately: true });
+            selected => !selected && setTimeout(() => {
+                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                this._savedAnnotations.clear();
+            }));
         this._disposers.path = reaction(() => ({ nativeSize: this.nativeSize, width: this.layoutDoc[WidthSym]() }),
             action(({ nativeSize, width }) => {
                 if (!this.layoutDoc._height) {

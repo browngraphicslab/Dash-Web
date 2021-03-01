@@ -51,16 +51,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (this.props.InMenu && this.props.StartLink) {
             if (this._linkButton.current !== null) {
                 const linkDrag = UndoManager.StartBatch("Drag Link");
-                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View.props.Document, e.pageX, e.pageY, {
+                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View.props.Document, this.props.View.ComponentView?.getAnchor, e.pageX, e.pageY, {
                     dragComplete: dropEv => {
                         if (this.props.View && dropEv.linkDocument) {// dropEv.linkDocument equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                             !dropEv.linkDocument.linkRelationship && (Doc.GetProto(dropEv.linkDocument).linkRelationship = "hyperlink");
-
-                            // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
-                            // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures
-                            // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
-                            // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
-                            dropEv.linkDragData?.linkDropCallback?.(dropEv as { linkDocument: Doc }); // bcz: typescript can't figure out that this is valid even though we tested dropEv.linkDocument above
                         }
                         linkDrag?.end();
                     },

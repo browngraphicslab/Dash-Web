@@ -414,8 +414,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (e.ctrlKey && !Doc.NativeHeight(docView.props.Document)) docView.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(docView.rootDoc);
-                let nwidth = docView.nativeWidth;
-                let nheight = docView.nativeHeight;
+                const nwidth = docView.nativeWidth;
+                const nheight = docView.nativeHeight;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;

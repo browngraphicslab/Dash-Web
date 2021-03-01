@@ -185,7 +185,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     setupAnchorMenu = () => {
         AnchorMenu.Instance.Status = "marquee";
-        AnchorMenu.Instance.Highlight = action((color: string) => {
+        AnchorMenu.Instance.Highlight = action((color: string, isLinkButton: boolean) => {
             this._editorView?.state && RichTextMenu.Instance.insertHighlight(color, this._editorView.state, this._editorView?.dispatch);
             return undefined;
         });
@@ -202,16 +202,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 return target;
             };
 
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, () => this.rootDoc, targetCreator), e.pageX, e.pageY, {
-                dragComplete: e => {
-                    const anchor = this.makeLinkAnchor(undefined, "add:right", undefined, "a link");
-                    if (!e.aborted && e.annoDragData && e.annoDragData.annotationDocument && e.annoDragData.dropDocument && !e.linkDocument) {
-                        e.linkDocument = DocUtils.MakeLink({ doc: anchor }, { doc: e.annoDragData.dropDocument }, "hyperlink", "link to note");
-                        e.annoDragData.annotationDocument.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.rootDoc;
-                    }
-                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument
-                }
-            });
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, this.getAnchor, targetCreator), e.pageX, e.pageY);
         });
         const coordsT = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
         const coordsB = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
@@ -401,7 +392,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @undoBatch
     @action
-    drop = async (e: Event, de: DragManager.DropEvent) => {
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.complete.annoDragData) de.complete.annoDragData.dropDocCreator = this.getAnchor;
         const dragData = de.complete.docDragData;
         if (dragData) {
             const draggedDoc = dragData.draggedDocuments.length && dragData.draggedDocuments[0];
@@ -427,17 +419,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 e.stopPropagation();
                 // }
             } // otherwise, fall through to outer collection to handle drop
-        } else if (de.complete.linkDragData) {
-            de.complete.linkDragData.linkDropCallback = this.linkDrop;
         }
-        else if (de.complete.annoDragData) {
-            de.complete.annoDragData.linkDropCallback = this.linkDrop;
-        }
-    }
-    linkDrop = (data: { linkDocument: Doc }) => {
-        const anchor1Title = data.linkDocument.anchor1 instanceof Doc ? StrCast(data.linkDocument.anchor1.title) : "-untitled-";
-        const anchor1 = data.linkDocument.anchor1 instanceof Doc ? data.linkDocument.anchor1 : undefined;
-        this.makeLinkAnchor(anchor1, "add:right", undefined, anchor1Title);
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {
@@ -875,6 +857,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }, { fireImmediately: true }
         );
         quickScroll = undefined;
+        this.tryUpdateScrollHeight();
     }
 
     pushToGoogleDoc = async () => {
@@ -1457,11 +1440,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     @computed get sidebarHandle() {
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
-        return this.props.noSidebar || (!this.props.isSelected() && !(annotated && !this.sidebarWidth())) ? (null) :
-            <div className="formattedTextBox-sidebar-handle"
-                style={{ left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`, background: annotated ? "lightblue" : this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor) }}
-                onPointerDown={this.sidebarDown}
-            />;
+        return <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
+            style={{
+                left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`,
+                background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
+            }} />;
     }
     @computed get sidebarCollection() {
         const renderComponent = (tag: string) => {
@@ -1490,8 +1473,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 ScreenToLocalTransform={this.sidebarScreenToLocal}
                 renderDepth={this.props.renderDepth + 1}
                 noSidebar={true}
-                fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />
-        }
+                fieldKey={this.layoutDoc.sidebarViewType === "translation" ? `${this.fieldKey}-translation` : this.SidebarKey} />;
+        };
         return <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
             style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
             {renderComponent(StrCast(this.layoutDoc.sidebarViewType))}
@@ -1557,8 +1540,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             }}
                         />
                     </div>
-                    {this.sidebarCollection}
-                    {this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarHandle}
+                    {this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarCollection}
+                    {this.sidebarHandle}
                     {!this.layoutDoc._showAudio ? (null) : this.audioHandle}
                 </div>
             </div>

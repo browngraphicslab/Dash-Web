@@ -1119,14 +1119,12 @@ export namespace Doc {
     export function isDocPinned(doc: Doc) {
         //add this new doc to props.Document
         const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-        if (curPres) {
-            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
-        }
-        return false;
+        return !curPres ? false : DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
     }
 
     export function copyDragFactory(dragFactory: Doc) {
         const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        ndoc && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", Doc.GetProto(ndoc));
         if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
