@@ -57,6 +57,7 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { EquationBox } from "../views/nodes/EquationBox";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -241,6 +242,7 @@ export class DocumentOptions {
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
     docMaxAutoHeight?: number; // maximum height for newly created (eg, from pasting) text documents
+    text?: string;
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
@@ -373,6 +375,9 @@ export namespace Docs {
             }],
             [DocumentType.LABEL, {
                 layout: { view: LabelBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.EQUATION, {
+                layout: { view: EquationBox, dataField: defaultDataKey },
             }],
             [DocumentType.BUTTON, {
                 layout: { view: LabelBox, dataField: "onClick" },
@@ -890,6 +895,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}) });
         }
 
+        export function EquationDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.EQUATION), undefined, { ...(options || {}) });
+        }
+
         export function ButtonDocument(options?: DocumentOptions) {
             // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
             // btn.layoutKey = "layout_onClick";
@@ -1218,6 +1227,20 @@ export namespace DocUtils {
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
+        });
+        ContextMenu.Instance.addItem({
+            description: ":math", event: () => {
+                const created = Docs.Create.EquationDocument();
+                if (created) {
+                    created.author = Doc.CurrentUserEmail;
+                    created.x = x;
+                    created.y = y;
+                    created.width = 300;
+                    created.height = 35;
+                    EquationBox.SelectOnLoad = created[Id];
+                    docAdder?.(created);
+                }
+            }, icon: "compress-arrows-alt"
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",

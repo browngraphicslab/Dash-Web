@@ -153,6 +153,7 @@
         "cookie-session": "^2.0.0-rc.1",
         "cors": "^2.8.5",
         "depcheck": "^0.9.2",
+        "equation-editor-react": "0.0.6",
         "exif": "^0.6.0",
         "express": "^4.16.4",
         "express-flash": "0.0.2",

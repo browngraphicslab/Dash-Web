@@ -21,6 +21,7 @@ export enum DocumentType {
     PDFANNO = "pdfanno",        // pdf text selection (could be just a collection?)
     DATE = "date",              // calendar view of a date
     SCRIPTING = "script",       // script editor
+    EQUATION = "equation",      // equation edtior
 
     // special purpose wrappers that either take no data or are compositions of lower level types
     LINK = "link",              // link  (view of a document that acts as a link)

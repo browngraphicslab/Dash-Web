@@ -1541,7 +1541,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         />
                     </div>
                     {this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarCollection}
-                    {this.sidebarHandle}
+                    {this.Document._singleLine ? (null) : this.sidebarHandle}
                     {!this.layoutDoc._showAudio ? (null) : this.audioHandle}
                 </div>
             </div>
