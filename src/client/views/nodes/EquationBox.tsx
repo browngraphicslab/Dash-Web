@@ -12,6 +12,7 @@ import { simulateMouseClick } from '../../../Utils';
 import { TraceMobx } from '../../../fields/util';
 import { reaction, action } from 'mobx';
 import { Docs } from '../../documents/Documents';
+import { LightboxView } from '../LightboxView';
 
 const EquationSchema = createSchema({});
 
@@ -24,7 +25,7 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
     public static SelectOnLoad: string = "";
     _ref: React.RefObject<EquationEditor> = React.createRef();
     componentDidMount() {
-        if (EquationBox.SelectOnLoad === this.rootDoc[Id]) {
+        if (EquationBox.SelectOnLoad === this.rootDoc[Id] && (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath()))) {
             this.props.select(false);
 
             this._ref.current!.mathField.focus();
@@ -40,24 +41,36 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
     }
     @action
     keyPressed = (e: KeyboardEvent) => {
-        if (e.key === "Enter") {
-            const _height = Number(getComputedStyle(this._ref.current!.element.current).height.replace("px", ""));
-            const _width = Number(getComputedStyle(this._ref.current!.element.current).width.replace("px", ""));
-            this.layoutDoc._width = _width;
-            this.layoutDoc._height = _height;
-            const nextEq = Docs.Create.EquationDocument({ title: "# math", text: StrCast(this.dataDoc.text), x: NumCast(this.layoutDoc.x), y: NumCast(this.layoutDoc.y) + _height + 10, _width, _height: 35 });
+        const _height = Number(getComputedStyle(this._ref.current!.element.current).height.replace("px", ""));
+        const _width = Number(getComputedStyle(this._ref.current!.element.current).width.replace("px", ""));
+        if (e.key === "Enter" || e.key === "Tab") {
+            const nextEq = Docs.Create.EquationDocument({
+                title: "# math", text: StrCast(this.dataDoc.text), _width, _height: 25,
+                x: NumCast(this.layoutDoc.x) + (e.key === "Tab" ? _width + 10 : 0), y: NumCast(this.layoutDoc.y) + (e.key === "Enter" ? _height + 10 : 0)
+            });
             EquationBox.SelectOnLoad = nextEq[Id];
             this.props.addDocument?.(nextEq);
             e.stopPropagation();
         }
         if (e.key === "Backspace" && !this.dataDoc.text) this.props.removeDocument?.(this.rootDoc);
     }
-    onChange = (str: string) => this.dataDoc.text = str;
+    onChange = (str: string) => {
+        this.dataDoc.text = str;
+        const _height = Number(getComputedStyle(this._ref.current!.element.current).height.replace("px", ""));
+        const _width = Number(getComputedStyle(this._ref.current!.element.current).width.replace("px", ""));
+        this.layoutDoc._width = Math.max(35, _width);
+        this.layoutDoc._height = Math.max(25, _height);
+    }
     render() {
         TraceMobx();
-        return (<div onPointerDown={e => this.props.isSelected() && !e.ctrlKey && e.stopPropagation()}>
+        return (<div onPointerDown={e => !e.ctrlKey && e.stopPropagation()}
+            style={{
+                pointerEvents: !this.props.isSelected() ? "none" : undefined,
+            }}
+        >
             <EquationEditor ref={this._ref}
                 value={this.dataDoc.text || "y"}
+                spaceBehavesLikeTab={true}
                 onChange={this.onChange}
                 autoCommands="pi theta sqrt sum prod alpha beta gamma rho"
                 autoOperatorNames="sin cos tan" /></div>

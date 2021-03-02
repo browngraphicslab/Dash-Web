@@ -40,6 +40,7 @@ import { DashDocView } from "./RichTextSchema";
 
 import { DashDocCommentView } from "./DashDocCommentView";
 import { DashFieldView } from "./DashFieldView";
+import { EquationView } from "./EquationView";
 import { SummaryView } from "./SummaryView";
 import { OrderedListView } from "./OrderedListView";
 import { FootnoteView } from "./FootnoteView";
@@ -596,7 +597,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const options = cm.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
-        !Doc.UserDoc().noviceMode && optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        optionItems.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
+        optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
@@ -745,7 +747,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     // Since we also monitor all component height changes, this will update the document's height.
     resetNativeHeight = (scrollHeight: number) => {
         const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight);
-        this.rootDoc[this.fieldKey + "-height"] = scrollHeight * (this.props.scaling?.() || 1) + this.titleHeight;
+        this.rootDoc[this.fieldKey + "-height"] = scrollHeight + this.titleHeight;
         if (nh) this.layoutDoc._nativeHeight = scrollHeight;
     }
 
@@ -1060,6 +1062,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
+                    equation(node, view, getPos) { return new EquationView(node, view, getPos, self); },
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
@@ -1163,7 +1166,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        FormattedTextBox.CanAnnotate = true;
         if (!this._editorView?.state.selection.empty && FormattedTextBox.CanAnnotate) this.setupAnchorMenu();
         if (!this._downEvent) return;
         this._downEvent = false;
@@ -1540,8 +1542,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             }}
                         />
                     </div>
-                    {this.props.noSidebar || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarCollection}
-                    {this.Document._singleLine ? (null) : this.sidebarHandle}
+                    {(this.props.noSidebar || this.Document._noSidebar) || !this.layoutDoc._showSidebar || this.sidebarWidthPercent === "0%" ? (null) : this.sidebarCollection}
+                    {(this.props.noSidebar || this.Document._noSidebar) || this.Document._singleLine ? (null) : this.sidebarHandle}
                     {!this.layoutDoc._showAudio ? (null) : this.audioHandle}
                 </div>
             </div>

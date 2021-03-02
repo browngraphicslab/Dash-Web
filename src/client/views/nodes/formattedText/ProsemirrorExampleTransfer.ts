@@ -145,7 +145,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
     bind("Shift-Ctrl-\\", setBlockType(schema.nodes.code_block));
 
     bind("Ctrl-m", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        dispatch(state.tr.replaceSelectionWith(schema.nodes.dashField.create({ fieldKey: "math" + Utils.GenerateGuid() })));
+        dispatch(state.tr.replaceSelectionWith(schema.nodes.equation.create({ fieldKey: "math" + Utils.GenerateGuid() })));
     })
 
     for (let i = 1; i <= 6; i++) {
