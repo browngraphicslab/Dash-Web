@@ -400,7 +400,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
                 CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
-                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), _fitWidth: true, title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
                 }), "", stack);
             }
         });
@@ -423,7 +423,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 const emptyPane = CurrentUserUtils.EmptyPane;
                 emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
                 CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], {
-                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), _fitWidth: true, title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
                 }), "", stack);
             }));
     }

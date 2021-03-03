@@ -597,8 +597,8 @@ export class TreeView extends React.Component<TreeViewProps> {
                 moveDocument={this.move}
                 removeDocument={this.props.removeDoc}
                 ScreenToLocalTransform={this.getTransform}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
+                NativeHeight={() => 18}
+                NativeWidth={this.truncateTitleWidth}
                 PanelWidth={this.truncateTitleWidth}
                 PanelHeight={() => 18}
                 contextMenuItems={this.contextMenuItems}

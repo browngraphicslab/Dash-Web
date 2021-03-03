@@ -284,7 +284,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.bringToFront(dropDoc);
             }
             return dropDoc || this.rootDoc;
-        }
+        };
         return true;
     }
 

@@ -230,7 +230,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const dropped = dropCreator(this.props.isAnnotationOverlay ? this.rootDoc : undefined);
                     this.addDocument(dropped);
                     return dropped;
-                }
+                };
                 return true;
             }
             return false;

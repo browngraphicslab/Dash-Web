@@ -302,7 +302,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 }
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
-    let prop = in_prop;
+    const prop = in_prop;
 
     if (in_prop === AclSym) return target[AclSym];
     if (in_prop === "toString" || (in_prop !== HeightSym && in_prop !== WidthSym && in_prop !== LayoutSym && typeof prop === "symbol")) return target.__fields[prop] || target[prop];
