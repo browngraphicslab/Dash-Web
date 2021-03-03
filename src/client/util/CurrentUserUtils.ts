@@ -809,9 +809,9 @@ export class CurrentUserUtils {
         if (doc.currentFilter === undefined) {
             doc.currentFilter = Docs.Create.FilterDocument({
                 title: "FilterDoc", _height: 20,
-                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _yPadding: 10, forceActive: true, childDropAction: "none",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _yPadding: 10, _forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 90, treeViewPreventOpen: false, ignoreClick: true,
-                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             });
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.currentFilter as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);

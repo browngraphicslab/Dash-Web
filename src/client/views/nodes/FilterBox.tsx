@@ -43,7 +43,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
         FilterBox.Instance = this;
-        if (!CollectionDockingView.Instance.props.Document.currentFilter) CurrentUserUtils.setupFilterDocs(CollectionDockingView.Instance.props.Document);
+        const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        if (!targetDoc) CurrentUserUtils.setupFilterDocs(targetDoc);
     }
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(FilterBox, fieldKey); }
 
@@ -51,16 +52,20 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     @observable public static _filterScope = "Current Dashboard";
     public _filterSelected = false;
     public _filterMatch = "matched";
-    // private myFiltersRef = React.createRef<HTMLDivElement>();
 
     @observable private showFilterDialog = false;
 
+    @computed get targetDoc() {
+        return FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+    }
+
     @computed get allDocs() {
         const allDocs = new Set<Doc>();
-        if (CollectionDockingView.Instance) {
-            const activeTabs = DocListCast(CollectionDockingView.Instance.props.Document.data);
+        const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
+        if (targetDoc) {
+            const activeTabs = DocListCast(targetDoc.data);
             SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allDocs.add(doc));
-            setTimeout(() => CollectionDockingView.Instance.props.Document.allDocuments = new List<Doc>(Array.from(allDocs)));
+            setTimeout(() => targetDoc.allDocuments = new List<Doc>(Array.from(allDocs)));
         }
         return allDocs;
     }
@@ -123,8 +128,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     public removeFilter = (filterName: string) => {
         console.log("remove filter");
         const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
-        // const targetDoc = SelectionManager.Views()[0].props.Document;
-        // const targetDoc = SelectionManager.Views()[0].Document; // CollectionDockingView.Instance.props.Document;
         const filterDoc = targetDoc.currentFilter as Doc;
         const attributes = DocListCast(filterDoc["data"]);
         const found = attributes.findIndex(doc => doc.title === filterName);
@@ -175,7 +178,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
             //     }
             // }
         } else {
-            // const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
+            const allCollectionDocs = DocListCast((targetDoc.data as any)[0].data);
             const facetValues = this.gatherFieldValues(targetDoc, facetHeader);
 
             let nonNumbers = 0;
@@ -245,7 +248,6 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         this._filterMatch = e.currentTarget.value;
         console.log(this._filterMatch);
     }
-    // CHANGE SO DOCKINGVIEW HAS ITS OWN FILTERDOC
     @action
     changeSelected = () => {
         if (this._filterSelected) {
