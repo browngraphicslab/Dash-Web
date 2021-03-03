@@ -2,6 +2,7 @@ import EquationEditor from 'equation-editor-react';
 import { action, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { WidthSym } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { createSchema, makeInterface } from '../../../fields/Schema';
@@ -11,11 +12,7 @@ import { Docs } from '../../documents/Documents';
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { LightboxView } from '../LightboxView';
 import { FieldView, FieldViewProps } from './FieldView';
-import './LabelBox.scss';
-import functionPlot from "function-plot";
-import { DocumentManager } from '../../util/DocumentManager';
-import { Utils } from '../../../Utils';
-import { HeightSym, WidthSym } from '../../../fields/Doc';
+import './EquationBox.scss';
 
 
 const EquationSchema = createSchema({});
