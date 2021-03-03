@@ -182,7 +182,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         let offset = 0;
         for (const { layout: candidate } of this.childLayoutPairs) {
             if (candidate === layout) {
-                return this.props.ScreenToLocalTransform().translate(-offset, 0);
+                return this.props.ScreenToLocalTransform().translate(-offset / (this.props.scaling?.() || 1), 0);
             }
             offset += this.lookupPixels(candidate) + resizerWidth;
         }

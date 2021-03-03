@@ -165,6 +165,7 @@
         "fit-curve": "^0.1.7",
         "flexlayout-react": "^0.3.11",
         "formidable": "^1.2.1",
+        "function-plot": "^1.22.7",
         "golden-layout": "^1.5.9",
         "google-auth-library": "^4.2.4",
         "google-maps-react": "^2.0.6",
