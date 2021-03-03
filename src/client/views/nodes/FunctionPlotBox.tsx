@@ -33,7 +33,7 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
     }
     componentDidMount() {
         this.props.setContentView?.(this);
-        reaction(() => [this.dataDoc.data, this.dataDoc.xRange, this.dataDoc.yRange],
+        reaction(() => [DocListCast(this.dataDoc.data).lastElement()?.text, this.dataDoc.xRange, this.dataDoc.yRange],
             () => this.createGraph());
     }
     getAnchor = () => {
