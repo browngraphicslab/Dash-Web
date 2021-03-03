@@ -1,15 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import {
-    DataSym,
-    Doc,
-    DocListCast,
-    HeightSym,
-    Opt,
-    WidthSym,
-    NativeWidth
-} from '../../../fields/Doc';
+import { DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { Document } from '../../../fields/Schema';

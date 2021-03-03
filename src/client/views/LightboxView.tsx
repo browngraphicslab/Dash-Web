@@ -260,7 +260,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                     })}
                 <LightboxTourBtn navBtn={this.navBtn} future={this.future} stepInto={this.stepInto} tourMap={this.tourMap} />
                 <div className="lightboxView-navBtn" title={"toggle fit width"} style={{ position: "absolute", right: 10, top: 10, color: "white" }}
-                    onClick={e => { e.stopPropagation(); LightboxView.LightboxDoc!._fitWidth = !LightboxView.LightboxDoc!._fitWidth }}>
+                    onClick={e => { e.stopPropagation(); LightboxView.LightboxDoc!._fitWidth = !LightboxView.LightboxDoc!._fitWidth; }}>
                     <FontAwesomeIcon icon={"arrows-alt-h"} size="2x" />
                 </div>
             </div>;
