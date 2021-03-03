@@ -383,7 +383,7 @@ export class CurrentUserUtils {
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
         }
-        if ((doc.emptyHeader as Doc)?.version !== headerViewVersion) {
+        if ((doc.emptyHeader as Doc) ?.version !== headerViewVersion) {
             const json = {
                 doc: {
                     type: "doc",
@@ -480,7 +480,7 @@ export class CurrentUserUtils {
                 alreadyCreatedButtons = dragDocs.map(d => StrCast(d.title));
             }
         }
-        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
+        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons ?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, backgroundColor, dragFactory, noviceMode, clickFactory }) => Docs.Create.FontIconDocument({
             _nativeWidth: 50, _nativeHeight: 50, _width: 35, _height: 35,
             icon,
@@ -573,7 +573,7 @@ export class CurrentUserUtils {
         // this resets all sidebar buttons to being deactivated
         PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
             stack && PromiseValue(stack.data).then(btns => {
-                DocListCastAsync(btns).then(bts => bts?.forEach(btn => {
+                DocListCastAsync(btns).then(bts => bts ?.forEach(btn => {
                     btn.color = "white";
                     btn._backgroundColor = "";
                     btn.dontUndo = true;
@@ -943,9 +943,9 @@ export class CurrentUserUtils {
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "docCast(thisContainer.target).then((target) => target && (target.proto.data = new List([self]))) ",
                 { thisContainer: Doc.name }), {
-                title: "Click to open in target", _width: 300, _height: 200,
-                targetScriptKey: "onChildClick", system: true
-            });
+                    title: "Click to open in target", _width: 300, _height: 200,
+                    targetScriptKey: "onChildClick", system: true
+                });
 
             const openDetail = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "openOnRight(self.doubleClickView)",
@@ -991,8 +991,8 @@ export class CurrentUserUtils {
         reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
             async () => {
                 const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
-                const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
-                SnappingManager.SetCachedGroups(["Public", ...mygroups?.map(g => StrCast(g.title))]);
+                const mygroups = groups ?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
+                SnappingManager.SetCachedGroups(["Public", ...mygroups ?.map(g => StrCast(g.title))]);
             }, { fireImmediately: true });
         doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
@@ -1072,9 +1072,9 @@ export class CurrentUserUtils {
                     await Docs.Prototypes.initialize();
                     const userDoc = Docs.newAccount ? new Doc(userDocumentId, true) : field as Doc;
                     const updated = this.updateUserDocument(Doc.SetUserDoc(userDoc), sharingDocumentId, linkDatabaseId);
-                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null)?.data))?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
-                        const a1 = await Cast(link?.anchor1, Doc, null);
-                        const a2 = await Cast(link?.anchor2, Doc, null);
+                    (await DocListCastAsync(Cast(Doc.UserDoc().myLinkDatabase, Doc, null) ?.data)) ?.forEach(async link => { // make sure anchors are loaded to avoid incremental updates to computedFn's in LinkManager
+                        const a1 = await Cast(link ?.anchor1, Doc, null);
+                        const a2 = await Cast(link ?.anchor2, Doc, null);
                     });
                     return updated;
                 });
@@ -1148,10 +1148,10 @@ export class CurrentUserUtils {
                 const disposer = OverlayView.ShowSpinner();
                 DocListCastAsync(importDocs.data).then(async list => {
                     const results = await DocUtils.uploadFilesToDocs(Array.from(input.files || []), {});
-                    if (results.length !== input.files?.length) {
+                    if (results.length !== input.files ?.length) {
                         alert("Error uploading files - possibly due to unsupported file types");
                     }
-                    list?.splice(0, 0, ...results);
+                    list ?.splice(0, 0, ...results);
                     disposer();
                 });
             } else {
@@ -1179,6 +1179,7 @@ export class CurrentUserUtils {
             y: 400,
             _width: 1500,
             _height: 1000,
+            _fitWidth: true,
             title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
@@ -1217,7 +1218,7 @@ export class CurrentUserUtils {
     public static get MyRecentlyClosed() { return Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc, null); }
     public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
     public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
-    public static get OverlayDocs() { return DocListCast((Doc.UserDoc().myOverlayDocs as Doc)?.data); }
+    public static get OverlayDocs() { return DocListCast((Doc.UserDoc().myOverlayDocs as Doc) ?.data); }
 }
 
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {
