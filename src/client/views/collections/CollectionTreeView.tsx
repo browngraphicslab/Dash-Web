@@ -1,7 +1,15 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
+import {
+    DataSym,
+    Doc,
+    DocListCast,
+    HeightSym,
+    Opt,
+    WidthSym,
+    NativeWidth
+} from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { Document } from '../../../fields/Schema';
@@ -172,6 +180,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 layerProvider={this.props.layerProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
+                NativeWidth={this.rtfWidth}
+                NativeHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}
