@@ -226,7 +226,7 @@ export class CurrentUserUtils {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
                 _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -497,13 +497,14 @@ export class CurrentUserUtils {
             dragFactory,
             clickFactory,
             hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
-            system: true
+            system: true,
+            _fitWidth: true
         }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
                 title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -889,7 +890,7 @@ export class CurrentUserUtils {
     static setupDefaultPresentation(doc: Doc) {
         if (doc["template-presentation"] === undefined) {
             doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _fitWidth: true, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
             }));
         }
     }
