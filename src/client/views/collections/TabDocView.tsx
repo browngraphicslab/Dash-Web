@@ -382,7 +382,8 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
         }
     }
     @computed get renderBounds() {
-        const bounds = this.props.tabView()?.ComponentView?.freeformData?.(true)?.bounds;
+        const compView = this.props.tabView()?.ComponentView as CollectionFreeFormView;
+        const bounds = compView?.freeformData?.(true)?.bounds;
         if (!bounds) return undefined;
         const xbounds = bounds.r - bounds.x;
         const ybounds = bounds.b - bounds.y;
@@ -419,6 +420,7 @@ export class TabMinimapView extends React.Component<TabMinimapViewProps> {
                     docViewPath={returnEmptyDoclist}
                     childLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid having to set stuff like this.
                     noOverlay={true} // don't render overlay Docs since they won't scale
+                    setHeight={returnFalse}
                     active={returnTrue}
                     select={emptyFunction}
                     dropAction={undefined}

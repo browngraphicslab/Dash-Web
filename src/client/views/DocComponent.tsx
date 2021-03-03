@@ -11,7 +11,7 @@ import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail }
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
-interface DocComponentProps {
+export interface DocComponentProps {
     Document: Doc;
     LayoutTemplate?: () => Opt<Doc>;
     LayoutTemplateString?: string;

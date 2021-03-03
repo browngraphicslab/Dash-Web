@@ -25,6 +25,7 @@ import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { undoBatch, UndoManager } from "../util/UndoManager";
+import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
@@ -56,34 +57,78 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { EquationBox } from "../views/nodes/EquationBox";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
-export interface DocumentOptions {
-    system?: boolean;
-    _autoHeight?: boolean;
-    _headerHeight?: number; // height of header of custom notes
-    _headerFontSize?: number; // font size of header of custom notes
-    _headerPointerEvents?: string; // types of events the header of a custom text document can consume
-    _panX?: number;
-    _panY?: number;
-    _width?: number;
-    _height?: number;
-    _nativeWidth?: number;
-    _nativeHeight?: number;
-    _dimMagnitude?: number; // magnitude of collectionMulti{row,col} view element
-    _dimUnit?: string; // "px" or "*" (default = "*")
-    _fitWidth?: boolean;
+class EmptyBox {
+    public static LayoutString() {
+        return "";
+    }
+}
+abstract class FInfo {
+    description: string = "";
+    type?: string;
+    values?: Field[];
+    layoutField?: boolean; // is this field a layout (or datadoc) field
+    // format?: string; // format to display values (e.g, decimal places, $, etc)
+    // parse?: ScriptField; // parse a value from a string
+    constructor(d: string, l: boolean = false) { this.description = d; this.layoutField = l; }
+}
+class BoolInfo extends FInfo { type?= "boolean"; values?: boolean[] = [true, false]; }
+class NumInfo extends FInfo { type?= "number"; values?: number[] = []; }
+class StrInfo extends FInfo { type?= "string"; values?: string[] = []; }
+class DocInfo extends FInfo { type?= "Doc"; values?: Doc[] = []; }
+class DimInfo extends FInfo { type?= "DimUnit"; values?= [DimUnit.Pixel, DimUnit.Ratio]; }
+class PEInfo extends FInfo { type?= "pointerEvents"; values?= ["all", "none"]; }
+class DAInfo extends FInfo { type?= "dropActionType"; values?= ["alias", "copy", "move", "same", "proto", "none"]; }
+type BOOLt = BoolInfo | boolean;
+type NUMt = NumInfo | number;
+type STRt = StrInfo | string;
+type DOCt = DocInfo | Doc;
+type DIMt = DimInfo | typeof DimUnit.Pixel | typeof DimUnit.Ratio;
+type PEVt = PEInfo | "none" | "all";
+type DROPt = DAInfo | dropActionType;
+export class DocumentOptions {
+    system?: BOOLt = new BoolInfo("is this a system created/owned doc");
+    dropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto this doc ");
+    childDropAction?: DROPt = new DAInfo("what should happen to the source document when it's dropped onto a child of a collection ");
+    targetDropAction?: DROPt = new DAInfo("what should happen to the source document when ??? ");
+    color?: string; // foreground color data doc
+    backgroundColor?: STRt = new StrInfo("background color for data doc");
+    _backgroundColor?: STRt = new StrInfo("background color for each template layout doc (overrides backgroundColor)", true);
+    _autoHeight?: BOOLt = new BoolInfo("whether document automatically resizes vertically to display contents", true);
+    _headerHeight?: NUMt = new NumInfo("height of document header used for displaying title", true);
+    _headerFontSize?: NUMt = new NumInfo("font size of header of custom notes", true);
+    _headerPointerEvents?: PEVt = new PEInfo("types of events the header of a custom text document can consume", true);
+    _panX?: NUMt = new NumInfo("horizontal pan location of a freeform view", true);
+    _panY?: NUMt = new NumInfo("vertical pan location of a freeform view", true);
+    _width?: NUMt = new NumInfo("displayed width of a document", true);
+    _height?: NUMt = new NumInfo("displayed height of document", true);
+    _nativeWidth?: NUMt = new NumInfo("native width of document contents (e.g., the pixel width of an image)", true);
+    _nativeHeight?: NUMt = new NumInfo("native height of document contents (e.g., the pixel height of an image)", true);
+    _dimMagnitude?: NUMt = new NumInfo("magnitude of collectionMulti{row,col} element's width or height", true);
+    _dimUnit?: DIMt = new DimInfo("units of collectionMulti{row,col} element's width or height - 'px' or '*' for pixels or relative units", true);
+    _fitWidth?: BOOLt = new BoolInfo("whether document should scale its contents to fit its rendered width or not (e.g., for PDFviews)", true);
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
+    _lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     _freeformLOD?: boolean; // whether to use LOD to render a freeform document
     _showTitle?: string; // field name to display in header (:hover is an optional suffix)
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
+    _layerTags?: List<string>; // layer tags a document has (used for tab filtering "layers" in document tab)
     _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
+    _forceActive?: boolean; // flag to handle pointer events when not selected (or otherwise active)
+    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
+    _hideContextMenu?: boolean; // whether the context menu can be shown
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
+    _viewScale?: number; // how much a freeform view has been scaled (zoomed)
+    _overflow?: string; // set overflow behavior
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     _xPadding?: number;
@@ -91,31 +136,33 @@ export interface DocumentOptions {
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
+    _columnWidth?: number;
+    _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
+    _fontSize?: string;
+    _fontWeight?: number;
+    _fontFamily?: string;
+    _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
+    _curPage?: number; // current page of a PDF or other? paginated document
+    _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
+    _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
+    _timecodeToHide?: number; // the time that a document should be hidden
+    _timelineLabel?: boolean; // whether the document exists on a timeline
     "_carousel-caption-xMargin"?: number;
     "_carousel-caption-yMargin"?: number;
     x?: number;
     y?: number;
     z?: number;
     author?: string;
-    _hideContextMenu?: boolean; // whether the context menu can be shown
-    dropAction?: dropActionType;
-    childDropAction?: dropActionType;
-    targetDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
     version?: string; // version identifier for a document
     label?: string;
     hidden?: boolean;
-    userDoc?: Doc; // the userDocument
     toolTip?: string; // tooltip to display on hover
-    style?: string;
-    page?: number;
     dontUndo?: boolean; // whether button clicks should be undoable (this is set to true for Undo/Redo/and sidebar buttons that open the siebar panel)
     description?: string; // added for links
-    _viewScale?: number;
-    _overflow?: string;
-    forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     contentPointerEvents?: string;  // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
@@ -123,39 +170,18 @@ export interface DocumentOptions {
     childLayoutString?: string; // template string for collection to use to render its children
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
-    _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
-    backgroundColor?: string | ScriptField;  // background color for data doc 
-    _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
-    color?: string; // foreground color data doc
-    _color?: string;  // foreground color for each template layout doc (overrides color)
-    _clipWidth?: number; // percent transition from before to after in comparisonBox
     caption?: RichTextField;
-    ignoreClick?: boolean;
-    lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
-    _layers?: List<string>;
-    _raiseWhenDragged?: boolean; // whether a document is brought to front when dragged.
     isLinkButton?: boolean;
     isFolder?: boolean;
-    _columnWidth?: number;
-    _fontSize?: string;
-    _fontWeight?: number;
-    _fontFamily?: string;
-    _curPage?: number;
-    _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
-    _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
-    _timecodeToShow?: number; // the time that a document should be displayed (e.g., when an annotation shows up as a video plays)
-    _timecodeToHide?: number; // the time that a document should be hidden
-    _timelineLabel?: boolean; // whether the document exists on a timeline
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -173,17 +199,16 @@ export interface DocumentOptions {
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
-    _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
-    _columnHeaders?: List<SchemaHeaderField>; // headers for stacking views
-    _schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
+    columnHeaders?: List<SchemaHeaderField>; // headers for stacking views
+    schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
+    clipWidth?: number; // percent transition from before to after in comparisonBox
     dockingConfig?: string;
     annotationOn?: Doc;
+    isPushpin?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
-    dbDoc?: Doc;
     iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
-    ischecked?: ScriptField; // returns whether a font icon box is checked
-    activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    ignoreClick?: boolean;
     onClick?: ScriptField;
     onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
@@ -194,7 +219,7 @@ export interface DocumentOptions {
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
-    clipboard?: Doc;
+    cloneFieldFilter?: List<string>; // fields not to copy when the document is clonedclipboard?: Doc;
     useCors?: boolean;
     icon?: string;
     target?: Doc; // available for use in scripts as the primary target document
@@ -202,8 +227,6 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
-    cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
-    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     freezeChildren?: string; // whether children are now allowed to be added and or removed from a collection
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the top document title of a tree view
@@ -218,29 +241,47 @@ export interface DocumentOptions {
     treeViewDefaultExpandedView?: string; // default expanded view
     sidebarColor?: string;  // background color of text sidebar
     sidebarViewType?: string; // collection type of text sidebar
-    limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
-    // [key: string]: Opt<Field>;
-    pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    docMaxAutoHeight?: number; // maximum height for newly created (eg, from pasting) text documents
+    text?: string;
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
-    selectedIndex?: number;
-    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
+    selectedIndex?: number; // which item in a linear view has been selected using the "thumb doc" ui
+    clipboard?: Doc;
     searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
-    isLabel?: boolean;         // whether the document is a label or not (video / audio)
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     border?: string; //for searchbox
-    hovercolor?: string;
+    hoverBackgroundColor?: string; // background color of a label when hovered
 }
-
-class EmptyBox {
-    public static LayoutString() {
-        return "";
-    }
-}
-
 export namespace Docs {
+
+    const _docOptions = new DocumentOptions();
+
+    export async function setupFieldInfos() {
+        return await DocServer.GetRefField("FieldInfos7") as Doc ??
+            runInAction(() => {
+                const infos = new Doc("FieldInfos7", true);
+                const keys = Object.keys(new DocumentOptions());
+                for (const key of keys) {
+                    const options = (_docOptions as any)[key] as FInfo;
+                    const finfo = new Doc();
+                    finfo.name = key;
+                    switch (options.type) {
+                        case "boolean": finfo.options = new List<boolean>(options.values as any as boolean[]); break;
+                        case "number": finfo.options = new List<number>(options.values as any as number[]); break;
+                        case "Doc": finfo.options = new List<Doc>(options.values as any as Doc[]); break;
+                        default: // string, pointerEvents, dimUnit, dropActionType
+                            finfo.options = new List<string>(options.values as any as string[]); break;
+                    }
+                    finfo.layoutField = options.layoutField;
+                    finfo.description = options.description;
+                    finfo.type = options.type;
+                    infos[key] = finfo;
+                }
+                return infos;
+            });
+    }
 
     export let newAccount: boolean = false;
 
@@ -334,6 +375,9 @@ export namespace Docs {
             }],
             [DocumentType.LABEL, {
                 layout: { view: LabelBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.EQUATION, {
+                layout: { view: EquationBox, dataField: defaultDataKey },
             }],
             [DocumentType.BUTTON, {
                 layout: { view: LabelBox, dataField: "onClick" },
@@ -475,7 +519,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view?.LayoutString(layout.dataField);
-            const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options });
+            const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options } as any);
             doc.data = template.data;
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
@@ -610,7 +654,6 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
-            dataDoc.aliases = new List<Doc>([viewDoc]);
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -619,6 +662,9 @@ export namespace Docs {
 
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
+
+            !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
+                !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -638,7 +684,7 @@ export namespace Docs {
             if (value !== undefined) {
                 deleg[fieldKey] = value;
             }
-            return Doc.assign(deleg, options);
+            return Doc.assign(deleg, options as any);
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
@@ -678,7 +724,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -720,7 +766,7 @@ export namespace Docs {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
                 isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
-                treeViewExpandedView: "fields", removeDropProperties: new List(["_layers", "isLinkButton"]), ...options
+                treeViewExpandedView: "fields", removeDropProperties: new List(["_layerTags", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.treeViewOpen = true;// setting this in the instance creator would set it on the view document. 
@@ -755,8 +801,8 @@ export namespace Docs {
             I.x = options.x;
             I.y = options.y;
             I._backgroundColor = "transparent";
-            I._width = options._width;
-            I._height = options._height;
+            I._width = options._width as number;
+            I._height = options._height as number;
             I._fontFamily = "cursive";
             I.author = Doc.CurrentUserEmail;
             I.rotation = 0;
@@ -784,19 +830,21 @@ export namespace Docs {
         }
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { _fitWidth: true, title: document.title + ".kvp", ...options });
         }
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
         }
 
-        export function TextanchorDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options });
+        export function TextanchorDocument(options: DocumentOptions = {}, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options }, id);
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            documents.map(d => d.context = inst);
+            return inst;
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -812,23 +860,23 @@ export namespace Docs {
         }
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Carousel });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Carousel });
         }
 
         export function Carousel3DDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Carousel3D });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Carousel3D });
         }
 
         export function SchemaDocument(schemaHeaders: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Stacking }, id, undefined, protoId);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, ...options, _viewType: CollectionViewType.Stacking }, id, undefined, protoId);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
@@ -845,6 +893,10 @@ export namespace Docs {
 
         export function LabelDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}) });
+        }
+
+        export function EquationDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.EQUATION), undefined, { ...(options || {}) });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
@@ -874,7 +926,7 @@ export namespace Docs {
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { freezeChildren: "remove|add", treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", freezeChildren: "remove|add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", _fitWidth: true, system: true });
             const all = TreeDocument([], { title: "Off-Screen Tabs", freezeChildren: "add", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
@@ -1126,7 +1178,7 @@ export namespace DocUtils {
         if (type.indexOf("video") !== -1) {
             ctor = Docs.Create.VideoDocument;
             if (!options._width) options._width = 600;
-            if (!options._height) options._height = options._width * 2 / 3;
+            if (!options._height) options._height = (options._width as number) * 2 / 3;
         }
         if (type.indexOf("audio") !== -1) {
             ctor = Docs.Create.AudioDocument;
@@ -1134,7 +1186,7 @@ export namespace DocUtils {
         if (type.indexOf("pdf") !== -1) {
             ctor = Docs.Create.PdfDocument;
             if (!options._width) options._width = 400;
-            if (!options._height) options._height = options._width * 1200 / 927;
+            if (!options._height) options._height = (options._width as number) * 1200 / 927;
         }
         if (type.indexOf("html") !== -1) {
             if (path.includes(window.location.hostname)) {
@@ -1145,8 +1197,8 @@ export namespace DocUtils {
                         const alias = Doc.MakeAlias(field);
                         alias.x = options.x || 0;
                         alias.y = options.y || 0;
-                        alias._width = options._width || 300;
-                        alias._height = options._height || options._width || 300;
+                        alias._width = (options._width as number) || 300;
+                        alias._height = (options._height as number) || (options._width as number) || 300;
                         return alias;
                     }
                     return undefined;
@@ -1175,6 +1227,20 @@ export namespace DocUtils {
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
+        });
+        ContextMenu.Instance.addItem({
+            description: ":math", event: () => {
+                const created = Docs.Create.EquationDocument();
+                if (created) {
+                    created.author = Doc.CurrentUserEmail;
+                    created.x = x;
+                    created.y = y;
+                    created.width = 300;
+                    created.height = 35;
+                    EquationBox.SelectOnLoad = created[Id];
+                    docAdder?.(created);
+                }
+            }, icon: "compress-arrows-alt"
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",

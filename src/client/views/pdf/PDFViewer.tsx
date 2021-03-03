@@ -123,6 +123,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current?.addEventListener("scroll", e => (e.target as any).scrollLeft = 0);
 
+        this._disposers.autoHeight = reaction(() => this.layoutDoc._autoHeight,
+            () => {
+                this.layoutDoc._nativeHeight = NumCast(this.props.Document[this.fieldKey + "-nativeHeight"]);
+                this.props.setHeight(NumCast(this.props.Document[this.fieldKey + "-nativeHeight"]) * (this.props.scaling?.() || 1));
+            });
+
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
                 if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);

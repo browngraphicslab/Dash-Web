@@ -264,7 +264,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const nd = [Doc.NativeWidth(layoutDoc), Doc.NativeHeight(layoutDoc)];
             layoutDoc._width = NumCast(layoutDoc._width, 300);
             layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
-            !StrListCast(d.layers).includes(StyleLayers.Background) && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+            !StrListCast(d._layerTags).includes(StyleLayers.Background) && (d._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : d._raiseWhenDragged) && (d.zIndex = zsorted.length + 1 + i); // bringToFront
         }
 
         this.updateGroupBounds();
@@ -275,16 +275,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     internalAnchorAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData, xp: number, yp: number) {
-        annoDragData.dropDocument!.x = xp - annoDragData.offset[0];
-        annoDragData.dropDocument!.y = yp - annoDragData.offset[1];
-        this.bringToFront(annoDragData.dropDocument!);
+        const dropCreator = annoDragData.dropDocCreator;
+        annoDragData.dropDocCreator = (annotationOn: Doc | undefined) => {
+            const dropDoc = dropCreator(annotationOn);
+            if (dropDoc) {
+                dropDoc.x = xp - annoDragData.offset[0];
+                dropDoc.y = yp - annoDragData.offset[1];
+                this.bringToFront(dropDoc);
+            }
+            return dropDoc || this.rootDoc;
+        }
         return true;
     }
 
     @undoBatch
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
-        if (!linkDragData.linkSourceDocument.context || StrCast(Cast(linkDragData.linkSourceDocument.context, Doc, null)?.type) === DocumentType.COL) {
+        if (linkDragData.dragDocument === this.props.Document || this.props.Document.annotationOn) return false;
+        if (!linkDragData.dragDocument.context || StrCast(Cast(linkDragData.dragDocument.context, Doc, null)?.type) === DocumentType.COL) {
             // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             // this.props.addDocument(source);
             // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
@@ -292,7 +299,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             this.props.addDocument?.(source);
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation", ""); // TODODO this is where in text links get passed
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
             e.stopPropagation();
             return true;
         }
@@ -300,9 +307,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-        if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
         if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData, xp, yp);
-        if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
+        else if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
+        else if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }
 
@@ -429,8 +436,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 styleProp = colors[cluster % colors.length];
                 const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
-                set?.filter(s => !StrListCast(s.layers).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
-                set?.filter(s => StrListCast(s.layers).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
+                set?.filter(s => !StrListCast(s._layerTags).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
+                set?.filter(s => StrListCast(s._layerTags).includes(StyleLayers.Background)).map(s => styleProp = StrCast(s.backgroundColor));
             }
         } //else if (doc && NumCast(doc.group, -1) !== -1) styleProp = "gray";
         return styleProp;
@@ -869,7 +876,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     bringToFront = (doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack || StrListCast(doc.layers).includes(StyleLayers.Background)) {
+        if (sendToBack || StrListCast(doc._layerTags).includes(StyleLayers.Background)) {
             doc.zIndex = 0;
         } else if (doc.isInkMask) {
             doc.zIndex = 5000;
@@ -1363,7 +1370,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const isDocInView = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => intersectRect(docDims(doc), rect);
 
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-        let snappableDocs = activeDocs.filter(doc => !StrListCast(doc.layers).includes(StyleLayers.Background) && doc.z === undefined && isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
+        let snappableDocs = activeDocs.filter(doc => !StrListCast(doc._layerTags).includes(StyleLayers.Background) && doc.z === undefined && isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to
         !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z === undefined && isDocInView(doc, selRect))); // if not, see if there are background docs to snap to
         !snappableDocs.length && (snappableDocs = activeDocs.filter(doc => doc.z !== undefined && isDocInView(doc, otherBounds))); // if not, then why not snap to floating docs
 

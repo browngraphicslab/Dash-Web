@@ -24,7 +24,8 @@ export namespace SerializationHelper {
 
         serializing++;
         if (!(obj.constructor.name in reverseMap)) {
-            throw Error(`type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`);
+            serializing--;
+            throw Error("Error: " + `type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`);
         }
 
         const json = serialize(obj);

@@ -3,6 +3,7 @@ import { Doc, Field } from "./Doc";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { SelfProxy } from "./FieldSymbols";
+import { List } from "./List";
 
 type AllToInterface<T extends Interface[]> = {
     1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
@@ -67,9 +68,9 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
     return function (doc?: Doc | Doc[]) {
         if (doc instanceof Doc || doc === undefined) {
             return fn(doc || new Doc);
-        } else {
-            if (!doc instanceof Promise) return doc.map(fn);
-        }
+        } else if (doc instanceof List) {
+            return doc.map(fn);
+        } else return {};
     };
 }
 

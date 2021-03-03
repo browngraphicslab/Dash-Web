@@ -79,7 +79,7 @@ export class PreviewCursor extends React.Component<{}> {
                 else {
                     // creates text document
                     FormattedTextBox.PasteOnLoad = e;
-                    UndoManager.RunInBatch(() => PreviewCursor._addLiveTextDoc(CurrentUserUtils.GetNewTextDoc("-pasted text-", newPoint[0], newPoint[1], 500)), "paste");
+                    UndoManager.RunInBatch(() => PreviewCursor._addLiveTextDoc(CurrentUserUtils.GetNewTextDoc("-pasted text-", newPoint[0], newPoint[1], 500, undefined, undefined, undefined, 750)), "paste");
                 }
             } else
                 //pasting in images

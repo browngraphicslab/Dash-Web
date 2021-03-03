@@ -140,13 +140,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         runInAction(() => this._url = urlField?.url.toString() || "");
 
         this._disposers.selection = reaction(() => this.props.isSelected(),
-            selected => {
-                if (!selected) {
-                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
-                    this._savedAnnotations.clear();
-                }
-            },
-            { fireImmediately: true });
+            selected => !selected && setTimeout(() => {
+                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                this._savedAnnotations.clear();
+            }));
 
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);

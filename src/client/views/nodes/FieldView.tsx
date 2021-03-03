@@ -16,12 +16,13 @@ import { VideoBox } from "./VideoBox";
 export interface FieldViewProps extends DocumentViewSharedProps {
     // FieldView specific props that are not part of DocumentView props
     fieldKey: string;
-    overflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
+    scrollOverflow?: boolean; // bcz: would like to think this can be avoided -- need to look at further
 
     active: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     scaling?: () => number;
+    setHeight: (height: number) => void;
 
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
     pointerEvents?: string;

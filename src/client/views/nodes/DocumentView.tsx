@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, reaction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, Field, Opt, StrListCast } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
@@ -275,7 +275,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
+                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -290,7 +290,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
@@ -429,7 +429,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            !StrListCast(this.props.Document.layers).includes(StyleLayers.Background) && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
+            !StrListCast(this.props.Document._layerTags).includes(StyleLayers.Background) && (this.rootDoc._raiseWhenDragged === undefined ? Doc.UserDoc()._raiseWhenDragged : this.rootDoc._raiseWhenDragged) && this.props.bringToFront(this.rootDoc);
             if (this._doubleTap && (this.props.Document.type !== DocumentType.FONTICON || this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (this._timeout) {
                     clearTimeout(this._timeout);
@@ -528,7 +528,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
+        else if (!e.cancelBubble && (this.props.isSelected(true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc._lockedPosition && !CurrentUserUtils.OverlayDocs.includes(this.layoutDoc)) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -596,7 +596,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     @undoBatch deleteClicked = () => this.props.removeDocument?.(this.props.Document);
     @undoBatch toggleDetail = () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`);
-    @undoBatch toggleLockPosition = () => this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
+    @undoBatch toggleLockPosition = () => this.Document._lockedPosition = this.Document._lockedPosition ? undefined : true;
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -607,13 +607,17 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 "Linking to document tabs not yet supported. Drop link on document content.");
             return;
         }
-        if (de.complete.annoDragData) de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
-        const linkSource = de.complete.annoDragData ? de.complete.annoDragData.annotationDocument : de.complete.linkDragData ? de.complete.linkDragData.linkSourceDocument : undefined;
-        if (linkSource && linkSource !== this.props.Document) {
+        const linkdrag = de.complete.annoDragData ?? de.complete.linkDragData;
+        if (linkdrag) linkdrag.linkSourceDoc = linkdrag.linkSourceGetAnchor();
+        if (linkdrag?.linkSourceDoc) {
             e.stopPropagation();
-            const dropDoc = this._componentView?.getAnchor?.() || this.rootDoc;
-            if (de.complete.annoDragData) de.complete.annoDragData.dropDocument = dropDoc;
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: linkSource }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            if (de.complete.annoDragData && !de.complete.annoDragData.dropDocument) {
+                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator(undefined);
+            }
+            if (de.complete.annoDragData || this.rootDoc !== linkdrag.linkSourceDoc.context) {
+                const dropDoc = de.complete.annoDragData?.dropDocument ?? this._componentView?.getAnchor?.() ?? this.props.Document;
+                de.complete.linkDocument = DocUtils.MakeLink({ doc: linkdrag.linkSourceDoc }, { doc: dropDoc }, "link", undefined, undefined, undefined, [de.x, de.y]);
+            }
         }
     }
 
@@ -687,7 +691,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document._lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document._lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
                 onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
@@ -755,6 +759,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
+    setHeight = (height: number) => this.rootDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -780,6 +785,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 setContentView={this.setContentView}
                 scaling={this.contentScaling}
                 PanelHeight={this.panelHeight}
+                setHeight={this.setHeight}
                 contentsActive={this.setContentsActive}
                 parentActive={this.parentActive}
                 ScreenToLocalTransform={this.screenToLocal}
@@ -953,7 +959,8 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"])[highlightIndex];
         const highlightStyle = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"][highlightIndex];
-        let highlighting = !this.props.cantBrush && highlightIndex && ![DocumentType.FONTICON, DocumentType.INK].includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        const excludeTypes = !this.props.treeViewDoc ? [DocumentType.FONTICON, DocumentType.INK] : [DocumentType.FONTICON];
+        let highlighting = !this.props.cantBrush && highlightIndex && !excludeTypes.includes(this.layoutDoc.type as any) && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction && this.layoutDoc.title !== "[pres element template]";  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
 
         const boxShadow = highlighting && this.borderRounding && highlightStyle !== "dashed" ? `0 0 0 ${highlightIndex}px ${highlightColor}` :
@@ -982,6 +989,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     public static ROOT_DIV = "documentView-effectsWrapper";
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     public ContentRef = React.createRef<HTMLDivElement>();
+    private _disposers: { [name: string]: IReactionDisposer } = {};
 
     @observable public docView: DocumentViewInternal | undefined | null;
 
@@ -997,30 +1005,40 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath(), this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
+    @computed get nativeWidth() {
+        return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
+            returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
+    }
+    @computed get nativeHeight() {
+        return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
+            returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
+    }
+    shouldNotScale = () => this.layoutDoc._fitWidth || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
+    @computed get effectiveNativeWidth() { return this.nativeWidth || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.width)); }
+    @computed get effectiveNativeHeight() { return this.nativeHeight || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
-        if (this.nativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.nativeHeight > this.props.PanelWidth() / this.nativeWidth)) {
-            return this.props.PanelWidth() / this.nativeWidth;  // width-limited or fitWidth
+        const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
+        if (this.effectiveNativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth)) {
+            return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth
         }
-        return this.nativeWidth && this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1; // height-limited or unscaled
+        return this.effectiveNativeWidth && this.effectiveNativeHeight ? Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight) : 1; // height-limited or unscaled
     }
 
-    @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
+    @computed get panelWidth() { return this.effectiveNativeWidth ? this.effectiveNativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
-        if (this.nativeHeight) {
+        if (this.effectiveNativeHeight) {
             return Math.min(this.props.PanelHeight(),
                 this.props.Document._fitWidth ?
-                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
-                    this.nativeHeight * this.nativeScaling
+                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.effectiveNativeWidth, this.props.PanelHeight())) :
+                    this.effectiveNativeHeight * this.nativeScaling
             );
         }
         return this.props.PanelHeight();
     }
-    @computed get Xshift() { return this.nativeWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
-    @computed get YShift() { return this.nativeWidth && this.nativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
+    @computed get Xshift() { return this.effectiveNativeWidth ? (this.props.PanelWidth() - this.effectiveNativeWidth * this.nativeScaling) / 2 : 0; }
+    @computed get Yshift() { return this.effectiveNativeWidth && this.effectiveNativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.effectiveNativeHeight * this.nativeScaling) / 2 : 0; }
     @computed get centeringX() { return this.props.dontCenter?.includes("x") ? 0 : this.Xshift; }
-    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.YShift; }
+    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
@@ -1067,8 +1085,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     docViewPathFunc = () => this.docViewPath;
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (extendSelection: boolean) => SelectionManager.SelectView(this, !SelectionManager.Views().some(v => v.props.Document === this.props.ContainingCollectionDoc) && extendSelection);
-    NativeWidth = () => this.nativeWidth;
-    NativeHeight = () => this.nativeHeight;
+    NativeWidth = () => this.effectiveNativeWidth;
+    NativeHeight = () => this.effectiveNativeHeight;
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     ContentScale = () => this.nativeScaling;
@@ -1076,41 +1094,49 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     screenToLocalTransform = () => {
         return this.props.ScreenToLocalTransform().translate(-this.centeringX, -this.centeringY).scale(1 / this.nativeScaling);
     }
-
     componentDidMount() {
-        !BoolCast(this.props.Document?.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);
+        this._disposers.height = reaction(
+            () => NumCast(this.layoutDoc._height),
+            action(height => {
+                const docMax = NumCast(this.layoutDoc.docMaxAutoHeight);
+                if (docMax && docMax < height) this.layoutDoc.docMaxAutoHeight = height;
+            })
+        );
+        !BoolCast(this.props.Document.dontRegisterView, this.props.dontRegisterView) && DocumentManager.Instance.AddView(this);
     }
     componentWillUnmount() {
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         !this.props.dontRegisterView && DocumentManager.Instance.RemoveView(this);
     }
 
     render() {
         TraceMobx();
-        const internalProps = {
-            ...this.props,
-            DocumentView: this.selfView,
-            viewPath: this.docViewPathFunc,
-            PanelWidth: this.PanelWidth,
-            PanelHeight: this.PanelHeight,
-            NativeWidth: this.NativeWidth,
-            NativeHeight: this.NativeHeight,
-            isSelected: this.isSelected,
-            select: this.select,
-            ContentScaling: this.ContentScale,
-            ScreenToLocalTransform: this.screenToLocalTransform,
-            focus: this.props.focus || emptyFunction,
-            bringToFront: emptyFunction,
-        };
+        const xshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined;
+        const yshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined;
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
-                        height: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        height: yshift ?? this.props.Document._fitWidth ? `${this.panelHeight}px` :
+                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`,
                     }}>
-                    <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
+                    <DocumentViewInternal {...this.props}
+                        DocumentView={this.selfView}
+                        viewPath={this.docViewPathFunc}
+                        PanelWidth={this.PanelWidth}
+                        PanelHeight={this.PanelHeight}
+                        NativeWidth={this.NativeWidth}
+                        NativeHeight={this.NativeHeight}
+                        isSelected={this.isSelected}
+                        select={this.select}
+                        ContentScaling={this.ContentScale}
+                        ScreenToLocalTransform={this.screenToLocalTransform}
+                        focus={this.props.focus || emptyFunction}
+                        bringToFront={emptyFunction}
+                        ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}
         </div>);
     }

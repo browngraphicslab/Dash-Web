@@ -67,6 +67,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             fieldKey: this.props.keyName,
             rootSelected: returnFalse,
             isSelected: returnFalse,
+            setHeight: returnFalse,
             select: emptyFunction,
             dropAction: "alias",
             bringToFront: emptyFunction,

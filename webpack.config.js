@@ -75,6 +75,10 @@ module.exports = {
             }]
         },
         {
+            test: /\.(woff|woff2|ttf|eot|otf|svg)$/,
+            use: 'file-loader?name=fonts/[name].[ext]!static'
+        },
+        {
             test: /\.scss|css$/,
             use: [{
                 loader: "style-loader"
@@ -84,7 +88,7 @@ module.exports = {
             },
             {
                 loader: "sass-loader"
-            }
+            },
             ]
         },
         {

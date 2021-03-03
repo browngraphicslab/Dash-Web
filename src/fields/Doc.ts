@@ -496,12 +496,10 @@ export namespace Doc {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         alias.aliasOf = doc;
-        if (doc !== Doc.GetProto(doc)) {
-            alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
-        }
+        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
 
-        Doc.AddDocToList(doc[DataSym], "aliases", alias);
+        Doc.AddDocToList(Doc.GetProto(doc)[DataSym], "aliases", alias);
 
         return alias;
     }
@@ -762,6 +760,13 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        if (copyProto) {
+            Doc.GetProto(copy).context = undefined;
+            Doc.GetProto(copy).aliases = new List<Doc>([copy]);
+        } else {
+            Doc.AddDocToList(Doc.GetProto(copy)[DataSym], "aliases", copy);
+        }
+        copy.context = undefined;
         Doc.UserDoc().defaultAclPrivate && (copy["acl-Public"] = "Not Shared");
         return copy;
     }
@@ -774,6 +779,7 @@ export namespace Doc {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
             delegate.author = Doc.CurrentUserEmail;
+            if (!Doc.IsSystem(doc)) Doc.AddDocToList(doc[DataSym], "aliases", delegate);
             title && (delegate.title = title);
             return delegate;
         }
@@ -1114,14 +1120,12 @@ export namespace Doc {
     export function isDocPinned(doc: Doc) {
         //add this new doc to props.Document
         const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-        if (curPres) {
-            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
-        }
-        return false;
+        return !curPres ? false : DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
     }
 
     export function copyDragFactory(dragFactory: Doc) {
         const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        ndoc && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", Doc.GetProto(ndoc));
         if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);

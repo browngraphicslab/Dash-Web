@@ -11,6 +11,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { LabelBox } from "./LabelBox";
+import { EquationBox } from "./EquationBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
 import { ScriptingBox } from "./ScriptingBox";
@@ -109,6 +110,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     scaling?: () => number,
+    setHeight: (height: number) => void,
     layoutKey: string,
     hideOnLeave?: boolean,
 }> {
@@ -219,7 +221,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
                 blacklistedAttrs={emptyPath}
                 renderInWrapper={false}
                 components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, EquationBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
