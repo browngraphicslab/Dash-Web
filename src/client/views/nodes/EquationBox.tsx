@@ -56,10 +56,13 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
     }
     onChange = (str: string) => {
         this.dataDoc.text = str;
-        const _height = Number(getComputedStyle(this._ref.current!.element.current).height.replace("px", ""));
-        const _width = Number(getComputedStyle(this._ref.current!.element.current).width.replace("px", ""));
-        this.layoutDoc._width = Math.max(35, _width);
-        this.layoutDoc._height = Math.max(25, _height);
+        const style = this._ref.current && getComputedStyle(this._ref.current.element.current);
+        if (style) {
+            const _height = Number(style.height.replace("px", ""));
+            const _width = Number(style.width.replace("px", ""));
+            this.layoutDoc._width = Math.max(35, _width);
+            this.layoutDoc._height = Math.max(25, _height);
+        }
     }
     render() {
         TraceMobx();

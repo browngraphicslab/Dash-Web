@@ -997,30 +997,40 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     @computed get docViewPath() { return this.props.docViewPath ? [...this.props.docViewPath(), this] : [this]; }
     @computed get layoutDoc() { return Doc.Layout(this.Document, this.props.LayoutTemplate?.()); }
-    @computed get nativeWidth() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions)); }
-    @computed get nativeHeight() { return this.docView?._componentView?.reverseNativeScaling?.() ? 0 : returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions) || 0); }
+    @computed get nativeWidth() {
+        return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
+            returnVal(this.props.NativeWidth?.(), Doc.NativeWidth(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
+    }
+    @computed get nativeHeight() {
+        return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
+            returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
+    }
+    shouldNotScale = () => this.layoutDoc._fitWidth || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
+    @computed get effectiveNativeWidth() { return this.nativeWidth || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.width)); }
+    @computed get effectiveNativeHeight() { return this.nativeHeight || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
-        if (this.nativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.nativeHeight > this.props.PanelWidth() / this.nativeWidth)) {
-            return this.props.PanelWidth() / this.nativeWidth;  // width-limited or fitWidth
+        const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
+        if (this.effectiveNativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth)) {
+            return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth
         }
-        return this.nativeWidth && this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1; // height-limited or unscaled
+        return this.effectiveNativeWidth && this.effectiveNativeHeight ? Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight) : 1; // height-limited or unscaled
     }
 
-    @computed get panelWidth() { return this.nativeWidth ? this.nativeWidth * this.nativeScaling : this.props.PanelWidth(); }
+    @computed get panelWidth() { return this.effectiveNativeWidth ? this.effectiveNativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
-        if (this.nativeHeight) {
+        if (this.effectiveNativeHeight) {
             return Math.min(this.props.PanelHeight(),
                 this.props.Document._fitWidth ?
-                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.nativeWidth, this.props.PanelHeight())) :
-                    this.nativeHeight * this.nativeScaling
+                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.effectiveNativeWidth, this.props.PanelHeight())) :
+                    this.effectiveNativeHeight * this.nativeScaling
             );
         }
         return this.props.PanelHeight();
     }
-    @computed get Xshift() { return this.nativeWidth ? (this.props.PanelWidth() - this.nativeWidth * this.nativeScaling) / 2 : 0; }
-    @computed get YShift() { return this.nativeWidth && this.nativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.nativeScaling) / 2 : 0; }
+    @computed get Xshift() { return this.effectiveNativeWidth ? (this.props.PanelWidth() - this.effectiveNativeWidth * this.nativeScaling) / 2 : 0; }
+    @computed get Yshift() { return this.effectiveNativeWidth && this.effectiveNativeHeight && Math.abs(this.Xshift) < 0.001 ? (this.props.PanelHeight() - this.effectiveNativeHeight * this.nativeScaling) / 2 : 0; }
     @computed get centeringX() { return this.props.dontCenter?.includes("x") ? 0 : this.Xshift; }
-    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.YShift; }
+    @computed get centeringY() { return this.props.Document._fitWidth || this.props.dontCenter?.includes("y") ? 0 : this.Yshift; }
 
     toggleNativeDimensions = () => this.docView && Doc.toggleNativeDimensions(this.layoutDoc, this.docView.ContentScale, this.props.PanelWidth(), this.props.PanelHeight());
     contentsActive = () => this.docView?.contentsActive();
@@ -1067,8 +1077,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     docViewPathFunc = () => this.docViewPath;
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (extendSelection: boolean) => SelectionManager.SelectView(this, !SelectionManager.Views().some(v => v.props.Document === this.props.ContainingCollectionDoc) && extendSelection);
-    NativeWidth = () => this.nativeWidth;
-    NativeHeight = () => this.nativeHeight;
+    NativeWidth = () => this.effectiveNativeWidth;
+    NativeHeight = () => this.effectiveNativeHeight;
     PanelWidth = () => this.panelWidth;
     PanelHeight = () => this.panelHeight;
     ContentScale = () => this.nativeScaling;
@@ -1093,31 +1103,32 @@ export class DocumentView extends React.Component<DocumentViewProps> {
 
     render() {
         TraceMobx();
-        const internalProps = {
-            ...this.props,
-            DocumentView: this.selfView,
-            viewPath: this.docViewPathFunc,
-            PanelWidth: this.PanelWidth,
-            PanelHeight: this.PanelHeight,
-            NativeWidth: this.NativeWidth,
-            NativeHeight: this.NativeHeight,
-            isSelected: this.isSelected,
-            select: this.select,
-            ContentScaling: this.ContentScale,
-            ScreenToLocalTransform: this.screenToLocalTransform,
-            focus: this.props.focus || emptyFunction,
-            bringToFront: emptyFunction,
-        };
+        const xshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) <= 0.001 ? this.props.PanelWidth() : undefined;
+        const yshift = this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Yshift) <= 0.001 ? this.props.PanelHeight() : undefined;
         return (<div className="contentFittingDocumentView">
             {!this.props.Document || !this.props.PanelWidth() ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc" ref={this.ContentRef}
                     style={{
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
-                        width: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.Xshift) > 0.001 ? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth(),
-                        height: this.props.Document.isInkMask ? InkingStroke.MaskDim : Math.abs(this.YShift) > 0.001 ? this.props.Document._fitWidth ? `${this.panelHeight}px` : `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
+                        height: yshift ?? this.props.Document._fitWidth ? `${this.panelHeight}px` :
+                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`,
                     }}>
-                    <DocumentViewInternal {...this.props} {...internalProps} ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
+                    <DocumentViewInternal {...this.props}
+                        DocumentView={this.selfView}
+                        viewPath={this.docViewPathFunc}
+                        PanelWidth={this.PanelWidth}
+                        PanelHeight={this.PanelHeight}
+                        NativeWidth={this.NativeWidth}
+                        NativeHeight={this.NativeHeight}
+                        isSelected={this.isSelected}
+                        select={this.select}
+                        ContentScaling={this.ContentScale}
+                        ScreenToLocalTransform={this.screenToLocalTransform}
+                        focus={this.props.focus || emptyFunction}
+                        bringToFront={emptyFunction}
+                        ref={action((r: DocumentViewInternal | null) => this.docView = r)} />
                 </div>)}
         </div>);
     }

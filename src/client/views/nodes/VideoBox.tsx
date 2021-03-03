@@ -482,7 +482,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     playing = () => this._playing;
     isActiveChild = () => this._isChildActive;
-    timelineWhenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(runInAction(() => this._isChildActive = isActive));
+    timelineWhenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     timelineScreenToLocal = () => this.props.ScreenToLocalTransform().scale(this.scaling()).translate(0, -this.heightPercent / 100 * this.props.PanelHeight());
     setAnchorTime = (time: number) => this.player!.currentTime = this.layoutDoc._currentTimecode = time;
     timelineHeight = () => this.props.PanelHeight() * (100 - this.heightPercent) / 100;

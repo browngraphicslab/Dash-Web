@@ -247,6 +247,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         ContainingCollectionDoc={undefined}
                         renderDepth={0} />
                 </div>
+
                 {this.navBtn(0, undefined, this.props.PanelHeight / 2 - 12.50, "chevron-left",
                     () => LightboxView.LightboxDoc && LightboxView._history?.length ? "" : "none", e => {
                         e.stopPropagation();
@@ -258,6 +259,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         LightboxView.Next();
                     })}
                 <LightboxTourBtn navBtn={this.navBtn} future={this.future} stepInto={this.stepInto} tourMap={this.tourMap} />
+                <div className="lightboxView-navBtn" title={"toggle fit width"} style={{ position: "absolute", right: 10, top: 10, color: "white" }}
+                    onClick={e => { e.stopPropagation(); LightboxView.LightboxDoc!._fitWidth = !LightboxView.LightboxDoc!._fitWidth }}>
+                    <FontAwesomeIcon icon={"arrows-alt-h"} size="2x" />
+                </div>
             </div>;
     }
 }

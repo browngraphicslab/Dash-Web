@@ -479,7 +479,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         SelectionManager.Views().map(dv => {
             const hgts = this._dragHeights.get(dv.layoutDoc);
             if (hgts && hgts.lowest < hgts.start && hgts.lowest <= 20) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
+                dv.effectiveNativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
                 if (dv.layoutDoc._autoHeight) dv.layoutDoc._autoHeight = false;
                 setTimeout(() => dv.layoutDoc._autoHeight = true);
             }
