@@ -1005,25 +1005,22 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
             returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
     }
-    shouldNotScale = () => this.layoutDoc._fitWidth || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
-    @computed get effectiveNativeWidth() { return this.nativeWidth || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.width)); }
-    @computed get effectiveNativeHeight() { return this.nativeHeight || (this.shouldNotScale() ? 0 : NumCast(this.layoutDoc.height)); }
+    shouldNotScale = () => (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
+    @computed get effectiveNativeWidth() { return this.shouldNotScale() ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
+    @computed get effectiveNativeHeight() { return this.shouldNotScale() ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
+        if (this.shouldNotScale()) return 1;
         const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
-        if (this.effectiveNativeWidth && (this.layoutDoc?._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth)) {
+        if (this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
             return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth
         }
-        return this.effectiveNativeWidth && this.effectiveNativeHeight ? Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight) : 1; // height-limited or unscaled
+        return Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight); // height-limited or unscaled
     }
 
     @computed get panelWidth() { return this.effectiveNativeWidth ? this.effectiveNativeWidth * this.nativeScaling : this.props.PanelWidth(); }
     @computed get panelHeight() {
         if (this.effectiveNativeHeight) {
-            return Math.min(this.props.PanelHeight(),
-                this.props.Document._fitWidth ?
-                    Math.max(NumCast(this.props.Document._height), NumCast(((this.props.Document.scrollHeight || 0) as number) * this.props.PanelWidth() / this.effectiveNativeWidth, this.props.PanelHeight())) :
-                    this.effectiveNativeHeight * this.nativeScaling
-            );
+            return Math.min(this.props.PanelHeight(), Math.max(NumCast(this.layoutDoc.scrollHeight), this.effectiveNativeHeight) * this.nativeScaling);
         }
         return this.props.PanelHeight();
     }

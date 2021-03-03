@@ -30,6 +30,7 @@ import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewField
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { LightboxView } from "../LightboxView";
+import { DocumentType } from "../../documents/DocumentTypes";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -220,8 +221,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
-            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
-            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : undefined}
+            NativeWidth={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
+            NativeHeight={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
             dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
@@ -257,27 +258,29 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     getDocWidth(d?: Doc) {
         if (!d) return 0;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
-        const nw = Doc.NativeWidth(childLayoutDoc) || (childLayoutDoc._fitWidth ? 0 : d[WidthSym]());
-        return Math.min(nw && !this.layoutDoc._columnsFill ? (this.props.scaling?.() || 1) * d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+        const maxWidth = this.columnWidth / this.numGroupColumns;
+        if (!this.layoutDoc._columnsFill && !childLayoutDoc._fitWidth) {
+            return Math.min(d[WidthSym]() * (this.props.scaling?.() || 1), maxWidth);
+        }
+        return maxWidth;
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
-        const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
-        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (childLayoutDoc._fitWidth ? 0 : d[WidthSym]());
-        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (childLayoutDoc._fitWidth ? 0 : d[HeightSym]());
-        let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!this.layoutDoc._columnsFill) wid = Math.min(wid, childLayoutDoc[WidthSym]());
-        const hllimit = NumCast(this.layoutDoc.childLimitHeight, -1);
-        if (!childLayoutDoc._fitWidth && nw && nh) {
-            const aspect = nw && nh ? nh / nw : 1;
-            if (!(this.layoutDoc._columnsFill)) wid = Math.min(this.getDocWidth(d), wid);
-            return Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, wid * aspect);
+        const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
+        const maxHeight = (lim => lim === 0 ? this.props.PanelWidth() : lim === -1 ? 10000 : lim)(NumCast(this.layoutDoc.childLimitHeight, -1));
+        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth || this.layoutDoc._columnsFill ? d[WidthSym]() : 0);
+        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth || this.layoutDoc._columnsFill ? d[HeightSym]() : 0);
+        if (nw && nh) {
+            const colWid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
+            const docWid = this.layoutDoc._columnsFill ? colWid : Math.min(this.getDocWidth(d), colWid);
+            return Math.min(
+                maxHeight,
+                docWid * nh / nw);
         }
-        return childLayoutDoc._fitWidth ?
-            (!nh ? Math.min(NumCast(childLayoutDoc.height, 10000) * (this.props.scaling?.() || 1), this.props.PanelHeight() - 2 * this.yMargin) :
-                Math.min(wid * nh / (nw || 1), this.layoutDoc._autoHeight ? 100000 : this.props.PanelHeight() - 2 * this.yMargin)) :
-            Math.min(hllimit === 0 ? this.props.PanelWidth() : hllimit === -1 ? 10000 : hllimit, Math.max(20, childLayoutDoc[HeightSym]()));
+        const childHeight = NumCast(childLayoutDoc._height);
+        const panelHeight = this.props.PanelHeight() - 2 * this.yMargin;
+        return Math.min(childHeight, maxHeight, panelHeight);
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

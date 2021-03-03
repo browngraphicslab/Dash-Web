@@ -182,7 +182,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         let offset = 0;
         for (const { layout: candidate } of this.childLayoutPairs) {
             if (candidate === layout) {
-                return this.props.ScreenToLocalTransform().translate(0, -offset);
+                return this.props.ScreenToLocalTransform().translate(0, -offset / (this.props.scaling?.() || 1));
             }
             offset += this.lookupPixels(candidate) + resizerHeight;
         }

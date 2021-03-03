@@ -12,6 +12,7 @@ import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { LabelBox } from "./LabelBox";
 import { EquationBox } from "./EquationBox";
+import { FunctionPlotBox } from "./FunctionPlotBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
 import { ScriptingBox } from "./ScriptingBox";
@@ -223,7 +224,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, EquationBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox, FunctionPlotBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                     ScreenshotBox, HTMLtag, ComparisonBox
                 }}

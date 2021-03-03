@@ -1,18 +1,22 @@
 import EquationEditor from 'equation-editor-react';
+import { action, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { documentSchema } from '../../../fields/documentSchemas';
+import { Id } from '../../../fields/FieldSymbols';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { StrCast, NumCast } from '../../../fields/Types';
+import { NumCast, StrCast } from '../../../fields/Types';
+import { TraceMobx } from '../../../fields/util';
+import { Docs } from '../../documents/Documents';
 import { ViewBoxBaseComponent } from '../DocComponent';
+import { LightboxView } from '../LightboxView';
 import { FieldView, FieldViewProps } from './FieldView';
 import './LabelBox.scss';
-import { Id } from '../../../fields/FieldSymbols';
-import { simulateMouseClick } from '../../../Utils';
-import { TraceMobx } from '../../../fields/util';
-import { reaction, action } from 'mobx';
-import { Docs } from '../../documents/Documents';
-import { LightboxView } from '../LightboxView';
+import functionPlot from "function-plot";
+import { DocumentManager } from '../../util/DocumentManager';
+import { Utils } from '../../../Utils';
+import { HeightSym, WidthSym } from '../../../fields/Doc';
+
 
 const EquationSchema = createSchema({});
 
@@ -39,17 +43,28 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
                 }
             }, { fireImmediately: true });
     }
+    plot: any;
     @action
     keyPressed = (e: KeyboardEvent) => {
         const _height = Number(getComputedStyle(this._ref.current!.element.current).height.replace("px", ""));
         const _width = Number(getComputedStyle(this._ref.current!.element.current).width.replace("px", ""));
-        if (e.key === "Enter" || e.key === "Tab") {
+        if (e.key === "Enter") {
             const nextEq = Docs.Create.EquationDocument({
                 title: "# math", text: StrCast(this.dataDoc.text), _width, _height: 25,
-                x: NumCast(this.layoutDoc.x) + (e.key === "Tab" ? _width + 10 : 0), y: NumCast(this.layoutDoc.y) + (e.key === "Enter" ? _height + 10 : 0)
+                x: NumCast(this.layoutDoc.x), y: NumCast(this.layoutDoc.y) + _height + 10
             });
             EquationBox.SelectOnLoad = nextEq[Id];
             this.props.addDocument?.(nextEq);
+            e.stopPropagation();
+
+        }
+        if (e.key === "Tab") {
+            const graph = Docs.Create.FunctionPlotDocument([this.rootDoc], {
+                x: NumCast(this.layoutDoc.x) + this.layoutDoc[WidthSym](),
+                y: NumCast(this.layoutDoc.y),
+                _width: 400, _height: 300, _backgroundColor: "white"
+            });
+            this.props.addDocument?.(graph);
             e.stopPropagation();
         }
         if (e.key === "Backspace" && !this.dataDoc.text) this.props.removeDocument?.(this.rootDoc);
@@ -72,11 +87,11 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
             }}
         >
             <EquationEditor ref={this._ref}
-                value={this.dataDoc.text || "y"}
+                value={this.dataDoc.text || "x"}
                 spaceBehavesLikeTab={true}
                 onChange={this.onChange}
                 autoCommands="pi theta sqrt sum prod alpha beta gamma rho"
-                autoOperatorNames="sin cos tan" /></div>
-        );
+                autoOperatorNames="sin cos tan" />
+        </div>);
     }
 }

@@ -58,6 +58,7 @@ import { SearchBox } from "../views/search/SearchBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { EquationBox } from "../views/nodes/EquationBox";
+import { FunctionPlotBox } from "../views/nodes/FunctionPlotBox";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -378,6 +379,9 @@ export namespace Docs {
             }],
             [DocumentType.EQUATION, {
                 layout: { view: EquationBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.FUNCPLOT, {
+                layout: { view: FunctionPlotBox, dataField: defaultDataKey },
             }],
             [DocumentType.BUTTON, {
                 layout: { view: LabelBox, dataField: "onClick" },
@@ -899,6 +903,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.EQUATION), undefined, { ...(options || {}) });
         }
 
+        export function FunctionPlotDocument(documents: Array<Doc>, options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.FUNCPLOT), new List(documents), { ...(options || {}) });
+        }
+
         export function ButtonDocument(options?: DocumentOptions) {
             // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
             // btn.layoutKey = "layout_onClick";
@@ -1229,7 +1237,7 @@ export namespace DocUtils {
             icon: "eye"
         });
         ContextMenu.Instance.addItem({
-            description: ":math", event: () => {
+            description: ":=math", event: () => {
                 const created = Docs.Create.EquationDocument();
                 if (created) {
                     created.author = Doc.CurrentUserEmail;

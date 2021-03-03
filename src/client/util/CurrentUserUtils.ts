@@ -793,7 +793,7 @@ export class CurrentUserUtils {
         // setup Recently Closed library item
         if (doc.myRecentlyClosedDocs === undefined) {
             doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "Recently Closed", _height: 500,
+                title: "Recently Closed",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
@@ -808,7 +808,7 @@ export class CurrentUserUtils {
         doc.myFilter === undefined;
         if (doc.myFilter === undefined) {
             doc.myFilter = new PrefetchProxy(Docs.Create.FilterDocument({
-                title: "FilterDoc", _height: 500,
+                title: "FilterDoc",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
