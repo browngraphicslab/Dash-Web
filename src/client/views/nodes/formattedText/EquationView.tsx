@@ -62,6 +62,7 @@ export class EquationViewInternal extends React.Component<IEquationViewInternal>
             display: "inline-block",
             width: this.props.width,
             height: this.props.height,
+            bottom: 3,
         }}>
             <EquationEditor
                 value={StrCast(this._textBoxDoc[this._fieldKey], "y=")}

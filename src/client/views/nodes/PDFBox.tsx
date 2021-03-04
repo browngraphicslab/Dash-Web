@@ -6,7 +6,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import { Doc, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from "../../../fields/Schema";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from '../../../fields/util';
 import { Utils, returnOne } from '../../../Utils';
@@ -23,6 +23,7 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { DocAfterFocusFunc } from './DocumentView';
+import { Docs } from '../../documents/Documents';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -85,7 +86,17 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         this.initialScrollTarget = doc;
         return this._pdfViewer?.scrollFocus(doc, smooth);
     }
-    getAnchor = () => this.rootDoc;
+    getAnchor = () => {
+        const anchor = Docs.Create.TextanchorDocument({
+            title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            annotationOn: this.rootDoc,
+            y: NumCast(this.layoutDoc._scrollTop),
+        });
+        this.addDocument(anchor);
+        return anchor;
+    }
     componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {
         this.props.setContentView?.(this);
