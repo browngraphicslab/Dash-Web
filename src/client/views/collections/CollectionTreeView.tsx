@@ -173,6 +173,8 @@ export class
                 layerProvider={this.props.layerProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
+                NativeWidth={this.rtfWidth}
+                NativeHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}

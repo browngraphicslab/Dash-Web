@@ -226,7 +226,7 @@ export class CurrentUserUtils {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
                 _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -365,12 +365,12 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _fitWidth: true, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
-                { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
+                { _nativeWidth: undefined, _nativeHeight: undefined, _fitWidth: true, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyCollection as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyPane === undefined) {
@@ -496,14 +496,14 @@ export class CurrentUserUtils {
             _stayInCollection: true,
             dragFactory,
             clickFactory,
-            hidden: ComputedField.MakeFunction("IsNoviceMode()") as any,
-            system: true
+            hidden: noviceMode ? ComputedField.MakeFunction("IsNoviceMode()") as any : undefined,
+            system: true,
         }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
                 title: "Basic Item Creators", _showTitle: "title", _xMargin: 0, _stayInCollection: true, _hideContextMenu: true,
-                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
+                _autoHeight: true, _width: 500, _height: 300, _fitWidth: true, _columnWidth: 35, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), system: true
             }));
         } else {
@@ -718,8 +718,8 @@ export class CurrentUserUtils {
 
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
-                title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
-                _width: 500, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled", system: true
+                title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0, _fitWidth: true,
+                _width: 500, _height: 300, ignoreClick: true, _lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
         }
         // setup a color picker
@@ -888,7 +888,7 @@ export class CurrentUserUtils {
     static setupDefaultPresentation(doc: Doc) {
         if (doc["template-presentation"] === undefined) {
             doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _fitWidth: true, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
             }));
         }
     }
@@ -1180,6 +1180,7 @@ export class CurrentUserUtils {
             y: 400,
             _width: 1500,
             _height: 1000,
+            _fitWidth: true,
             title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
