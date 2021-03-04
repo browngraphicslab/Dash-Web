@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!-->
+<html lang="en">
+<!--<![endif]-->
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="keywords" content="">
+
+    <title>Dash Documentation</title>
+
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" type="text/css" href="fonts/font-awesome-4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="css/stroke.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/animate.css">
+    <link rel="stylesheet" type="text/css" href="css/prettyPhoto.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+
+    <link rel="stylesheet" type="text/css" href="js/syntax-highlighter/styles/shCore.css" media="all">
+    <link rel="stylesheet" type="text/css" href="js/syntax-highlighter/styles/shThemeRDark.css" media="all">
+
+    <!-- CUSTOM -->
+    <link rel="stylesheet" type="text/css" href="css/custom.css">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+    <button onclick="topFunction()" id="myBtn" title="Go to top"><i class="fa fa-chevron-up" aria-hidden="true"></i></button>
+
+    <script>
+        var mybutton = document.getElementById("myBtn");
+        window.onscroll = function() {scrollFunction()};
+        function scrollFunction() {
+            if (document.body.scrollTop > 1000 || document.documentElement.scrollTop > 1000) {
+                mybutton.style.display = "block";
+            } else {
+                mybutton.style.display = "none";
+            }
+        }
+        function topFunction() {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelector('#mode').addEventListener('click',()=>{
+                document.querySelector('html').classList.toggle('dark');
+            })
+        });
+
+
+    </script>
+
+    <div id="wrapper">
+
+        <div id="mode" >
+            <div class="dark">
+                <svg aria-hidden="true" viewBox="0 0 512 512">
+                    <title>lightmode</title>
+                    <path fill="currentColor" d="M256 160c-52.9 0-96 43.1-96 96s43.1 96 96 96 96-43.1 96-96-43.1-96-96-96zm246.4 80.5l-94.7-47.3 33.5-100.4c4.5-13.6-8.4-26.5-21.9-21.9l-100.4 33.5-47.4-94.8c-6.4-12.8-24.6-12.8-31 0l-47.3 94.7L92.7 70.8c-13.6-4.5-26.5 8.4-21.9 21.9l33.5 100.4-94.7 47.4c-12.8 6.4-12.8 24.6 0 31l94.7 47.3-33.5 100.5c-4.5 13.6 8.4 26.5 21.9 21.9l100.4-33.5 47.3 94.7c6.4 12.8 24.6 12.8 31 0l47.3-94.7 100.4 33.5c13.6 4.5 26.5-8.4 21.9-21.9l-33.5-100.4 94.7-47.3c13-6.5 13-24.7.2-31.1zm-155.9 106c-49.9 49.9-131.1 49.9-181 0-49.9-49.9-49.9-131.1 0-181 49.9-49.9 131.1-49.9 181 0 49.9 49.9 49.9 131.1 0 181z"></path>
+                </svg>
+            </div>
+            <div class="light">
+                <svg aria-hidden="true" viewBox="0 0 512 512">
+                    <title>darkmode</title>
+                    <path fill="currentColor" d="M283.211 512c78.962 0 151.079-35.925 198.857-94.792 7.068-8.708-.639-21.43-11.562-19.35-124.203 23.654-238.262-71.576-238.262-196.954 0-72.222 38.662-138.635 101.498-174.394 9.686-5.512 7.25-20.197-3.756-22.23A258.156 258.156 0 0 0 283.211 0c-141.309 0-256 114.511-256 256 0 141.309 114.511 256 256 256z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <div class="container">
+
+            <section id="top" class="section docs-heading">
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="big-title text-center">
+                            <h1><b>Dash Documentation</b></h1>
+                            <p><a href="https://www.browndash.com/login">Dash V1.0</a> as of <i>18th February 2021</i></p>
+                        </div>
+                        <!-- end title -->
+                    </div>
+                    <!-- end 12 -->
+                </div>
+                <!-- end row -->
+
+                <hr>
+
+            </section>
+            <!-- end section -->
+
+            <div class="row">
+
+                <div class="col-md-3">
+                    <nav class="docs-sidebar" data-spy="affix" data-offset-top="300" data-offset-bottom="200" role="navigation">
+                        <ul class="nav">
+                            <li><a href="#line1">What is Dash?</a></li>
+                            <li><a href="#line2">Hypertext & Hypermedia</a></li>
+                            <li><a href="#line4">Demo Videos</a></li>
+                            <li><a href="#line7">Using Dash</a>
+                                <ul class="nav">
+                                    <li><a href="#line7_0">Environment</a></li>
+                                    <li><a href="#line7_1">Documents</a></li>
+                                    <li><a href="#line7_2">Perspectives</a></li>
+                                    <li><a href="#line7_3">Linking</a></li>
+                                    <li><a href="#line7_4">Sharing</a></li>
+                                    <li><a href="#line7_5">Search</a></li>
+                                    <li><a href="#line7_6">Filtering</a></li>
+                                    <li><a href="#line7_7">Presentation Trails</a></li>
+                                    <li><a href="#line7_8">Audio & Video</a></li>
+                                    <li><a href="#line7_9">Import & Export</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="#line8">Join pre-beta testing!</a></li>
+                            <li><a href="#line9">Relevant Literature</a></li>
+                        </ul>
+                    </nav >
+                </div>
+                <div class="col-md-9">
+                    <section class="welcome">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                               <h2 class="dark-text">Welcome to Dash User Documentation.<hr></h2>
+                                <div class="row">
+
+                                    <div class="col-md-12 full">
+                                        <p>
+                                            Here you can learn everything about <a href="https://www.browndash.com/login">Dash</a>.
+                                            Use the browser on the left hand side to navigate through this documentation. 
+                                        </p>                                        
+                                    </div>
+
+                                </div>
+                                <!-- end row -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="line1" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text">What is Dash? <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div>
+                                    <p>Dash is an open component-based <a= href="#line1">hypermedia</a> system that provides what we believe to be a best of breed set of components. While
+                                    each component can be used in isolation as less full featured versions of an analogous application, Dash allows users to interoperate
+                                    components and compose their own workflows without losing data
+                                    or expending effort while switching between tasks. As hypertext
+                                    allowed users to flexibly move between texts, Dash allows users to
+                                    flexibly move between tasks.
+                                    </p>
+
+                                    <iframe src="https://drive.google.com/file/d/1dZUlBJsfC5o0Y1oSRcJlF_ZWaXK0-zc8/preview" width="640" height="480"></iframe>
+                                </div>
+
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line2" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text"> Hypertext & Hypermedia <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                       <p>Information about Hypertext & Hypermedia go here.</p>
+
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line4" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text">Demo Videos <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <iframe width="270" height="160" src="https://www.youtube.com/embed/aG--XU7i0es" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <div class="col-md-8 left-align">
+                                <h5 style="margin: 0;"><b>Studying Abroad in London</b> by Zak Wegweiser</h5>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <iframe width="270" height="160" src="https://www.youtube.com/embed/1Vhhlk9nzQ8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <div class="col-md-8 left-align">
+                                <h5 style="margin: 0;"><b>A Journey through Ikea</b> by Kira Teramoto</h5>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <iframe width="270" height="160" src="https://www.youtube.com/embed/Jz1oYTLOBGk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <div class="col-md-8 left-align">
+                                <h5 style="margin: 0;"><b>Multidimensional Visualisations of Voice</b> by Luna McNulty</h5>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <iframe width="270" height="160" src="https://www.youtube.com/embed/xwsBK5QUuCg" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <div class="col-md-8 left-align">
+                                <h5 style="margin: 0;"><b>Representations of Medieval Scandinavia in Fantasy Video Games</b><br> by Mia Santomauro</h5>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <iframe width="270" height="160" src="https://www.youtube.com/embed/0Q2dsKuNpqE" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <div class="col-md-8 left-align">
+                                <h5 style="margin: 0;"><b>Billy the Kid by Aaron Copland</b><br> by Jacob Migneault</h5>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line7" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text">Using Dash <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_0">Environment </h4>
+                                <p>When users first open Dash, they are by default in a collection in freeform perspective (more information on perspectives), which is represented as an unbounded 2D canvas in the middle and toolbars and panels surrounding it. </p>
+                            </div>
+                            <img src="images\documentation\images\image12.png" alt="Dash filled with various documents and with components A & B toggled open
+                            ">
+                            <img src="images\documentation\images\image77.png" alt="Dash filled with various documents and with components A & B toggled open
+                            ">
+
+                            <p>
+                                <h4><span style="background-color: #FFFF00">A</span>. Vertical Toolbar</h4>
+                                <br>
+<b>Description:</b>major components and tools represented as icons.  Each icon has an associated  flyout panel or popup that show additional details on click
+<br>
+<br>
+<b>Access:</b> permanently pinned on the left. Flyouts can be toggled open & closed by clicking on the specific icon, or by clicking on the grey drag handle.  The popup can be toggled open by clicking on the settings (gear) icon, and closed by clicking the “x” icon on the top right corner. <br>
+<br>
+<b>Objects & actions:</b>
+<p style="margin-left: 40px">
+    <b>Dashboards</b> - a flyout panel that contains a list of the user’s active dashboards and documents. The user can right-click on the topmost “Dashboard” to invoke the right-click menu, then selecting “Create Dashboard”, in order to create a new dashboard. Each dashboard contains the collections that are within that workspace and the user can choose to expand those collections to view a list of all the items in that collection. The “On-screen Tab” section contains all your currently-opened tabs. Tabs you have closed will be moved to the “Off-screen Tab” section. <br>
+    <br>
+    <b>Recently Closed</b> - a flyout panel that contains all the documents that the user has recently closed or deleted.<br> 
+    (Since Dashboards and Recently Closed both utilize the tree perspective, 
+    documents in these two components can be manipulated in the same way as 
+    documents in the tree perspective (more information on tree perspective) 
+</p>
+</p>
+
+Import- a flyout panel that allows users to import existing files from their local machines, and view files they already have imported. 
+Tools - a flyout panel that contains buttons to create new documents and a color palette to change a document’s background-color (more information on tools)
+Sharing - (more information on sharing)
+Filtering - (more information on filters)
+Presentation Trails - (more information on presentations)
+Catalog & Help - not yet implemented
+Settings - a popup that contains user preferences for:
+Accounts - including resetting the password and linking to Google
+Modes - including toggling between novice/developer & playground modes and managing groups & permissions
+Appearances - including setting the background/border/header colors, font & font size for text documents, and header/toolbar appearances
+
+(All icons above can be reordered by click and dragging the icon, then dropping it into
+ the desired location in the vertical sidebar)
+ 
+
+B. Properties Panel 
+Description: panel to set properties and view information of the selected document, divided into collapsible subpanels
+Access: can be toggled open & close from the context-sensitive toolbar (next section), and resized using the drag handle
+Objects & actions: 
+An editable document title
+Options - a subpanel of action buttons to edit various document properties
+Sharing & Permissions - a subpanel of a table displaying permission and sharing information
+Fields & Tags - a subpanel of a list of key-value pairs describing the selected document & input box to add custom key-value pairs 
+Context - a subpanel displaying the context information of the document 
+Layout - a subpanel displaying the document layout as a preview
+More information: (Properties panel)
+
+
+C. Context-sensitive Toolbar
+Description: toolbar whose contents change based on the type of document selected 
+Access: pinned below the search bar 
+Objects & actions: varies depending on the type of document selected
+
+                            </p>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_1">Documents </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_2">Perspectives </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_3">Linking </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_4">Sharing </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_5">Search </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <hr>
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_6">Filtering </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_7">Presentation Trails </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_8">Audio & Video </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row">
+
+                            <div class="col-md-12">
+                                <h4 id="line7_8">Import & Export </h4>
+                                <p>Lorem the It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. long established fact that a reader will English.</p>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line8" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text">Join as a pre-beta tester! <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line9" class="section">
+
+                        <div class="row">
+                            <div class="col-md-12 left-align">
+                                <h2 class="dark-text">Relevant Literature <hr></h2>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                        <!-- end row -->
+
+                        
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line5" class="section">
+
+                        
+                    </section>
+                    <!-- end section -->
+
+                    <section id="line6" class="section">
+
+                        
+                    </section>
+                    <!-- end section -->
+
+                </div>
+                <!-- // end .col -->
+
+            </div>
+            <!-- // end .row -->
+
+        </div>
+        <!-- // end container -->
+
+    </div>
+    <!-- end wrapper -->
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/retina.js"></script>
+    <script src="js/jquery.fitvids.js"></script>
+    <script src="js/wow.js"></script>
+    <script src="js/jquery.prettyPhoto.js"></script>
+
+    <!-- CUSTOM PLUGINS -->
+    <script src="js/custom.js"></script>
+    <script src="js/main.js"></script>
+
+    <script src="js/syntax-highlighter/scripts/shCore.js"></script>
+    <script src="js/syntax-highlighter/scripts/shBrushXml.js"></script>
+    <script src="js/syntax-highlighter/scripts/shBrushCss.js"></script>
+    <script src="js/syntax-highlighter/scripts/shBrushJScript.js"></script>
+
+</body>
+
+</html>
