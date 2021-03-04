@@ -92,6 +92,7 @@ export class SettingsManager extends React.Component<{}> {
 
         const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
         const fontSizes = ["7px", "8px", "9px", "10px", "12px", "14px", "16px", "18px", "20px", "24px", "32px", "48px", "72px"];
+        const colorSchemes = ["Light mode, Dark mode, Match system preferences"];
 
         return <div className="colors-content">
             <div className="preferences-color">
@@ -110,6 +111,14 @@ export class SettingsManager extends React.Component<{}> {
                     </select>
                     <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                         {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
+                    </select>
+                </div>
+            </div>
+            <div className="preferences-colorScheme">
+                <div className="preferences-color-text">Color Scheme</div>
+                <div className="preferences-color-controls">
+                    <select className="scheme-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().colorScheme, "7px")}>
+                        {colorSchemes.map(scheme => <option key={scheme} value={scheme} defaultValue={StrCast(Doc.UserDoc().colorScheme)}> {scheme} </option>)}
                     </select>
                 </div>
             </div>

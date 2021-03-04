@@ -33,6 +33,7 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
+import { ButtonType, buttonType } from "../views/nodes/FontIconBox";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -542,6 +543,7 @@ export class CurrentUserUtils {
             const menuBtns = (await CurrentUserUtils.menuBtnDescriptions(doc)).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
+                    btnType: ButtonType.MainMenu,
                     iconShape: "square",
                     _stayInCollection: true,
                     _hideContextMenu: true,
@@ -855,9 +857,10 @@ export class CurrentUserUtils {
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
-        ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", _forceActive: true,
+        ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _width: 100, boxShadow: "0 0", _forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true, system: true
+        backgroundColor: "black", treeViewPreventOpen: true, _lockedPosition: true, _chromeStatus: "disabled", system: true,
+        linearViewExpandable: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
@@ -867,17 +870,34 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, btnType: ButtonType.ClickButton, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+        }
+        if (doc["dockedBtn-redo"] === undefined) {
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, btnType: ButtonType.ClickButton, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+        }
+        if (doc.dockedBtns === undefined) {
+            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true, linearViewExpandable: true, _height: 42 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
+        }
+        (doc["dockedBtn-undo"] as Doc).dontUndo = true;
+        (doc["dockedBtn-redo"] as Doc).dontUndo = true;
+    }
+
+    /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
+    static setupContextMenuButtons(doc: Doc) {
+        if (doc["dockedBtn-undo"] === undefined) {
             doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
             doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), dontUndo: true, _stayInCollection: true, dropAction: "alias", _hideContextMenu: true, removeDropProperties: new List<string>(["dropAction", "_hideContextMenu", "stayInCollection"]), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
-        if (doc.dockedBtns === undefined) {
-            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
+        if (doc.contextMenuBtns === undefined) {
+            doc.contextMenuBtns = CurrentUserUtils.blist({ title: "menu buttons", ignoreClick: true, linearViewExpandable: false, _height: 35 }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
         }
         (doc["dockedBtn-undo"] as Doc).dontUndo = true;
         (doc["dockedBtn-redo"] as Doc).dontUndo = true;
     }
+
+
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
         if (doc.myOverlayDocs === undefined) {
@@ -1023,6 +1043,7 @@ export class CurrentUserUtils {
         this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
+        this.setupContextMenuButtons(doc); //buttons for context menu
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         await this.setupMenuPanel(doc, sharingDocumentId, linkDatabaseId);
         if (!doc.globalScriptDatabase) doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();

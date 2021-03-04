@@ -208,6 +208,7 @@ export class DocumentOptions {
     isPushpin?: boolean;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     iconShape?: string; // shapes of the fonticon border
+    btnType?: string; // type of button w/in dash
     linkRelationship?: string; // type of relatinoship a link represents
     ignoreClick?: boolean;
     onClick?: ScriptField;
@@ -251,6 +252,7 @@ export class DocumentOptions {
     clipboard?: Doc;
     searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
+    linearViewExpandable?: boolean; // can linear view be expanded
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     border?: string; //for searchbox
     hoverBackgroundColor?: string; // background color of a label when hovered

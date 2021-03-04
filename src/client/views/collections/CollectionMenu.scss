@@ -8,8 +8,6 @@
     opacity: 0.9;
     z-index: 901;
     transition: top .5s;
-    background: #323232;
-    color: white;
     transform-origin: top left;
     top: 0;
     width: 100%;
@@ -22,6 +20,10 @@
         svg {
             margin: auto;
         }
+    }
+
+    .collectionMenu-contMenuButtons {
+        position: relative;
     }
 
     .collectionMenu {
@@ -38,7 +40,7 @@
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                background: #323232;
+                // background: #323232;
                 outline-color: black;
                 color: white;
                 border: none;

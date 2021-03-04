@@ -14,7 +14,7 @@
 }
 
 .fontIconBadge-container {
-    position:absolute;
+    position: absolute;
     z-index: 1000;
     top: 12px;
 
@@ -34,67 +34,90 @@
     }
 }
 
-.menuButton-circle,
-.menuButton-round {
-    border-radius: 100%;
-    background-color: black;
-    padding: 0;
-
-    .fontIconBox-label {
-        //margin-left: -10px; // button padding is 10px;
-        bottom: 0;
-        position: absolute;
-    }
-
-    &:hover {
-        background-color: #aaaaa3;
-    }
+.menuButton-mainBtn {
+    background-color: hotpink;
+    width: 60px;
+    height: 60px;
 }
 
-.menuButton-square {
-    padding-top: 3px;
-    padding-bottom: 3px;
-
-    .fontIconBox-label {
-        border-radius: 0px;
-        margin-top: 0px;
-        border-radius: "inherit";
-    }
+.menuButton-clickBtn {
+    width: 30px;
+    height: 30px;
+    background-color: #e3e3e3;
 }
 
-.menuButton,
-.menuButton-circle,
-.menuButton-round,
-.menuButton-square {
-    margin-left: -5%;
-    width: 110%;
-    height: 100%;
-    pointer-events: all;
+.menuButton-drpDownBtn {
+    width: 40px;
+    height: 30px;
+    display: flex;
+    background-color: green;
+}
+
+// .menuButton-circle,
+// .menuButton-round {
+//     border-radius: 100%;
+//     background-color: black;
+//     padding: 0;
+
+//     .fontIconBox-label {
+//         //margin-left: -10px; // button padding is 10px;
+//         bottom: 0;
+//         position: absolute;
+//     }
+
+//     &:hover {
+//         background-color: #aaaaa3;
+//     }
+// }
+
+
+
+// .menuButton-square {
+//     padding-top: 3px;
+//     padding-bottom: 3px;
+
+//     .fontIconBox-label {
+//         border-radius: 0px;
+//         margin-top: 0px;
+//         border-radius: "inherit";
+//     }
+// }
+
+// .menuButton,
+// .menuButton-circle,
+// .menuButton-round,
+// .menuButton-square {
+//     margin-left: -5%;
+//     width: 110%;
+//     height: 100%;
+//     pointer-events: all;
+//     touch-action: none;
+
+.menuButton-wrap {
     touch-action: none;
-
-    .menuButton-wrap {
-        touch-action: none;
-        border-radius: 8px;
-        width: 100%;
-    }
-
-    .menuButton-icon-square {
-        width: auto;
-        height: 29px;
-        padding: 4px;
-    }
-
-    svg {
-        width: 95% !important;
-        height: 95%;
-    }
-}
-.menuButton-round {
+    border-radius: 8px;
     width: 100%;
-    svg {
-        width: 50% !important;
-        height: 50%;
-        position: relative;
-        bottom: 2px;
-    }
 }
+
+//     .menuButton-icon-square {
+//         width: auto;
+//         height: 29px;
+//         padding: 4px;
+//     }
+
+//     svg {
+//         width: 95% !important;
+//         height: 95%;
+//     }
+// }
+
+// .menuButton-round {
+//     width: 100%;
+
+//     svg {
+//         width: 50% !important;
+//         height: 50%;
+//         position: relative;
+//         bottom: 2px;
+//     }
+// }

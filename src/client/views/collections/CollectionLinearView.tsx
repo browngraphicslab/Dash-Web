@@ -111,7 +111,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const flexDir: any = StrCast(this.Document.flexDirection);
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
-
+        const expandable: boolean = BoolCast(this.props.Document.linearViewExpandable);
         const menuOpener = <label htmlFor={`${guid}`} style={{ pointerEvents: "all", cursor: "pointer", background: backgroundColor === color ? "black" : backgroundColor, }}
             onPointerDown={e => e.stopPropagation()} >
             <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
@@ -119,9 +119,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <Tooltip title={<><div className="dash-tooltip">{BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"}</div></>} placement="top">
+                {!expandable ? (null) : <Tooltip title={<><div className="dash-tooltip">{BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"}</div></>} placement="top">
                     {menuOpener}
-                </Tooltip>
+                </Tooltip>}
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
                     onChange={action(() => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 

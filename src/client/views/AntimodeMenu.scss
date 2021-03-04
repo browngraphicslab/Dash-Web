@@ -5,7 +5,7 @@
     position: absolute;
     z-index: 10001;
     height: $antimodemenu-height;
-    background: #323232;
+    background-color: #E3E3E3;
     // box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
     // border-radius: 0px 6px 6px 6px;
     // overflow: hidden;    
@@ -26,24 +26,22 @@
         height: 35px;
 
         &.active {
-            background-color: #121212;
+            color: #276B86;
         }
     }
 
-    .antimodeMenu-button:hover {
-        background-color: #121212;
-    }
-
-    .antimodeMenu-dragger {
-        height: 100%;
-        transition: width .2s;
-        background-image: url("https://logodix.com/logo/1020374.png");
-        background-size: 90% 100%;
-        background-repeat: no-repeat;
-        background-position: left center;
-    }
+    // .antimodeMenu-dragger {
+    //     height: 100%;
+    //     transition: width .2s;
+    //     background-image: url("https://logodix.com/logo/1020374.png");
+    //     background-size: 90% 100%;
+    //     background-repeat: no-repeat;
+    //     background-position: left center;
+    // }
 }
 
+
+//Mobile antimode menu
 @media only screen and (max-device-width: 480px) {
     .antimodeMenu-cont {
         height: 100px;

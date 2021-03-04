@@ -5,7 +5,7 @@ import { Tooltip } from "@material-ui/core";
 import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState } from "react-color";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, DocCastAsync, DocListCast, Opt } from "../../../fields/Doc";
 import { Document } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -15,7 +15,7 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnFalse, returnTrue, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
@@ -34,6 +34,9 @@ import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { TabDocView } from "./TabDocView";
 import { LightboxView } from "../LightboxView";
+import { CollectionLinearView } from "./CollectionLinearView";
+import { DefaultStyleProvider } from "../StyleProvider";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -41,6 +44,9 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
 
     @observable SelectedCollection: DocumentView | undefined;
     @observable FieldKey: string;
+
+    private _docBtnRef = React.createRef<HTMLDivElement>();
+
 
     constructor(props: any) {
         super(props);
@@ -78,30 +84,87 @@ export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
         }
     }
 
-    render() {
-        const button = <Tooltip title={<div className="dash-tooltip">Pin Menu</div>} key="pin menu" placement="bottom">
-            <button className="antimodeMenu-button" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
-                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
-            </button>
-        </Tooltip>;
+    buttonBarXf = () => {
+        if (!this._docBtnRef.current) return Transform.Identity();
+        const { scale, translateX, translateY } = Utils.GetScreenTransform(this._docBtnRef.current);
+        return new Transform(-translateX, -translateY, 1 / scale);
+    }
+    @computed get contMenuButtons() {
+        const selDoc = Doc.UserDoc().contextMenuBtns;
+        return !(selDoc instanceof Doc) ? (null) : <div className="collectionMenu-contMenuButtons" ref={this._docBtnRef} style={{ height: "35px" }} >
+            <CollectionLinearView
+                Document={selDoc}
+                DataDoc={undefined}
+                fieldKey={"data"}
+                dropAction={"alias"}
+                setHeight={returnFalse}
+                parentActive={returnFalse}
+                styleProvider={DefaultStyleProvider}
+                layerProvider={undefined}
+                rootSelected={returnTrue}
+                bringToFront={emptyFunction}
+                select={emptyFunction}
+                active={returnFalse}
+                isSelected={returnFalse}
+                docViewPath={returnEmptyDoclist}
+                moveDocument={returnFalse}
+                CollectionView={undefined}
+                addDocument={returnFalse}
+                addDocTab={returnFalse}
+                pinToPres={emptyFunction}
+                removeDocument={returnFalse}
+                ScreenToLocalTransform={this.buttonBarXf}
+                PanelWidth={() => 100}
+                PanelHeight={() => 35}
+                renderDepth={0}
+                focus={() => undefined}
+                whenActiveChanged={emptyFunction}
+                docFilters={returnEmptyFilter}
+                docRangeFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined} />
+        </div>;
+    }
 
+    /**
+     * Renders hard-coded (non-draggable) buttons
+     * and draggable font-icon buttons
+     */
+    render() {
+
+        // const button = <Tooltip title={<div className="dash-tooltip">Pin Menu</div>} key="pin menu" placement="bottom">
+        //     <button className="antimodeMenu-button" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
+        //         <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
+        //     </button>
+        // </Tooltip>;
+        const colorScheme = StrCast(Doc.UserDoc().colorScheme);
+
+        //hard coded open/close properties button
         const propIcon = CurrentUserUtils.propertiesWidth > 0 ? "angle-double-right" : "angle-double-left";
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
         const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties" style={{ backgroundColor: "#333333" }}
+            <button className="antimodeMenu-button" key="properties"
                 onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
             </button>
         </Tooltip>;
 
+        //dash col linear view buttons
+        const contMenuButtons = <>
+            {this.contMenuButtons}
+        </>
+
+
         return this.getElement(!this.SelectedCollection ? [/*button*/] :
-            [<CollectionViewBaseChrome key="chrome"
-                docView={this.SelectedCollection}
-                fieldKey={this.SelectedCollection.LayoutFieldKey}
-                type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
-                prop,
-                /*button*/]);
+            [
+                contMenuButtons, prop,
+                // <CollectionViewBaseChrome key="chrome"
+                // docView={this.SelectedCollection}
+                // fieldKey={this.SelectedCollection.LayoutFieldKey}
+                // type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
+            ]);
     }
 }
 
@@ -341,35 +404,35 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </div>;
     }
 
-    @computed get viewModes() {
-        const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
-            [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
-        const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
-        return isPres ? (null) : (<div className="collectionViewBaseChrome-viewModes" >
-            <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
-                <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
-                    <button className={"antimodeMenu-button"}>
-                        <FontAwesomeIcon icon="bullseye" size="lg" />
-                    </button>
-                    <select
-                        className="collectionViewBaseChrome-viewPicker"
-                        onPointerDown={stopPropagation}
-                        onChange={this.viewChanged}
-                        value={StrCast(this.props.type)}>
-                        {Object.values(CollectionViewType).filter(type => !excludedViewTypes.includes(type)).map(type => (
-                            <option
-                                key={Utils.GenerateGuid()}
-                                className="collectionViewBaseChrome-viewOption"
-                                onPointerDown={stopPropagation}
-                                value={type}>
-                                {type[0].toUpperCase() + type.substring(1)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </Tooltip>
-        </div>);
-    }
+    // @computed get viewModes() {
+    //     const excludedViewTypes = Doc.UserDoc().noviceMode ? [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Map, CollectionViewType.Linear, CollectionViewType.Time] :
+    //         [CollectionViewType.Invalid, CollectionViewType.Docking, CollectionViewType.Pile, CollectionViewType.Linear];
+    //     const isPres: boolean = (this.document && this.document.type === DocumentType.PRES);
+    //     return (<div className="collectionViewBaseChrome-viewModes" >
+    //         <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
+    //             <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
+    //                 <button className={"antimodeMenu-button"}>
+    //                     <FontAwesomeIcon icon="bullseye" size="lg" />
+    //                 </button>
+    //                 <select
+    //                     className="collectionViewBaseChrome-viewPicker"
+    //                     onPointerDown={stopPropagation}
+    //                     onChange={this.viewChanged}
+    //                     value={StrCast(this.props.type)}>
+    //                     {Object.values(CollectionViewType).filter(type => !excludedViewTypes.includes(type)).map(type => (
+    //                         <option
+    //                             key={Utils.GenerateGuid()}
+    //                             className="collectionViewBaseChrome-viewOption"
+    //                             onPointerDown={stopPropagation}
+    //                             value={type}>
+    //                             {type[0].toUpperCase() + type.substring(1)}
+    //                         </option>
+    //                     ))}
+    //                 </select>
+    //             </div>
+    //         </Tooltip>
+    //     </div>);
+    // }
 
     @computed get selectedDocumentView() {
         return SelectionManager.Views().length ? SelectionManager.Views()[0] : undefined;

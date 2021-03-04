@@ -5,7 +5,7 @@ import * as React from 'react';
 import { AclPrivate, Doc, DocListCast } from '../../../fields/Doc';
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, StrCast } from '../../../fields/Types';
+import { BoolCast, Cast, StrCast } from '../../../fields/Types';
 import { GetEffectiveAcl } from '../../../fields/util';
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { DragManager } from '../../util/DragManager';
@@ -17,6 +17,13 @@ import './FontIconBox.scss';
 const FontIconSchema = createSchema({
     icon: "string",
 });
+
+export enum ButtonType {
+    MainMenu = "mainBtn",
+    DropdownButton = "drpDownBtn",
+    ClickButton = "clickBtn",
+    DoubleButton = "dblBtn"
+}
 
 type FontIconDocument = makeInterface<[typeof FontIconSchema]>;
 const FontIconDocument = makeInterface(FontIconSchema);
@@ -50,6 +57,14 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     **/
 
     render() {
+        /**
+         * mainBtn
+         * dropDownBtn
+         * doubleBtn
+        **/
+        const type = StrCast(this.rootDoc.btnType);
+        const hideLabel: boolean = BoolCast(this.rootDoc.hideLabel);
+
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);
         const backgroundColor = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor);
@@ -58,17 +73,20 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const presSize = shape === 'round' ? 25 : 30;
         const presTrailsIcon = <img src={`/assets/${"presTrails.png"}`}
             style={{ width: presSize, height: presSize, filter: `invert(${color === "white" ? "100%" : "0%"})`, marginBottom: "5px" }} />;
-        const button = <button className={`menuButton-${shape}`} onContextMenu={this.specificContextMenu}
+
+
+        const button = <button className={`menuButton-${type}`} onContextMenu={this.specificContextMenu}
             style={{
-                backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "",
+                backgroundColor: backgroundColor,
             }}>
             <div className="menuButton-wrap">
                 {icon === 'pres-trail' ? presTrailsIcon : <FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={icon} color={color}
-                    size={this.layoutDoc.iconShape === "square" ? "sm" : "sm"} />}
+                    size={"sm"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
                 {this.props.Document.watchedDocuments ? <FontIconBadge collection={Cast(this.props.Document.watchedDocuments, Doc, null)} /> : (null)}
             </div>
         </button>;
+
         return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
                 {button}

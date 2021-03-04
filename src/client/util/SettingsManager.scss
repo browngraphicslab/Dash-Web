@@ -75,8 +75,8 @@
             width: 130;
             color: black;
             border-radius: 5px;
-            padding:7px;
-            
+            padding: 7px;
+
         }
     }
 
@@ -169,7 +169,7 @@
     }
 }
 
-.prefs-content{
+.prefs-content {
     text-align: left;
 }
 
@@ -231,6 +231,37 @@
             font-size: 9;
             border-radius: 5px;
             width: 30%;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+
+    .preferences-colorScheme {
+        //height: 23px;
+        margin-top: 2px;
+
+        .preferences-color-text {
+            color: black;
+            margin-top: 4;
+            margin-right: 4;
+            margin-bottom: 2px;
+            text-align: left;
+        }
+
+        .preferences-color-controls {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .scheme-select {
+            height: 35px;
+            color: black;
+            font-size: 9;
+            margin-right: 6;
+            border-radius: 5px;
+            width: 100%;
 
             &:hover {
                 cursor: pointer;
@@ -429,11 +460,12 @@
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 16px;
-       }
+        }
 
-       .tab-column-title, .tab-column-content {
-           padding-left: 16px;
-       }
+        .tab-column-title,
+        .tab-column-content {
+            padding-left: 16px;
+        }
 
     }
 
