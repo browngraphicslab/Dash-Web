@@ -39,6 +39,16 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         }
     }
 
+    /**
+     * Types of buttons in dash:
+     * - Main menu button (LHS)
+     * - Tool button
+     * - Expandable button (CollectionLinearView)
+     * - Button inside of CollectionLinearView vs. outside of CollectionLinearView
+     * - Action button
+     * - Dropdown button
+    **/
+
     render() {
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.Color);

@@ -177,8 +177,8 @@ export class MainView extends React.Component {
             const targClass = targets[0].className.toString();
             if (SearchBox.Instance._searchbarOpen || SearchBox.Instance.open) {
                 const check = targets.some((thing) =>
-                    (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
-                        thing.className === "collectionSchema-header-menuOptions"));
+                (thing.className === "collectionSchemaView-searchContainer" || (thing as any)?.dataset.icon === "filter" ||
+                    thing.className === "collectionSchema-header-menuOptions"));
                 !check && SearchBox.Instance.resetSearch(true);
             }
             !targClass.includes("contextMenu") && ContextMenu.Instance.closeMenu();
@@ -626,7 +626,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <DocumentDecorations boundsLeft={this.leftOffset} boundsTop={this.topOffset} />
             {this.search}
-            <CollectionMenu />
+            {/* <CollectionMenu /> */}
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.LinkEditorDocView ? <LinkMenu docView={DocumentLinksButton.LinkEditorDocView} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview {...LinkDocPreview.LinkInfo} /> : (null)}

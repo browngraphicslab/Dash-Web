@@ -34,6 +34,7 @@ import { CollectionViewType } from './CollectionView';
 import "./TabDocView.scss";
 import React = require("react");
 import Color = require('color');
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 interface TabDocViewProps {
