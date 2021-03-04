@@ -44,9 +44,9 @@ function darkScheme() { return BoolCast(CurrentUserUtils.ActiveDashboard?.darkSc
 
 function toggleBackground(doc: Doc) {
     UndoManager.RunInBatch(() => runInAction(() => {
-        const layers = StrListCast(doc.layers);
+        const layers = StrListCast(doc._layerTags);
         if (!layers.includes(StyleLayers.Background)) {
-            if (!layers.length) doc.layers = new List<string>([StyleLayers.Background]);
+            if (!layers.length) doc._layerTags = new List<string>([StyleLayers.Background]);
             else layers.push(StyleLayers.Background);
         }
         else layers.splice(layers.indexOf(StyleLayers.Background), 1);
@@ -65,13 +65,14 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
     const selected = property.includes(":selected");
     const isCaption = property.includes(":caption");
     const isAnchor = property.includes(":anchor");
-    const isBackground = () => StrListCast(doc?.layers).includes(StyleLayers.Background);
+    const isAnnotated = property.includes(":annotated");
+    const isBackground = () => StrListCast(doc?._layerTags).includes(StyleLayers.Background);
     const backgroundCol = () => props?.styleProvider?.(doc, props, StyleProp.BackgroundColor);
     const opacity = () => props?.styleProvider?.(doc, props, StyleProp.Opacity);
 
     switch (property.split(":")[0]) {
         case StyleProp.DocContents: return undefined;
-        case StyleProp.WidgetColor: return darkScheme() ? "lightgrey" : "dimgrey";
+        case StyleProp.WidgetColor: return isAnnotated ? "lightBlue" : darkScheme() ? "lightgrey" : "dimgrey";
         case StyleProp.Opacity: return Cast(doc?._opacity, "number", Cast(doc?.opacity, "number", null));
         case StyleProp.HideLinkButton: return isAnchor || props?.dontRegisterView || (!selected && (doc?.isLinkButton || doc?.hideLinkButton));
         case StyleProp.ShowTitle: return doc && !doc.presentationTargetDoc && StrCast(doc._showTitle,
@@ -84,15 +85,15 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             const colsum = (col.red() + col.green() + col.blue());
             if (colsum / col.alpha() > 400 || col.alpha() < 0.25) return "black";
             return "white";
-        case StyleProp.Hidden: return BoolCast(doc?._hidden, BoolCast(doc?.hidden));
-        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding, StrCast(doc?.borderRounding));
+        case StyleProp.Hidden: return BoolCast(doc?._hidden);
+        case StyleProp.BorderRounding: return StrCast(doc?._borderRounding);
         case StyleProp.TitleHeight: return 15;
         case StyleProp.HeaderMargin: return ([CollectionViewType.Stacking, CollectionViewType.Masonry].includes(doc?._viewType as any) || doc?.type === DocumentType.RTF) && doc?._showTitle && !StrCast(doc?.showTitle).includes(":hover") ? 15 : 0;
         case StyleProp.BackgroundColor: {
             if (isAnchor && docProps) return "transparent";
             if (isCaption) return "rgba(0,0,0 ,0.4)";
             if (Doc.UserDoc().renderStyle === "comic") return "transparent";
-            let docColor: Opt<string> = StrCast(doc?._backgroundColor, StrCast(doc?.backgroundColor));
+            let docColor: Opt<string> = StrCast(doc?._backgroundColor);
             if (!docProps) {
                 if (MainView.Instance.LastButton === doc) return darkScheme() ? "dimgrey" : "lightgrey";
                 switch (doc?.type) {
@@ -109,6 +110,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
                 case DocumentType.FILTER: docColor = docColor || (darkScheme() ? "#2d2d2d" : "rgba(105, 105, 105, 0.432)"); break;
                 case DocumentType.INK: docColor = doc?.isInkMask ? "rgba(0,0,0,0.7)" : undefined; break;
                 case DocumentType.SLIDER: break;
+                case DocumentType.EQUATION: docColor = docColor || "transparent"; break;
                 case DocumentType.LABEL: docColor = docColor || (doc.annotationOn !== undefined ? "rgba(128, 128, 128, 0.18)" : undefined); break;
                 case DocumentType.BUTTON: docColor = docColor || (darkScheme() ? "#2d2d2d" : "lightgray"); break;
                 case DocumentType.LINK: return "transparent";
@@ -157,7 +159,7 @@ export function DefaultStyleProvider(doc: Opt<Doc>, props: Opt<FieldViewProps | 
             if (isAnchor && docProps) return "none";
             if (props?.pointerEvents === "none") return "none";
             const layer = doc && props?.layerProvider?.(doc);
-            if (opacity() === 0 || doc?.type === DocumentType.INK || doc?.isInkMask) return "none";
+            if (opacity() === 0 || (doc?.type === DocumentType.INK && !docProps?.treeViewDoc) || doc?.isInkMask) return "none";
             if (layer === false && !selected && !SnappingManager.GetIsDragging()) return "none";
             if (doc?.type !== DocumentType.INK && layer === true) return "all";
             return undefined;
@@ -184,15 +186,15 @@ export function DefaultLayerProvider(thisDoc: Doc) {
         if (assign) {
             const activeLayer = StrCast(thisDoc?.activeLayer);
             if (activeLayer) {
-                const layers = Cast(doc.layers, listSpec("string"), []);
+                const layers = Cast(doc._layerTags, listSpec("string"), []);
                 if (layers.length && !layers.includes(activeLayer)) layers.push(activeLayer);
-                else if (!layers.length) doc.layers = new List<string>([activeLayer]);
+                else if (!layers.length) doc._layerTags = new List<string>([activeLayer]);
                 if (activeLayer === "red" || activeLayer === "green" || activeLayer === "blue") doc._backgroundColor = activeLayer;
             }
             return true;
         } else {
             if (Doc.AreProtosEqual(doc, thisDoc)) return true;
-            const layers = StrListCast(doc.layers);
+            const layers = StrListCast(doc._layerTags);
             if (!layers.length && !thisDoc?.activeLayer) return true;
             if (layers.includes(StrCast(thisDoc?.activeLayer))) return true;
             return false;

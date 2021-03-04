@@ -242,6 +242,19 @@ export const nodes: { [index: string]: NodeSpec } = {
         }
     },
 
+    equation: {
+        inline: true,
+        attrs: {
+            fieldKey: { default: "" },
+        },
+        group: "inline",
+        draggable: false,
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
+            return ["div", { ...node.attrs, ...attrs }];
+        }
+    },
+
     video: {
         inline: true,
         attrs: {

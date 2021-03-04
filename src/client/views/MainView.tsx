@@ -101,7 +101,7 @@ export class MainView extends React.Component {
         }
         new InkStrokeProperties();
         this._sidebarContent.proto = undefined;
-        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_delayAutoHeight", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["x", "y", "dataTransition", "_autoHeight", "_showSidebar", "_sidebarWidthPercent", "_width", "_height", "_viewTransition", "_panX", "_panY", "_viewScale", "_scrollTop", "hidden", "_curPage", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         DocServer.GetRefField("rtfProto").then(proto => (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE), msg => msg && alert(msg)));
 
@@ -228,7 +228,7 @@ export class MainView extends React.Component {
     createNewPresentation = async () => {
         if (!await this.userDoc.myPresentations) {
             this.userDoc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+                title: "PRESENTATION TRAILS", _height: 100, _forceActive: true, boxShadow: "0 0", _lockedPosition: true, treeViewOpen: true, system: true
             }));
         }
         const pres = Docs.Create.PresDocument(new List<Doc>(),
@@ -319,8 +319,8 @@ export class MainView extends React.Component {
                         <div className={`styleProvider-treeView-hide${doc.hidden ? "-active" : ""}`} onClick={e => toggleField(e, doc, "hidden")}>
                             <FontAwesomeIcon icon={doc.hidden ? "eye-slash" : "eye"} size="sm" />
                         </div>
-                        <div className={`styleProvider-treeView-lock${doc.lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "lockedPosition")}>
-                            <FontAwesomeIcon icon={doc.lockedPosition ? "lock" : "unlock"} size="sm" />
+                        <div className={`styleProvider-treeView-lock${doc._lockedPosition ? "-active" : ""}`} onClick={e => toggleField(e, doc, "_lockedPosition")}>
+                            <FontAwesomeIcon icon={doc._lockedPosition ? "lock" : "unlock"} size="sm" />
                         </div>
                     </>;
         }
@@ -482,6 +482,7 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     fieldKey={"data"}
                     dropAction={"alias"}
+                    setHeight={returnFalse}
                     parentActive={returnFalse}
                     styleProvider={DefaultStyleProvider}
                     layerProvider={undefined}
@@ -552,6 +553,7 @@ export class MainView extends React.Component {
                 isSelected={returnTrue}
                 active={returnTrue}
                 select={returnTrue}
+                setHeight={returnFalse}
                 addDocument={undefined}
                 addDocTab={this.addDocTabFunc}
                 pinToPres={emptyFunction}
@@ -589,6 +591,7 @@ export class MainView extends React.Component {
                     styleProvider={undefined}
                     isSelected={returnFalse}
                     select={returnFalse}
+                    setHeight={returnFalse}
                     rootSelected={returnFalse}
                     renderDepth={0}
                     parentActive={returnFalse}
@@ -661,6 +664,7 @@ export class MainView extends React.Component {
                             select={returnFalse}
                             rootSelected={returnFalse}
                             renderDepth={0}
+                            setHeight={returnFalse}
                             layerProvider={undefined}
                             styleProvider={undefined}
                             addDocTab={returnFalse}

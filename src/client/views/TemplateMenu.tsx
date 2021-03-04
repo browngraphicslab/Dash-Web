@@ -140,6 +140,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}
                 onChildClick={this.scriptField}
+                setHeight={returnFalse}
                 dropAction={undefined}
                 active={returnTrue}
                 parentActive={returnFalse}

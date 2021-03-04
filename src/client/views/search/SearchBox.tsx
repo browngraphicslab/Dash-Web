@@ -63,7 +63,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable _deletedDocsStatus: boolean = false;
     @observable _onlyAliases: boolean = true;
     @observable _searchbarOpen = false;
-    @observable _searchFullDB = "DB";
+    @observable _searchFullDB = "DB"; // "DB" means searh the entire database.  "My Stuff" adds a flag that selects only documents that the current user has authored
     @observable _noResults = "";
     @observable _pageStart = 0;
     @observable open = false;
@@ -565,7 +565,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     removeDocument={returnFalse}
                                     PanelHeight={this.open ? this.returnHeight : returnZero}
                                     PanelWidth={this.open ? this.returnLength : returnZero}
-                                    overflow={length > window.innerWidth || this.children > 6 ? true : false}
+                                    scrollOverflow={length > window.innerWidth || this.children > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />

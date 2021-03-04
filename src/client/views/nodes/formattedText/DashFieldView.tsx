@@ -1,18 +1,18 @@
-import { IReactionDisposer, observable, computed, action } from "mobx";
-import { Doc, DocListCast, Field, DataSym } from "../../../../fields/Doc";
+import { action, computed, IReactionDisposer, observable } from "mobx";
+import { observer } from "mobx-react";
+import * as ReactDOM from 'react-dom';
+import { DataSym, Doc, DocListCast, Field } from "../../../../fields/Doc";
 import { List } from "../../../../fields/List";
 import { listSpec } from "../../../../fields/Schema";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { Cast, StrCast } from "../../../../fields/Types";
 import { DocServer } from "../../../DocServer";
+import { DocUtils } from "../../../documents/Documents";
 import { CollectionViewType } from "../../collections/CollectionView";
+import "./DashFieldView.scss";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
-import * as ReactDOM from 'react-dom';
-import "./DashFieldView.scss";
-import { observer } from "mobx-react";
-import { DocUtils } from "../../../documents/Documents";
 
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value

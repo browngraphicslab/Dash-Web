@@ -3,8 +3,6 @@ import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../fields/ObjectField';
-import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
-import { DragManager } from '../util/DragManager';
 import "./EditableView.scss";
 
 export interface EditableProps {
@@ -12,16 +10,13 @@ export interface EditableProps {
      * Called to get the initial value for editing
      *  */
     GetValue(): string | undefined;
-
     /**
      * Called to apply changes
      * @param value - The string entered by the user to set the value to
      * @returns `true` if setting the value was successful, `false` otherwise
      *  */
     SetValue(value: string, shiftDown?: boolean, enterKey?: boolean): boolean;
-
     OnFillDown?(value: string): void;
-
     OnTab?(shift?: boolean): void;
     OnEmpty?(): void;
 
@@ -45,15 +40,12 @@ export interface EditableProps {
     };
     oneLine?: boolean;
     editing?: boolean;
-    onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
     menuCallback?: (x: number, y: number) => void;
     textCallback?: (char: string) => boolean;
     showMenuOnLoad?: boolean;
-    HeadingObject?: SchemaHeaderField | undefined;
     toggle?: () => void;
-    color?: string | undefined;
-    onDrop?: any;
+    background?: string | undefined;
     placeholder?: string;
 }
 
@@ -64,23 +56,14 @@ export interface EditableProps {
  */
 @observer
 export class EditableView extends React.Component<EditableProps> {
+    private _ref = React.createRef<HTMLDivElement>();
+    private _inputref = React.createRef<HTMLInputElement>();
     @observable _editing: boolean = false;
 
     constructor(props: EditableProps) {
         super(props);
         this._editing = this.props.editing ? true : false;
     }
-
-    // @action
-    // componentDidUpdate(nextProps: EditableProps) {
-    //     // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
-    //     // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
-    //     // to false. this will no longer do so -syip
-    //     if (nextProps.editing && nextProps.editing !== this._editing) {
-    //         this._editing = nextProps.editing;
-    //         EditableView.loadId = "";
-    //     }
-    // }
 
     @action
     componentDidUpdate() {
@@ -91,18 +74,9 @@ export class EditableView extends React.Component<EditableProps> {
         }
     }
 
-    @action
-    componentDidMount() {
-        if (this._ref.current && this.props.onDrop) {
-            DragManager.MakeDropTarget(this._ref.current, this.props.onDrop.bind(this));
-        }
-    }
-    @action
     componentWillUnmount() {
         this._inputref.current?.value && this.finalizeEdit(this._inputref.current.value, false, true, false);
     }
-
-    _didShow = false;
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -149,7 +123,7 @@ export class EditableView extends React.Component<EditableProps> {
             e.nativeEvent.stopPropagation();
             if (this._ref.current && this.props.showMenuOnLoad) {
                 this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
-            } else if (!this.props.onClick?.(e)) {
+            } else {
                 this._editing = true;
                 this.props.isEditingCallback?.(true);
             }
@@ -158,7 +132,7 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     @action
-    private finalizeEdit(value: string, shiftDown: boolean, lostFocus: boolean, enterKey: boolean) {
+    finalizeEdit(value: string, shiftDown: boolean, lostFocus: boolean, enterKey: boolean) {
         if (this.props.SetValue(value, shiftDown, enterKey)) {
             this._editing = false;
             this.props.isEditingCallback?.(false,);
@@ -172,9 +146,7 @@ export class EditableView extends React.Component<EditableProps> {
         }
     }
 
-    stopPropagation(e: React.SyntheticEvent) {
-        e.stopPropagation();
-    }
+    stopPropagation(e: React.SyntheticEvent) { e.stopPropagation(); }
 
     @action
     setIsFocused = (value: boolean) => {
@@ -183,8 +155,6 @@ export class EditableView extends React.Component<EditableProps> {
         return wasFocused !== this._editing;
     }
 
-    _ref = React.createRef<HTMLDivElement>();
-    _inputref = React.createRef<HTMLInputElement>();
     renderEditor() {
         return this.props.autosuggestProps
             ? <Autosuggest
@@ -203,14 +173,13 @@ export class EditableView extends React.Component<EditableProps> {
                 }}
             />
             : <input className="editableView-input" ref={this._inputref}
-                defaultValue={this.props.GetValue()}
-                onKeyDown={this.onKeyDown}
-                autoFocus={true}
-                onKeyPress={e => e.stopPropagation()}
-                onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true, false)}
-                onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}
+                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20, background: this.props.background }}
                 placeholder={this.props.placeholder}
+                onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true, false)}
+                defaultValue={this.props.GetValue()}
+                autoFocus={true}
+                onKeyDown={this.onKeyDown}
+                onKeyPress={this.stopPropagation} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
             />;
     }
 
@@ -225,13 +194,13 @@ export class EditableView extends React.Component<EditableProps> {
                 </div> :
                 this.renderEditor();
         }
-        setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
+        setTimeout(() => this.props.autosuggestProps?.resetValue());
         return this.props.contents instanceof ObjectField ? (null) :
             <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} ref={this._ref}
                 style={{ display: this.props.display, textOverflow: this.props.overflow, minHeight: "17px", whiteSpace: "nowrap", height: this.props.height || "auto", maxHeight: this.props.maxHeight }}
                 onClick={this.onClick} placeholder={this.props.placeholder}>
-                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >{
-                    this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
+                <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }} >
+                    {this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
                 </span>
             </div>;
     }

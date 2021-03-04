@@ -277,7 +277,11 @@ export namespace WebSocket {
     function addToListField(socket: Socket, diff: Diff, curListItems?: Transferable): void {
         diff.diff.$set = diff.diff.$addToSet; delete diff.diff.$addToSet;// convert add to set to a query of the current fields, and then a set of the composition of the new fields with the old ones
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
-        const newListItems = diff.diff.$set[updatefield].fields;
+        const newListItems = diff.diff.$set[updatefield]?.fields;
+        if (!newListItems) {
+            console.log("Error: addToListField - no new list items");
+            return;
+        }
         const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields.filter((item: any) => item !== undefined) || [];
         diff.diff.$set[updatefield].fields = [...curList, ...newListItems.filter((newItem: any) => newItem === null || !curList.some((curItem: any) => curItem.fieldId ? curItem.fieldId === newItem.fieldId : curItem.heading ? curItem.heading === newItem.heading : curItem === newItem))];
         const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
@@ -299,7 +303,7 @@ export namespace WebSocket {
         diff.diff.$set = diff.diff.$remFromSet; delete diff.diff.$remFromSet;
         const updatefield = Array.from(Object.keys(diff.diff.$set))[0];
         const remListItems = diff.diff.$set[updatefield].fields;
-        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields || [];
+        const curList = (curListItems as any)?.fields?.[updatefield.replace("fields.", "")]?.fields.filter((f: any) => f !== null) || [];
         diff.diff.$set[updatefield].fields = curList?.filter((curItem: any) => !remListItems.some((remItem: any) => remItem.fieldId ? remItem.fieldId === curItem.fieldId : remItem.heading ? remItem.heading === curItem.heading : remItem === curItem));
         const sendBack = diff.diff.length !== diff.diff.$set[updatefield].fields.length;
         delete diff.diff.length;

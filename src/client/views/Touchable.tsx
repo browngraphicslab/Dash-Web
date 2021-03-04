@@ -11,7 +11,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     private holdMoveDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdEndDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-
     protected abstract _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
@@ -86,19 +85,13 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         switch (myTouches.length) {
-            case 1:
-                this.handle1PointerMove(te, me);
-                break;
-            case 2:
-                this.handle2PointersMove(te, me);
-                break;
+            case 1: this.handle1PointerMove(te, me); break;
+            case 2: this.handle2PointersMove(te, me); break;
         }
 
         for (const pt of me.touches) {
-            if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.set(pt.identifier, pt);
-                }
+            if (pt && this.prevPoints.has(pt.identifier)) {
+                this.prevPoints.set(pt.identifier, pt);
             }
         }
     }
@@ -166,7 +159,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this.removeHoldEndListeners();
         this.addHoldMoveListeners();
         this.addHoldEndListeners();
-
     }
 
     addMoveListeners = () => {
@@ -174,19 +166,10 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         document.addEventListener("dashOnTouchMove", handler);
         this.moveDisposer = () => document.removeEventListener("dashOnTouchMove", handler);
     }
-
-    removeMoveListeners = () => {
-        this.moveDisposer && this.moveDisposer();
-    }
-
     addEndListeners = () => {
         const handler = (e: Event) => this.onTouchEnd(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
         document.addEventListener("dashOnTouchEnd", handler);
         this.endDisposer = () => document.removeEventListener("dashOnTouchEnd", handler);
-    }
-
-    removeEndListeners = () => {
-        this.endDisposer && this.endDisposer();
     }
 
     addHoldMoveListeners = () => {
@@ -201,20 +184,15 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this.holdEndDisposer = () => document.removeEventListener("dashOnTouchHoldEnd", handler);
     }
 
-    removeHoldMoveListeners = () => {
-        this.holdMoveDisposer && this.holdMoveDisposer();
-    }
-
-    removeHoldEndListeners = () => {
-        this.holdEndDisposer && this.holdEndDisposer();
-    }
-
+    removeMoveListeners = () => this.moveDisposer?.();
+    removeEndListeners = () => this.endDisposer?.();
+    removeHoldMoveListeners = () => this.holdMoveDisposer?.();
+    removeHoldEndListeners = () => this.holdEndDisposer?.();
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
         // e.stopPropagation();
         // me.touchEvent.stopPropagation();
     }
-
 
     handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
         e.stopPropagation();
@@ -225,7 +203,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         me.touchEvent.stopPropagation();
         me.touchEvent.preventDefault();
     }
-
 
     handleHandDown = (e: React.TouchEvent) => {
         // e.stopPropagation();

@@ -9,6 +9,9 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { LightboxView } from '../views/LightboxView';
 import { DocumentView, ViewAdjustment } from '../views/nodes/DocumentView';
 import { Scripting } from './Scripting';
+import { CurrentUserUtils } from './CurrentUserUtils';
+import { TabDocView } from '../views/collections/TabDocView';
+import { UndoManager } from './UndoManager';
 
 export class DocumentManager {
 
@@ -102,7 +105,7 @@ export class DocumentManager {
     public getLightboxDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
         const docViews = DocumentManager.Instance.DocumentViews;
         const views: DocumentView[] = [];
-        docViews.map(view => LightboxView.IsLightboxDocView(view.docViewPath) && view.rootDoc === toFind && views.push(view));
+        docViews.map(view => LightboxView.IsLightboxDocView(view.docViewPath) && Doc.AreProtosEqual(view.rootDoc, toFind) && views.push(view));
         return views?.find(view => view.ContentDiv?.getBoundingClientRect().width && view.props.focus !== returnFalse) || views?.find(view => view.props.focus !== returnFalse) || (views.length ? views[0] : undefined);
     }
     public getFirstDocumentView = (toFind: Doc, originatingDoc: Opt<Doc> = undefined): DocumentView | undefined => {
@@ -218,4 +221,13 @@ export class DocumentManager {
     }
 
 }
-Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, { willZoom: true })); });
+Scripting.addGlobal(function DocFocusOrOpen(doc: any) {
+    const dv = DocumentManager.Instance.getDocumentView(doc);
+    if (dv && dv?.props.Document === doc) dv.props.focus(doc, { willZoom: true });
+    else {
+        const context = doc.context !== Doc.UserDoc().myFilesystem && Cast(doc.context, Doc, null);
+        const showDoc = context || doc;
+        CollectionDockingView.AddSplit(showDoc === Doc.GetProto(showDoc) ? Doc.MakeAlias(showDoc) : showDoc, "right") && context &&
+            setTimeout(() => DocumentManager.Instance.getDocumentView(Doc.GetProto(doc))?.focus(doc));
+    }
+});

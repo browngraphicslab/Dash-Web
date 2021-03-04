@@ -58,6 +58,33 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         this._height = this._width = 0;
         document.addEventListener("pointermove", this.onSelectMove);
         document.addEventListener("pointerup", this.onSelectEnd);
+
+        AnchorMenu.Instance.Highlight = this.highlight;
+        /**
+         * This function is used by the AnchorMenu to create an anchor highlight and a new linked text annotation.  
+         * It also initiates a Drag/Drop interaction to place the text annotation.
+         */
+        AnchorMenu.Instance.StartDrag = action((e: PointerEvent, ele: HTMLElement) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const sourceAnchorCreator = () => {
+                const annoDoc = this.highlight("rgba(173, 216, 230, 0.75)", true); // hyperlink color
+                this.props.addDocument(annoDoc);
+                return annoDoc;
+            };
+            const targetCreator = (annotationOn: Doc | undefined) => {
+                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100, undefined, annotationOn);
+                FormattedTextBox.SelectOnLoad = target[Id];
+                return target;
+            };
+            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, sourceAnchorCreator, targetCreator), e.pageX, e.pageY, {
+                dragComplete: e => {
+                    if (!e.aborted && e.annoDragData && e.annoDragData.linkSourceDoc && e.annoDragData.dropDocument && e.linkDocument) {
+                        e.annoDragData.linkSourceDoc.isPushpin = e.annoDragData.dropDocument.annotationOn === this.props.rootDoc;
+                    }
+                }
+            });
+        });
     }
     componentWillUnmount() {
         document.removeEventListener("pointermove", this.onSelectMove);
@@ -111,11 +138,12 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         }
     }
     @action
-    highlight = (color: string) => {
+    highlight = (color: string, isLinkButton: boolean) => {
         // creates annotation documents for current highlights
         const effectiveAcl = GetEffectiveAcl(this.props.rootDoc[DataSym]);
         const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
         annotationDoc && this.props.addDocument(annotationDoc);
+        annotationDoc && (annotationDoc.isLinkButton = isLinkButton);
         return annotationDoc as Doc ?? undefined;
     }
 
@@ -154,36 +182,6 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             AnchorMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
         }
 
-        AnchorMenu.Instance.Highlight = this.highlight;
-        /**
-         * This function is used by the AnchorMenu to create an anchor highlight and a new linked text annotation.  
-         * It also initiates a Drag/Drop interaction to place the text annotation.
-         */
-        AnchorMenu.Instance.StartDrag = action(async (e: PointerEvent, ele: HTMLElement) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const targetCreator = () => {
-                const target = CurrentUserUtils.GetNewTextDoc("Note linked to " + this.props.rootDoc.title, 0, 0, 100, 100);
-                FormattedTextBox.SelectOnLoad = target[Id];
-                return target;
-            };
-            const anchorCreator = () => {
-                const annoDoc = this.highlight("rgba(173, 216, 230, 0.75)"); // hyperlink color
-                annoDoc.isLinkButton = true; // prevents link button from showing up --- maybe not a good thing?
-                this.props.addDocument(annoDoc);
-                return annoDoc;
-            };
-            DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.props.rootDoc, anchorCreator, targetCreator), e.pageX, e.pageY, {
-                dragComplete: e => {
-                    if (!e.aborted && e.annoDragData && e.annoDragData.annotationDocument && e.annoDragData.dropDocument && !e.linkDocument) {
-                        e.linkDocument = DocUtils.MakeLink({ doc: e.annoDragData.annotationDocument }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        e.annoDragData.annotationDocument.isPushpin = e.annoDragData?.dropDocument.annotationOn === this.props.rootDoc;
-                    }
-                    e.linkDocument && e.annoDragData?.linkDropCallback?.(e as { linkDocument: Doc });// bcz: typescript can't figure out that this is valid even though we tested e.linkDocument
-                }
-            });
-        });
-
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
             const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
             if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
@@ -197,7 +195,7 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             AnchorMenu.Instance.jumpTo(e.clientX, e.clientY);
 
             if (AnchorMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
-                this.highlight("rgba(245, 230, 95, 0.75)");  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
+                this.highlight("rgba(245, 230, 95, 0.75)", false);  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
             }
         } else {
             runInAction(() => this._width = this._height = 0);

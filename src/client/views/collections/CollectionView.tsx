@@ -153,12 +153,10 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                         const hasContextAnchor = DocListCast(doc.links).some(l => (l.anchor2 === doc && Cast(l.anchor1, Doc, null)?.annotationOn === context) || (l.anchor1 === doc && Cast(l.anchor2, Doc, null)?.annotationOn === context));
                         if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
-                                title: "pushpin", label: "",
+                                title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
                                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
                                 _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
                             });
-                            pushpin.isPushpin = true;
-                            Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
                             Doc.SetInPlace(doc, "annotationOn", undefined, true);
                             Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
                             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
@@ -191,6 +189,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                     const ind = (targetDataDoc[this.props.fieldKey] as List<Doc>).indexOf(doc);
                     if (ind !== -1) {
                         Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
+                        doc.context = undefined;
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                 });
@@ -211,14 +210,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         }
         const first = doc instanceof Doc ? doc : doc[0];
         if (!first?._stayInCollection && addDocument !== returnFalse) {
-            if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
-                const added = addDocument(doc);
-                if (!added) UndoManager.UndoTempBatch();
-                else UndoManager.ClearTempBatch();
-
-                return added;
-            }
-            UndoManager.ClearTempBatch();
+            return UndoManager.RunInTempBatch(() => this.removeDocument(doc) && addDocument(doc));
         }
         return false;
     }

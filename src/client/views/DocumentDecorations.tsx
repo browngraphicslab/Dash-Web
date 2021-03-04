@@ -175,7 +175,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 } else if (e.altKey) {    // open same document in new tab
                     CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
                 } else {
-                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, selectedDocs.slice(1).map(view => view.props.Document));
+                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
                 }
             }
         }
@@ -292,10 +292,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         this._rotateUndo = undefined;
     }
 
-
-
-    _initialAutoHeight = false;
-    _dragHeights = new Map<Doc, number>();
+    _dragHeights = new Map<Doc, { start: number, lowest: number }>();
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -323,12 +320,9 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;
-        this._initialAutoHeight = true;
         DragManager.docsBeingDragged = SelectionManager.Views().map(dv => dv.rootDoc);
-        SelectionManager.Views().map(dv => {
-            this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
-            dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
-        });
+        SelectionManager.Views().map(dv =>
+            this._dragHeights.set(dv.layoutDoc, { start: NumCast(dv.layoutDoc._height), lowest: NumCast(dv.layoutDoc._height) }));
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
@@ -369,8 +363,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.Views().forEach(action((element: DocumentView) =>
-                ((element.rootDoc.type === DocumentType.RTF ||
-                    element.rootDoc.type === DocumentType.COMPARISON ||
+                ((element.rootDoc.type === DocumentType.COMPARISON ||
                     (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
                     && Doc.NativeHeight(element.layoutDoc)) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
@@ -421,8 +414,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             if (e.ctrlKey && !Doc.NativeHeight(docView.props.Document)) docView.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(docView.rootDoc);
-                let nwidth = docView.nativeWidth;
-                let nheight = docView.nativeHeight;
+                const nwidth = docView.nativeWidth;
+                const nheight = docView.nativeHeight;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
                 height = !height || isNaN(height) ? 20 : height;
@@ -431,7 +424,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     if (nwidth / nheight !== width / height && !dragBottom) {
                         height = nheight / nwidth * width;
                     }
-                    if (e.ctrlKey || (!dragBottom || !docView.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                    if (e.ctrlKey && !dragBottom) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
                         if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                         else dW = dH * nwidth / nheight;
                     }
@@ -441,10 +434,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
-                if (fixedAspect && (!nwidth || !nheight)) {
-                    doc._nativeWidth = nwidth = doc._width || 0;
-                    doc._nativeHeight = nheight = doc._height || 0;
-                }
                 if (e.ctrlKey && [DocumentType.IMG, DocumentType.SCREENSHOT, DocumentType.VID].includes(doc.type as DocumentType)) {
                     dW !== 0 && runInAction(() => {
                         const dataDoc = doc[DataSym];
@@ -454,29 +443,33 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                         Doc.SetNativeHeight(dataDoc, nh + (dW > 0 ? 10 : -10) * nh / nw);
                     });
                 }
-                else if (nwidth > 0 && nheight > 0) {
-                    if (Math.abs(dW) > Math.abs(dH) || dragRight) {
-                        if (!fixedAspect || (dragRight && e.ctrlKey)) {
+                else if (fixedAspect) {
+                    if ((Math.abs(dW) > Math.abs(dH) && (!dragBottom || !e.ctrlKey)) || dragRight) {
+                        if (dragRight && e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * Doc.NativeWidth(doc);
+                        } else {
+                            if (!doc._fitWidth) doc._height = nheight / nwidth * actualdW;
+                            else if (!e.ctrlKey) doc._height = actualdH;
                         }
                         doc._width = actualdW;
-                        if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect || (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth))) {
+                        if (dragBottom && (e.ctrlKey || docView.layoutDoc._fitWidth)) { // frozen web pages and others that fitWidth can't grow horizontally to match a vertical resize so the only choice is to change the nativeheight even if the ctrl key isn't used
                             doc._nativeHeight = actualdH / (doc._height || 1) * Doc.NativeHeight(doc);
+                        } else {
+                            if (!doc._fitWidth) doc._width = nwidth / nheight * actualdH;
+                            else if (!e.ctrlKey) doc._width = actualdW;
                         }
                         doc._height = actualdH;
-                        if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
                     dH && (doc._height = actualdH);
-                    dH && this._initialAutoHeight && (doc._autoHeight = this._initialAutoHeight = false);
+                    dH && (doc._autoHeight = false);
                 }
             }
+            const val = this._dragHeights.get(docView.layoutDoc);
+            if (val) this._dragHeights.set(docView.layoutDoc, { start: val.start, lowest: Math.min(val.lowest, NumCast(docView.layoutDoc._height)) });
         }));
         return false;
     }
@@ -484,11 +477,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @action
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.Views().map(dv => {
-            if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
-                dv.layoutDoc._autoHeight = true;
+            const hgts = this._dragHeights.get(dv.layoutDoc);
+            if (hgts && hgts.lowest < hgts.start && hgts.lowest <= 20) {
+                dv.effectiveNativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.ContentScale(), dv.props.PanelWidth(), dv.props.PanelHeight());
+                if (dv.layoutDoc._autoHeight) dv.layoutDoc._autoHeight = false;
+                setTimeout(() => dv.layoutDoc._autoHeight = true);
             }
-            dv.layoutDoc._delayAutoHeight = undefined;
         });
         this._resizeHdlId = "";
         this.Interacting = false;
@@ -566,7 +560,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || docAcl === AclAdmin);
         });
         const canOpen = SelectionManager.Views().some(docView => !docView.props.Document._stayInCollection);
-        const closeIcon = !canDelete ? (null) : (
+        const closeIcon = !canDelete ? <div></div> : (
             <Tooltip title={<div className="dash-tooltip">Close</div>} placement="top">
                 <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
@@ -580,9 +574,9 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             </Tooltip>;
 
         const titleArea = this._edtingTitle ?
-            <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
+            <input ref={this._keyinput} className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                 onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
-            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
+            <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
                 <span className="documentDecorations-titleSpan">{`${this.selectionTitle}`}</span>
             </div>;
 
@@ -617,8 +611,8 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {closeIcon}
-                    {titleArea}
-                    {seldoc.props.hideResizeHandles ? (null) :
+                    {seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
+                    {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                                 <Tooltip key="i" title={<div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div>} placement="top">

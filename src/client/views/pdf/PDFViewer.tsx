@@ -123,6 +123,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current?.addEventListener("scroll", e => (e.target as any).scrollLeft = 0);
 
+        this._disposers.autoHeight = reaction(() => this.layoutDoc._autoHeight,
+            () => {
+                this.layoutDoc._nativeHeight = NumCast(this.props.Document[this.fieldKey + "-nativeHeight"]);
+                this.props.setHeight(NumCast(this.props.Document[this.fieldKey + "-nativeHeight"]) * (this.props.scaling?.() || 1));
+            });
+
         this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
                 if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);
@@ -385,10 +391,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
         }
         if (!e.altKey && e.button === 0 && this.active(true)) {
+            this._marqueeing = [e.clientX, e.clientY];
             if (e.target && ((e.target as any).className.includes("endOfContent") || ((e.target as any).parentElement.className !== "textLayer"))) {
-                this._marqueeing = [e.clientX, e.clientY];  // if texLayer is hit, then we select text instead of using a marquee
                 document.addEventListener("pointermove", this.onSelectMove); // need this to prevent document from being dragged if stopPropagation doesn't get called
             } else {
+                // if textLayer is hit, then we select text instead of using a marquee so clear out the marquee.
+                setTimeout(action(() => this._marqueeing = undefined), 100); // bcz: hack .. anchor menu is setup within MarqueeAnnotator so we need to at least create the marqueeAnnotator even though we aren't using it.
                 // clear out old marquees and initialize menu for new selection
                 AnchorMenu.Instance.Status = "marquee";
                 this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));

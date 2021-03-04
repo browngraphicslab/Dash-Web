@@ -113,13 +113,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const docRangeFilters = this.docRangeFilters();
             const searchDocs = this.searchFilterDocs();
             if (this.props.Document.dontRegisterView || (!docFilters.length && !docRangeFilters.length && !searchDocs.length)) {
-                return childDocs;
+                return childDocs.filter(cd => !cd.cookies); // remove any documents that require a cookie if there are no filters to provide one
             }
 
             const docsforFilter: Doc[] = [];
             childDocs.forEach((d) => {
                 if (DocUtils.Excluded(d, docFilters)) return;
-                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && ((!docFilters.length && !docRangeFilters.length) || DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
+                let notFiltered = d.z || ((!searchDocs.length || searchDocs.includes(d)) && (DocUtils.FilterDocs([d], docFilters, docRangeFilters, viewSpecScript).length > 0));
                 const fieldKey = Doc.LayoutFieldKey(d);
                 const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
                 const data = d[annos ? fieldKey + "-annotations" : fieldKey];
@@ -127,7 +127,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     let subDocs = DocListCast(data);
                     if (subDocs.length > 0) {
                         let newarray: Doc[] = [];
-                        notFiltered = notFiltered || (!searchDocs.length && (!docFilters.length && !docRangeFilters.length) && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript).length);
+                        notFiltered = notFiltered || (!searchDocs.length && DocUtils.FilterDocs(subDocs, docFilters, docRangeFilters, viewSpecScript).length);
                         while (subDocs.length > 0 && !notFiltered) {
                             newarray = [];
                             subDocs.forEach((t) => {
@@ -224,11 +224,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 e.stopPropagation();
                 return added;
             }
-            else if (de.complete.annoDragData && (!this.props.isAnnotationOverlay || de.complete.annoDragData.dragDocument === this.props.Document)) {
-                e.stopPropagation();
-                de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
-                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator();
-                return de.complete.annoDragData.dropDocument && this.addDocument(de.complete.annoDragData.dropDocument);
+            else if (de.complete.annoDragData) {
+                const dropCreator = de.complete.annoDragData.dropDocCreator;
+                de.complete.annoDragData.dropDocCreator = () => {
+                    const dropped = dropCreator(this.props.isAnnotationOverlay ? this.rootDoc : undefined);
+                    this.addDocument(dropped);
+                    return dropped;
+                };
+                return true;
             }
             return false;
         }
@@ -252,10 +255,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            if (!this.addDocument) {
-                alert("this.props.addDocument does not exist. Aborting drop operation.");
-                return;
-            }
+
+            const addDocument = (doc: Doc | Doc[]) => this.addDocument(doc);
 
             if (html) {
                 if (FormattedTextBox.IsFragment(html)) {
@@ -266,14 +267,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             DocServer.GetRefField(docid).then(f => {
                                 if (f instanceof Doc) {
                                     if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                    (f instanceof Doc) && this.addDocument(f);
+                                    (f instanceof Doc) && addDocument(f);
                                 }
                             });
                         } else {
-                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
+                            addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
-                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: StrCast(Doc.UserDoc().showTitle), _width: 100, _height: 25 }));
+                        addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: StrCast(Doc.UserDoc().showTitle), _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -293,7 +294,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         if (source.startsWith("http")) {
                             const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                             ImageUtils.ExtractExif(doc);
-                            this.addDocument(doc);
+                            addDocument(doc);
                         }
                         return;
                     } else {
@@ -303,7 +304,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             DocServer.GetRefField(docid).then(f => {
                                 if (f instanceof Doc) {
                                     if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                    (f instanceof Doc) && this.addDocument(f);
+                                    (f instanceof Doc) && addDocument(f);
                                 }
                             });
                         } else {
@@ -317,7 +318,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
-                            this.addDocument(htmlDoc);
+                            addDocument(htmlDoc);
                             if (srcWeb) {
                                 const iframe = SelectionManager.Views()[0].ContentDiv?.getElementsByTagName("iframe")?.[0];
                                 const focusNode = (iframe?.contentDocument?.getSelection()?.focusNode as any);
@@ -345,7 +346,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     console.log("Video URI = ", uriList);
-                    console.log("Add:" + this.addDocument(Docs.Create.VideoDocument(url, {
+                    console.log("Add:" + addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
@@ -382,7 +383,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     alias._nativeWidth = 850;
                     alias._height = 512;
                     alias._width = 400;
-                    this.addDocument(alias);
+                    addDocument(alias);
                 } else {
                     console.log("Adding ...");
                     const newDoc = Docs.Create.WebDocument(uriList.split("#annotations:")[0], {// clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
@@ -394,7 +395,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         useCors: true
                     });
                     console.log(" ... " + newDoc.title);
-                    console.log(" ... " + this.addDocument(newDoc) + " " + newDoc.title);
+                    console.log(" ... " + addDocument(newDoc) + " " + newDoc.title);
                 }
                 return;
             }
@@ -425,7 +426,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
                     file?.type === "application/json" && Utils.readUploadedFileAsText(file).then(result => {
                         const json = JSON.parse(result as string);
-                        this.addDocument(Docs.Create.TreeDocument(
+                        addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
                                 const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
                                 const proto = Doc.GetProto(label);
@@ -437,10 +438,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
-            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY);
+            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY, addDocument);
             batch.end();
         }
-        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number) => {
+        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number, addDocument: (doc: Doc | Doc[]) => boolean) => {
             runInAction(() => CollectionSubViewLoader.Waiting = "block");
             const disposer = OverlayView.Instance.addElement(
                 <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
@@ -448,14 +449,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    UndoManager.RunInBatch(() => this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
+                    UndoManager.RunInBatch(() => addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
                 } else {
-                    UndoManager.RunInBatch(() => generatedDocuments.forEach(this.addDocument), "drop");
+                    UndoManager.RunInBatch(() => generatedDocuments.forEach(addDocument), "drop");
                 }
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
+                    UndoManager.RunInBatch(() => addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 } else {
                     alert("Document upload failed - possibly an unsupported file type.");
                 }

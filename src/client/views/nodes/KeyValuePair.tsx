@@ -67,6 +67,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             fieldKey: this.props.keyName,
             rootSelected: returnFalse,
             isSelected: returnFalse,
+            setHeight: returnFalse,
             select: emptyFunction,
             dropAction: "alias",
             bringToFront: emptyFunction,
@@ -125,12 +126,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             contents={contents}
                             maxHeight={36}
                             height={"auto"}
-                            GetValue={() => {
-                                return Field.toKeyValueString(props.Document, props.fieldKey);
-                            }}
+                            GetValue={() => Field.toKeyValueString(props.Document, props.fieldKey)}
                             SetValue={(value: string) =>
-                                KeyValueBox.SetField(props.Document, props.fieldKey, value)}>
-                        </EditableView>
+                                KeyValueBox.SetField(props.Document, props.fieldKey, value)} />
                     </div>
                 </td>
             </tr>

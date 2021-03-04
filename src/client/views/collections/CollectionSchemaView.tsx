@@ -553,7 +553,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className={"collectionSchemaView" + (this.props.Document._searchDoc ? "-searchContainer" : "-container")}
             style={{
-                overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
+                overflow: this.props.scrollOverflow === true ? "scroll" : undefined, backgroundColor: "white",
                 pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >

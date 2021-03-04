@@ -28,6 +28,7 @@ import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { StyleLayers } from "../../StyleProvider";
+import { TreeView } from "../TreeView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -37,7 +38,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     trySelectCluster: (addToSel: boolean) => boolean;
-    nudge?: (x: number, y: number) => boolean;
+    nudge?: (x: number, y: number, nudgeTime?: number) => boolean;
     ungroup?: () => void;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -45,7 +46,6 @@ interface MarqueeViewProps {
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
     private _commandExecuted = false;
-    @observable public static DragMarquee = false;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -134,7 +134,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 e.stopPropagation();
             } else if (e.key === "f" && e.ctrlKey) {
                 e.preventDefault();
-                const root = Docs.Create.FreeformDocument([], { title: "folder", _stayInCollection: true, system: true, isFolder: true });
+                const root = Docs.Create.TreeDocument([], { title: "folder", _stayInCollection: true, isFolder: true });
                 const folder = Docs.Create.TreeDocument([root], { title: "root", isFolder: true, treeViewType: "fileSystem", treeViewTruncateTitleWidth: 150 });
                 Doc.GetProto(folder).isFolder = true;
                 folder.x = x;
@@ -161,13 +161,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 slide.x = x;
                 slide.y = y;
                 FormattedTextBox.SelectOnLoad = slide[Id];
+                TreeView._editTitleOnLoad = { id: slide[Id], parent: undefined };
                 this.props.addDocument?.(slide);
-                //setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(slide)!, false));
                 e.stopPropagation();
             } else if (!e.ctrlKey && !e.metaKey && SelectionManager.Views().length < 2) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout && !this.props.childLayoutString ? e.key : "";
                 FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
-                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0));
+                this.props.addLiveTextDocument(CurrentUserUtils.GetNewTextDoc("-typed text-", x, y, 200, 100, this.props.xMargin === 0, this.props.isAnnotationOverlay ? this.props.Document : undefined));
                 e.stopPropagation();
             }
     }
@@ -219,8 +219,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._downY = this._lastY = e.clientY;
         if (!(e.nativeEvent as any).marqueeHit) {
             (e.nativeEvent as any).marqueeHit = true;
-            // allow marquee if right click OR alt+left click OR space bar + left click
-            if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
+            // allow marquee if right click OR alt+left click
+            if (e.button === 2 || (e.button === 0 && e.altKey)) {
                 // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
                 this.setPreviewCursor(e.clientX, e.clientY, true);
                 // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
@@ -250,9 +250,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey || MarqueeView.DragMarquee) {
-            e.preventDefault();
-        }
+        e.altKey && e.preventDefault();
     }
 
     @action
@@ -289,9 +287,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
         this.cleanupInteractions(true, this._commandExecuted);
 
-        if (e.altKey || MarqueeView.DragMarquee) {
-            e.preventDefault();
-        }
+        e.altKey && e.preventDefault();
     }
 
     clearSelection() {
@@ -358,6 +354,26 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
     }
+
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, layers: string[], makeGroup: Opt<boolean>) => {
+        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
+            Doc.GetProto(doc).data = new List<Doc>(selected);
+            Doc.GetProto(doc).title = makeGroup ? "grouping" : "nested freeform";
+            !this.props.isAnnotationOverlay && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", Doc.GetProto(doc));
+            doc._panX = doc._panY = 0;
+            return doc;
+        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newCollection.system = undefined;
+        newCollection._layerTags = new List<string>(layers);
+        newCollection._width = this.Bounds.width;
+        newCollection._height = this.Bounds.height;
+        newCollection._isGroup = makeGroup;
+        newCollection.x = this.Bounds.left;
+        newCollection.y = this.Bounds.top;
+        selected.forEach(d => d.context = newCollection);
+        this.hideMarquee();
+        return newCollection;
+    });
 
     @action
     pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
@@ -637,9 +653,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     render() {
         return <div className="marqueeView"
             style={{
-                overflow: (!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" :
+                overflow: //(!this.props.ContainingCollectionView && this.props.isAnnotationOverlay) ? "visible" :
                     StrCast(this.props.Document._overflow),
-                cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand"
+                cursor: "hand"
             }}
             onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>

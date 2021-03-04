@@ -25,6 +25,7 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField } from "./URLField";
 import { deleteProperty, GetEffectiveAcl, getField, getter, makeEditable, makeReadOnly, normalizeEmail, setter, SharingPermissions, updateFunction } from "./util";
 import JSZip = require("jszip");
+import { prefix } from "@fortawesome/free-regular-svg-icons";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -195,11 +196,7 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym](clear?: boolean) {
-        const self = this[SelfProxy];
-        runInAction(() => clear && Array.from(Object.keys(self)).forEach(key => delete self[key]));
-        return this.___fields;
-    }
+    public [FieldsSym] = () => this[Self].___fields; // Object.keys(this).reduce((fields, key) => { fields[key] = this[key]; return fields; }, {} as any);
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
@@ -234,10 +231,11 @@ export class Doc extends RefField {
         const sameAuthor = this.author === Doc.CurrentUserEmail;
         if (set) {
             for (const key in set) {
-                if (!key.startsWith("fields.")) {
+                const fprefix = "fields.";
+                if (!key.startsWith(fprefix)) {
                     continue;
                 }
-                const fKey = key.substring(7);
+                const fKey = key.substring(fprefix.length);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
                     const prev = GetEffectiveAcl(this);
@@ -250,9 +248,6 @@ export class Doc extends RefField {
                     if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
                         DocServer.GetRefField(this[Id], true);
                     }
-                    // if (prev !== AclPrivate && GetEffectiveAcl(this) === AclPrivate) {
-                    //     this[FieldsSym](true);
-                    // }
                 };
                 if (sameAuthor || fKey.startsWith("acl") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
@@ -500,12 +495,10 @@ export namespace Doc {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         alias.aliasOf = doc;
-        if (doc !== Doc.GetProto(doc)) {
-            alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
-        }
+        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
 
-        Doc.AddDocToList(doc[DataSym], "aliases", alias);
+        Doc.AddDocToList(Doc.GetProto(doc)[DataSym], "aliases", alias);
 
         return alias;
     }
@@ -766,6 +759,13 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        if (copyProto) {
+            Doc.GetProto(copy).context = undefined;
+            Doc.GetProto(copy).aliases = new List<Doc>([copy]);
+        } else {
+            Doc.AddDocToList(Doc.GetProto(copy)[DataSym], "aliases", copy);
+        }
+        copy.context = undefined;
         Doc.UserDoc().defaultAclPrivate && (copy["acl-Public"] = "Not Shared");
         return copy;
     }
@@ -778,6 +778,7 @@ export namespace Doc {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
             delegate.author = Doc.CurrentUserEmail;
+            if (!Doc.IsSystem(doc)) Doc.AddDocToList(doc[DataSym], "aliases", delegate);
             title && (delegate.title = title);
             return delegate;
         }
@@ -1118,14 +1119,12 @@ export namespace Doc {
     export function isDocPinned(doc: Doc) {
         //add this new doc to props.Document
         const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-        if (curPres) {
-            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
-        }
-        return false;
+        return !curPres ? false : DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
     }
 
     export function copyDragFactory(dragFactory: Doc) {
         const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+        ndoc && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", Doc.GetProto(ndoc));
         if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
             dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
             Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);

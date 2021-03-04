@@ -21,7 +21,6 @@ export const documentSchema = createSchema({
     _currentTimecode: "number", // current play back time of a temporal document (video / audio)
     _timecodeToShow: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     _timecodeToHIde: "number",  // the time that a document should be hidden
-    isLabel: "boolean",         // whether the document is a label or not (video / audio)
     markers: listSpec(Doc),     // list of markers for audio / video
     x: "number",                // x coordinate when in a freeform view 
     y: "number",                // y coordinate when in a freeform view 
@@ -96,7 +95,7 @@ export const documentSchema = createSchema({
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     layers: listSpec("string"), // which layers the document is part of
-    lockedPosition: "boolean",  // whether the document can be moved (dragged)
+    _lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 
     // drag drop properties

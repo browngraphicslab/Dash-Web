@@ -149,10 +149,18 @@ export class LinkManager {
                 const target = (sourceDoc === linkDoc.anchor1 ? linkDoc.anchor2 : sourceDoc === linkDoc.anchor2 ? linkDoc.anchor1 :
                     (Doc.AreProtosEqual(sourceDoc, linkDoc.anchor1 as Doc) || Doc.AreProtosEqual((linkDoc.anchor1 as Doc).annotationOn as Doc, sourceDoc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
                 if (target) {
-                    const containerDoc = Cast(target.annotationOn, Doc, null) || target;
-                    const targetContext = Cast(containerDoc?.context, Doc, null);
-                    const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, sourceDoc, finished);
+                    if (target.TourMap) {
+                        const fieldKey = Doc.LayoutFieldKey(target);
+                        const tour = DocListCast(target[fieldKey]).reverse();
+                        LightboxView.SetLightboxDoc(currentContext, undefined, tour);
+                        setTimeout(LightboxView.Next);
+                        finished?.();
+                    } else {
+                        const containerDoc = Cast(target.annotationOn, Doc, null) || target;
+                        const targetContext = Cast(containerDoc?.context, Doc, null);
+                        const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                        DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "add:right"), finished), targetNavContext, linkDoc, undefined, sourceDoc, finished);
+                    }
                 } else {
                     finished?.();
                 }
