@@ -172,6 +172,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 layerProvider={this.props.layerProvider}
                 PanelWidth={this.rtfWidth}
                 PanelHeight={this.rtfOutlineHeight}
+                NativeWidth={this.rtfWidth}
+                NativeHeight={this.rtfOutlineHeight}
                 focus={this.props.focus}
                 ScreenToLocalTransform={this.titleTransform}
                 docFilters={returnEmptyFilter}

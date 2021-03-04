@@ -182,7 +182,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         let offset = 0;
         for (const { layout: candidate } of this.childLayoutPairs) {
             if (candidate === layout) {
-                return this.props.ScreenToLocalTransform().translate(-offset, 0);
+                return this.props.ScreenToLocalTransform().translate(-offset / (this.props.scaling?.() || 1), 0);
             }
             offset += this.lookupPixels(candidate) + resizerWidth;
         }
@@ -217,8 +217,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             styleProvider={this.props.styleProvider}
-            layerProvider={undefined}
-            docViewPath={returnEmptyDoclist}
+            layerProvider={this.props.layerProvider}
+            docViewPath={this.props.docViewPath}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
@@ -257,7 +257,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
-            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin)).scale((this.props.scaling?.() || 1));
             const width = () => this.lookupPixels(layout);
             const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(

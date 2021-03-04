@@ -43,7 +43,7 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     @observable public Status: "marquee" | "annotation" | "" = "";
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
-    public Highlight: (color: string) => Opt<Doc> = (color: string) => undefined;
+    public Highlight: (color: string, isPushpin: boolean) => Opt<Doc> = (color: string, isPushpin: boolean) => undefined;
     public Delete: () => void = unimplementedFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
     public PinToPres: () => void = unimplementedFunction;
@@ -76,7 +76,7 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this.Highlight(this.highlightColor) && this.Pinned) {
+        if (!this.Highlight(this.highlightColor, false) && this.Pinned) {
             this.Highlighting = !this.Highlighting;
         }
     }

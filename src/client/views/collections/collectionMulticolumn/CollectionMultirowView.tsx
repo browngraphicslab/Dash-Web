@@ -182,7 +182,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         let offset = 0;
         for (const { layout: candidate } of this.childLayoutPairs) {
             if (candidate === layout) {
-                return this.props.ScreenToLocalTransform().translate(0, -offset);
+                return this.props.ScreenToLocalTransform().translate(0, -offset / (this.props.scaling?.() || 1));
             }
             offset += this.lookupPixels(candidate) + resizerHeight;
         }
@@ -217,8 +217,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             styleProvider={this.props.styleProvider}
-            layerProvider={undefined}
-            docViewPath={returnEmptyDoclist}
+            layerProvider={this.props.layerProvider}
+            docViewPath={this.props.docViewPath}
             LayoutTemplate={this.props.childLayoutTemplate}
             LayoutTemplateString={this.props.childLayoutString}
             freezeDimensions={this.props.childFreezeDimensions}
@@ -257,19 +257,13 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
-            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin)).scale((this.props.scaling?.() || 1));
             const height = () => this.lookupPixels(layout);
             const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
-                <div
-                    className={"document-wrapper"}
-                    key={"wrapper" + i}
-                >
+                <div className={"document-wrapper"} key={"wrapper" + i} >
                     {this.getDisplayDoc(layout, dxf, width, height)}
-                    <HeightLabel
-                        layout={layout}
-                        collectionDoc={Document}
-                    />
+                    <HeightLabel layout={layout} collectionDoc={Document} />
                 </div>,
                 <ResizeBar
                     height={resizerHeight}

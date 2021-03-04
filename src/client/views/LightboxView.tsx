@@ -46,7 +46,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
             this._docFilters && (this._docFilters.length = 0);
             this._future = this._history = [];
         } else {
-            TabDocView.PinDoc(doc, { hidePresBox: true });
+            //TabDocView.PinDoc(doc, { hidePresBox: true });
             this._history ? this._history.push({ doc, target }) : this._history = [{ doc, target }];
             if (doc !== LightboxView.LightboxDoc) {
                 this._savedState = {
@@ -247,6 +247,7 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         ContainingCollectionDoc={undefined}
                         renderDepth={0} />
                 </div>
+
                 {this.navBtn(0, undefined, this.props.PanelHeight / 2 - 12.50, "chevron-left",
                     () => LightboxView.LightboxDoc && LightboxView._history?.length ? "" : "none", e => {
                         e.stopPropagation();
@@ -258,6 +259,10 @@ export class LightboxView extends React.Component<LightboxViewProps> {
                         LightboxView.Next();
                     })}
                 <LightboxTourBtn navBtn={this.navBtn} future={this.future} stepInto={this.stepInto} tourMap={this.tourMap} />
+                <div className="lightboxView-navBtn" title={"toggle fit width"} style={{ position: "absolute", right: 10, top: 10, color: "white" }}
+                    onClick={e => { e.stopPropagation(); LightboxView.LightboxDoc!._fitWidth = !LightboxView.LightboxDoc!._fitWidth; }}>
+                    <FontAwesomeIcon icon={"arrows-alt-h"} size="2x" />
+                </div>
             </div>;
     }
 }
@@ -276,6 +281,6 @@ export class LightboxTourBtn extends React.Component<LightboxTourBtnProps> {
                 this.props.stepInto();
             },
             StrCast(this.props.tourMap()?.lastElement()?.TourMap)
-        )
+        );
     }
 }

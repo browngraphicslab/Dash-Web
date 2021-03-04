@@ -224,11 +224,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 e.stopPropagation();
                 return added;
             }
-            else if (de.complete.annoDragData && (!this.props.isAnnotationOverlay || de.complete.annoDragData.dragDocument === this.props.Document)) {
-                e.stopPropagation();
-                de.complete.annoDragData.annotationDocument = de.complete.annoDragData.annotationDocCreator();
-                de.complete.annoDragData.dropDocument = de.complete.annoDragData.dropDocCreator();
-                return de.complete.annoDragData.dropDocument && this.addDocument(de.complete.annoDragData.dropDocument);
+            else if (de.complete.annoDragData) {
+                const dropCreator = de.complete.annoDragData.dropDocCreator;
+                de.complete.annoDragData.dropDocCreator = () => {
+                    const dropped = dropCreator(this.props.isAnnotationOverlay ? this.rootDoc : undefined);
+                    this.addDocument(dropped);
+                    return dropped;
+                };
+                return true;
             }
             return false;
         }
@@ -253,11 +256,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             e.stopPropagation();
             e.preventDefault();
 
-            const addDocument = (doc: Doc | Doc[]) => {
-                const docs = doc instanceof Doc ? [doc] : doc;
-                docs.forEach(doc => Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", doc));
-                return this.addDocument(doc);
-            };
+            const addDocument = (doc: Doc | Doc[]) => this.addDocument(doc);
 
             if (html) {
                 if (FormattedTextBox.IsFragment(html)) {

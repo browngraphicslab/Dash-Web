@@ -194,12 +194,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get lockButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<div className="dash-tooltip">{`${this.selectedDoc?.lockedPosition ? "Unlock" : "Lock"} Position`}</div>} placement="top">
+            title={<div className="dash-tooltip">{`${this.selectedDoc?._lockedPosition ? "Unlock" : "Lock"} Position`}</div>} placement="top">
             <div>
-                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc.lockedPosition ? "on" : "off"}`} onPointerDown={this.onLock} >
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._lockedPosition ? "on" : "off"}`} onPointerDown={this.onLock} >
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg"
-                        color={this.selectedDoc?.lockedPosition ? "black" : "white"}
-                        icon={this.selectedDoc?.lockedPosition ? "unlock" : "lock"} />
+                        color={this.selectedDoc?._lockedPosition ? "black" : "white"}
+                        icon={this.selectedDoc?._lockedPosition ? "unlock" : "lock"} />
                 </div>
                 <div className="propertiesButtons-title"
                 >Position </div>
@@ -260,7 +260,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     setCaption = () => {
-        SelectionManager.Views().forEach(dv => dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined);
+        SelectionManager.Views().forEach(dv => {
+            dv.rootDoc._showCaption = dv.rootDoc._showCaption === undefined ? "caption" : undefined;
+            console.log("caption = " + dv.rootDoc._showCaption);
+        });
     }
 
     @computed
@@ -427,6 +430,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
 
     @action @undoBatch
+    changeFitWidth = () => {
+        if (this.selectedDoc) {
+            if (SelectionManager.Views().length) SelectionManager.Views().forEach(dv => dv.rootDoc._fitWidth = !dv.rootDoc._fitWidth);
+            else this.selectedDoc._fitWidth = !this.selectedDoc._fitWidth;
+        }
+    }
+
+    @action @undoBatch
     changeClusters = () => {
         if (this.selectedDoc) {
             if (SelectionManager.Views().length) SelectionManager.Views().forEach(dv => dv.rootDoc._useClusters = !dv.rootDoc._useClusters);
@@ -444,6 +455,20 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <FontAwesomeIcon className="documentdecorations-icon" icon="expand" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
+            </div>
+        </Tooltip>;
+    }
+
+    @computed
+    get fitWidthButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{this.selectedDoc?._fitWidth ? "Stop Fitting Width" : "Fit Width"}</div></>} placement="top">
+            <div>
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._fitWidth ? "on" : "off"}`} onPointerDown={this.changeFitWidth}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="arrows-alt-h" size="lg" />
+                </div>
+                <div className="propertiesButtons-title"> {this.selectedDoc?._fitWidth ? "unfit" : "fit"} </div>
             </div>
         </Tooltip>;
     }
@@ -520,6 +545,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div>
             <div className="propertiesButtons-button" style={{ display: !isFreeForm && !isText ? "none" : "" }}>
                 {this.fitContentButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.fitWidthButton}
             </div>
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
                 {this.maskButton}

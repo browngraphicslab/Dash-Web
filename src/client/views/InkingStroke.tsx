@@ -233,7 +233,7 @@ export function SetActiveFillColor(value: string) { ActiveInkPen() && (ActiveInk
 export function SetActiveArrowStart(value: string) { ActiveInkPen() && (ActiveInkPen().activeArrowStart = value); }
 export function SetActiveArrowEnd(value: string) { ActiveInkPen() && (ActiveInkPen().activeArrowEnd = value); }
 export function SetActiveDash(dash: string): void { !isNaN(parseInt(dash)) && ActiveInkPen() && (ActiveInkPen().activeDash = dash); }
-export function ActiveInkPen(): Doc { return Cast(Doc.UserDoc().activeInkPen, Doc, null); }
+export function ActiveInkPen(): Doc { return Doc.UserDoc(); }
 export function ActiveInkColor(): string { return StrCast(ActiveInkPen()?.activeInkColor, "black"); }
 export function ActiveFillColor(): string { return StrCast(ActiveInkPen()?.activeFillColor, ""); }
 export function ActiveArrowStart(): string { return StrCast(ActiveInkPen()?.activeArrowStart, ""); }
