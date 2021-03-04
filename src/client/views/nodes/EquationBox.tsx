@@ -32,6 +32,12 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
             this._ref.current!.mathField.focus();
             this._ref.current!.mathField.select();
         }
+        reaction(() => StrCast(this.dataDoc.text),
+            text => {
+                if (text && text !== this._ref.current!.mathField.latex()) {
+                    this._ref.current!.mathField.latex(text);
+                }
+            })
         reaction(() => this.props.isSelected(),
             selected => {
                 if (this._ref.current) {
@@ -78,6 +84,7 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
     }
     render() {
         TraceMobx();
+        console.log("eqn" + this.dataDoc.text)
         return (<div onPointerDown={e => !e.ctrlKey && e.stopPropagation()}
             style={{
                 pointerEvents: !this.props.isSelected() ? "none" : undefined,
