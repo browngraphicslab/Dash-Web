@@ -1203,7 +1203,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     getAnchor = () => {
-        df
+        const anchor = Docs.Create.TextanchorDocument({
+            title: StrCast(this.layoutDoc._viewType),
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            annotationOn: this.rootDoc
+        });
         const proto = Doc.GetProto(anchor);
         proto[ViewSpecPrefix + "_viewType"] = this.layoutDoc._viewType;
         proto.docFilters = ObjectField.MakeCopy(this.layoutDoc.docFilters as ObjectField) || new List<string>([]);
