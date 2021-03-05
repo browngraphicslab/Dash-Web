@@ -191,7 +191,7 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
     render() {
         const borders = 16; // 8px border on each side
         return <div className="linkDocPreview" onPointerDown={this.followLink}
-            style={{ left: this.props.location[0], top: this.props.location[1], width: this.width() + borders, height: this.height() + borders }}>
+            style={{ left: this.props.location[0], top: this.props.location[1], width: this.width() + borders, height: this.height() + borders + (this.props.showHeader ? 37 : 0) }}>
             {this.docPreview}
         </div>;
     }
