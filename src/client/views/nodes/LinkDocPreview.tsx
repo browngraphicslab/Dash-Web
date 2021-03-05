@@ -109,8 +109,20 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
             this.props.docProps?.addDocTab(Docs.Create.WebDocument(this.props.hrefs[0], { title: this.props.hrefs[0], _width: 200, _height: 400, useCors: true }), "add:right");
         }
     }
-    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
-    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
+    width = () => {
+        if (!this._targetDoc) return 225;
+        if (this._targetDoc[WidthSym]() < this._targetDoc?.[HeightSym]()) {
+            return Math.min(225, this._targetDoc[HeightSym]()) * this._targetDoc[WidthSym]() / this._targetDoc[HeightSym]();
+        }
+        return Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
+    }
+    height = () => {
+        if (!this._targetDoc) return 225;
+        if (this._targetDoc[WidthSym]() > this._targetDoc?.[HeightSym]()) {
+            return Math.min(225, this._targetDoc[WidthSym]()) * this._targetDoc[HeightSym]() / this._targetDoc[WidthSym]();
+        }
+        return Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
+    }
     @computed get previewHeader() {
         return !this._linkDoc || !this._targetDoc || !this._linkSrc ? (null) :
             <div className="linkDocPreview-info" ref={this._infoRef}>
@@ -177,8 +189,9 @@ export class LinkDocPreview extends React.Component<LinkDocPreviewProps> {
     }
 
     render() {
+        const borders = 16; // 8px border on each side
         return <div className="linkDocPreview" onPointerDown={this.followLink}
-            style={{ left: this.props.location[0], top: this.props.location[1], width: this.width() + 16 }}>
+            style={{ left: this.props.location[0], top: this.props.location[1], width: this.width() + borders, height: this.height() + borders }}>
             {this.docPreview}
         </div>;
     }
