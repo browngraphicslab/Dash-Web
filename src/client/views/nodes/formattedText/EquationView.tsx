@@ -15,24 +15,24 @@ export class EquationView {
         this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
-        this._fieldWrapper.style.fontWeight = "bold";
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.display = "inline-block";
-        this._fieldWrapper.onkeypress = function (e: any) { e.stopPropagation(); };
-        this._fieldWrapper.onkeydown = function (e: any) { e.stopPropagation(); };
-        this._fieldWrapper.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldWrapper.onmousedown = function (e: any) { e.stopPropagation(); };
 
         ReactDOM.render(<EquationViewInternal
             fieldKey={node.attrs.fieldKey}
             width={node.attrs.width}
             height={node.attrs.height}
+            setEditor={this.setEditor}
             tbox={tbox}
         />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
     }
+    _editor: EquationEditor | undefined;
+    setEditor = (editor?: EquationEditor) => { this._editor = editor; }
     destroy() { ReactDOM.unmountComponentAtNode(this._fieldWrapper); }
-    selectNode() { }
+    selectNode() { this._editor?.mathField.focus(); }
+    deselectNode() { }
 }
 
 interface IEquationViewInternal {
@@ -40,6 +40,7 @@ interface IEquationViewInternal {
     tbox: FormattedTextBox;
     width: number;
     height: number;
+    setEditor: (editor: EquationEditor | undefined) => void;
 }
 
 @observer
@@ -47,6 +48,7 @@ export class EquationViewInternal extends React.Component<IEquationViewInternal>
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     _fieldKey: string;
+    _ref: React.RefObject<EquationEditor> = React.createRef();
 
     constructor(props: IEquationViewInternal) {
         super(props);
@@ -55,6 +57,7 @@ export class EquationViewInternal extends React.Component<IEquationViewInternal>
     }
 
     componentWillUnmount() { this._reactionDisposer?.(); }
+    componentDidMount() { this.props.setEditor(this._ref.current ?? undefined); }
 
     render() {
         return <div className="equationView" style={{
@@ -64,7 +67,7 @@ export class EquationViewInternal extends React.Component<IEquationViewInternal>
             height: this.props.height,
             bottom: 3,
         }}>
-            <EquationEditor
+            <EquationEditor ref={this._ref}
                 value={StrCast(this._textBoxDoc[this._fieldKey], "y=")}
                 onChange={str => this._textBoxDoc[this._fieldKey] = str}
                 autoCommands="pi theta sqrt sum prod alpha beta gamma rho"

@@ -757,7 +757,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    setHeight = (height: number) => this.rootDoc._height = height;
+    setHeight = (height: number) => this.layoutDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
