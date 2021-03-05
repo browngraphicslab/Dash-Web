@@ -57,7 +57,6 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
         const width = this.props.PanelWidth();
         const height = this.props.PanelHeight();
         const fn = StrCast(DocListCast(this.dataDoc.data).lastElement()?.text, "x^2").replace(/\\frac\{(.*)\}\{(.*)\}/, "($1/$2)");
-        console.log("Graphing:" + fn);
         try {
             this._plot = functionPlot({
                 target: "#" + this._plotEle.id,

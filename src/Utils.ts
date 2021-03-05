@@ -482,20 +482,30 @@ const easeInOutQuad = (currentTime: number, start: number, change: number, durat
     return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
 };
 
-export function smoothScroll(duration: number, element: HTMLElement, to: number, finish?: () => void) {
-    const start = element.scrollTop;
-    const change = to - start;
-    const startDate = new Date().getTime();
+export function smoothScroll(duration: number, element: HTMLElement | HTMLElement[], to: number, finish?: () => void, reset?: { resetGoTo: { to: number, duration: number } | undefined }) {
+    const elements = (element instanceof HTMLElement ? [element] : element);
+    let starts = elements.map(element => element.scrollTop);
+    let startDate = new Date().getTime();
 
     const animateScroll = () => {
         const currentDate = new Date().getTime();
-        const currentTime = currentDate - startDate;
-        element.scrollTop = easeInOutQuad(currentTime, start, change, duration);
+        let currentTime = currentDate - startDate;
+        const resetParams = reset?.resetGoTo;
+        if (resetParams) {
+            reset!.resetGoTo = undefined;
+            const { to: newTo, duration: newDuration } = resetParams;
+            to = newTo;
+            starts = starts.map(start => easeInOutQuad(currentTime, start, to - start, duration));
+            startDate = currentDate;
+            duration = newDuration;
+            currentTime = currentDate - startDate;
+        }
+        elements.map((element, i) => element.scrollTop = easeInOutQuad(currentTime, starts[i], to - starts[i], duration));
 
         if (currentTime < duration) {
             requestAnimationFrame(animateScroll);
         } else {
-            element.scrollTop = to;
+            elements.forEach(element => element.scrollTop = to);
             finish?.();
         }
     };

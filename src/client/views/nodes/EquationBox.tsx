@@ -84,7 +84,6 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
     }
     render() {
         TraceMobx();
-        console.log("eqn" + this.dataDoc.text)
         return (<div onPointerDown={e => !e.ctrlKey && e.stopPropagation()}
             style={{
                 pointerEvents: !this.props.isSelected() ? "none" : undefined,
