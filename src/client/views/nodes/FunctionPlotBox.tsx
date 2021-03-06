@@ -33,7 +33,7 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
     }
     componentDidMount() {
         this.props.setContentView?.(this);
-        reaction(() => [DocListCast(this.dataDoc.data).lastElement()?.text, this.dataDoc.xRange, this.dataDoc.yRange],
+        reaction(() => [DocListCast(this.dataDoc.data).lastElement()?.text, this.layoutDoc.width, this.layoutDoc.height, this.dataDoc.xRange, this.dataDoc.yRange],
             () => this.createGraph());
     }
     getAnchor = () => {
@@ -57,7 +57,6 @@ export class FunctionPlotBox extends ViewBoxBaseComponent<FieldViewProps, Equati
         const width = this.props.PanelWidth();
         const height = this.props.PanelHeight();
         const fn = StrCast(DocListCast(this.dataDoc.data).lastElement()?.text, "x^2").replace(/\\frac\{(.*)\}\{(.*)\}/, "($1/$2)");
-        console.log("Graphing:" + fn);
         try {
             this._plot = functionPlot({
                 target: "#" + this._plotEle.id,

@@ -171,7 +171,7 @@ export class InkStrokeProperties {
         SelectionManager.Views().forEach(action(inkView => {
             const doc = Document(inkView.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                doc.rotation = Number(doc.rotation) + Number(angle);
+                doc.rotation = NumCast(doc.rotation) + angle;
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
 

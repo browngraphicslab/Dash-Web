@@ -759,7 +759,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     screenToLocal = () => this.props.ScreenToLocalTransform().translate(0, -this.headerMargin);
     contentScaling = () => this.ContentScale;
     onClickFunc = () => this.onClickHandler;
-    setHeight = (height: number) => this.rootDoc._height = height;
+    setHeight = (height: number) => this.layoutDoc._height = height;
     setContentView = (view: { getAnchor?: () => Doc, forward?: () => boolean, back?: () => boolean }) => this._componentView = view;
     @observable contentsActive: () => boolean = returnFalse;
     @action setContentsActive = (setActive: () => boolean) => this.contentsActive = setActive;
@@ -1019,7 +1019,7 @@ export class DocumentView extends React.Component<DocumentViewProps> {
     @computed get nativeScaling() {
         if (this.shouldNotScale()) return 1;
         const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
-        if (this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
+        if (this.layoutDoc._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
             return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth
         }
         return Math.max(minTextScale, this.props.PanelHeight() / this.effectiveNativeHeight); // height-limited or unscaled

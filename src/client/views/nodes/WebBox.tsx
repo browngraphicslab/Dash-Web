@@ -26,11 +26,11 @@ import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { Annotation } from "../pdf/Annotation";
-import { DocAfterFocusFunc } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
-import "./WebBox.scss";
-import React = require("react");
 import { LinkDocPreview } from "./LinkDocPreview";
+import "./WebBox.scss";
+import { DocumentType } from '../../documents/DocumentTypes';
+import React = require("react");
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -47,7 +47,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
     private _keyInput = React.createRef<HTMLInputElement>();
-    private _ignoreScroll = false;
+    private _ignoreScroll = "";
+    private _scrollTimer: any;
     private _initialScroll: Opt<number>;
     @observable private _marqueeing: number[] | undefined;
     @observable private _url: string = "hello";
@@ -90,47 +91,81 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 }
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
+            iframe.contentDocument.addEventListener('scroll', this.iframeScroll, false);
         }
     }
 
-    @action
-    onWheelScroll = (scrollTop: number) => {
-        if (this.webpage && this._outerRef.current) {
-            this.webpage.scrollLeft = 0;
-            this._outerRef.current.scrollTop = scrollTop;
-            this._outerRef.current.scrollLeft = 0;
-            this._ignoreScroll = true;
-            if (this.layoutDoc._scrollTop !== scrollTop) {
-                this.layoutDoc._scrollTop = scrollTop;
-            }
-            this._ignoreScroll = false;
-        }
+    resetIgnoreScroll = () => {
+        this._scrollTimer && clearTimeout(this._scrollTimer);
+        this._scrollTimer = setTimeout(() => {
+            this._scrollTimer = undefined;
+            this._ignoreScroll = "";
+        }, 250);
+        this._outerRef.current && (this._outerRef.current.scrollLeft = 0);
     }
-    iframeWheel = (e: any) => this.webpage && e.target?.children && this.onWheelScroll(this.webpage.scrollTop);
-    onWheel = (e: React.WheelEvent) => {
-        this._outerRef.current && this.onWheelScroll(this._outerRef.current.scrollTop);
+    iframeWheel = (e: any) => {
+        this._ignoreScroll = "iframe";
+        this.resetIgnoreScroll();
         e.stopPropagation();
     }
-
-    getAnchor = () => this.rootDoc;
+    onWebWheel = (e: React.WheelEvent) => {
+        this._ignoreScroll = "iframe";
+        this.goTo(Math.max(0, (this.webpage?.scrollTop || 0) + (this._accumulatedGoTo + 1) * e.deltaY), 100);
+        this.resetIgnoreScroll();
+        e.stopPropagation();
+    }
+    onWheel = (e: React.WheelEvent) => {
+        this._ignoreScroll = "outer";
+        this.resetIgnoreScroll();
+        e.stopPropagation();
+    }
+    iframeScroll = (e: any) => {
+        if (!this._ignoreScroll.includes("outer") && this._outerRef.current) {
+            this._outerRef.current.scrollTop = this.webpage?.scrollTop || 0;
+            this.layoutDoc._scrollTop = this.webpage?.scrollTop;
+        }
+    }
+    onScroll = (e: any) => {
+        if (!this._ignoreScroll.includes("iframe") && this.webpage) {
+            this.webpage.scrollTop = this._outerRef.current?.scrollTop || 0;
+            this.layoutDoc._scrollTop = this._outerRef.current?.scrollTop;
+        }
+    }
     scrollFocus = (doc: Doc, smooth: boolean) => {
         let focusSpeed: Opt<number>;
         if (doc !== this.rootDoc && this.webpage && this._outerRef.current) {
-            const scrollTo = Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
+            const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
-                this._ignoreScroll = true;
-                this.goTo(scrollTo, focusSpeed = smooth ? 500 : 0);
                 if (!LinkDocPreview.LinkInfo) {
+                    this._ignoreScroll = "iframe|outer";
                     this.layoutDoc._scrollTop = scrollTo;
+                    this._ignoreScroll = "";
                 }
-                this._ignoreScroll = false;
+                this._ignoreScroll = "iframe|outer";
+                this.goTo(scrollTo, focusSpeed = smooth ? 500 : 0);
+                setTimeout(() => {
+                    this._scrollTimer = undefined;
+                    this._ignoreScroll = "";
+                }, focusSpeed);
             }
         } else {
             this._initialScroll = NumCast(doc.y);
         }
 
         return focusSpeed;
+    }
+
+    getAnchor = () => {
+        const anchor = Docs.Create.TextanchorDocument({
+            title: StrCast(this.rootDoc.title + " " + this.layoutDoc._scrollTop),
+            useLinkSmallAnchor: true,
+            hideLinkButton: true,
+            annotationOn: this.rootDoc,
+            y: NumCast(this.layoutDoc._scrollTop),
+        });
+        this.addDocument(anchor);
+        return anchor;
     }
 
     async componentDidMount() {
@@ -172,7 +207,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 if (quickScroll) {
                     this._initialScroll = scrollTop;
                 }
-                else if (!this._ignoreScroll) {
+                else {
                     const viewTrans = StrCast(this.Document._viewTransition);
                     const durationMiliStr = viewTrans.match(/([0-9]*)ms/);
                     const durationSecStr = viewTrans.match(/([0-9.]*)s/);
@@ -185,11 +220,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         quickScroll = false;
     }
 
+    _accumulatedGoTo = 0;
+    _resetGoTo: { resetGoTo: { to: number, duration: number } | undefined } = { resetGoTo: undefined };
     goTo = (scrollTop: number, duration: number) => {
         if (this._outerRef.current && this.webpage) {
             if (duration) {
-                smoothScroll(duration, this.webpage as any as HTMLElement, scrollTop);
-                smoothScroll(duration, this._outerRef.current, scrollTop);
+                if (this._accumulatedGoTo++) {
+                    this._resetGoTo.resetGoTo = { to: scrollTop, duration };
+                } else {
+                    smoothScroll(duration, [this.webpage as any as HTMLElement, this._outerRef.current], scrollTop, () => this._accumulatedGoTo = 0, this._resetGoTo);
+                }
             } else {
                 this.webpage.scrollTop = scrollTop;
                 this._outerRef.current.scrollTop = scrollTop;
@@ -202,6 +242,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
         this._iframe?.removeEventListener('wheel', this.iframeWheel);
+        this._iframe?.removeEventListener('scroll', this.iframeScroll);
     }
 
     @action
@@ -497,17 +538,18 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
+                onWheel={this.onWebWheel}
                 onContextMenu={this.specificContextMenu}>
                 <base target="_blank" />
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
                         width: `${100 / scale}%`, height: `${100 / scale}%`, transform: `scale(${scale})`,
-                        pointerEvents: this.layoutDoc.isAnnotating && !inactiveLayer ? "all" : "none"
+                        pointerEvents: !this.layoutDoc.isAnnotating || inactiveLayer ? "none" : "all"
                     }}
                     onWheel={this.onWheel}
                     onPointerDown={this.onMarqueeDown}
-                    onScroll={e => e.stopPropagation()}
+                    onScroll={this.onScroll}
                 >
                     <div className={"webBox-innerContent"} style={{
                         height: NumCast(this.scrollHeight, 50),
@@ -527,8 +569,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             addDocument={this.addDocument}
                             select={emptyFunction}
                             active={this.active}
-                            whenActiveChanged={this.whenActiveChanged}>
-                        </CollectionFreeFormView>
+                            whenActiveChanged={this.whenActiveChanged} />
                     </div>
                 </div>
                 {this.annotationLayer}

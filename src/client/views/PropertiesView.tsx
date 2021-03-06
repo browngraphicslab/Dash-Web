@@ -510,7 +510,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
             var index = 0;
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                doc.rotation = Number(doc.rotation) + Number(angle);
+                doc.rotation = NumCast(doc.rotation) + angle;
                 const inks = Cast(doc.data, InkField)?.inkData;
                 if (inks) {
                     const newPoints: { X: number, Y: number }[] = [];
@@ -596,7 +596,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     upDownButtons = (dirs: string, field: string) => {
         switch (field) {
             case "rot": this.rotate((dirs === "up" ? .1 : -.1)); break;
-            // case "rot": this.selectedInk?.forEach(i => i.rootDoc.rotation = NumCast(i.rootDoc.rotation) + (dirs === "up" ? 0.1 : -0.1)); break;
             case "Xps": this.selectedDoc && (this.selectedDoc.x = NumCast(this.selectedDoc?.x) + (dirs === "up" ? 10 : -10)); break;
             case "Yps": this.selectedDoc && (this.selectedDoc.y = NumCast(this.selectedDoc?.y) + (dirs === "up" ? 10 : -10)); break;
             case "stk": this.selectedDoc && (this.selectedDoc.strokeWidth = NumCast(this.selectedDoc?.strokeWidth) + (dirs === "up" ? .1 : -.1)); break;
