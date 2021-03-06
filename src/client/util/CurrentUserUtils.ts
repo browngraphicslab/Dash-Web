@@ -378,7 +378,7 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewType: "outline", _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewType: "outline", _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
             Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
@@ -549,7 +549,7 @@ export class CurrentUserUtils {
                     dontUndo: true,
                     title,
                     target,
-                    _backgroundColor: "black",
+                    backgroundColor: "black",
                     dropAction: "alias",
                     removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
@@ -564,7 +564,7 @@ export class CurrentUserUtils {
                 title: "menuItemPanel",
                 childDropAction: "alias",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-                _backgroundColor: "black", ignoreClick: true,
+                backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, _lockedPosition: true, _chromeStatus: "disabled", system: true
@@ -621,7 +621,7 @@ export class CurrentUserUtils {
                 title: data.title,
                 _lockedPosition: true,
                 onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-                _backgroundColor: data.backgroundColor, system: true
+                backgroundColor: data.backgroundColor, system: true
             },
                 [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)", system: true }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
         );

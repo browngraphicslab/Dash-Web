@@ -153,7 +153,7 @@ export class DocumentOptions {
     "_carousel-caption-yMargin"?: number;
     x?: number;
     y?: number;
-    z?: number;
+    z?: number; // whether document is in overlay (1) or not (0 or undefined)
     author?: string;
     layoutKey?: string;
     type?: string;
@@ -260,9 +260,9 @@ export namespace Docs {
     const _docOptions = new DocumentOptions();
 
     export async function setupFieldInfos() {
-        return await DocServer.GetRefField("FieldInfos7") as Doc ??
+        return await DocServer.GetRefField("FieldInfos8") as Doc ??
             runInAction(() => {
-                const infos = new Doc("FieldInfos7", true);
+                const infos = new Doc("FieldInfos8", true);
                 const keys = Object.keys(new DocumentOptions());
                 for (const key of keys) {
                     const options = (_docOptions as any)[key] as FInfo;
@@ -728,7 +728,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

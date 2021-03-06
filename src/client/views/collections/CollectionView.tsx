@@ -154,7 +154,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                         if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
                                 title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
-                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#0000003d", color: "#ACCEF7",
                                 _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
                             });
                             Doc.SetInPlace(doc, "annotationOn", undefined, true);
