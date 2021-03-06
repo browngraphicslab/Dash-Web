@@ -899,3 +899,34 @@
         }
     }
 }
+
+.propertiesView-field-info-btn {
+    margin-top: 4px;
+    margin-right: 4.5px;
+    margin-left: -2px;
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.propertiesView-fieldInfo {
+    font-size: 9px;
+
+    .propertiesView-fieldInfo-wrapper {
+        display: flex;
+    }
+
+    .propertiesView-fieldInfo-title {
+        float: left;
+        font-weight: bold;
+        font-size: 10.5px;
+    }
+
+    .propertiesView-fieldInfo-value {
+        float: right;
+        text-align: end;
+        align-self: flex-end;
+        margin-top: 0.8px;
+    }
+}

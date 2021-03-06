@@ -82,6 +82,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable _controlBtn: boolean = false;
     @observable _lock: boolean = false;
 
+    @observable _tagsText = "";
+
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
     rtfWidth = () => {
@@ -185,6 +187,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     const value = Field.toString(contents as Field);
                     if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
                         rows.push(<div className="propertiesView-uneditable-field" key={key}>
+                            <div className="propertiesView-field-info-btn" onClick={(e) => this.displayFieldInfo(key, value, e)}><FontAwesomeIcon icon="info-circle" size="sm" /></div>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                             <div className="propertiesView-uneditableKey" style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
@@ -201,6 +204,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         />;
 
                         rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "5px" }} key={key}>
+                            <div className="propertiesView-field-info-btn" onClick={(e) => this.displayFieldInfo(key, value, e)}><FontAwesomeIcon icon="info-circle" size="sm" /></div>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap", float: "left" }}>{key}</span>
                         &nbsp;
                             <div className="propertiesView-editableField">
@@ -243,6 +247,40 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>);
             return rows;
         }
+    }
+
+    @action
+    displayFieldInfo = (key: string, value: string, e: React.MouseEvent) => {
+        console.log(Doc.UserDoc().fieldInfos);
+        const content = <div className="propertiesView-fieldInfo">
+            <div className="propertiesView-fieldInfo-wrapper">
+                <span >Key:</span>
+                <div className="propertiesView-uneditableKey" >{key}</div>
+                {/* <div className="propertiesView-fieldInfo-title">Key:</div>
+                <div className="propertiesView-fieldInfo-value">{key}</div> */}
+            </div>
+            <div className="propertiesView-fieldInfo-wrapper">
+                <span >Value:</span>
+                <div className="propertiesView-uneditableKey">{value}</div>
+                {/* <div className="propertiesView-fieldInfo-title">Value:</div>
+                <div className="propertiesView-fieldInfo-value">{value}</div> */}
+            </div>
+            <div className="propertiesView-fieldInfo-wrapper">
+                <span>Type:</span>
+                <div className="propertiesView-uneditableKey">idk</div>
+                {/* <div className="propertiesView-fieldInfo-title">Type:</div>
+                <div className="propertiesView-fieldInfo-value">idk</div> */}
+            </div>
+            <div className="propertiesView-fieldInfo-title">Description:</div>
+            <div className="propertiesView-fieldInfo-value">placeholder description of some field here</div>
+        </div>;
+        MainViewPopup.setWidth(160);
+        MainViewPopup.setHeight(65);
+        MainViewPopup.setBackgroundColor("#C4C4C4");
+        MainViewPopup.setX(e.clientX - 150);
+        MainViewPopup.setY(e.clientY + 5);
+        MainViewPopup.changeContent(content);
+        MainViewPopup.show();
     }
 
     @undoBatch
@@ -922,10 +960,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @action
+    addTag = () => {
+        this._tagsText = "";
+    }
+
+    @action
+    changeTagsText = (e: any) => {
+        this._tagsText = e.target.value;
+    }
+
+    @action
     newTagClick = (e: React.PointerEvent) => {
         const content = <div className="propertiesView-addTag">
             <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-title">Tag</div>
+                <div className="propertiesView-addTag-title">Tag: </div>
                 <EditableView
                     key="editableView"
                     contents={""}
@@ -935,9 +983,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     width={100}
                     backgroundColor={"white"}
                     SetValue={this.setKeyValue} />
+                {/* <input className="inputBox-input"
+                    type="text" style={{ width: "90px" }}
+                    onChange={this.changeTagsText} value={this._tagsText} /> */}
             </div>
             <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-btn">Add</div>
+                <div className="propertiesView-addTag-btn" onClick={this.addTag}>Add</div>
             </div>
         </div>;
         MainViewPopup.setWidth(160);
