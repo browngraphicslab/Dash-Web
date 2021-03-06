@@ -83,6 +83,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable _lock: boolean = false;
 
     @observable _tagsText = "";
+    @observable _popupKey = "";
+    @observable _popupValue = "";
+    @observable _popupType = "";
+
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
@@ -171,7 +175,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate"];
             const noviceLayoutFields = ["_curPage"];
-            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("acl"))),
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0]?.toUpperCase() && !key.startsWith("acl"))),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
                 const docvals = new Set<any>();
@@ -254,28 +258,22 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         console.log(Doc.UserDoc().fieldInfos);
         const content = <div className="propertiesView-fieldInfo">
             <div className="propertiesView-fieldInfo-wrapper">
-                <span >Key:</span>
+                <span className="propertiesView-fieldInfo-keyTitle">Key:</span>
                 <div className="propertiesView-uneditableKey" >{key}</div>
-                {/* <div className="propertiesView-fieldInfo-title">Key:</div>
-                <div className="propertiesView-fieldInfo-value">{key}</div> */}
             </div>
             <div className="propertiesView-fieldInfo-wrapper">
-                <span >Value:</span>
+                <span className="propertiesView-fieldInfo-keyTitle">Value:</span>
                 <div className="propertiesView-uneditableKey">{value}</div>
-                {/* <div className="propertiesView-fieldInfo-title">Value:</div>
-                <div className="propertiesView-fieldInfo-value">{value}</div> */}
             </div>
             <div className="propertiesView-fieldInfo-wrapper">
-                <span>Type:</span>
-                <div className="propertiesView-uneditableKey">idk</div>
-                {/* <div className="propertiesView-fieldInfo-title">Type:</div>
-                <div className="propertiesView-fieldInfo-value">idk</div> */}
+                <span className="propertiesView-fieldInfo-keyTitle">Type:</span>
+                <div className="propertiesView-uneditableKey">{((Doc.UserDoc().fieldInfos as Doc)[key] as Doc).type}</div>
             </div>
             <div className="propertiesView-fieldInfo-title">Description:</div>
-            <div className="propertiesView-fieldInfo-value">placeholder description of some field here</div>
+            <div className="propertiesView-fieldInfo-value">{((Doc.UserDoc().fieldInfos as Doc)[key] as Doc).description}</div>
         </div>;
-        MainViewPopup.setWidth(160);
-        MainViewPopup.setHeight(65);
+        MainViewPopup.setWidth(150);
+        MainViewPopup.setHeight(110);
         MainViewPopup.setBackgroundColor("#C4C4C4");
         MainViewPopup.setX(e.clientX - 150);
         MainViewPopup.setY(e.clientY + 5);
@@ -308,6 +306,120 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         });
         return false;
     }
+
+    @action
+    newFieldClick = (e: React.PointerEvent) => {
+        const content = <div className="propertiesView-addTag">
+            <div className="propertiesView-addTag-wrapper">
+                <div className="propertiesView-addTag-title">Type</div>
+                <input className="propertiesView-tagInput"
+                    type="text"
+                    onChange={this.changePopUpType} />
+            </div>
+            <div className="propertiesView-addTag-wrapper">
+                <div className="propertiesView-addTag-title">Key:</div>
+                <input className="propertiesView-popUpInput"
+                    type="text"
+                    onChange={this.changePopUpKey} />
+                <div className="propertiesView-addTag-title">Value:</div>
+                <input className="propertiesView-popUpInput"
+                    type="text"
+                    onChange={this.changePopUpValue} />
+            </div>
+            <div className="propertiesView-addTag-wrapper">
+                <div className="propertiesView-addTag-btn" onClick={this.addField}>Add</div>
+            </div>
+        </div>;
+        MainViewPopup.setWidth(240);
+        MainViewPopup.setHeight(117);
+        MainViewPopup.setBackgroundColor("#C4C4C4");
+        MainViewPopup.setX(e.clientX - 200);
+        MainViewPopup.setY(e.clientY + 5);
+        MainViewPopup.changeContent(content);
+        MainViewPopup.show();
+    }
+
+    @action
+    @undoBatch
+    addField = () => {
+        MainViewPopup.hide();
+        const docs = SelectionManager.Views().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        if (this._popupKey !== "" && this._popupValue !== "") {
+            docs.forEach(doc => {
+                KeyValueBox.SetField(doc, this._popupKey, this._popupValue, true);
+                const tags = StrCast(doc.tags, ":");
+                if (tags.includes(`${this._popupKey}:`) && this._popupValue === "undefined") {
+                    KeyValueBox.SetField(doc, "tags", `"${tags.replace(this._popupKey + ":", "")}"`, true);
+                }
+            });
+        }
+    }
+
+    @action
+    @undoBatch
+    addTag = () => {
+        MainViewPopup.hide();
+        const docs = SelectionManager.Views().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.Views().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        if (this._tagsText !== "") {
+            docs.forEach(doc => {
+                const value = "#" + this._tagsText;
+                doc[DataSym][value] = value;
+                const tags = StrCast(doc.tags, ":");
+                if (!tags.includes(`${value}:`)) {
+                    doc[DataSym].tags = `${tags + value + ':'}`;
+                }
+            });
+        }
+    }
+
+    @action
+    changeTagsText = (e: any) => {
+        this._tagsText = e.target.value;
+    }
+
+    @action
+    changePopUpValue = (e: any) => {
+        this._popupValue = e.target.value;
+    }
+
+    @action
+    changePopUpKey = (e: any) => {
+        this._popupKey = e.target.value;
+    }
+
+    @action
+    changePopUpType = (e: any) => {
+        this._popupType = e.target.value;
+    }
+
+    @action
+    newTagClick = (e: React.PointerEvent) => {
+        const content = <div className="propertiesView-addTag">
+            <div className="propertiesView-addTag-wrapper">
+                <div className="propertiesView-addTag-title">Tag: </div>
+                <input className="propertiesView-tagInput"
+                    type="text"
+                    onChange={this.changeTagsText} />
+            </div>
+            <div className="propertiesView-addTag-wrapper">
+                <div className="propertiesView-addTag-btn" onClick={this.addTag}>Add</div>
+            </div>
+        </div>;
+        MainViewPopup.setWidth(160);
+        MainViewPopup.setHeight(65);
+        MainViewPopup.setBackgroundColor("#C4C4C4");
+        MainViewPopup.setX(e.clientX - 150);
+        MainViewPopup.setY(e.clientY + 5);
+        MainViewPopup.changeContent(content);
+        MainViewPopup.show();
+    }
+
+
+    addFieldButtons = <div className="propertiesView-addField-wrapper">
+        <div className="propertiesView-addFieldBtn" onPointerDown={this.newFieldClick}>+ new field</div>
+        <div className="propertiesView-addFieldBtn" onPointerDown={this.newTagClick}>+ tag</div>
+    </div>;
+
 
     @observable transform: Transform = Transform.Identity();
     getTransform = () => this.transform;
@@ -908,102 +1020,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     //     });
     // }
 
-    @action
-    newFieldClick = (e: React.PointerEvent) => {
-        const content = <div className="propertiesView-addTag">
-            <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-title">Type</div>
-                <EditableView
-                    key="editableView"
-                    contents={""}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => ""}
-                    width={100}
-                    backgroundColor={"white"}
-                    SetValue={this.setKeyValue} />
-            </div>
-            <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-title">Key:</div>
-                <EditableView
-                    key="editableView"
-                    contents={""}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => ""}
-                    width={100}
-                    backgroundColor={"white"}
-                    SetValue={this.setKeyValue} />
-                <div className="propertiesView-addTag-title">Value:</div>
-                <EditableView
-                    key="editableView"
-                    contents={""}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => ""}
-                    width={100}
-                    backgroundColor={"white"}
-                    SetValue={this.setKeyValue} />
-            </div>
-            <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-btn">Add</div>
-            </div>
-        </div>;
-        MainViewPopup.setWidth(240);
-        MainViewPopup.setHeight(117);
-        MainViewPopup.setBackgroundColor("#C4C4C4");
-        MainViewPopup.setX(e.clientX - 200);
-        MainViewPopup.setY(e.clientY + 5);
-        MainViewPopup.changeContent(content);
-        MainViewPopup.show();
-    }
-
-    @action
-    addTag = () => {
-        this._tagsText = "";
-    }
-
-    @action
-    changeTagsText = (e: any) => {
-        this._tagsText = e.target.value;
-    }
-
-    @action
-    newTagClick = (e: React.PointerEvent) => {
-        const content = <div className="propertiesView-addTag">
-            <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-title">Tag: </div>
-                <EditableView
-                    key="editableView"
-                    contents={""}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => ""}
-                    width={100}
-                    backgroundColor={"white"}
-                    SetValue={this.setKeyValue} />
-                {/* <input className="inputBox-input"
-                    type="text" style={{ width: "90px" }}
-                    onChange={this.changeTagsText} value={this._tagsText} /> */}
-            </div>
-            <div className="propertiesView-addTag-wrapper">
-                <div className="propertiesView-addTag-btn" onClick={this.addTag}>Add</div>
-            </div>
-        </div>;
-        MainViewPopup.setWidth(160);
-        MainViewPopup.setHeight(65);
-        MainViewPopup.setBackgroundColor("#C4C4C4");
-        MainViewPopup.setX(e.clientX - 150);
-        MainViewPopup.setY(e.clientY + 5);
-        MainViewPopup.changeContent(content);
-        MainViewPopup.show();
-    }
-
-
-    addFieldButtons = <div className="propertiesView-addField-wrapper">
-        <div className="propertiesView-addFieldBtn" onPointerDown={this.newFieldClick}>+ new field</div>
-        <div className="propertiesView-addFieldBtn" onPointerDown={this.newTagClick}>+ tag</div>
-    </div>;
 
     render() {
         if (!this.selectedDoc && !this.isPres) {

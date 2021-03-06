@@ -154,7 +154,7 @@ export class DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
-    author?: string;
+    author?: STRt = new StrInfo("the email of the creator of the document");
     layoutKey?: string;
     type?: string;
     title?: string;

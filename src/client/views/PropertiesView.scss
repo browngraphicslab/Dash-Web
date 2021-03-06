@@ -912,21 +912,46 @@
 
 .propertiesView-fieldInfo {
     font-size: 9px;
+    margin-left: 6px;
+    margin-top: 3px;
+    margin-bottom: 5px;
 
     .propertiesView-fieldInfo-wrapper {
         display: flex;
     }
 
     .propertiesView-fieldInfo-title {
+        margin-top: 3px;
         float: left;
+        font-weight: bold;
+        font-size: 10.5px;
+    }
+
+    .propertiesView-fieldInfo-keyTitle {
         font-weight: bold;
         font-size: 10.5px;
     }
 
     .propertiesView-fieldInfo-value {
         float: right;
-        text-align: end;
-        align-self: flex-end;
+        // text-align: end;
+        // align-self: flex-end;
         margin-top: 0.8px;
     }
+}
+
+.propertiesView-popUpInput {
+    width: 64px;
+    height: 18px;
+    font-size: 10px;
+    border: none;
+    border-radius: 5px;
+}
+
+.propertiesView-tagInput {
+    width: 85px;
+    height: 18px;
+    font-size: 10px;
+    border: none;
+    border-radius: 5px;
 }
