@@ -316,8 +316,7 @@ export class RichTextRules {
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
-                            const docx = Docs.Create.FreeformDocument([], { title: rawdocid, _width: 500, _height: 500 }, docid);
-                            DocUtils.Publish(docx, docid, returnFalse, returnFalse);
+                            Docs.Create.FreeformDocument([], { title: rawdocid, _width: 500, _height: 500 }, docid);
                         }
                     });
                     const node = (state.doc.resolve(start) as any).nodeAfter;

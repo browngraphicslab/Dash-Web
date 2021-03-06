@@ -554,6 +554,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const uicontrols: ContextMenuProps[] = [];
         uicontrols.push({ description: `${FormattedTextBox.CanAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox.CanAnnotate = !FormattedTextBox.CanAnnotate, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
@@ -597,7 +598,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const options = cm.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
         optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });

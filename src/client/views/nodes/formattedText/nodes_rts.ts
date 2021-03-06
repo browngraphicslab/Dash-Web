@@ -247,6 +247,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             fieldKey: { default: "" },
         },
+        atom: true,
         group: "inline",
         draggable: false,
         toDOM(node) {

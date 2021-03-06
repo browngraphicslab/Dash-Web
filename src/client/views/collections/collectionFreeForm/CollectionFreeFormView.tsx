@@ -626,7 +626,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onClick = (e: React.MouseEvent) => {
         if ((Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (e.shiftKey && Date.now() - this._lastTap < 300) { // reset zoom of freeform view to 1-to-1 on a shift + double click 
-                this.layoutDoc.targetScale && this.zoomSmoothlyAboutPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
+                this.zoomSmoothlyAboutPt(this.getTransform().transformPoint(e.clientX, e.clientY), 1);
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -815,7 +815,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.layoutDoc._lockedTransform || CurrentUserUtils.OverlayDocs.includes(this.props.Document) || this.props.Document.treeViewOutlineMode === "outline") return;
+        if (this.layoutDoc._lockedTransform || (this.layoutDoc._fitWidth && this.layoutDoc.nativeHeight) || CurrentUserUtils.OverlayDocs.includes(this.props.Document) || this.props.Document.treeViewOutlineMode === "outline") return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -824,7 +824,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             e.preventDefault();
             this.zoom(e.clientX, e.clientY, e.deltaY); // if (!this.props.isAnnotationOverlay) // bcz: do we want to zoom in on images/videos/etc?
         }
-        this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
 
     @action

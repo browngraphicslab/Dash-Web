@@ -259,7 +259,7 @@ export class KeyManager {
                     const pt = SelectionManager.Views()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
                     const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.Views().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.Views().length && navigator.clipboard.writeText(text);
-                    DocumentDecorations.Instance.onCloseClick(undefined);
+                    DocumentDecorations.Instance.onCloseClick();
                     stopPropagation = false;
                     preventDefault = false;
                 }
