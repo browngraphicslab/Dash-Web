@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { setupMoveUpEvents } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -26,7 +26,6 @@ import { InkStrokeProperties } from './InkStrokeProperties';
 import { LightboxView } from './LightboxView';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import e = require('express');
 
 @observer
 export class DocumentDecorations extends React.Component<{ boundsLeft: number, boundsTop: number }, { value: string }> {
@@ -58,12 +57,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     constructor(props: any) {
         super(props);
         DocumentDecorations.Instance = this;
-        reaction(() => SelectionManager.Views().slice(), docs => this.titleBlur(false));
+        reaction(() => SelectionManager.Views().slice(), action(docs => this._edtingTitle = false));
     }
 
     @computed
-    get Bounds(): { x: number, y: number, b: number, r: number } {
-        const boudns = SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
+    get Bounds() {
+        return SelectionManager.Views().map(dv => dv.getBounds()).reduce((bounds, rect) =>
             !rect ? bounds :
                 {
                     x: Math.min(rect.left, bounds.x),
@@ -72,49 +71,34 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     b: Math.max(rect.bottom, bounds.b)
                 },
             { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-        return boudns;
     }
 
     @action
-    titleBlur = (commit: boolean) => {
+    titleBlur = () => {
         this._edtingTitle = false;
-        if (commit) {
-            if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
-                this._titleControlString = this._accumulatedTitle;
-            } else if (this._titleControlString.startsWith("#")) {
-                const selectionTitleFieldKey = this._titleControlString.substring(1);
-                selectionTitleFieldKey === "title" && (SelectionManager.Views()[0].dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
-                UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.Views().forEach(d => {
-                    const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
-                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
-                }), "title blur");
-            }
+        if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
+            this._titleControlString = this._accumulatedTitle;
+        } else if (this._titleControlString.startsWith("#")) {
+            const titleFieldKey = this._titleControlString.substring(1);
+            UndoManager.RunInBatch(() => titleFieldKey && SelectionManager.Views().forEach(d => {
+                titleFieldKey === "title" && (d.dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
+                //@ts-ignore
+                Doc.SetInPlace(d.rootDoc, titleFieldKey, +this._accumulatedTitle == this._accumulatedTitle ? +this._accumulatedTitle : this._accumulatedTitle, true);
+            }), "title blur");
         }
     }
 
-    @action titleEntered = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            const text = (e.target as any).value;
-            if (text.startsWith("::")) {
-                this._accumulatedTitle = text.slice(2, text.length);
-                const promoteDoc = SelectionManager.Views()[0];
-                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
-                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-            }
-            (e.target as any).blur();
-        }
-    }
+    titleEntered = (e: React.KeyboardEvent) => e.key === "Enter" && (e.target as any).blur();
+
     @action onTitleDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, e => this.onBackgroundMove(true, e), (e) => { }, action((e) => {
             !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
             this._edtingTitle = true;
             setTimeout(() => this._keyinput.current!.focus(), 0);
-        }))
+        }));
     }
 
-    onBackgroundDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, e => this.onBackgroundMove(false, e), (e) => { }, (e) => { });
-    }
+    onBackgroundDown = (e: React.PointerEvent) => setupMoveUpEvents(this, e, e => this.onBackgroundMove(false, e), emptyFunction, emptyFunction);
 
     @action
     onBackgroundMove = (dragTitle: boolean, e: PointerEvent): boolean => {
@@ -138,7 +122,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     }
 
     @undoBatch
-    onCloseClick = (e: React.MouseEvent) => {
+    onCloseClick = () => {
         const selected = SelectionManager.Views().slice();
         SelectionManager.DeselectAll();
         selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
@@ -146,24 +130,22 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     @undoBatch
     @action
     onMaximizeClick = (e: React.MouseEvent): void => {
-        if (e.button === 0) {
-            const selectedDocs = SelectionManager.Views();
-            if (selectedDocs.length) {
-                if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
-                    selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
-                    (selectedDocs[0].props.Document._fullScreenView as Doc).context = undefined;
-                    CollectionDockingView.AddSplit(selectedDocs[0].props.Document._fullScreenView as Doc, "right");
-                } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
-                    const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
-                    alias.context = undefined;
-                    alias.x = -alias[WidthSym]() / 2;
-                    alias.y = -alias[HeightSym]() / 2;
-                    CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
-                } else if (e.altKey) {    // open same document in new tab
-                    CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
-                } else {
-                    LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
-                }
+        const selectedDocs = SelectionManager.Views();
+        if (selectedDocs.length) {
+            if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
+                selectedDocs[0].props.Document._fullScreenView = Doc.MakeAlias(selectedDocs[0].props.Document);
+                (selectedDocs[0].props.Document._fullScreenView as Doc).context = undefined;
+                CollectionDockingView.AddSplit(selectedDocs[0].props.Document._fullScreenView as Doc, "right");
+            } else if (e.shiftKey) {   // open centered in a new workspace with Shift Key
+                const alias = Doc.MakeAlias(selectedDocs[0].props.Document);
+                alias.context = undefined;
+                alias.x = -alias[WidthSym]() / 2;
+                alias.y = -alias[HeightSym]() / 2;
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([alias], { title: "Tab for " + alias.title }), "right");
+            } else if (e.altKey) {    // open same document in new tab
+                CollectionDockingView.ToggleSplit(Cast(selectedDocs[0].props.Document._fullScreenView, Doc, null) || selectedDocs[0].props.Document, "right");
+            } else {
+                LightboxView.SetLightboxDoc(selectedDocs[0].props.Document, undefined, selectedDocs.slice(1).map(view => view.props.Document));
             }
         }
         SelectionManager.DeselectAll();
@@ -191,7 +173,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     onRotateDown = (e: React.PointerEvent): void => {
         this._rotateUndo = UndoManager.StartBatch("rotatedown");
 
-        setupMoveUpEvents(this, e, this.onRotateMove, () => this._rotateUndo?.end(), (e) => { });
+        setupMoveUpEvents(this, e, this.onRotateMove, () => this._rotateUndo?.end(), emptyFunction);
         this._prevY = e.clientY;
         this._inkCenterPts = SelectionManager.Views()
             .filter(dv => dv.rootDoc.type === DocumentType.INK)
@@ -201,7 +183,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
     @action
     onRotateMove = (e: PointerEvent, down: number[]): boolean => {
-        // const distance = Math.sqrt((this._prevY - e.clientY) * (this._prevY - e.clientY) + (this._prevX - e.clientX) * (this._prevX - e.clientX));
         const distance = Math.abs(this._prevY - e.clientY);
         const angle = e.clientY > this._prevY ? distance * (Math.PI / 180) : e.clientY < this._prevY ? - distance * (Math.PI / 180) : 0;
         this._prevY = e.clientY;
@@ -233,15 +214,13 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 return ({ doc, x: NumCast(doc.x), y: NumCast(doc.y), width: NumCast(doc._width), height: NumCast(doc._height) });
             });
 
-        setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
-        if (e.button === 0) {
-            this._resizeHdlId = e.currentTarget.className;
-            const bounds = e.currentTarget.getBoundingClientRect();
-            this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
-            this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
-            this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
-            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-        }
+        setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, emptyFunction);
+        this.Interacting = true; // turns off pointer events on things like youtube videos and web pages so that dragging doesn't get "stuck" when cursor moves over them
+        this._resizeHdlId = e.currentTarget.className;
+        const bounds = e.currentTarget.getBoundingClientRect();
+        this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
+        this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
+        this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
         this._snapX = e.pageX;
         this._snapY = e.pageY;
         DragManager.docsBeingDragged.forEach(doc => this._dragHeights.set(doc, { start: NumCast(doc._height), lowest: NumCast(doc._height) }));
@@ -278,11 +257,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         let dragBottom = false;
         let dragRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
-        const unfreeze = () =>
-            SelectionManager.Views().forEach(action((element: DocumentView) =>
-                ((element.rootDoc.type === DocumentType.COMPARISON ||
-                    (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
-                    && Doc.NativeHeight(element.layoutDoc)) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -297,7 +271,6 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
-                unfreeze();
                 dY = -1;
                 dH = -move[1];
                 break;
@@ -311,17 +284,14 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                 dH = move[1];
                 break;
             case "documentDecorations-bottomResizer":
-                unfreeze();
                 dH = move[1];
                 dragBottom = true;
                 break;
             case "documentDecorations-leftResizer":
-                unfreeze();
                 dX = -1;
                 dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
-                unfreeze();
                 dW = move[0];
                 dragRight = true;
                 break;
@@ -452,7 +422,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
 
         const titleArea = this._edtingTitle ?
             <input ref={this._keyinput} className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
-                onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
+                onBlur={e => this.titleBlur()} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} /> :
             <div className="documentDecorations-title" style={{ width: `calc(100% - ${seldoc?.props.hideResizeHandles ? 0 : 20}px` }} key="title" onPointerDown={this.onTitleDown} >
                 <span className="documentDecorations-titleSpan">{`${this.selectionTitle}`}</span>
             </div>;

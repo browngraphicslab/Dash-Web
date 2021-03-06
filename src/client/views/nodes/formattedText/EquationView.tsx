@@ -29,7 +29,7 @@ export class EquationView {
         (this as any).dom = this._fieldWrapper;
     }
     _editor: EquationEditor | undefined;
-    setEditor = (editor?: EquationEditor) => { this._editor = editor; }
+    setEditor = (editor?: EquationEditor) => this._editor = editor;
     destroy() { ReactDOM.unmountComponentAtNode(this._fieldWrapper); }
     selectNode() { this._editor?.mathField.focus(); }
     deselectNode() { }

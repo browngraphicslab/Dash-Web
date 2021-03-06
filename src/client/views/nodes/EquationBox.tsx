@@ -37,7 +37,7 @@ export class EquationBox extends ViewBoxBaseComponent<FieldViewProps, EquationDo
                 if (text && text !== this._ref.current!.mathField.latex()) {
                     this._ref.current!.mathField.latex(text);
                 }
-            })
+            });
         reaction(() => this.props.isSelected(),
             selected => {
                 if (this._ref.current) {
