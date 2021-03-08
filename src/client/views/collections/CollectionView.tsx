@@ -3,15 +3,16 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Field } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, ScriptCast, StrCast } from '../../../fields/Types';
+import { Cast, ScriptCast, StrCast, DateCast } from '../../../fields/Types';
 import { denormalizeEmail, distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { returnFalse } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
+import { BranchTask, BranchCreate } from '../../documents/Gitlike';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -154,7 +155,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                         if (context && !hasContextAnchor && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
                                 title: "pushpin", label: "", annotationOn: Cast(doc.annotationOn, Doc, null), isPushpin: true,
-                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), backgroundColor: "#0000003d", color: "#ACCEF7",
                                 _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, _timecodeToShow: Cast(doc._timecodeToShow, "number", null)
                             });
                             Doc.SetInPlace(doc, "annotationOn", undefined, true);
@@ -297,6 +298,16 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "add:right"), icon: "project-diagram" });
             }
             !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+
+            optionItems.push({
+                description: "Create Branch", event: async () => this.props.addDocTab(await BranchCreate(this.props.Document), "add:right"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Pull Master", event: () => BranchTask(this.props.Document, "pull"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Merge Branches", event: () => BranchTask(this.props.Document, "merge"), icon: "project-diagram"
+            });
 
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 

@@ -144,6 +144,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
                         Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
+                        doc.context = undefined;
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     });
                     this.props.select(false);
