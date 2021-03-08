@@ -279,27 +279,34 @@ export class CollectionView extends Touchable<CollectionViewProps> {
 
     // pulls documents onto a branch from the branch's master
     // if a document exists on master but not on the branch, it is branched and added
-    // NOTE/TODO: if a document is deleted on master, pulling master should delete the document from the branch
-    //
+    // NOTE: need to set a timestamp on the branch that is equal to the master's last merge timestamp.
     static pullFromMaster = async (branch: Doc, suffix = "") => {
         const masterMain = Cast(branch.branchOf, Doc, null);
         // get the set of documents on both the branch and master
-        const masterMainDocs = await DocListCastAsync(masterMain[Doc.LayoutFieldKey(masterMain) + suffix]);
+        const masterMainDocs = masterMain && await DocListCastAsync(masterMain[Doc.LayoutFieldKey(masterMain) + suffix]);
         const branchMainDocs = await DocListCastAsync(branch[Doc.LayoutFieldKey(branch) + suffix]);
         // get the master documents that correspond to the branch documents
-        const branchMasterMainDocs = branchMainDocs?.map(bd => Cast(bd.branchOf, Doc, null) || bd).map(doc => Doc.GetProto(doc));
+        const branchMasterMainDocs = branchMainDocs?.map(bd => Cast(bd.branchOf, Doc, null) || bd);
+        const branchMasterMainDocProtos = branchMasterMainDocs?.map(doc => Doc.GetProto(doc));
         // get documents on master that don't have a corresponding master doc (form a branch doc), and ...
-        const newDocsFromMaster = masterMainDocs?.filter(md => !branchMasterMainDocs?.includes(Doc.GetProto(md)));
+        const newDocsFromMaster = masterMainDocs?.filter(md => !branchMasterMainDocProtos?.includes(Doc.GetProto(md)));
         // make branch clones of them, then add them to the branch
         const newlyBranchedDocs = await Promise.all(newDocsFromMaster?.map(async md => (await Doc.MakeClone(md, false, true)).clone) || []);
-        newlyBranchedDocs.forEach(nd => Doc.AddDocToList(branch, Doc.LayoutFieldKey(branch) + suffix, nd));
+        newlyBranchedDocs.forEach(nd => {
+            Doc.AddDocToList(branch, Doc.LayoutFieldKey(branch) + suffix, nd);
+            nd.context = branch;
+        });
+        // if a branch doc's corresponding main branch doc doesn't have a context, then it was deleted.  
+        const remDocsFromMaster = branchMainDocs?.filter(bd => Cast(bd.branchOf, Doc, null) && !Cast(bd.branchOf, Doc, null)?.context);
+        // so then remove all the deleted main docs from this branch.
+        remDocsFromMaster?.forEach(rd => Doc.RemoveDocFromList(branch, Doc.LayoutFieldKey(branch) + suffix, rd));
     }
 
     // merges all branches from the master branch by first merging the top-level collection of documents, 
     // and then merging all the annotations on those documents.
     // NOTE: "merging" only means making sure that documents in the branches are on master -- it does not
     //           currently update the state of those documents to be identical.
-    // TODO: deleting a document on a branch should remove it from master (but doesn't yet).
+    // TODO: need to add an incrementing timestamp whenever anything merges.  don't allow a branch to merge if it's last pull timestamp isn't equal to the last merge timestamp.
     static mergeWithMaster = async (master: Doc, suffix = "") => {
         const branches = await DocListCastAsync(master.branches);
         branches?.map(async branch => {
@@ -319,6 +326,14 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                     branchDocProto.branchOf = masterChild;                                 // the branch child is now a branch of the master child
                 }
                 Doc.AddDocToList(master, Doc.LayoutFieldKey(master) + suffix, masterChild); // add the masterChild to master (if it's already there, this is a no-op)
+                masterChild.context = master;
+            });
+            const masterChildren = await DocListCastAsync(master[Doc.LayoutFieldKey(master) + suffix]);
+            masterChildren?.forEach(async mc => {                      // see if any master children
+                if (!branchChildren?.find(bc => bc.branchOf === mc)) { //    are not in the list of children for this branch. 
+                    Doc.RemoveDocFromList(master, Doc.LayoutFieldKey(master) + suffix, mc); // if so, delete the master child since the branch has deleted it.
+                    mc.context = undefined;      // NOTE if we merge a branch that didn't do a pull, it will look like the branch deleted documents -- need edit timestamps that prevent merging if branch isn't up-to-date with last edit timestamp
+                }
             });
         });
     }
