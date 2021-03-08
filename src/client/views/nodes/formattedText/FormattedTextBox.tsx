@@ -205,9 +205,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
             DragManager.StartAnchorAnnoDrag([ele], new DragManager.AnchorAnnoDragData(this.rootDoc, this.getAnchor, targetCreator), e.pageX, e.pageY);
         });
-        const coordsT = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
         const coordsB = this._editorView!.coordsAtPos(this._editorView!.state.selection.to);
-        this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(Math.min(coordsT.left, coordsB.left), Math.max(coordsT.bottom, coordsB.bottom));
+        this.props.isSelected(true) && AnchorMenu.Instance.jumpTo(coordsB.left, coordsB.bottom);
     }
 
     dispatchTransaction = (tx: Transaction) => {
@@ -407,8 +406,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 // embed document when dragg marked as embed
             } else if (de.embedKey) {
                 const target = dragData.droppedDocuments[0];
-                // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
-                // if (link) {
                 target._fitToBox = true;
                 const node = schema.nodes.dashDoc.create({
                     width: target[WidthSym](), height: target[HeightSym](),
@@ -418,7 +415,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const view = this._editorView!;
                 view.dispatch(view.state.tr.insert(view.posAtCoords({ left: de.x, top: de.y })!.pos, node));
                 e.stopPropagation();
-                // }
             } // otherwise, fall through to outer collection to handle drop
         }
     }
@@ -551,7 +547,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }, icon: "expand-arrows-alt"
             }));
 
-
         const uicontrols: ContextMenuProps[] = [];
         uicontrols.push({ description: `${FormattedTextBox.CanAnnotate ? "Hide" : "Show"} Annotation Bar`, event: () => FormattedTextBox.CanAnnotate = !FormattedTextBox.CanAnnotate, icon: "expand-arrows-alt" });
         uicontrols.push({ description: !this.Document._noSidebar ? "Hide Sidebar Handle" : "Show Sidebar Handle", event: () => this.layoutDoc._noSidebar = !this.layoutDoc._noSidebar, icon: "expand-arrows-alt" });
@@ -612,10 +607,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (results && [DictationManager.Controls.Infringed].includes(results)) {
                 DictationManager.Controls.stop();
             }
-            //this._editorView!.focus();
         });
     }
-    stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); };
+    stopDictation = (abort: boolean) => DictationManager.Controls.stop(!abort);
 
     setDictationContent = (value: string) => {
         if (this._editorView) {
@@ -692,10 +686,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return anchorDoc ?? this.rootDoc;
     }
 
-    IsActive = () => {
-        return this.active();//this.props.isSelected() || this._isChildActive || this.props.renderDepth === 0;
-    }
-
     scrollFocus = (doc: Doc, smooth: boolean) => {
         const anchorId = doc[Id];
         const findAnchorFrag = (frag: Fragment, editor: EditorView) => {
@@ -753,7 +743,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     componentDidMount() {
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
-        this.props.contentsActive?.(this.IsActive);
+        this.props.contentsActive?.(this.active);
         this._cachedLinks = DocListCast(this.Document.links);
         this._disposers.autoHeight = reaction(() => ({ scrollHeight: this.scrollHeight, autoHeight: this.autoHeight, width: NumCast(this.layoutDoc._width) }),
             ({ width, autoHeight, scrollHeight }) => width && autoHeight && this.resetNativeHeight(scrollHeight)
@@ -801,8 +791,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             () => {
                 if (!DocumentButtonBar.hasPulledHack) {
                     DocumentButtonBar.hasPulledHack = true;
-                    const unchanged = this.dataDoc.unchanged;
-                    this.pullFromGoogleDoc(unchanged ? this.checkState : this.updateState);
+                    this.pullFromGoogleDoc(this.dataDoc.unchanged ? this.checkState : this.updateState);
                 }
             }
         );
@@ -1094,7 +1083,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 selectAll(this._editorView!.state, this._editorView?.dispatch);
                 this.startUndoTypingBatch();
             }
-
         }
         selectOnLoad && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
@@ -1189,7 +1177,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBoxComment.textBox = this;
         if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
-                e.stopPropagation();  // if the text box is selected, then it consumes all down events
+                e.stopPropagation();  // if the text box is selected, then it consumes all click events
             }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
@@ -1230,7 +1218,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
-        // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
+        // if a text note is selected and scrollable, stop event to prevent, say, outer collection from zooming.
         if ((this.props.rootSelected(true) || this.props.isSelected(true)) || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
             e.stopPropagation();
         }
@@ -1414,7 +1402,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._ignoreScroll = false;
         }
     }
-
     tryUpdateScrollHeight() {
         const proseHeight = this.ProseRef?.scrollHeight || 0;
         const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
@@ -1425,7 +1412,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
         }
     }
-
     fitToBox = () => this.props.Document._fitToBox;
     sidebarContentScaling = () => (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
     sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.SidebarKey);
@@ -1489,7 +1475,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.hideOnLeave ? 1 : (this.props.scaling?.() || 1) * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = (Doc.GetSelectedTool() === InkTool.None || SnappingManager.GetIsDragging()) && (this.layoutDoc.z || this.props.layerProvider?.(this.layoutDoc) !== false);
-        if (!selected && FormattedTextBoxComment.textBox === this) setTimeout(() => FormattedTextBoxComment.Hide());
+        if (!selected && FormattedTextBoxComment.textBox === this) setTimeout(FormattedTextBoxComment.Hide);
         const minimal = this.props.ignoreAutoHeight;
         const margins = NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0);
         const selPad = Math.min(margins, 10);
