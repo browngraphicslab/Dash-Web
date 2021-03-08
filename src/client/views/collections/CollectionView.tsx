@@ -3,12 +3,12 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync, Field } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, ScriptCast, StrCast } from '../../../fields/Types';
+import { Cast, ScriptCast, StrCast, DateCast } from '../../../fields/Types';
 import { denormalizeEmail, distributeAcls, GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
 import { returnFalse } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -277,6 +277,21 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         }
     }
 
+    // synchs matching documents on the two branches that are being merged/pulled
+    // currently this just synchs the main 'fieldKey' component of the data since 
+    // we don't have individual timestamps for all fields -- this is a problematic design issue.
+    static synchDocs(bd: Doc, md: Doc) {
+        const fieldKey = Doc.LayoutFieldKey(md);
+        let bdate = DateCast(bd[`${fieldKey}-lastModified`])?.date;
+        let mdate = DateCast(md[`${fieldKey}-lastModified`])?.date;
+        if (bdate === mdate || bdate > mdate) return;
+        const bdproto = bd && Doc.GetProto(bd);
+        if (bdproto && md) {
+            bdproto[fieldKey] = ObjectField.MakeCopy(md[fieldKey] as ObjectField);
+            bdproto[`${fieldKey}-lastModified`] = ObjectField.MakeCopy(md[`${fieldKey}-lastModified`] as ObjectField);
+        }
+    }
+
     // pulls documents onto a branch from the branch's master
     // if a document exists on master but not on the branch, it is branched and added
     // NOTE: need to set a timestamp on the branch that is equal to the master's last merge timestamp.
@@ -290,6 +305,11 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         const branchMasterMainDocProtos = branchMasterMainDocs?.map(doc => Doc.GetProto(doc));
         // get documents on master that don't have a corresponding master doc (form a branch doc), and ...
         const newDocsFromMaster = masterMainDocs?.filter(md => !branchMasterMainDocProtos?.includes(Doc.GetProto(md)));
+        const oldDocsFromMaster = masterMainDocs?.filter(md => branchMasterMainDocProtos?.includes(Doc.GetProto(md)));
+        oldDocsFromMaster?.forEach(md => {
+            const bd = branchMainDocs?.find(bd => (Cast(bd.branchOf, Doc, null) || bd) === md);
+            bd && CollectionView.synchDocs(bd, md);
+        })
         // make branch clones of them, then add them to the branch
         const newlyBranchedDocs = await Promise.all(newDocsFromMaster?.map(async md => (await Doc.MakeClone(md, false, true)).clone) || []);
         newlyBranchedDocs.forEach(nd => {
@@ -304,8 +324,6 @@ export class CollectionView extends Touchable<CollectionViewProps> {
 
     // merges all branches from the master branch by first merging the top-level collection of documents, 
     // and then merging all the annotations on those documents.
-    // NOTE: "merging" only means making sure that documents in the branches are on master -- it does not
-    //           currently update the state of those documents to be identical.
     // TODO: need to add an incrementing timestamp whenever anything merges.  don't allow a branch to merge if it's last pull timestamp isn't equal to the last merge timestamp.
     static mergeWithMaster = async (master: Doc, suffix = "") => {
         const branches = await DocListCastAsync(master.branches);
@@ -327,6 +345,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 }
                 Doc.AddDocToList(master, Doc.LayoutFieldKey(master) + suffix, masterChild); // add the masterChild to master (if it's already there, this is a no-op)
                 masterChild.context = master;
+                CollectionView.synchDocs(Doc.GetProto(masterChild), bd);
             });
             const masterChildren = await DocListCastAsync(master[Doc.LayoutFieldKey(master) + suffix]);
             masterChildren?.forEach(async mc => {                      // see if any master children

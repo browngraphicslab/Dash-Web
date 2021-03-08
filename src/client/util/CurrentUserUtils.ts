@@ -988,7 +988,7 @@ export class CurrentUserUtils {
     static async updateUserDocument(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
-        reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
+        reaction(() => DateCast((doc.globalGroupDatabase as Doc)["data-lastModified"]),
             async () => {
                 const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
                 const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
