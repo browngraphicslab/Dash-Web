@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { setupMoveUpEvents, emptyFunction } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -129,7 +129,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     }
     @undoBatch
     @action
-    onMaximizeClick = (e: React.MouseEvent): void => {
+    onMaximizeClick = (e: any): void => {
         const selectedDocs = SelectionManager.Views();
         if (selectedDocs.length) {
             if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
@@ -152,12 +152,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     }
 
     @undoBatch
-    onIconifyClick = (e: React.MouseEvent): void => {
+    onIconifyClick = (): void => {
         SelectionManager.Views().forEach(dv => dv?.iconify());
         SelectionManager.DeselectAll();
     }
 
-    onSelectorClick = (e: React.MouseEvent) => SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false);
+    onSelectorClick = () => SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false);
 
     onRadiusDown = (e: React.PointerEvent): void => {
         this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
@@ -413,9 +413,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             return (!docView.rootDoc._stayInCollection || docView.rootDoc.isInkMask) &&
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || GetEffectiveAcl(docView.rootDoc) === AclAdmin);
         });
-        const topBtn = (key: string, icon: string, click: (e: React.MouseEvent) => void, title: string) => (
+        const topBtn = (key: string, icon: string, click: (e: any) => void, title: string) => (
             <Tooltip key={key} title={<div className="dash-tooltip">{title}</div>} placement="top">
-                <div className={`documentDecorations-${key}Button`} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onClick={click}>
+                <div className={`documentDecorations-${key}Button`} onContextMenu={e => e.preventDefault()}
+                    onPointerDown={e => setupMoveUpEvents(this, e, returnFalse, click, emptyFunction)} >
                     <FontAwesomeIcon icon={icon as any} />
                 </div>
             </Tooltip>);

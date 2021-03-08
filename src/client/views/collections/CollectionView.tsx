@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast } from '../../../fields/Doc';
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, DocListCast, DocListCastAsync } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -277,6 +277,65 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         }
     }
 
+    // pulls documents onto a branch from the branch's master
+    // if a document exists on master but not on the branch, it is branched and added
+    // NOTE/TODO: if a document is deleted on master, pulling master should delete the document from the branch
+    //
+    static pullFromMaster = async (branch: Doc, suffix = "") => {
+        const masterMain = Cast(branch.branchOf, Doc, null);
+        // get the set of documents on both the branch and master
+        const masterMainDocs = await DocListCastAsync(masterMain[Doc.LayoutFieldKey(masterMain) + suffix]);
+        const branchMainDocs = await DocListCastAsync(branch[Doc.LayoutFieldKey(branch) + suffix]);
+        // get the master documents that correspond to the branch documents
+        const branchMasterMainDocs = branchMainDocs?.map(bd => Cast(bd.branchOf, Doc, null) || bd).map(doc => Doc.GetProto(doc));
+        // get documents on master that don't have a corresponding master doc (form a branch doc), and ...
+        const newDocsFromMaster = masterMainDocs?.filter(md => !branchMasterMainDocs?.includes(Doc.GetProto(md)));
+        // make branch clones of them, then add them to the branch
+        const newlyBranchedDocs = await Promise.all(newDocsFromMaster?.map(async md => (await Doc.MakeClone(md, false, true)).clone) || []);
+        newlyBranchedDocs.forEach(nd => Doc.AddDocToList(branch, Doc.LayoutFieldKey(branch) + suffix, nd));
+    }
+
+    // merges all branches from the master branch by first merging the top-level collection of documents, 
+    // and then merging all the annotations on those documents.
+    // NOTE: "merging" only means making sure that documents in the branches are on master -- it does not
+    //           currently update the state of those documents to be identical.
+    // TODO: deleting a document on a branch should remove it from master (but doesn't yet).
+    static mergeWithMaster = async (master: Doc, suffix = "") => {
+        const branches = await DocListCastAsync(master.branches);
+        branches?.map(async branch => {
+            const branchChildren = await DocListCastAsync(branch[Doc.LayoutFieldKey(branch) + suffix]);
+            branchChildren?.forEach(async bd => {
+                // see if the branch's child exists on master.  
+                const masterChild = Cast(bd.branchOf, Doc, null) || (await Doc.MakeClone(bd, false, true)).clone;
+                // if the branch's child didn't exist on master, we make a branch clone of the child to add to master.  
+                // however, since master is supposed to have the "main" clone, and branches, the "branch" clones, we have to reverse the fields
+                // on the branch child and master clone.
+                if (masterChild.branchOf) {
+                    const branchDocProto = Doc.GetProto(bd);
+                    const masterChildProto = Doc.GetProto(masterChild);
+                    masterChildProto.branchOf = undefined; // the master child should not be a branch of the branch child, so unset 'branchOf'
+                    masterChildProto.branches = new List<Doc>([bd]); // the master child's branches needs to include the branch child
+                    Doc.RemoveDocFromList(branchDocProto, "branches", masterChildProto);   // the branch child should not have the master child in its branch list.
+                    branchDocProto.branchOf = masterChild;                                 // the branch child is now a branch of the master child
+                }
+                Doc.AddDocToList(master, Doc.LayoutFieldKey(master) + suffix, masterChild); // add the masterChild to master (if it's already there, this is a no-op)
+            });
+        });
+    }
+
+    // performs a "git"-like task: pull or merge
+    //    if pull, then target is a specific branch document that will be updated from its associated master
+    //    if merge, then target is the master doc that will merge in all branches associated with it.
+    // TODO: parameterize 'merge' to specify which branch(es) should be merged.   
+    //       extend 'merge' to allow a specific branch to be merge target (not just master);
+    //       make pull/merge be recursive (ie, this func currently just operates on the main doc and its children)
+    static async GitTask(target: Doc, action: "pull" | "merge") {
+        const func = action === "pull" ? CollectionView.pullFromMaster : CollectionView.mergeWithMaster;
+        await func(target, "");
+        const targetChildren = await DocListCast(target[Doc.LayoutFieldKey(target)]);
+        targetChildren.forEach(async targetChild => await func(targetChild, "-annotations"));
+    }
+
     onContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
@@ -297,6 +356,16 @@ export class CollectionView extends Touchable<CollectionViewProps> {
                 optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "add:right"), icon: "project-diagram" });
             }
             !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+
+            optionItems.push({
+                description: "Create Branch", event: async () => this.props.addDocTab((await Doc.MakeClone(this.props.Document, false, true)).clone, "add:right"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Pull Master", event: () => CollectionView.GitTask(this.props.Document, "pull"), icon: "project-diagram"
+            });
+            optionItems.push({
+                description: "Merge Branches", event: () => CollectionView.GitTask(this.props.Document, "merge"), icon: "project-diagram"
+            });
 
             !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 

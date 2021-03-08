@@ -503,13 +503,13 @@ export namespace Doc {
         return alias;
     }
 
-    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean): Promise<Doc> {
+    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean, asBranch: boolean): Promise<Doc> {
         if (Doc.IsBaseProto(doc)) return doc;
         if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = dontCreate ? doc : new Doc(undefined, true);
+        const copy = dontCreate ? asBranch ? (Cast(doc.branchMaster, Doc, null) || doc) : doc : new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), exclusions);
+        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), ["branches", ...exclusions]);
         await Promise.all(Object.keys(doc).map(async key => {
             if (filter.includes(key)) return;
             const assignKey = (val: any) => !dontCreate && (copy[key] = val);
@@ -519,12 +519,12 @@ export namespace Doc {
                 const list = Cast(doc[key], listSpec(Doc));
                 const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
                 if (docs !== undefined && docs.length) {
-                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate)));
+                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate, asBranch)));
                     !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate)); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate, asBranch)); // reference documents except copy documents that are expanded teplate fields 
                 } else {
-                    assignKey(ObjectField.MakeCopy(field));
+                    !dontCreate && assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
                         if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
                             rtfs.push({ copy, key, field });
@@ -534,7 +534,7 @@ export namespace Doc {
             };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate));
+                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate, asBranch));
                 }
             } else {
                 if (field instanceof RefField) {
@@ -552,16 +552,17 @@ export namespace Doc {
             }
         }));
         if (!dontCreate) {
-            Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-            copy.cloneOf = doc;
+            Doc.SetInPlace(copy, "title", (asBranch ? "BRANCH: " : "CLONE: ") + doc.title, true);
+            asBranch ? (copy.branchOf = doc) : (copy.cloneOf = doc);
+            if (!Doc.IsPrototype(copy)) Doc.AddDocToList(doc, "branches", Doc.GetProto(copy));
             cloneMap.set(doc[Id], copy);
         }
         return copy;
     }
-    export async function MakeClone(doc: Doc, dontCreate: boolean = false) {
+    export async function MakeClone(doc: Doc, dontCreate: boolean = false, asBranch = false) {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf"], dontCreate);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf", "branchOf"], dontCreate, asBranch);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
@@ -586,7 +587,7 @@ export namespace Doc {
         // a.click();
         const { clone, map } = await Doc.MakeClone(doc, true);
         function replacer(key: any, value: any) {
-            if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
+            if (["branchOf", "cloneOf", "context", "cursors"].includes(key)) return undefined;
             else if (value instanceof Doc) {
                 if (key !== "field" && Number.isNaN(Number(key))) {
                     const __fields = value[FieldsSym]();
