@@ -300,7 +300,7 @@ export class CollectionView extends Touchable<CollectionViewProps> {
             !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
             optionItems.push({
-                description: "Create Branch", event: async () => this.props.addDocTab(BranchCreate(this.props.Document), "add:right"), icon: "project-diagram"
+                description: "Create Branch", event: async () => this.props.addDocTab(await BranchCreate(this.props.Document), "add:right"), icon: "project-diagram"
             });
             optionItems.push({
                 description: "Pull Master", event: () => BranchTask(this.props.Document, "pull"), icon: "project-diagram"
