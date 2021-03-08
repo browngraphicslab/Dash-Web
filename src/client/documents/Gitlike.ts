@@ -8,8 +8,8 @@ import { Cast, DateCast } from "../../fields/Types";
 // we don't have individual timestamps for all fields -- this is a problematic design issue.
 function GitlikeSynchDocs(bd: Doc, md: Doc) {
     const fieldKey = Doc.LayoutFieldKey(md);
-    let bdate = DateCast(bd[`${fieldKey}-lastModified`])?.date;
-    let mdate = DateCast(md[`${fieldKey}-lastModified`])?.date;
+    const bdate = DateCast(bd[`${fieldKey}-lastModified`])?.date;
+    const mdate = DateCast(md[`${fieldKey}-lastModified`])?.date;
     if (bdate === mdate || bdate > mdate) return;
     const bdproto = bd && Doc.GetProto(bd);
     if (bdproto && md) {
@@ -35,7 +35,7 @@ async function GitlikePullFromMaster(branch: Doc, suffix = "") {
     oldDocsFromMaster?.forEach(md => {
         const bd = branchMainDocs?.find(bd => (Cast(bd.branchOf, Doc, null) || bd) === md);
         bd && GitlikeSynchDocs(bd, md);
-    })
+    });
     // make branch clones of them, then add them to the branch
     const newlyBranchedDocs = await Promise.all(newDocsFromMaster?.map(async md => (await Doc.MakeClone(md, false, true)).clone) || []);
     newlyBranchedDocs.forEach(nd => {
@@ -55,7 +55,7 @@ async function GitlikeMergeWithMaster(master: Doc, suffix = "") {
     const branches = await DocListCastAsync(master.branches);
     branches?.map(async branch => {
         const branchChildren = await DocListCastAsync(branch[Doc.LayoutFieldKey(branch) + suffix]);
-        branchChildren?.forEach(async bd => {
+        branchChildren && await Promise.all(branchChildren.map(async bd => {
             // see if the branch's child exists on master.  
             const masterChild = Cast(bd.branchOf, Doc, null) || (await Doc.MakeClone(bd, false, true)).clone;
             // if the branch's child didn't exist on master, we make a branch clone of the child to add to master.  
@@ -72,9 +72,9 @@ async function GitlikeMergeWithMaster(master: Doc, suffix = "") {
             Doc.AddDocToList(master, Doc.LayoutFieldKey(master) + suffix, masterChild); // add the masterChild to master (if it's already there, this is a no-op)
             masterChild.context = master;
             GitlikeSynchDocs(Doc.GetProto(masterChild), bd);
-        });
+        }));
         const masterChildren = await DocListCastAsync(master[Doc.LayoutFieldKey(master) + suffix]);
-        masterChildren?.forEach(async mc => {                      // see if any master children
+        masterChildren?.forEach(mc => {                      // see if any master children
             if (!branchChildren?.find(bc => bc.branchOf === mc)) { //    are not in the list of children for this branch. 
                 Doc.RemoveDocFromList(master, Doc.LayoutFieldKey(master) + suffix, mc); // if so, delete the master child since the branch has deleted it.
                 mc.context = undefined;      // NOTE if we merge a branch that didn't do a pull, it will look like the branch deleted documents -- need edit timestamps that prevent merging if branch isn't up-to-date with last edit timestamp
@@ -92,8 +92,7 @@ async function GitlikeMergeWithMaster(master: Doc, suffix = "") {
 export async function BranchTask(target: Doc, action: "pull" | "merge") {
     const func = action === "pull" ? GitlikePullFromMaster : GitlikeMergeWithMaster;
     await func(target, "");
-    const targetChildren = await DocListCast(target[Doc.LayoutFieldKey(target)]);
-    targetChildren.forEach(async targetChild => await func(targetChild, "-annotations"));
+    await DocListCast(target[Doc.LayoutFieldKey(target)]).forEach(async targetChild => func(targetChild, "-annotations"));
 }
 
 export async function BranchCreate(target: Doc) {

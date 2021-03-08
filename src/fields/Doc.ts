@@ -509,7 +509,7 @@ export namespace Doc {
         const copy = dontCreate ? asBranch ? (Cast(doc.branchMaster, Doc, null) || doc) : doc : new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), ["branches", ...exclusions]);
+        const filter = [...exclusions, ...Cast(doc.cloneFieldFilter, listSpec("string"), [])];
         await Promise.all(Object.keys(doc).map(async key => {
             if (filter.includes(key)) return;
             const assignKey = (val: any) => !dontCreate && (copy[key] = val);
@@ -554,7 +554,10 @@ export namespace Doc {
         if (!dontCreate) {
             Doc.SetInPlace(copy, "title", (asBranch ? "BRANCH: " : "CLONE: ") + doc.title, true);
             asBranch ? (copy.branchOf = doc) : (copy.cloneOf = doc);
-            if (!Doc.IsPrototype(copy)) Doc.AddDocToList(doc, "branches", Doc.GetProto(copy));
+            if (!Doc.IsPrototype(copy)) {
+                console.log("ADDING: " + copy.title + " to " + doc.title + "'s branches");
+                Doc.AddDocToList(doc, "branches", Doc.GetProto(copy));
+            }
             cloneMap.set(doc[Id], copy);
         }
         return copy;
@@ -562,7 +565,7 @@ export namespace Doc {
     export async function MakeClone(doc: Doc, dontCreate: boolean = false, asBranch = false) {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf", "branchOf"], dontCreate, asBranch);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf", "branches", "branchOf"], dontCreate, asBranch);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
