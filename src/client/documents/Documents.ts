@@ -59,6 +59,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { EquationBox } from "../views/nodes/EquationBox";
 import { FunctionPlotBox } from "../views/nodes/FunctionPlotBox";
+import { script } from "googleapis/build/src/apis/script";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -1135,7 +1136,7 @@ export namespace DocUtils {
         linkDoc.hidden = true;
         Doc.GetProto(linkDoc)["acl-Public"] = linkDoc["acl-Public"] = SharingPermissions.Add;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction("generateLinkTitle(self)");
         showPopup && makeLink(linkDoc, showPopup);
         return linkDoc;
     }
@@ -1417,3 +1418,9 @@ export namespace DocUtils {
 
 Scripting.addGlobal("Docs", Docs);
 Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
+Scripting.addGlobal(function generateLinkTitle(self: Doc) {
+    const anchor1title = self.anchor1 && self.anchor1 !== self ? Cast(self.anchor1, Doc, null).title : "<?>";
+    const anchor2title = self.anchor2 && self.anchor2 !== self ? Cast(self.anchor2, Doc, null).title : "<?>";
+    const relation = self.linkRelationship || "to";
+    return `${anchor1title} (${relation}) ${anchor2title}`;
+})
