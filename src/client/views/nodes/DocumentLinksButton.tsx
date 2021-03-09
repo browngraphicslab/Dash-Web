@@ -280,7 +280,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         TraceMobx();
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
-        const buttonTitle = "Tap to view links";
+        const buttonTitle = "Tap to view links; double tap to open link collection";
         const title = this.props.InMenu ? menuTitle : buttonTitle;
 
         return !Array.from(this.filteredLinks).length && !this.props.AlwaysOn ? (null) :
