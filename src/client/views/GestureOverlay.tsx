@@ -615,7 +615,7 @@ export class GestureOverlay extends Touchable {
                     newPoints.pop();
                     const controlPoints: { X: number, Y: number }[] = [];
 
-                    const bezierCurves = fitCurve(newPoints, 10);
+                    const bezierCurves = fitCurve(newPoints, 1);
                     for (const curve of bezierCurves) {
 
                         controlPoints.push({ X: curve[0][0], Y: curve[0][1] });

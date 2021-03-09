@@ -4,9 +4,9 @@ import { Doc } from "../../fields/Doc";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { makeInterface } from "../../fields/Schema";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, StrCast, NumCast } from '../../fields/Types';
 import { TraceMobx } from "../../fields/util";
-import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnFalse, smoothScroll } from '../../Utils';
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { Scripting } from "../util/Scripting";
@@ -17,6 +17,8 @@ import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { InkStrokeProperties } from "./InkStrokeProperties";
+import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
+import { DocumentType } from '../documents/DocumentTypes';
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -28,7 +30,72 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
 
+    static easeInOutQuad = (currentTime: number, start: number, change: number, duration: number) => {
+        let newCurrentTime = currentTime / (duration / 2);
 
+        if (newCurrentTime < 1) {
+            return (change / 2) * newCurrentTime * newCurrentTime + start;
+        }
+
+        newCurrentTime -= 1;
+        return (-change / 2) * (newCurrentTime * (newCurrentTime - 2) - 1) + start;
+    };
+
+    static smoothScroll(duration: number, ffview: CollectionFreeFormView, to: number[], finish?: () => void) {
+        const start = [ffview.panX(), ffview.panY()];
+        const change = [to[0] - start[0], to[1] - start[1]];
+        const startDate = new Date().getTime();
+
+        const animateScroll = () => {
+            const currentDate = new Date().getTime();
+            const currentTime = currentDate - startDate;
+            ffview.setPan(InkingStroke.easeInOutQuad(currentTime, start[0], change[0], duration), InkingStroke.easeInOutQuad(currentTime, start[1], change[1], duration));
+
+            if (currentTime < duration) {
+                requestAnimationFrame(animateScroll);
+            } else {
+                ffview.setPan(to[0], to[1]);
+                finish?.();
+            }
+        };
+        animateScroll();
+    }
+
+    static smoothDrag(duration: number, doc: Doc, xs: number[], ys: number[]) {
+        const startDate = new Date().getTime();
+
+        const animateScroll = () => {
+            const currentDate = new Date().getTime();
+            const currentTime = currentDate - startDate;
+            const ind = Math.round((currentTime / duration) * (xs.length - 1));
+            doc.x = xs[ind];
+            doc.y = ys[ind];
+
+            if (currentTime < duration) {
+                requestAnimationFrame(animateScroll);
+            } else {
+                doc.x = xs.lastElement();
+                doc.y = ys.lastElement();
+            }
+        };
+        animateScroll();
+    }
+
+    constructor(props: any) {
+        super(props);
+        const ffview = this.props.CollectionFreeFormDocumentView?.().props.CollectionFreeFormView;
+        if (ffview) {
+            const ofset = [NumCast(this.props.Document.x), NumCast(this.props.Document.y)];
+            const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
+            const xs = data.map(p => p.X);
+            const ys = data.map(p => p.Y);
+            const lineLft = Math.min(...xs);
+            const lineTop = Math.min(...ys);
+            const drag = ffview.childDocs.find((val) => val.type === DocumentType.IMG);
+            InkingStroke.smoothScroll(1000, ffview, [xs.lastElement() - lineLft + ofset[0], ys.lastElement() - lineTop + ofset[1]]);
+            drag && InkingStroke.smoothDrag(2000, drag, xs.map(x => x - lineLft + ofset[0]), ys.map(y => y - lineTop + ofset[1]));
+        }
+    }
     private analyzeStrokes = () => {
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
