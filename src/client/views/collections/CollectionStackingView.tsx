@@ -224,7 +224,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
-            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
+            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.childDontRegisterViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}

@@ -34,7 +34,7 @@
         border: unset;
     }
     .pdfViewerDash-text-selected {
-        position: relative;
+       // position: relative;  // bcz: this breaks auto-scrolling using the inline search box
         z-index: -1;
         .textLayer{
            pointer-events: all;

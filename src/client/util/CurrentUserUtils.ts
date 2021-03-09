@@ -747,7 +747,7 @@ export class CurrentUserUtils {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
@@ -763,7 +763,7 @@ export class CurrentUserUtils {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
             (doc.myPresentations as any as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
@@ -783,7 +783,7 @@ export class CurrentUserUtils {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem",
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "proto", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "proto", system: true
             }));
         }
         return doc.myFilesystem as any as Doc;
@@ -796,7 +796,7 @@ export class CurrentUserUtils {
                 title: "Recently Closed",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
@@ -811,7 +811,7 @@ export class CurrentUserUtils {
                 title: "FilterDoc",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
         }
         const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
@@ -827,7 +827,7 @@ export class CurrentUserUtils {
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
     }
