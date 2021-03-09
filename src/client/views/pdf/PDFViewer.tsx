@@ -23,12 +23,12 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { FieldViewProps } from "../nodes/FieldView";
-import { Annotation } from "./Annotation";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 import { AnchorMenu } from "./AnchorMenu";
+import { Annotation } from "./Annotation";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
-import { LinkDocPreview } from "../nodes/LinkDocPreview";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -94,7 +94,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get allAnnotations() {
         return DocUtils.FilterDocs(DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]), this.props.docFilters(), this.props.docRangeFilters(), undefined);
     }
-    @computed get nonDocAnnotations() { return this.allAnnotations.filter(a => a.annotations); }
+    @computed get inlineTextAnnotations() { return this.allAnnotations.filter(a => a.textInlineAnnotations); }
 
     componentDidMount = async () => {
         // change the address to be the file address of the PNG version of each page
@@ -306,7 +306,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
-
     }
 
     @action
@@ -512,8 +511,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get annotationLayer() {
         TraceMobx();
         return <div className="pdfViewerDash-annotationLayer" style={{ height: Doc.NativeHeight(this.Document), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
-            {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
-                <Annotation {...this.props} showInfo={this.showInfo} dataDoc={this.dataDoc} anno={anno} key={`${anno[Id]}-annotation`} />)
+            {this.inlineTextAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
+                <Annotation {...this.props} fieldKey={this.fieldKey + "-annotations"} showInfo={this.showInfo} dataDoc={this.dataDoc} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
         </div>;
     }
@@ -573,7 +572,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewerDash" + (this.annotationsActive() ? "-interactive" : "")} ref={this._mainCont}
+        return <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`} ref={this._mainCont}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,

@@ -99,43 +99,41 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             const scale = this.props.scaling?.() || 1;
             const anno = this.props.savedAnnotations.values()[0][0];
             const containerOffset = this.props.containerOffset?.() || [0, 0];
-            const mainAnnoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
-            if (anno.style.left) mainAnnoDoc.x = (parseInt(anno.style.left) - containerOffset[0]) / scale;
-            if (anno.style.top) mainAnnoDoc.y = (parseInt(anno.style.top) - containerOffset[1]) / scale + NumCast(this.props.scrollTop);
-            if (anno.style.height) mainAnnoDoc._height = parseInt(anno.style.height) / scale;
-            if (anno.style.width) mainAnnoDoc._width = parseInt(anno.style.width) / scale;
-            mainAnnoDoc.group = mainAnnoDoc;
+            const marqueeAnno = Docs.Create.FreeformDocument([], { backgroundColor: color, annotationOn: this.props.rootDoc, title: "Annotation on " + this.props.rootDoc.title });
+            marqueeAnno.x = (parseInt(anno.style.left || "0") - containerOffset[0]) / scale;
+            marqueeAnno.y = (parseInt(anno.style.top || "0") - containerOffset[1]) / scale + NumCast(this.props.scrollTop);
+            marqueeAnno._height = parseInt(anno.style.height || "0") / scale;
+            marqueeAnno._width = parseInt(anno.style.width || "0") / scale;
             anno.remove();
             this.props.savedAnnotations.clear();
-            return mainAnnoDoc;
-        } else {
-            const mainAnnoDoc = Docs.Create.FreeformDocument([], { type: DocumentType.PDFANNO, annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
-            const mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
-
-            let maxX = -Number.MAX_VALUE;
-            let minY = Number.MAX_VALUE;
-            const annoDocs: Doc[] = [];
-            this.props.savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
-                const annoDoc = new Doc();
-                if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
-                if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-                if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-                if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
-                annoDoc.group = mainAnnoDoc;
-                annoDoc.backgroundColor = color;
-                annoDocs.push(annoDoc);
-                anno.remove();
-                (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
-                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc._width), maxX));
-            }));
-
-            mainAnnoDocProto.y = Math.max(minY, 0);
-            mainAnnoDocProto.x = Math.max(maxX, 0);
-            // mainAnnoDocProto.text = this._selectionText;
-            mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
-            this.props.savedAnnotations.clear();
-            return mainAnnoDoc;
+            return marqueeAnno;
         }
+
+        const textRegionAnno = Docs.Create.FreeformDocument([], { type: DocumentType.PDFANNO, annotationOn: this.props.rootDoc, title: "Selection on " + this.props.rootDoc.title, _width: 1, _height: 1 });
+        let maxX = -Number.MAX_VALUE;
+        let minY = Number.MAX_VALUE;
+        const annoDocs: Doc[] = [];
+        this.props.savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
+            const textRegion = new Doc();
+            textRegion.x = parseInt(anno.style.left ?? "0");
+            textRegion.y = parseInt(anno.style.top ?? "0");
+            textRegion._height = parseInt(anno.style.height ?? "0");
+            textRegion._width = parseInt(anno.style.width ?? "0");
+            textRegion.annoTextRegion = textRegionAnno;
+            textRegion.backgroundColor = color;
+            annoDocs.push(textRegion);
+            anno.remove();
+            minY = Math.min(NumCast(textRegion.y), minY);
+            maxX = Math.max(NumCast(textRegion.x) + NumCast(textRegion._width), maxX);
+        }));
+
+        const textRegionAnnoProto = Doc.GetProto(textRegionAnno);
+        textRegionAnnoProto.y = Math.max(minY, 0);
+        textRegionAnnoProto.x = Math.max(maxX, 0);
+        // mainAnnoDocProto.text = this._selectionText;
+        textRegionAnnoProto.textInlineAnnotations = new List<Doc>(annoDocs);
+        this.props.savedAnnotations.clear();
+        return textRegionAnno;
     }
     @action
     highlight = (color: string, isLinkButton: boolean) => {
