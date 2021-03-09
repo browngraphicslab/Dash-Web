@@ -284,7 +284,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        if ((e as any).formattedHandled) { e.stopPropagation; return; }
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
@@ -473,7 +472,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
-            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey && !(e.nativeEvent as any).formattedHandled) {
+            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 this.allLinks.length && LinkManager.FollowLink(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
@@ -515,13 +514,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
-
-            if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
-        if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)

@@ -109,11 +109,10 @@ export const documentSchema = createSchema({
 
 
 export const collectionSchema = createSchema({
-    childLayoutTemplateName: "string", // the name of a template to use to override the layoutKey when rendering a document -- ONLY used in DocHolderBox 
     childLayoutTemplate: Doc, // layout template to use to render children of a collecion
     childLayoutString: "string", //layout string to use to render children of a collection
     childClickedOpenTemplateView: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to read this value and apply template)
-    dontRegisterChildViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links 
+    childDontRegisterViews: "boolean", // whether views made of this document are registered so that they can be found when drawing links 
     onChildClick: ScriptField, // script to run for each child when its clicked
     onChildDoubleClick: ScriptField, // script to run for each child when its clicked
     onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view

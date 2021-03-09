@@ -1290,8 +1290,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     if (selectOrderedList || (!collapse && listNode.attrs.visibility)) {
                         this._editorView.dispatch(this._editorView.state.tr.setSelection(new NodeSelection(selectOrderedList ? $olistPos! : listPos!)));
                     } else if (!listNode.attrs.visibility || downNode === listNode) {
-                        this._editorView.dispatch(this._editorView.state.tr.setNodeMarkup(clickPos.pos, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
-                        this._editorView.dispatch(this._editorView.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, clickPos.pos)));
+                        const tr = this._editorView.state.tr.setNodeMarkup(clickPos.pos, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility });
+                        this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, clickPos.pos)));
                     }
                 }
                 addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
@@ -1309,7 +1309,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             view.root.removeEventListener("mouseup", originalUpHandler);
             view.mouseDown.up = (e: MouseEvent) => {
                 !(e as any).formattedHandled && originalUpHandler(e);
-                // e.stopPropagation();
                 (e as any).formattedHandled = true;
             };
             view.root.addEventListener("mouseup", view.mouseDown.up);
