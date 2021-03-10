@@ -33,7 +33,6 @@ export enum DocumentType {
     PRESELEMENT = "preselement",// presentation item (view of a document in a collection)
     COLOR = "color",            // color picker (view of a color picker for a color string)
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
-    DOCHOLDER = "docholder",    // nested document (view of a document)
     SEARCHITEM = "searchitem",
     COMPARISON = "comparison",  // before/after view with slider (view of 2 images)
     GROUP = "group",            // group of users

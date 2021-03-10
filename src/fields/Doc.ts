@@ -1159,7 +1159,6 @@ export namespace Doc {
             case DocumentType.PRES: return "tv";
             case DocumentType.SCRIPTING: return "terminal";
             case DocumentType.IMPORT: return "cloud-upload-alt";
-            case DocumentType.DOCHOLDER: return "expand";
             case DocumentType.VID: return "video";
             case DocumentType.INK: return "pen-nib";
             case DocumentType.PDF: return "file-pdf";
@@ -1334,7 +1333,7 @@ Scripting.addGlobal(function activePresentationItem() {
 });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = SelectionManager.Views().map(dv => dv.props.Document).
-        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
