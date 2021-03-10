@@ -833,10 +833,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { _fitWidth: true, title: document.title + ".kvp", ...options });
         }
 
-        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
-        }
-
         export function TextanchorDocument(options: DocumentOptions = {}, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXTANCHOR), undefined, { targetDropAction: "move", ...options }, id);
         }

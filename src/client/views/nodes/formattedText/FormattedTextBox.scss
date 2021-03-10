@@ -126,13 +126,12 @@ audiotag:hover {
 }
 .formattedTextBox-inner-rounded-selected,
 .formattedTextBox-inner-selected {
-    .ProseMirror {
+    > .ProseMirror {
         padding:10px;
     }
 }
 .formattedTextBox-outer-selected {
-
-    .ProseMirror:hover {
+    > .ProseMirror:hover {
         background: unset;
     }
 }

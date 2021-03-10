@@ -47,7 +47,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private _maxSearchIndex: number = 0;
     private _curRequest?: Promise<any> = undefined;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.FILTER, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
+    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.FILTER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
 
     private docsforfilter: Doc[] | undefined = [];
     private realTotalResults: number = 0;

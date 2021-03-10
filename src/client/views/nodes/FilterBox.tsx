@@ -214,7 +214,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 const extendedMinVal = minVal - Math.min(1, Math.floor(Math.abs(maxVal - minVal) * .1));
-                const extendedMaxVal = maxVal + Math.min(1, Math.ceil(Math.abs(maxVal - minVal) * .05));
+                const extendedMaxVal = Math.max(minVal + 1, maxVal + Math.min(1, Math.ceil(Math.abs(maxVal - minVal) * .05)));
                 newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
                 newFacet[newFacetField + "-max"] = ranged === undefined ? extendedMaxVal : ranged[1];
                 Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = extendedMinVal;

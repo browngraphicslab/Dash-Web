@@ -213,8 +213,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             height: { default: 100 },
             title: { default: null },
             float: { default: "right" },
-            location: { default: "add:right" },
-            hidden: { default: false },
+            hidden: { default: false }, // whether dashComment node has toggle the dashDoc's display off
             fieldKey: { default: "" },
             docid: { default: "" },
             alias: { default: "" }

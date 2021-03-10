@@ -61,7 +61,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
                     }} >
                     <Slider
                         mode={2}
-                        step={1}
+                        step={Math.min(1, .1 * (domain[1] - domain[0]))}
                         domain={domain}
                         rootStyle={{ position: "relative", width: "100%" }}
                         onChange={this.onChange}
