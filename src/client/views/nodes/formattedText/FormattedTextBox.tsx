@@ -91,16 +91,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
     }
     public static Instance: FormattedTextBox;
+    public static LiveTextUndo: UndoManager.Batch | undefined;
     static _highlights: string[] = ["Audio Tags", "Text from Others", "Todo Items", "Important Items", "Disagree Items", "Ignore Items"];
     static _highlightStyleSheet: any = addStyleSheet();
     static _bulletStyleSheet: any = addStyleSheet();
     static _userStyleSheet: any = addStyleSheet();
     static _canAnnotate = true;
     static _hadSelection: boolean = false;
-    public static LiveTextUndo: UndoManager.Batch | undefined;
-    public ProseRef?: HTMLDivElement;
-    public get EditorView() { return this._editorView; }
-    public get SidebarKey() { return this.fieldKey + "-sidebar"; }
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
@@ -123,6 +120,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _downX = 0;
     private _downY = 0;
     private _break = false;
+    public ProseRef?: HTMLDivElement;
+    public get EditorView() { return this._editorView; }
+    public get SidebarKey() { return this.fieldKey + "-sidebar"; }
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     @computed get sidebarColor() { return StrCast(this.layoutDoc.sidebarColor, StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "#e4e4e4")); }
@@ -879,14 +879,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             };
             const undo = () => {
-                if (!exportState) {
-                    return;
-                }
-                const content: GoogleApiClientUtils.Docs.Content = {
-                    text: exportState.text,
-                    requests: []
-                };
-                if (reference && content) {
+                if (exportState && reference) {
+                    const content: GoogleApiClientUtils.Docs.Content = {
+                        text: exportState.text,
+                        requests: []
+                    };
                     GoogleApiClientUtils.Docs.write({ reference, content, mode });
                 }
             };
