@@ -608,7 +608,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={emptyFunction}
                 cantBrush={this.props.treeView.props.cantBrush}
-                dontRegisterView={BoolCast(this.props.treeView.props.Document.dontRegisterChildViews)}
+                dontRegisterView={BoolCast(this.props.treeView.props.Document.childDontRegisterViews)}
                 docFilters={returnEmptyFilter}
                 docRangeFilters={returnEmptyFilter}
                 searchFilterDocs={returnEmptyDoclist}

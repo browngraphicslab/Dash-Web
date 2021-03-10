@@ -20,8 +20,9 @@ import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
+import { LightboxView } from "../LightboxView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView, DocumentViewProps, DocFocusOptions, ViewAdjustment } from "../nodes/DocumentView";
+import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../nodes/DocumentView";
 import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
@@ -29,8 +30,6 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { LightboxView } from "../LightboxView";
-import { DocumentType } from "../../documents/DocumentTypes";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -224,7 +223,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
-            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
+            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.childDontRegisterViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}

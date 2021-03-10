@@ -1,8 +1,8 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { computed, observable, action, trace, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, Opt } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Field, Opt, DocListCastAsync } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -19,8 +19,6 @@ import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import './FilterBox.scss';
 import { Scripting } from "../../util/Scripting";
-import { values } from "lodash";
-import { tokenToString } from "typescript";
 import { SelectionManager } from "../../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -59,10 +57,20 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         return FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
     }
 
+    @observable _loaded = false;
+    componentDidMount() {
+        reaction(() => DocListCastAsync(CollectionDockingView.Instance.props.Document.data),
+            async (activeTabsAsync) => {
+                const activeTabs = await activeTabsAsync;
+                activeTabs && (await SearchBox.foreachRecursiveDocAsync(activeTabs, emptyFunction));
+                runInAction(() => this._loaded = true);
+            }, { fireImmediately: true });
+    }
     @computed get allDocs() {
+        trace();
         const allDocs = new Set<Doc>();
         const targetDoc = FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
-        if (targetDoc) {
+        if (this._loaded && targetDoc) {
             const activeTabs = DocListCast(targetDoc.data);
             SearchBox.foreachRecursiveDoc(activeTabs, (doc: Doc) => allDocs.add(doc));
             setTimeout(() => targetDoc.allDocuments = new List<Doc>(Array.from(allDocs)));
@@ -71,6 +79,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
     }
 
     @computed get _allFacets() {
+        trace();
         const noviceReqFields = ["author", "tags", "text", "type"];
         const noviceLayoutFields: string[] = [];//["_curPage"];
         const noviceFields = [...noviceReqFields, ...noviceLayoutFields];
@@ -200,12 +209,12 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 const scriptText = `setDocFilter(this?.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
             } else if (facetHeader !== "tags" && nonNumbers / facetValues.strings.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _overflow: "visible", _height: 40, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, _overflow: "visible", _fitWidth: true, _height: 40, _stayInCollection: true, _hideContextMenu: true, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(targetDoc, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
-                const extendedMinVal = minVal - Math.min(1, Math.abs(maxVal - minVal) * .05);
-                const extendedMaxVal = maxVal + Math.min(1, Math.abs(maxVal - minVal) * .05);
+                const extendedMinVal = minVal - Math.min(1, Math.floor(Math.abs(maxVal - minVal) * .1));
+                const extendedMaxVal = maxVal + Math.min(1, Math.ceil(Math.abs(maxVal - minVal) * .05));
                 newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
                 newFacet[newFacetField + "-max"] = ranged === undefined ? extendedMaxVal : ranged[1];
                 Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = extendedMinVal;
@@ -218,8 +227,8 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
-                const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
+                newFacet.target = targetDoc;
+                newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
             }
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
@@ -345,6 +354,26 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     value={null}
                     closeMenuOnSelect={false}
                 />
+                {/* @computed get flyoutpanel() {
+        return <div className="filterBox-flyout" style={{ width: `100%`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+            {this._allFacets.map(facet => <label className="filterBox-flyout-facet" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+                <input type="checkbox" onChange={emptyFunction} checked={DocListCast(this.props.Document[this.props.fieldKey]).some(d => d.title === facet)} />
+                <span className="checkmark" />
+                {facet}
+            </label>)}
+        </div>;
+    }
+    render() {
+        const facetCollection = this.props.Document;
+
+        return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
+            <div className="filterBox-addFacet" style={{ width: "100%" }} onPointerDown={e => e.stopPropagation()}>
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyoutpanel}>
+                    <div className="filterBox-addFacetButton">
+                        <FontAwesomeIcon icon={"edit"} size={"lg"} />
+                        <span className="filterBox-span">Choose Facets</span>
+                    </div>
+                </Flyout> */}
             </div>
 
             <div className="filterBox-tree" key="tree">
@@ -451,7 +480,7 @@ Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: 
     }
     return undefined;
 });
-Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) {
+Scripting.addGlobal(function readFacetData(targetDoc: Doc, facetHeader: string) {
     const allCollectionDocs = DocListCast(CollectionDockingView.Instance?.props.Document.allDocuments);
     const set = new Set<string>();
     if (facetHeader === "tags") allCollectionDocs.forEach(child => Field.toString(child[facetHeader] as Field).split(":").forEach(key => set.add(key)));
@@ -464,7 +493,10 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) 
         const doc = new Doc();
         doc.system = true;
         doc.title = facetValue.toString();
-        doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
+        doc.target = targetDoc;
+        doc.facetHeader = facetHeader;
+        doc.facetValue = facetValue;
+        doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(self.target, self.facetHeader, self.facetValue)");
         return doc;
     });
     return new List<Doc>(facetValueDocSet);

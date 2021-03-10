@@ -16,7 +16,6 @@ import { FunctionPlotBox } from "./FunctionPlotBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
 import { ScriptingBox } from "./ScriptingBox";
-import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
@@ -225,7 +224,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & Fo
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, EquationBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox, FilterBox, FunctionPlotBox,
-                    ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
+                    ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, LinkBox, ScriptingBox,
                     ScreenshotBox, HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}

@@ -131,7 +131,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const title = (() => {
             switch (this.openHover) {
                 default:
-                case UtilityButtonState.Default: return `${!dataDoc?.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+                case UtilityButtonState.Default: return `${!dataDoc?.googleDocUnchanged ? "Pull from" : "Fetch"} Google Docs`;
                 case UtilityButtonState.OpenRight: return "Open in Right Split";
                 case UtilityButtonState.OpenExternally: return "Open in new Browser Tab";
             }
@@ -167,7 +167,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                         this.clearPullColor();
                         DocumentButtonBar.hasPulledHack = false;
                         targetDoc[Pulls] = NumCast(targetDoc[Pulls]) + 1;
-                        dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                        dataDoc.googleDocUnchanged && runInAction(() => this.isAnimatingFetch = true);
                     }
                 }}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm"
@@ -175,7 +175,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                     icon={(() => {
                         switch (this.openHover) {
                             default:
-                            case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+                            case UtilityButtonState.Default: return dataDoc.googleDocUnchanged === false ? (this.pullIcon as any) : fetch;
                             case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
                             case UtilityButtonState.OpenExternally: return "share";
                         }

@@ -950,7 +950,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 doc.hidden && Doc.UnHighlightDoc(doc);
                 const resetView = options?.afterFocus ? await options?.afterFocus(moved) : ViewAdjustment.doNothing;
                 if (resetView) {
-                    const restoreState = !LightboxView.LightboxDoc || LightboxView.LightboxDoc === this.props.Document && savedState;
+                    const restoreState = (!LightboxView.LightboxDoc || LightboxView.LightboxDoc === this.props.Document) && savedState;
                     if (typeof restoreState !== "boolean") {
                         this.Document._panX = restoreState.panX;
                         this.Document._panY = restoreState.panY;
