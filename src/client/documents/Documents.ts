@@ -1043,8 +1043,9 @@ export namespace DocUtils {
                 const min = Number(docRangeFilters[i + 1]);
                 const max = Number(docRangeFilters[i + 2]);
                 const val = Cast(d[key], "number", null);
-                if (val === undefined || (val < min || val > max)) {
-                    return false;
+                if (val < min || val > max) return false;
+                if (val === undefined) {
+                    console.log("Should 'undefined' pass range filter or not?")
                 }
             }
             return true;

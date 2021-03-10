@@ -3,7 +3,7 @@ import { Tooltip } from '@material-ui/core';
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { Doc, DocListCast, Field, Opt, DocListCastAsync } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Copy, Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -185,6 +185,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return finalDocs;
     }
 
+    static async foreachRecursiveDocAsync(docs: Doc[], func: (doc: Doc) => void) {
+        let newarray: Doc[] = [];
+        while (docs.length > 0) {
+            newarray = [];
+            await Promise.all(docs.filter(d => d).map(async d => {
+                const fieldKey = Doc.LayoutFieldKey(d);
+                const annos = !Field.toString(Doc.LayoutField(d) as Field).includes("CollectionView");
+                const data = d[annos ? fieldKey + "-annotations" : fieldKey];
+                const docs = await DocListCastAsync(data);
+                docs && newarray.push(...docs);
+                func(d);
+            }));
+            docs = newarray;
+        }
+    }
     static foreachRecursiveDoc(docs: Doc[], func: (doc: Doc) => void) {
         let newarray: Doc[] = [];
         while (docs.length > 0) {
