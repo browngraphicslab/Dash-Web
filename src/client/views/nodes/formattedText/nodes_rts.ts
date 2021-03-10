@@ -213,7 +213,6 @@ export const nodes: { [index: string]: NodeSpec } = {
             height: { default: 100 },
             title: { default: null },
             float: { default: "right" },
-            location: { default: "add:right" },
             hidden: { default: false },
             fieldKey: { default: "" },
             docid: { default: "" },

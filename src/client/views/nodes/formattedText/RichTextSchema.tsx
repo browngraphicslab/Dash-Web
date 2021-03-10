@@ -9,7 +9,6 @@ import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { Transform } from "../../../util/Transform";
-import { DefaultStyleProvider } from "../../StyleProvider";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
