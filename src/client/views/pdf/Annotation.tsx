@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -21,16 +21,11 @@ interface IAnnotationProps extends FieldViewProps {
 export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
-        return DocListCast(this.props.anno.textInlineAnnotations).map(a =>
-            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
+        return DocListCast(this.props.anno.textInlineAnnotations).map(a => <RegionAnnotation {...this.props} document={a} key={a[Id]} />);
     }
 }
 
 interface IRegionAnnotationProps extends IAnnotationProps {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
     document: Doc;
 }
 @observer
@@ -96,10 +91,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     render() {
         return (<div className="pdfAnnotation" onPointerEnter={() => this.props.showInfo(this.props.anno)} onPointerLeave={() => this.props.showInfo(undefined)} onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
-                top: this.props.y,
-                left: this.props.x,
-                width: this.props.width,
-                height: this.props.height,
+                left: NumCast(this.props.document.x),
+                top: NumCast(this.props.document.y),
+                width: NumCast(this.props.document._width),
+                height: NumCast(this.props.document._height),
                 opacity: this._brushed ? 0.5 : undefined,
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
             }} >
