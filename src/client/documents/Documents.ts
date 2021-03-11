@@ -987,6 +987,13 @@ export namespace DocUtils {
         }
         return false;
     }
+    /**
+     * @param docs 
+     * @param docFilters 
+     * @param docRangeFilters 
+     * @param viewSpecScript 
+     * Given a list of docs and docFilters, @returns the list of Docs that match those filters 
+     */
     export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
         const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         if (!docFilters?.length && !docRangeFilters?.length) {
@@ -1011,14 +1018,19 @@ export namespace DocUtils {
             if (d.cookies && (!filterFacets.cookies || !Object.keys(filterFacets.cookies).some(key => d.cookies === key))) {
                 return false;
             }
+
+            console.log(FilterBox._filterBoolean);
             for (const facetKey of Object.keys(filterFacets).filter(fkey => fkey !== "cookies")) {
                 const facet = filterFacets[facetKey];
+                console.log(facet)
                 const matches = Object.keys(facet).filter(value => value !== "cookies" && facet[value] === "match");
                 const checks = Object.keys(facet).filter(value => facet[value] === "check");
                 const xs = Object.keys(facet).filter(value => facet[value] === "x");
+
+                if (!xs.length && !checks.length && !matches.length) return true;
                 const failsNotEqualFacets = !xs.length ? false : xs.some(value => Doc.matchFieldValue(d, facetKey, value));
                 const satisfiesCheckFacets = !checks.length ? true : checks.some(value => Doc.matchFieldValue(d, facetKey, value));
-                const satisfiesMatchFacets = !matches.length ? true : matches.some(value => {
+                const satisfiesMatchFacets = matches.some(value => {
                     if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
                         const allKeys = Array.from(Object.keys(d));
                         allKeys.push(...Object.keys(Doc.GetProto(d)));
@@ -1027,11 +1039,20 @@ export namespace DocUtils {
                     }
                     return Field.toString(d[facetKey] as Field).includes(value);
                 });
-                if (!satisfiesCheckFacets || !satisfiesMatchFacets || failsNotEqualFacets) {
-                    return false;
+                console.log(satisfiesCheckFacets, failsNotEqualFacets);
+                if (FilterBox._filterBoolean === "OR") {
+                    if (satisfiesCheckFacets && !failsNotEqualFacets) {
+                        return true;
+                    }
                 }
+                else {
+                    if (!satisfiesCheckFacets || failsNotEqualFacets) {
+                        return false;
+                    }
+                }
+
             }
-            return true;
+            return FilterBox._filterBoolean === "OR" ? false : true;
         }) : childDocs;
         const rangeFilteredDocs = filteredDocs.filter(d => {
             for (let i = 0; i < docRangeFilters.length; i += 3) {

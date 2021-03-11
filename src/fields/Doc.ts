@@ -1049,7 +1049,7 @@ export namespace Doc {
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
-        const container = target ?? CollectionDockingView.Instance.props.Document;
+        const container = target ?? FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
         const docRangeFilters = Cast(container._docRangeFilters, listSpec("string"), []);
         for (let i = 0; i < docRangeFilters.length; i += 3) {
             if (docRangeFilters[i] === key) {
@@ -1065,9 +1065,11 @@ export namespace Doc {
         }
     }
 
-    // filters document in a container collection:
-    // all documents with the specified value for the specified key are included/excluded 
-    // based on the modifiers :"check", "x", undefined
+    /**
+    * Filters document in a container collection:
+    * all documents with the specified value for the specified key are included/excluded
+    * based on the modifiers :"check", "x", undefined
+    */
     export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
         const container = target ?? FilterBox._filterScope === "Current Collection" ? SelectionManager.Views()[0].Document || CollectionDockingView.Instance.props.Document : CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);

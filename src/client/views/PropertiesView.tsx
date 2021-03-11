@@ -913,6 +913,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     updateFilterDoc = (doc: Doc) => {
+        if (doc === this.filterDoc.currentFilter) return; // causes problems if you try to reapply the same doc
         const temp = doc._docFiltersList;
         const otherTemp = this.filterDoc._docFilters;
         this.filterDoc._docFilters = new List<string>();
