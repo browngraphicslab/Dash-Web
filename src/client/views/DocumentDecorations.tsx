@@ -254,8 +254,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-        let dragBottom = false;
-        let dragRight = false;
+        let dragBottom = false, dragRight = false, dragBotRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         switch (this._resizeHdlId) {
             case "": break;
@@ -282,6 +281,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             case "documentDecorations-bottomRightResizer":
                 dW = move[0];
                 dH = move[1];
+                dragBotRight = true;
                 break;
             case "documentDecorations-bottomResizer":
                 dH = move[1];
@@ -336,7 +336,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             doc._nativeWidth = actualdW / (doc._width || 1) * Doc.NativeWidth(doc);
                         } else {
                             if (!doc._fitWidth) doc._height = nheight / nwidth * actualdW;
-                            else if (!e.ctrlKey) doc._height = actualdH;
+                            else if (!e.ctrlKey || dragBotRight) doc._height = actualdH;
                         }
                         doc._width = actualdW;
                     }
@@ -346,7 +346,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             doc._autoHeight = false;
                         } else {
                             if (!doc._fitWidth) doc._width = nwidth / nheight * actualdH;
-                            else if (!e.ctrlKey) doc._width = actualdW;
+                            else if (!e.ctrlKey || dragBotRight) doc._width = actualdW;
                         }
                         doc._height = actualdH;
                     }
