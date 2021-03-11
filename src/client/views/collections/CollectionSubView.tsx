@@ -66,9 +66,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataField() {
             // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
             // setTimeout changes it outside of the @computed section
-            setTimeout(() => {
-                if (!this.dataDoc[this.props.fieldKey]) this.dataDoc[this.props.fieldKey] = new List<Doc>();
-            }, 1000);
+            !this.dataDoc[this.props.fieldKey] && setTimeout(() => this.dataDoc[this.props.fieldKey] = new List<Doc>());
             return this.dataDoc[this.props.fieldKey];
         }
 
@@ -480,7 +478,6 @@ import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTex
 import { CollectionView, CollectionViewType, CollectionViewProps } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
-import { setTimeout } from "timers";
 import { Hypothesis } from "../../util/HypothesisUtils";
 import { GetEffectiveAcl } from "../../../fields/util";
 

@@ -144,13 +144,13 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         if (!value && !forceEmptyNote) return false;
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument("", { _autoHeight: true, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument("", { _autoHeight: true, _width: 200, _fitWidth: true, title: value });
         const onLayoutDoc = this.onLayoutDoc(key);
         FormattedTextBox.SelectOnLoad = newDoc[Id];
         FormattedTextBox.SelectOnLoadChar = value;
         (onLayoutDoc ? newDoc : newDoc[DataSym])[key] = this.getValue(this.props.heading);
         const docs = this.props.parent.childDocList;
-        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument?.(newDoc) || false;
+        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument?.(newDoc) || false; // should really extend addDocument to specify insertion point (at beginning of list)
     }
 
     deleteRow = undoBatch(action(() => {

@@ -16,7 +16,6 @@ import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
-import { SharingManager } from "../../util/SharingManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -28,6 +27,7 @@ import { Annotation } from "./Annotation";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { SharingManager } from "../../util/SharingManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -173,8 +173,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         width: (page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1]),
                         height: (page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0])
                     });
-                    i === this.props.pdf.numPages - 1 && this.props.loaded?.((page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1]),
-                        (page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0]), i);
+                    if (i === this.props.pdf.numPages - 1) {
+                        this.props.loaded?.(page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1],
+                            page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0], i);
+                    }
                 }))));
             this.Document.scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
         }
@@ -532,8 +534,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                renderDepth={this.props.renderDepth + 1}>
-            </CollectionFreeFormView>
+                renderDepth={this.props.renderDepth + 1} />
         </div>;
     }
     @computed get pdfViewerDiv() {

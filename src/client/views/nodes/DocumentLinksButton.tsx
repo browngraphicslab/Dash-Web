@@ -276,7 +276,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         </div >;
     }
 
-    @computed get linkButton() {
+    render() {
         TraceMobx();
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
@@ -294,9 +294,5 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         {this.linkButtonInner}
                     </Tooltip>
                     : this.linkButtonInner;
-    }
-
-    render() {
-        return this.linkButton;
     }
 }
