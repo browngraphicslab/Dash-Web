@@ -1041,7 +1041,7 @@ export namespace DocUtils {
                 const val = Cast(d[key], "number", null);
                 if (val < min || val > max) return false;
                 if (val === undefined) {
-                    console.log("Should 'undefined' pass range filter or not?")
+                    //console.log("Should 'undefined' pass range filter or not?")
                 }
             }
             return true;

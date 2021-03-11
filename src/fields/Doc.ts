@@ -555,7 +555,6 @@ export namespace Doc {
             Doc.SetInPlace(copy, "title", (asBranch ? "BRANCH: " : "CLONE: ") + doc.title, true);
             asBranch ? (copy.branchOf = doc) : (copy.cloneOf = doc);
             if (!Doc.IsPrototype(copy)) {
-                console.log("ADDING: " + copy.title + " to " + doc.title + "'s branches");
                 Doc.AddDocToList(doc, "branches", Doc.GetProto(copy));
             }
             cloneMap.set(doc[Id], copy);
