@@ -664,7 +664,7 @@ export namespace Docs {
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
-                !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
+                !dataDoc.isFolder && !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }

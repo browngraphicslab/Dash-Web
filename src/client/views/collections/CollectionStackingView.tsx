@@ -30,7 +30,6 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { DocumentType } from "../../documents/DocumentTypes";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -38,6 +37,8 @@ const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
 export type collectionStackingViewProps = {
     chromeStatus?: string;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
 };
 
 @observer
@@ -253,16 +254,16 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const y = this._scroll; // required for document decorations to update when the text box container is scrolled
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref?.ContentDiv || undefined);
         // the document view may center its contents and if so, will prepend that onto the screenToLocalTansform.  so we have to subtract that off 
-        return new Transform(- translateX - (dref?.centeringX || 0), - translateY - (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale);// * (this.props.scaling?.() || 1));
+        return new Transform(- translateX - (dref?.centeringX || 0), - translateY - (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale);
     }
     getDocWidth(d?: Doc) {
         if (!d) return 0;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const maxWidth = this.columnWidth / this.numGroupColumns;
         if (!this.layoutDoc._columnsFill && !childLayoutDoc._fitWidth) {
-            return Math.min(d[WidthSym]() * (this.props.scaling?.() || 1), maxWidth) / (this.props.scaling?.() || 1);
+            return Math.min(d[WidthSym](), maxWidth);
         }
-        return maxWidth / (this.props.scaling?.() || 1);
+        return maxWidth;
     }
     getDocHeight(d?: Doc) {
         if (!d || d.hidden) return 0;
@@ -276,11 +277,11 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             const docWid = this.layoutDoc._columnsFill ? colWid : Math.min(this.getDocWidth(d), colWid);
             return Math.min(
                 maxHeight,
-                docWid * nh / nw) / (this.props.scaling?.() || 1);;
+                docWid * nh / nw);
         }
         const childHeight = NumCast(childLayoutDoc._height);
         const panelHeight = this.props.PanelHeight() - 2 * this.yMargin;
-        return Math.min(childHeight, maxHeight, panelHeight);// / (this.props.scaling?.() || 1);;
+        return Math.min(childHeight, maxHeight, panelHeight);
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -492,8 +493,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     }
 
 
-    @computed get nativeWidth() { return Doc.NativeWidth(this.layoutDoc); }
-    @computed get nativeHeight() { return Doc.NativeHeight(this.layoutDoc); }
+    @computed get nativeWidth() { return this.props.NativeWidth?.() ?? Doc.NativeWidth(this.layoutDoc); }
+    @computed get nativeHeight() { return this.props.NativeHeight?.() ?? Doc.NativeHeight(this.layoutDoc); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 

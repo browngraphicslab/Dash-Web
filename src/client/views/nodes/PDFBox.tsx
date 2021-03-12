@@ -3,13 +3,13 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Doc, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, Opt, WidthSym, HeightSym } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from '../../../fields/util';
-import { Utils, returnOne, OmitKeys, emptyFunction } from '../../../Utils';
+import { Utils, returnOne, OmitKeys, emptyFunction, returnZero } from '../../../Utils';
 import { KeyCodes } from '../../util/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -118,25 +118,32 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
     sidebarKey = () => this.fieldKey + "-sidebar";
-    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0);
-    sidebarWidth = () => (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
+    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
+    sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
     sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.sidebarKey());
-    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
+    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
     @computed get sidebarOverlay() {
         return !this.layoutDoc._showSidebar ? (null) :
-            <div style={{ position: "absolute", pointerEvents: this.active() ? "all" : undefined, background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor), top: 0, right: 0, width: this.sidebarWidth(), height: "100%" }}>
+            <div style={{
+                position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
+                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
+                width: `${this.sidebarWidth()}px`,
+                height: "100%"
+            }}>
                 <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                    isAnnotationOverlay={true}
-                    fieldKey={this.sidebarKey()}
+                    NativeWidth={returnZero}
+                    NativeHeight={returnZero}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.sidebarWidth}
-                    dropAction={"alias"}
-                    pointerEvents={"all"}
+                    xMargin={0}
+                    yMargin={0}
+                    chromeStatus={"enabled"}
+                    scaleField={this.sidebarKey() + "-scale"}
+                    isAnnotationOverlay={false}
                     select={emptyFunction}
                     active={this.annotationsActive}
-                    ContentScaling={returnOne}
-                    bringToFront={emptyFunction}
+                    scaling={returnOne}
                     whenActiveChanged={this.whenActiveChanged}
                     childPointerEvents={true}
                     removeDocument={this.sidebarRemDocument}
@@ -144,7 +151,10 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                     addDocument={this.sidebarAddDocument}
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.sidebarTransform}
-                    renderDepth={this.props.renderDepth + 1} />
+                    renderDepth={this.props.renderDepth + 1}
+                    fieldKey={this.sidebarKey()}
+                    pointerEvents={"all"}
+                />
             </div>;
     }
 
@@ -268,6 +278,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 isChildActive={this.isChildActive}
                 startupLive={true}
                 ContentScaling={this.props.scaling}
+                sidebarWidth={this.sidebarWidth}
             />
             {this.sidebarOverlay}
             {this.settingsPanel()}
