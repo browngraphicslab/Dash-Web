@@ -242,7 +242,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     results.push(link);
                 }
             } else results.push(link);
-        })
+        });
         return results;
     }
 

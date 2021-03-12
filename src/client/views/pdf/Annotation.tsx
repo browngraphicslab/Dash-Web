@@ -56,10 +56,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     @undoBatch
-    pinToPres = () => this.props.pinToPres(this.annoTextRegion);
+    pinToPres = () => this.props.pinToPres(this.annoTextRegion)
 
     @undoBatch
-    makePushpin = () => this.annoTextRegion.isPushpin = !this.annoTextRegion.isPushpin;
+    makePushpin = () => this.annoTextRegion.isPushpin = !this.annoTextRegion.isPushpin
 
     isPushpin = () => BoolCast(this.annoTextRegion.isPushpin);
 

@@ -337,7 +337,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
         }
         if (!e.nativeEvent.cancelBubble && !InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE) &&
-            Doc.GetSelectedTool() !== InkTool.Highlighter && Doc.GetSelectedTool() !== InkTool.Pen) {
+            ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) {
             e.stopPropagation();
         }
     }

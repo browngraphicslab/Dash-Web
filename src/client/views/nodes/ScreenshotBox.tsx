@@ -17,6 +17,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
@@ -129,7 +130,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     }
 
     @computed get content() {
-        const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + interactive;
         return <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
             style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}

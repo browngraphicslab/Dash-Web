@@ -27,6 +27,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { FormattedTextBoxComment } from "./formattedText/FormattedTextBoxComment";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./VideoBox.scss";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const path = require('path');
 
 type VideoDocument = makeInterface<[typeof documentSchema]>;
@@ -293,7 +294,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
-        const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = CurrentUserUtils.SelectedTool !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div key="loading">Loading</div> :
             <div className="container" key="container" style={{ pointerEvents: this._isChildActive || this.active() ? "all" : "none" }}>
@@ -344,7 +345,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._disposers.youtubeReactionDisposer?.();
             this._disposers.reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._disposers.youtubeReactionDisposer = reaction(
-                () => !this.props.Document.isAnnotating && Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                () => !this.props.Document.isAnnotating && CurrentUserUtils.SelectedTool === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);

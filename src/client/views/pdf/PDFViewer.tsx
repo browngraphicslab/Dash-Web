@@ -28,6 +28,7 @@ import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
 import { SharingManager } from "../../util/SharingManager";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -512,7 +513,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
     panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     @computed get overlayLayer() {
-        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`}
+        return <div className={`pdfViewerDash-overlay${CurrentUserUtils.SelectedTool !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`}
             style={{
                 pointerEvents: SnappingManager.GetIsDragging() ? "all" : undefined,
                 mixBlendMode: this.allAnnotations.some(anno => anno.mixBlendMode) ? "hard-light" : undefined,

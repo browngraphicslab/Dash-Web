@@ -192,7 +192,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             />
         </div>;
     }
-
+    @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
+    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
+    @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
+    @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;

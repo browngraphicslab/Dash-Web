@@ -489,7 +489,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     onPointerDown = (e: React.PointerEvent): void => {
         // continue if the event hasn't been canceled AND we are using a mouse or this has an onClick or onDragStart function (meaning it is a button document)
-        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
                 if (SelectionManager.IsSelected(this.props.DocumentView(), true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
@@ -501,7 +501,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         this._downY = e.clientY;
         if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
-            !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
+            !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
             if ((this.active || this.layoutDoc.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
@@ -518,7 +518,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     onPointerMove = (e: PointerEvent): void => {
-        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }

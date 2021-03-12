@@ -103,13 +103,15 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         return viewField as any as CollectionViewType;
     }
 
-    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
-        this.props.rootSelected(outsideReaction) ||
-        (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
-        this._isChildActive ||
-        this.props.renderDepth === 0) ?
-        true :
-        false
+    active = (outsideReaction?: boolean) => {
+        return this.props.renderDepth === 0 ||
+            this.props.isSelected(outsideReaction) ||
+            this.props.rootSelected(outsideReaction) ||
+            (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
+            this._isChildActive ?
+            true :
+            false;
+    }
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 

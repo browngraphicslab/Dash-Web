@@ -491,7 +491,7 @@ export class GestureOverlay extends Touchable {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, emptyFunction);
         }
