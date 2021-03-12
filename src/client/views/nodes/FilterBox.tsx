@@ -478,7 +478,6 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, facetHeader: string) 
         const doc = new Doc();
         doc.system = true;
         doc.title = facetValue.toString();
-        // doc.treeViewChecked = ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)", {}, { layoutDoc, facetHeader, facetValue });
         doc.target = layoutDoc;
         doc.facetHeader = facetHeader;
         doc.facetValue = facetValue;
