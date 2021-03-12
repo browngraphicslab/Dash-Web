@@ -3,13 +3,13 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Doc, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, Opt, WidthSym, HeightSym } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from '../../../fields/util';
-import { Utils, returnOne } from '../../../Utils';
+import { Utils, returnOne, OmitKeys, emptyFunction, returnZero } from '../../../Utils';
 import { KeyCodes } from '../../util/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -24,6 +24,8 @@ import "./PDFBox.scss";
 import React = require("react");
 import { DocAfterFocusFunc } from './DocumentView';
 import { Docs } from '../../documents/Documents';
+import { CollectionStackingView } from '../collections/CollectionStackingView';
+import { StyleProp } from '../StyleProvider';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -107,12 +109,53 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             }, { fireImmediately: true });
     }
 
+    @action
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
         Doc.SetNativeWidth(this.dataDoc, Math.max(Doc.NativeWidth(this.dataDoc), nw * 96 / 72));
         Doc.SetNativeHeight(this.dataDoc, nh * 96 / 72);
         this.layoutDoc._height = this.layoutDoc[WidthSym]() / (Doc.NativeAspect(this.dataDoc) || 1);
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+    }
+    sidebarKey = () => this.fieldKey + "-sidebar";
+    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
+    sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
+    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.sidebarKey());
+    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
+    sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
+    @computed get sidebarOverlay() {
+        return !this.layoutDoc._showSidebar ? (null) :
+            <div style={{
+                position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
+                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
+                width: `${this.sidebarWidth()}px`,
+                height: "100%"
+            }}>
+                <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                    NativeWidth={returnZero}
+                    NativeHeight={returnZero}
+                    PanelHeight={this.props.PanelHeight}
+                    PanelWidth={this.sidebarWidth}
+                    xMargin={0}
+                    yMargin={0}
+                    chromeStatus={"enabled"}
+                    scaleField={this.sidebarKey() + "-scale"}
+                    isAnnotationOverlay={false}
+                    select={emptyFunction}
+                    active={this.annotationsActive}
+                    scaling={returnOne}
+                    whenActiveChanged={this.whenActiveChanged}
+                    childPointerEvents={true}
+                    removeDocument={this.sidebarRemDocument}
+                    moveDocument={this.sidebarMoveDocument}
+                    addDocument={this.sidebarAddDocument}
+                    CollectionView={undefined}
+                    ScreenToLocalTransform={this.sidebarTransform}
+                    renderDepth={this.props.renderDepth + 1}
+                    fieldKey={this.sidebarKey()}
+                    pointerEvents={"all"}
+                />
+            </div>;
     }
 
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
@@ -204,6 +247,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         const funcs: ContextMenuProps[] = [];
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && funcs.push({ description: "Toggle Sidebar mode ", event: () => this.Document._showSidebar = !this.Document._showSidebar, icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
@@ -234,7 +278,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 isChildActive={this.isChildActive}
                 startupLive={true}
                 ContentScaling={this.props.scaling}
+                sidebarWidth={this.sidebarWidth}
             />
+            {this.sidebarOverlay}
             {this.settingsPanel()}
         </div>;
     }

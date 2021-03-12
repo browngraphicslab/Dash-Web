@@ -664,7 +664,7 @@ export namespace Docs {
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
 
             !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
-                !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
+                !dataDoc.isFolder && !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -815,7 +815,7 @@ export namespace Docs {
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
             const pdfProto = Prototypes.get(DocumentType.PDF);
             pdfProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), options);
+            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), { _viewType: "stacking", ...options });
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
@@ -1062,7 +1062,7 @@ export namespace DocUtils {
                 const val = Cast(d[key], "number", null);
                 if (val < min || val > max) return false;
                 if (val === undefined) {
-                    console.log("Should 'undefined' pass range filter or not?")
+                    //console.log("Should 'undefined' pass range filter or not?")
                 }
             }
             return true;

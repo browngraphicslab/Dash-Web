@@ -101,7 +101,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     @observable _dref: DocumentView | undefined | null;
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
     get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
-    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.fileSysMode ? (this.doc.isFolder ? "data" : "layout") : Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields"); }
+    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.fileSysMode ? (this.doc.isFolder ? "data" : "aliases") : Doc.UserDoc().noviceMode || this.outlineMode ? "layout" : "fields"); }
     get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs && !this.fileSysMode ? this.fieldKey : this.defaultExpandedView); }
 
     @computed get doc() { TraceMobx(); return this.props.document; }
@@ -121,9 +121,9 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
-        return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
+        return (this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
-            DocListCastOrNull(this.doc[field]))?.filter(doc => !this.fileSysMode || field !== "aliases");// || Doc.GetT(doc, "context", Doc, true)); // otherwise use the document's data field
+            DocListCastOrNull(this.doc[field]); // otherwise use the document's data field
     }
     @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.doc !== target && this.props.removeDoc?.(doc) === true && addDoc(doc);
@@ -268,7 +268,7 @@ export class TreeView extends React.Component<TreeViewProps> {
             const localAdd = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) && ((doc.context = this.doc.context) || true) ? true : false;
             const addDoc = !inside ? parentAddDoc :
                 (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc), true as boolean);
-            const move = (!docDragData.dropAction || docDragData.dropAction === "move" || docDragData.dropAction === "same") && docDragData.moveDocument;
+            const move = (!docDragData.dropAction || docDragData.dropAction === "proto" || docDragData.dropAction === "move" || docDragData.dropAction === "same") && docDragData.moveDocument;
             if (canAdd) {
                 UndoManager.RunInTempBatch(() => docDragData.droppedDocuments.reduce((added, d) => (move ? move(d, undefined, addDoc) : addDoc(d)) || added, false));
             }

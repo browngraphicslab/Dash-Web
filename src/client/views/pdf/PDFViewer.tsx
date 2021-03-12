@@ -16,7 +16,6 @@ import { DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
-import { SharingManager } from "../../util/SharingManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -28,6 +27,7 @@ import { Annotation } from "./Annotation";
 import "./PDFViewer.scss";
 const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import React = require("react");
+import { SharingManager } from "../../util/SharingManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 const _global = (window /* browser */ || global /* node */) as any;
@@ -36,7 +36,7 @@ export const pageSchema = createSchema({
     _curPage: "number",
     rotation: "number",
     scrollHeight: "number",
-    serachMatch: "boolean"
+    serachMatch: "boolean",
 });
 
 //pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
@@ -54,6 +54,7 @@ interface IViewerProps extends FieldViewProps {
     isChildActive: (outsideReaction?: boolean) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
     ContentScaling?: () => number;
+    sidebarWidth: () => number;
 }
 
 /**
@@ -173,8 +174,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         width: (page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1]),
                         height: (page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0])
                     });
-                    i === this.props.pdf.numPages - 1 && this.props.loaded?.((page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1]),
-                        (page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0]), i);
+                    if (i === this.props.pdf.numPages - 1) {
+                        this.props.loaded?.(page.view[page0or180 ? 2 : 3] - page.view[page0or180 ? 0 : 1],
+                            page.view[page0or180 ? 3 : 2] - page.view[page0or180 ? 1 : 0], i);
+                    }
                 }))));
             this.Document.scrollHeight = this._pageSizes.reduce((size, page) => size + page.height, 0) * 96 / 72;
         }
@@ -532,8 +535,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.overlayTransform}
-                renderDepth={this.props.renderDepth + 1}>
-            </CollectionFreeFormView>
+                renderDepth={this.props.renderDepth + 1} />
         </div>;
     }
     @computed get pdfViewerDiv() {
@@ -549,21 +551,23 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`} ref={this._mainCont}
-            onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            style={{
-                overflowX: this._zoomed !== 1 ? "scroll" : undefined,
-                width: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeWidth(this.props.Document) : `${100 / this.contentScaling}%`,
-                height: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeHeight(this.props.Document) : `${100 / this.contentScaling}%`,
-                transform: `scale(${this.contentScaling})`
-            }}  >
-            {this.pdfViewerDiv}
-            {this.annotationLayer}
-            {this.overlayLayer}
+        return <div>
+            <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`} ref={this._mainCont}
+                onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
+                style={{
+                    overflowX: this._zoomed !== 1 ? "scroll" : undefined,
+                    width: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeWidth(this.props.Document) - this.props.sidebarWidth() / this.contentScaling : `calc(${100 / this.contentScaling}% - ${this.props.sidebarWidth() / this.contentScaling}px)`,
+                    height: !this.props.Document._fitWidth && (window.screen.width > 600) ? Doc.NativeHeight(this.props.Document) : `${100 / this.contentScaling}%`,
+                    transform: `scale(${this.contentScaling})`
+                }}  >
+                {this.pdfViewerDiv}
+                {this.annotationLayer}
+                {this.overlayLayer}
+            </div>
             {this.overlayInfo}
             {this.standinViews}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                 <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing} addDocument={this.addDocument} finishMarquee={this.finishMarquee} getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
-        </div >;
+        </div>;
     }
 }
