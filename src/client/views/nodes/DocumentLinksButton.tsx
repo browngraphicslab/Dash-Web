@@ -232,7 +232,18 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     }
 
     @computed get filteredLinks() {
-        return DocUtils.FilterDocs(Array.from(new Set<Doc>(this.props.links)), this.props.View.props.docFilters(), []);
+        const results = [] as Doc[];
+        Array.from(new Set<Doc>(this.props.links)).forEach(link => {
+            if (!DocUtils.FilterDocs([link], this.props.View.props.docFilters(), []).length) {
+                if (DocUtils.FilterDocs([link.anchor2 as Doc], this.props.View.props.docFilters(), []).length) {
+                    results.push(link);
+                }
+                if (DocUtils.FilterDocs([link.anchor1 as Doc], this.props.View.props.docFilters(), []).length) {
+                    results.push(link);
+                }
+            } else results.push(link);
+        })
+        return results;
     }
 
     @computed get linkButtonInner() {

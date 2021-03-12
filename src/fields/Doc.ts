@@ -1066,26 +1066,27 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
+    export function setDocFilter(target: Opt<Doc>, key: string, value: any, modifiers: "remove" | "match" | "check" | "x", toggle?: boolean) {
         const container = target ?? CollectionDockingView.Instance.props.Document;
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i++) {
                 const fields = docFilters[i].split(":"); // split key:value:modifier
                 if (fields[0] === key && (fields[1] === value || modifiers === "match" || modifiers === "remove")) {
-                    if (fields[2] === modifiers && modifiers && fields[1] === value) return;
+                    if (fields[2] === modifiers && modifiers && fields[1] === value) {
+                        if (toggle) modifiers = "remove";
+                        else return;
+                    }
                     docFilters.splice(i, 1);
                     container._docFilters = new List<string>(docFilters);
                     break;
                 }
             }
-            if (typeof modifiers === "string") {
-                if (!docFilters.length && modifiers === "match" && value === undefined) {
-                    container._docFilters = undefined;
-                } else if (modifiers !== "remove") {
-                    docFilters.push(key + ":" + value + ":" + modifiers);
-                    container._docFilters = new List<string>(docFilters);
-                }
+            if (!docFilters.length && modifiers === "match" && value === undefined) {
+                container._docFilters = undefined;
+            } else if (modifiers !== "remove") {
+                docFilters.push(key + ":" + value + ":" + modifiers);
+                container._docFilters = new List<string>(docFilters);
             }
         });
     }
@@ -1336,5 +1337,5 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers: "match" | "check" | "x" | "remove") { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

@@ -55,6 +55,7 @@ interface IViewerProps extends FieldViewProps {
     setPdfViewer: (view: PDFViewer) => void;
     ContentScaling?: () => number;
     sidebarWidth: () => number;
+    anchorMenuClick: (anchor: Doc) => void;
 }
 
 /**
@@ -567,7 +568,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {this.overlayInfo}
             {this.standinViews}
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing} addDocument={this.addDocument} finishMarquee={this.finishMarquee} getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
+                <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing}
+                    anchorMenuClick={this.props.anchorMenuClick}
+                    addDocument={this.addDocument} finishMarquee={this.finishMarquee}
+                    getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations}
+                    annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
         </div>;
     }
 }

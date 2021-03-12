@@ -42,6 +42,7 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     @observable public Highlighting: boolean = false;
     @observable public Status: "marquee" | "annotation" | "" = "";
 
+    public OnClick: (e: PointerEvent) => void = unimplementedFunction;
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = unimplementedFunction;
     public Highlight: (color: string, isPushpin: boolean) => Opt<Doc> = (color: string, isPushpin: boolean) => undefined;
     public Delete: () => void = unimplementedFunction;
@@ -71,7 +72,7 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
         setupMoveUpEvents(this, e, (e: PointerEvent) => {
             this.StartDrag(e, this._commentCont.current!);
             return true;
-        }, returnFalse, returnFalse);
+        }, returnFalse, e => this.OnClick?.(e));
     }
 
     @action
