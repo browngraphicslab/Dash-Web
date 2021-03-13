@@ -553,8 +553,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div>
-            <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`} ref={this._mainCont}
+        return <div className="pdfViewer-content" ref={this._mainCont}>
+            <div className={`pdfViewerDash${this.annotationsActive() ? "-interactive" : ""}`}
                 onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 style={{
                     overflowX: this._zoomed !== 1 ? "scroll" : undefined,
@@ -571,8 +571,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
                 <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={0} down={this._marqueeing}
                     anchorMenuClick={this.props.anchorMenuClick}
-                    addDocument={this.addDocument} finishMarquee={this.finishMarquee}
-                    getPageFromScroll={this.getPageFromScroll} savedAnnotations={this._savedAnnotations}
+                    addDocument={this.addDocument}
+                    finishMarquee={this.finishMarquee}
+                    getPageFromScroll={this.getPageFromScroll}
+                    savedAnnotations={this._savedAnnotations}
                     annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
         </div>;
     }

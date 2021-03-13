@@ -131,7 +131,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
     @computed get allTags() {
         const keys = new Set<string>();
-        DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
+        DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
     }
     renderTag = (tag: string) => {
@@ -167,7 +167,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         active={this.annotationsActive}
                         scaling={returnOne}
                         whenActiveChanged={this.whenActiveChanged}
-                        childHideTitle={returnTrue}
+                        childHideDecorationTitle={returnTrue}
                         removeDocument={this.sidebarRemDocument}
                         moveDocument={this.sidebarMoveDocument}
                         addDocument={this.sidebarAddDocument}
@@ -275,6 +275,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
 
     anchorMenuClick = (anchor: Doc) => {
+        this.Document._showSidebar = true;
         const startup = StrListCast(this.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
         const target = Docs.Create.TextDocument(startup, {
             title: "anno",

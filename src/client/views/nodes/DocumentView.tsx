@@ -125,6 +125,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     freezeDimensions?: boolean;
     hideResizeHandles?: boolean; // whether to suppress DocumentDecorations when this document is selected 
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
+    hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];

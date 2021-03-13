@@ -233,6 +233,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             ScreenToLocalTransform={stackedDocTransform}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            hideDecorationTitle={this.props.childHideDecorationTitle?.()}
             hideTitle={this.props.childHideTitle?.()}
             docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
