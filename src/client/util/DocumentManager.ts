@@ -181,7 +181,12 @@ export class DocumentManager {
             } else {  // otherwise try to get a view of the context of the target
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext._viewTransition = "transform 500ms";
-                    targetDocContextView.props.focus(targetDocContextView.rootDoc, { willZoom });
+                    targetDocContextView.props.focus(targetDocContextView.rootDoc, {
+                        willZoom, afterFocus: async () => {
+                            targetDocContext._viewTransition = undefined;
+                            return ViewAdjustment.doNothing;
+                        }
+                    });
 
                     // now find the target document within the context
                     if (targetDoc._timecodeToShow) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;

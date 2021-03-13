@@ -621,7 +621,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     makeIntoPortal = async () => {
         const portalLink = this.allLinks.find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
-            const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });
+            const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), _fitWidth: true, title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
         this.Document.followLinkLocation = "inPlace";
