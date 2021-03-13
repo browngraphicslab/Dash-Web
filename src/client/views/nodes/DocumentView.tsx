@@ -1001,11 +1001,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
             returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
     }
-    shouldNotScale = () => (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
-    @computed get effectiveNativeWidth() { return this.shouldNotScale() ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
-    @computed get effectiveNativeHeight() { return this.shouldNotScale() ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
+    @computed get shouldNotScale() { return (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any); }
+    @computed get effectiveNativeWidth() { return this.shouldNotScale ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
+    @computed get effectiveNativeHeight() { return this.shouldNotScale ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
-        if (this.shouldNotScale()) return 1;
+        if (this.shouldNotScale) return 1;
         const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
         if (this.layoutDoc._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
             return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth

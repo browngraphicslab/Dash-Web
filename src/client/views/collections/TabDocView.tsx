@@ -213,7 +213,6 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     componentDidMount() {
-        const selected = () => SelectionManager.Views().some(v => v.props.Document === this._document);
         new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
@@ -229,6 +228,8 @@ export class TabDocView extends React.Component<TabDocViewProps> {
 
     componentWillUnmount() {
         this._tabReaction?.();
+        this.tab && CollectionDockingView.Instance.tabMap.delete(this.tab);
+
         this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
     }
 
@@ -344,6 +345,7 @@ export class TabDocView extends React.Component<TabDocViewProps> {
     }
 
     render() {
+        this.tab && CollectionDockingView.Instance.tabMap.delete(this.tab);
         return (
             <div className="collectionDockingView-content" style={{ height: "100%", width: "100%" }} ref={ref => {
                 if (this._mainCont = ref) {

@@ -32,6 +32,9 @@ import { CollectionTreeView } from './CollectionTreeView';
 import { CollectionView, CollectionViewType } from './CollectionView';
 import "./TreeView.scss";
 import React = require("react");
+import { ContextMenu } from '../ContextMenu';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { SharingManager } from '../../util/SharingManager';
 
 export interface TreeViewProps {
     document: Doc;
@@ -268,7 +271,7 @@ export class TreeView extends React.Component<TreeViewProps> {
                 (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && localAdd(doc), true as boolean);
             const move = (!docDragData.dropAction || docDragData.dropAction === "proto" || docDragData.dropAction === "move" || docDragData.dropAction === "same") && docDragData.moveDocument;
             if (canAdd) {
-                UndoManager.RunInTempBatch(() => docDragData.droppedDocuments.reduce((added, d) => (move ? move(d, undefined, addDoc) : addDoc(d)) || added, false));
+                UndoManager.RunInTempBatch(() => docDragData.droppedDocuments.reduce((added, d) => (move ? move(d, undefined, addDoc) || (docDragData.dropAction === "proto" ? addDoc(d) : false) : addDoc(d)) || added, false));
             }
         }
     }
@@ -550,7 +553,7 @@ export class TreeView extends React.Component<TreeViewProps> {
         const view = this._editTitle ? <EditableView key="_editTitle"
             oneLine={true}
             display={"inline-block"}
-            editing={true}
+            editing={this._editTitle}
             background={"#7089bb"}
             contents={StrCast(this.doc.title)}
             height={12}
