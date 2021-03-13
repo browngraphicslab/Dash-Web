@@ -1,15 +1,15 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast } from "../../../fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
-import "./Annotation.scss";
+import { FieldViewProps } from "../nodes/FieldView";
 import { AnchorMenu } from "./AnchorMenu";
-import { FieldViewProps, FieldView } from "../nodes/FieldView";
+import "./Annotation.scss";
 
 interface IAnnotationProps extends FieldViewProps {
     anno: Doc;
@@ -21,73 +21,47 @@ interface IAnnotationProps extends FieldViewProps {
 export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
-        return DocListCast(this.props.anno.annotations).map(a =>
-            <RegionAnnotation {...this.props} showInfo={this.props.showInfo} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />);
+        return DocListCast(this.props.anno.textInlineAnnotations).map(a => <RegionAnnotation {...this.props} document={a} key={a[Id]} />);
     }
 }
 
 interface IRegionAnnotationProps extends IAnnotationProps {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
     document: Doc;
 }
 @observer
 class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
-    private _reactionDisposer?: IReactionDisposer;
-    private _brushDisposer?: IReactionDisposer;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
 
-    @observable private _brushed: boolean = false;
+    @observable _brushed: boolean = false;
+    @computed get annoTextRegion() { return Cast(this.props.document.annoTextRegion, Doc, null) || this.props.document; }
 
     componentDidMount() {
-        this._reactionDisposer = reaction(
-            () => this.props.document.delete,
-            (del) => del && this._mainCont.current && (this._mainCont.current.style.display = "none"),
-            { fireImmediately: true }
-        );
-
-        this._brushDisposer = reaction(
-            () => FieldValue(Cast(this.props.document.group, Doc)) && Doc.isBrushedHighlightedDegree(FieldValue(Cast(this.props.document.group, Doc))!),
+        this._disposers.brush = reaction(
+            () => this.annoTextRegion && Doc.isBrushedHighlightedDegree(this.annoTextRegion),
             brushed => brushed !== undefined && runInAction(() => this._brushed = brushed !== 0)
         );
     }
 
     componentWillUnmount() {
-        this._brushDisposer?.();
-        this._reactionDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
     @undoBatch
     deleteAnnotation = () => {
-        const annotation = DocListCast(this.props.dataDoc[this.props.fieldKey + "-annotations"]);
-        const group = FieldValue(Cast(this.props.document.group, Doc));
-        if (group) {
-            if (annotation.indexOf(group) !== -1) {
-                const newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
-                this.props.dataDoc[this.props.fieldKey + "-annotations"] = new List<Doc>(newAnnotations);
-            }
-
-            DocListCast(group.annotations).forEach(anno => anno.delete = true);
-        }
+        const docAnnotations = DocListCast(this.props.dataDoc[this.props.fieldKey]);
+        this.props.dataDoc[this.props.fieldKey] = new List<Doc>(docAnnotations.filter(a => a !== this.annoTextRegion));
         AnchorMenu.Instance.fadeOut(true);
         this.props.select(false);
     }
 
     @undoBatch
-    pinToPres = () => {
-        const group = FieldValue(Cast(this.props.document.group, Doc));
-        group && this.props.pinToPres(group);
-    }
+    pinToPres = () => this.props.pinToPres(this.annoTextRegion)
 
     @undoBatch
-    makePushpin = action(() => {
-        const group = Cast(this.props.document.group, Doc, null);
-        group.isPushpin = !group.isPushpin;
-    });
+    makePushpin = () => this.annoTextRegion.isPushpin = !this.annoTextRegion.isPushpin
 
-    isPushpin = () => BoolCast(Cast(this.props.document.group, Doc, null)?.isPushpin);
+    isPushpin = () => BoolCast(this.annoTextRegion.isPushpin);
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
@@ -102,32 +76,26 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             AnchorMenu.Instance.jumpTo(e.clientX, e.clientY, true);
             e.stopPropagation();
         }
-        else if (e.button === 0 && this.props.document.group instanceof Doc) {
+        else if (e.button === 0) {
             e.stopPropagation();
-            LinkManager.FollowLink(undefined, this.props.document.group, this.props, false);
+            LinkManager.FollowLink(undefined, this.annoTextRegion, this.props, false);
         }
     }
-
 
     addTag = (key: string, value: string): boolean => {
-        const group = FieldValue(Cast(this.props.document.group, Doc));
-        if (group) {
-            const valNum = parseInt(value);
-            group[key] = isNaN(valNum) ? value : valNum;
-            return true;
-        }
-        return false;
+        const valNum = parseInt(value);
+        this.annoTextRegion[key] = isNaN(valNum) ? value : valNum;
+        return true;
     }
 
-    @observable _showInfo = false;
     render() {
-        return (<div className="pdfAnnotation" onPointerEnter={action(() => this.props.showInfo(this.props.anno))} onPointerLeave={action(() => this.props.showInfo(undefined))} onPointerDown={this.onPointerDown} ref={this._mainCont}
+        return (<div className="pdfAnnotation" onPointerEnter={() => this.props.showInfo(this.props.anno)} onPointerLeave={() => this.props.showInfo(undefined)} onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
-                top: this.props.y,
-                left: this.props.x,
-                width: this.props.width,
-                height: this.props.height,
-                opacity: !this._showInfo && this._brushed ? 0.5 : undefined,
+                left: NumCast(this.props.document.x),
+                top: NumCast(this.props.document.y),
+                width: NumCast(this.props.document._width),
+                height: NumCast(this.props.document._height),
+                opacity: this._brushed ? 0.5 : undefined,
                 backgroundColor: this._brushed ? "orange" : StrCast(this.props.document.backgroundColor),
             }} >
         </div>);

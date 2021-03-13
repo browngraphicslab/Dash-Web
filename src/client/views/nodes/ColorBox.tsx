@@ -16,6 +16,7 @@ import "./ColorBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { RichTextMenu } from "./formattedText/RichTextMenu";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
@@ -30,7 +31,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
         Doc.UserDoc().backgroundColor = Utils.colorString(color);
         SetActiveInkColor(color.hex);
 
-        if (Doc.GetSelectedTool() === InkTool.None) {
+        if (CurrentUserUtils.SelectedTool === InkTool.None) {
             const selected = SelectionManager.Views();
             selected.map(view => {
                 const targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :

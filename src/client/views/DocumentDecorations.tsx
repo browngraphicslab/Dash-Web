@@ -10,7 +10,7 @@ import { InkField } from "../../fields/InkField";
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, NumCast } from "../../fields/Types";
 import { GetEffectiveAcl } from '../../fields/util';
-import { setupMoveUpEvents, emptyFunction } from "../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
@@ -129,7 +129,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     }
     @undoBatch
     @action
-    onMaximizeClick = (e: React.MouseEvent): void => {
+    onMaximizeClick = (e: any): void => {
         const selectedDocs = SelectionManager.Views();
         if (selectedDocs.length) {
             if (e.ctrlKey) {    // open an alias in a new tab with Ctrl Key
@@ -152,12 +152,12 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
     }
 
     @undoBatch
-    onIconifyClick = (e: React.MouseEvent): void => {
+    onIconifyClick = (): void => {
         SelectionManager.Views().forEach(dv => dv?.iconify());
         SelectionManager.DeselectAll();
     }
 
-    onSelectorClick = (e: React.MouseEvent) => SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false);
+    onSelectorClick = () => SelectionManager.Views()?.[0]?.props.ContainingCollectionView?.props.select(false);
 
     onRadiusDown = (e: React.PointerEvent): void => {
         this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
@@ -254,8 +254,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-        let dragBottom = false;
-        let dragRight = false;
+        let dragBottom = false, dragRight = false, dragBotRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         switch (this._resizeHdlId) {
             case "": break;
@@ -282,6 +281,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             case "documentDecorations-bottomRightResizer":
                 dW = move[0];
                 dH = move[1];
+                dragBotRight = true;
                 break;
             case "documentDecorations-bottomResizer":
                 dH = move[1];
@@ -336,7 +336,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             doc._nativeWidth = actualdW / (doc._width || 1) * Doc.NativeWidth(doc);
                         } else {
                             if (!doc._fitWidth) doc._height = nheight / nwidth * actualdW;
-                            else if (!e.ctrlKey) doc._height = actualdH;
+                            else if (!e.ctrlKey || dragBotRight) doc._height = actualdH;
                         }
                         doc._width = actualdW;
                     }
@@ -346,7 +346,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                             doc._autoHeight = false;
                         } else {
                             if (!doc._fitWidth) doc._width = nwidth / nheight * actualdH;
-                            else if (!e.ctrlKey) doc._width = actualdW;
+                            else if (!e.ctrlKey || dragBotRight) doc._width = actualdW;
                         }
                         doc._height = actualdH;
                     }
@@ -413,9 +413,10 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
             return (!docView.rootDoc._stayInCollection || docView.rootDoc.isInkMask) &&
                 (collectionAcl === AclAdmin || collectionAcl === AclEdit || GetEffectiveAcl(docView.rootDoc) === AclAdmin);
         });
-        const topBtn = (key: string, icon: string, click: (e: React.MouseEvent) => void, title: string) => (
+        const topBtn = (key: string, icon: string, click: (e: any) => void, title: string) => (
             <Tooltip key={key} title={<div className="dash-tooltip">{title}</div>} placement="top">
-                <div className={`documentDecorations-${key}Button`} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} onClick={click}>
+                <div className={`documentDecorations-${key}Button`} onContextMenu={e => e.preventDefault()}
+                    onPointerDown={e => setupMoveUpEvents(this, e, returnFalse, click, emptyFunction)} >
                     <FontAwesomeIcon icon={icon as any} />
                 </div>
             </Tooltip>);
@@ -457,7 +458,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {!canDelete ? <div /> : topBtn("close", "times", this.onCloseClick, "Close")}
-                    {seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
+                    {seldoc.props.hideDecorationTitle || seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
                     {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :

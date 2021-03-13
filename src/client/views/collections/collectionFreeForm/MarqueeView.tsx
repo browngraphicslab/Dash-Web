@@ -320,14 +320,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            if (Doc.GetSelectedTool() === InkTool.None) {
+            if (CurrentUserUtils.SelectedTool === InkTool.None) {
                 if (!(e.nativeEvent as any).marqueeHit) {
                     (e.nativeEvent as any).marqueeHit = true;
-                    if (!(e.nativeEvent as any).formattedHandled) {
-                        if (!this.props.trySelectCluster(e.shiftKey)) {
-                            this.setPreviewCursor(e.clientX, e.clientY, false);
-                        } else e.stopPropagation();
-                    }
+                    if (!this.props.trySelectCluster(e.shiftKey)) {
+                        this.setPreviewCursor(e.clientX, e.clientY, false);
+                    } else e.stopPropagation();
                 }
             }
             // let the DocumentView stopPropagation of this event when it selects this document

@@ -455,7 +455,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) ||
+            ([InkTool.Pen, InkTool.Highlighter].includes(CurrentUserUtils.SelectedTool))) {
             return;
         }
         this._hitCluster = this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY));
@@ -465,7 +466,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
             // if not using a pen and in no ink mode
-            if (Doc.GetSelectedTool() === InkTool.None) {
+            if (CurrentUserUtils.SelectedTool === InkTool.None) {
                 this._downX = this._lastX = e.pageX;
                 this._downY = this._lastY = e.pageY;
             }
@@ -489,7 +490,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     this.addMoveListeners();
                     this.removeEndListeners();
                     this.addEndListeners();
-                    if (Doc.GetSelectedTool() === InkTool.None) {
+                    if (CurrentUserUtils.SelectedTool === InkTool.None) {
                         this._lastX = pt.pageX;
                         this._lastY = pt.pageY;
                         e.preventDefault();
@@ -509,7 +510,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             case GestureUtils.Gestures.Stroke:
                 const points = ge.points;
                 const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
-                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), points,
+                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), CurrentUserUtils.SelectedTool, ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), points,
                     { title: "ink stroke", x: B.x - Number(ActiveInkWidth()) / 2, y: B.y - Number(ActiveInkWidth()) / 2, _width: B.width + Number(ActiveInkWidth()), _height: B.height + Number(ActiveInkWidth()) });
                 this.addDocument(inkDoc);
                 e.stopPropagation();
@@ -649,7 +650,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) {
             if (this.props.active(true)) e.stopPropagation();
         } else if (!e.cancelBubble) {
-            if (Doc.GetSelectedTool() === InkTool.None) {
+            if (CurrentUserUtils.SelectedTool === InkTool.None) {
                 if (this.tryDragCluster(e, this._hitCluster)) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
@@ -665,7 +666,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!e.cancelBubble) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             if (myTouches[0]) {
-                if (Doc.GetSelectedTool() === InkTool.None) {
+                if (CurrentUserUtils.SelectedTool === InkTool.None) {
                     if (this.tryDragCluster(e, this._hitCluster)) {
                         e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                         e.preventDefault();
@@ -950,7 +951,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 doc.hidden && Doc.UnHighlightDoc(doc);
                 const resetView = options?.afterFocus ? await options?.afterFocus(moved) : ViewAdjustment.doNothing;
                 if (resetView) {
-                    const restoreState = !LightboxView.LightboxDoc || LightboxView.LightboxDoc === this.props.Document && savedState;
+                    const restoreState = (!LightboxView.LightboxDoc || LightboxView.LightboxDoc === this.props.Document) && savedState;
                     if (typeof restoreState !== "boolean") {
                         this.Document._panX = restoreState.panX;
                         this.Document._panY = restoreState.panY;

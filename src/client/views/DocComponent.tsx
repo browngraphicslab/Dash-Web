@@ -8,6 +8,7 @@ import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
 import { GetEffectiveAcl, SharingPermissions, distributeAcls, denormalizeEmail } from '../../fields/util';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -144,6 +145,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     const recent = Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc) as Doc;
                     toRemove.forEach(doc => {
                         Doc.RemoveDocFromList(targetDataDoc, annotationKey ?? this.annotationKey, doc);
+                        doc.context = undefined;
                         recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     });
                     this.props.select(false);
@@ -188,7 +190,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
-                        (targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>).push(...added);
+                        const annoDocs = targetDataDoc[annotationKey ?? this.annotationKey] as List<Doc>;
+                        if (annoDocs) annoDocs.push(...added);
+                        else targetDataDoc[annotationKey ?? this.annotationKey] = new List<Doc>(added);
                         targetDataDoc[(annotationKey ?? this.annotationKey) + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }
@@ -197,9 +201,9 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document._) &&
+        active = (outsideReaction?: boolean) => ((CurrentUserUtils.SelectedTool === InkTool.None && !this.props.Document._) &&
             (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
+        annotationsActive = (outsideReaction?: boolean) => (CurrentUserUtils.SelectedTool !== InkTool.None || (this.props.layerProvider?.(this.props.Document) === false && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

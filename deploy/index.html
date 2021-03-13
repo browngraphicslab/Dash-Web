@@ -125,26 +125,15 @@
                     let load = getCookie("loadtime");
                     document.startLoad = Date.now();
                     console.log("Last Load = " + load);
-                    setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "10%"
-                        document.getElementById("dash-loader-text").innerHTML = "Loading Dash..."
-                    }, load / 10);
-                    setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "33%"
-                        document.getElementById("dash-loader-text").innerHTML = "Preparing dashboards..."
-                    }, load / 3);
-                    setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "50%"
-                        document.getElementById("dash-loader-text").innerHTML = "Initializing scripts..."
-                    }, load / 2);
-                    setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "75%"
-                        document.getElementById("dash-loader-text").innerHTML = "Fetching documents..."
-                    }, load / 4 * 3);
-                    setTimeout(() => {
-                        document.getElementById("dash-progress").style.width = "100%"
-                        document.getElementById("dash-loader-text").innerHTML = "Finalising setup..."
-                    }, load);
+                    let dashmesg = (width, msg) => {
+                        if (document.getElementById("dash-progress")) document.getElementById("dash-progress").style.width = width
+                        if (document.getElementById("dash-progress")) document.getElementById("dash-progress").innerHTML = msg
+                    }
+                    setTimeout(() => dashmesg("10%", "Loading Dash..."), load / 10);
+                    setTimeout(() => dashmesg("33%", "Preparing dashboards..."), load / 3);
+                    setTimeout(() => dashmesg("50%", "Initializing scripts..."), load / 2);
+                    setTimeout(() => dashmesg("75%", "Fetching documents..."), load / 4 * 3);
+                    setTimeout(() => dashmesg("100%", "Finalising setup..."), load);
                 </script>
             </div>
             <div id="dash-loader-text" class="dash-loader-text">

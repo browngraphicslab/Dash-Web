@@ -28,6 +28,7 @@ import { MainView } from "./MainView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import { AnchorMenu } from "./pdf/AnchorMenu";
 import { SearchBox } from "./search/SearchBox";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -115,8 +116,7 @@ export class KeyManager {
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
                 InkStrokeProperties.Instance && (InkStrokeProperties.Instance._controlBtn = false);
-
-                Doc.SetSelectedTool(InkTool.None);
+                CurrentUserUtils.SelectedTool = InkTool.None;
                 var doDeselect = true;
                 if (SnappingManager.GetIsDragging()) {
                     DragManager.AbortDrag();

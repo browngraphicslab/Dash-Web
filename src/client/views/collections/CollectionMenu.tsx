@@ -603,7 +603,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @action clearKeepPrimitiveMode() { this._selectedPrimitive = this._shapePrims.length; }
     @action primCreated() {
         if (!this._keepPrimitiveMode) { //get out of ink mode after each stroke=
-            Doc.SetSelectedTool(InkTool.None);
+            CurrentUserUtils.SelectedTool = InkTool.None;
             this._selectedPrimitive = this._shapePrims.length;
             SetActiveArrowStart("none");
             SetActiveArrowEnd("none");
@@ -643,7 +643,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             this._keepPrimitiveMode = keep;
             if (this._selectedPrimitive !== i) {
                 this._selectedPrimitive = i;
-                Doc.SetSelectedTool(InkTool.Pen);
+                CurrentUserUtils.SelectedTool = InkTool.Pen;
                 SetActiveArrowStart(this._head[i]);
                 SetActiveArrowEnd(this._end[i]);
                 SetActiveBezierApprox("300");
@@ -651,7 +651,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 GestureOverlay.Instance.InkShape = this._shapePrims[i];
             } else {
                 this._selectedPrimitive = this._shapePrims.length;
-                Doc.SetSelectedTool(InkTool.None);
+                CurrentUserUtils.SelectedTool = InkTool.None;
                 SetActiveArrowStart("");
                 SetActiveArrowEnd("");
                 GestureOverlay.Instance.InkShape = "";

@@ -66,9 +66,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataField() {
             // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
             // setTimeout changes it outside of the @computed section
-            setTimeout(() => {
-                if (!this.dataDoc[this.props.fieldKey]) this.dataDoc[this.props.fieldKey] = new List<Doc>();
-            }, 1000);
+            !this.dataDoc[this.props.fieldKey] && setTimeout(() => !this.dataDoc[this.props.fieldKey] && (this.dataDoc[this.props.fieldKey] = new List<Doc>()));
             return this.dataDoc[this.props.fieldKey];
         }
 
@@ -329,7 +327,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const y = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y < y ? r.y : y, undefined as any)) || 0);
                                     const r = (rects && Array.from(rects).reduce((x: any, r: DOMRect) => x === undefined || r.x + r.width > x ? r.x + r.width : x, undefined as any)) || 0;
                                     const b = NumCast(srcWeb._scrollTop) + ((rects && Array.from(rects).reduce((y: any, r: DOMRect) => y === undefined || r.y + r.height > y ? r.y + r.height : y, undefined as any)) || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: r - x, _height: b - y, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { backgroundColor: "transparent", _width: r - x, _height: b - y, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -480,7 +478,6 @@ import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTex
 import { CollectionView, CollectionViewType, CollectionViewProps } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
-import { setTimeout } from "timers";
 import { Hypothesis } from "../../util/HypothesisUtils";
 import { GetEffectiveAcl } from "../../../fields/util";
 

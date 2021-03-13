@@ -20,8 +20,9 @@ import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
+import { LightboxView } from "../LightboxView";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { DocumentView, DocumentViewProps, DocFocusOptions, ViewAdjustment } from "../nodes/DocumentView";
+import { DocFocusOptions, DocumentView, DocumentViewProps, ViewAdjustment } from "../nodes/DocumentView";
 import { FieldViewProps } from "../nodes/FieldView";
 import { StyleProp } from "../StyleProvider";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
@@ -29,8 +30,6 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { LightboxView } from "../LightboxView";
-import { DocumentType } from "../../documents/DocumentTypes";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -38,6 +37,8 @@ const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
 export type collectionStackingViewProps = {
     chromeStatus?: string;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
 };
 
 @observer
@@ -54,7 +55,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get chromeStatus() { return this.props.chromeStatus || StrCast(this.layoutDoc._chromeStatus); }
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
-    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
+    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
     @computed get headerMargin() { return this.props.styleProvider?.(this.layoutDoc, this.props, StyleProp.HeaderMargin); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
@@ -224,7 +225,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             NativeWidth={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeWidth(doc) ? width : undefined}  // explicitly ignore nativeWidth/height if childIgnoreNativeSize is set- used by PresBox
             NativeHeight={this.props.childIgnoreNativeSize ? returnZero : doc._fitWidth && !Doc.NativeHeight(doc) ? height : undefined}
             dontCenter={this.props.childIgnoreNativeSize ? "xy" : undefined}
-            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
+            dontRegisterView={dataDoc ? true : BoolCast(this.layoutDoc.childDontRegisterViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -232,6 +233,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             ScreenToLocalTransform={stackedDocTransform}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            hideDecorationTitle={this.props.childHideDecorationTitle?.()}
+            hideTitle={this.props.childHideTitle?.()}
             docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
@@ -253,24 +256,24 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
         const y = this._scroll; // required for document decorations to update when the text box container is scrolled
         const { scale, translateX, translateY } = Utils.GetScreenTransform(dref?.ContentDiv || undefined);
         // the document view may center its contents and if so, will prepend that onto the screenToLocalTansform.  so we have to subtract that off 
-        return new Transform(- translateX - (dref?.centeringX || 0), - translateY - (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale * (this.props.scaling?.() || 1));
+        return new Transform(- translateX - (dref?.centeringX || 0), - translateY - (dref?.centeringY || 0), 1).scale(this.props.ScreenToLocalTransform().Scale);
     }
     getDocWidth(d?: Doc) {
         if (!d) return 0;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const maxWidth = this.columnWidth / this.numGroupColumns;
         if (!this.layoutDoc._columnsFill && !childLayoutDoc._fitWidth) {
-            return Math.min(d[WidthSym]() * (this.props.scaling?.() || 1), maxWidth);
+            return Math.min(d[WidthSym](), maxWidth);
         }
         return maxWidth;
     }
     getDocHeight(d?: Doc) {
-        if (!d) return 0;
+        if (!d || d.hidden) return 0;
         const childLayoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const childDataDoc = (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc;
         const maxHeight = (lim => lim === 0 ? this.props.PanelWidth() : lim === -1 ? 10000 : lim)(NumCast(this.layoutDoc.childLimitHeight, -1));
-        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth || this.layoutDoc._columnsFill ? d[WidthSym]() : 0);
-        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth || this.layoutDoc._columnsFill ? d[HeightSym]() : 0);
+        const nw = Doc.NativeWidth(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth ? d[WidthSym]() : 0);
+        const nh = Doc.NativeHeight(childLayoutDoc, childDataDoc) || (!childLayoutDoc._fitWidth ? d[HeightSym]() : 0);
         if (nw && nh) {
             const colWid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
             const docWid = this.layoutDoc._columnsFill ? colWid : Math.min(this.getDocWidth(d), colWid);
@@ -331,7 +334,18 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 }
             }
         }
+        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData);
         return false;
+    }
+
+    @undoBatch
+    internalAnchorAnnoDrop(e: Event, annoDragData: DragManager.AnchorAnnoDragData) {
+        const dropCreator = annoDragData.dropDocCreator;
+        annoDragData.dropDocCreator = (annotationOn: Doc | undefined) => {
+            const dropDoc = dropCreator(annotationOn);
+            return dropDoc || this.rootDoc;
+        };
+        return true;
     }
 
     @undoBatch
@@ -481,11 +495,12 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     }
 
 
-    @computed get nativeWidth() { return Doc.NativeWidth(this.layoutDoc); }
-    @computed get nativeHeight() { return Doc.NativeHeight(this.layoutDoc); }
+    @computed get nativeWidth() { return this.props.NativeWidth?.() ?? Doc.NativeWidth(this.layoutDoc); }
+    @computed get nativeHeight() { return this.props.NativeHeight?.() ?? Doc.NativeHeight(this.layoutDoc); }
 
     @computed get scaling() { return !this.nativeWidth ? 1 : this.props.PanelHeight() / this.nativeHeight; }
 
+    @computed get backgroundEvents() { return SnappingManager.GetIsDragging(); }
     observer: any;
     render() {
         TraceMobx();
@@ -504,6 +519,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                         height: `${1 / this.scaling * 100}%`,
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
+                        background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
+                        pointerEvents: this.backgroundEvents ? "all" : undefined
                     }}
                     onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onExternalDrop.bind(this)}

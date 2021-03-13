@@ -139,7 +139,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     addDocument = (value: string, shiftDown?: boolean, forceEmptyNote?: boolean) => {
         if (!value && !forceEmptyNote) return false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
+        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, _fitWidth: true, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;

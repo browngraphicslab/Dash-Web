@@ -21,19 +21,17 @@ export class MainViewModal extends React.Component<MainViewOverlayProps> {
         const dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
         const overlayOpacity = p.overlayDisplayedOpacity || 0.4;
         return !p.isDisplayed ? (null) : (
-            <div style={{
+            <div className="mainViewModal-cont" style={{
                 pointerEvents: p.isDisplayed && p.interactive ? "all" : "none"
             }}>
-                <div
-                    className={"dialogue-box"}
-                    style={{
-                        borderColor: "black",
-                        ...(p.dialogueBoxStyle || {}),
-                        opacity: p.isDisplayed ? dialogueOpacity : 0
-                    }}
-                >{p.contents}</div>
-                <div
-                    className={"overlay"}
+                <div className="dialogue-box" style={{
+                    borderColor: "black",
+                    ...(p.dialogueBoxStyle || {}),
+                    opacity: p.isDisplayed ? dialogueOpacity : 0
+                }} >
+                    {p.contents}
+                </div>
+                <div className="overlay"
                     onClick={this.props?.closeOnExternalClick}
                     style={{
                         backgroundColor: "gainsboro",
@@ -44,6 +42,4 @@ export class MainViewModal extends React.Component<MainViewOverlayProps> {
             </div>
         );
     }
-
-
 }

@@ -192,7 +192,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             />
         </div>;
     }
-
+    @computed get treeViewtruncateTitleWidth() { return NumCast(this.doc.treeViewTruncateTitleWidth, this.panelWidth()); }
+    truncateTitleWidth = () => this.treeViewtruncateTitleWidth;
+    @computed get outlineMode() { return this.doc.treeViewType === "outline"; }
+    @computed get fileSysMode() { return this.doc.treeViewType === "fileSystem"; }
     onChildClick = () => this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
     active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
@@ -210,7 +213,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             moveDoc, dropAction, this.props.addDocTab, this.props.pinToPres, this.props.styleProvider, returnTrue, this.props.ScreenToLocalTransform,
             this.outerXf, this.active, this.panelWidth, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.onCheckedClick,
-            this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.dontRegisterChildViews, "boolean", null), this);
+            this.onChildClick, this.props.treeViewSkipFields, true, this.whenActiveChanged, this.props.dontRegisterView || Cast(this.props.Document.childDontRegisterViews, "boolean", null), this);
     }
     @computed get titleBar() {
         const hideTitle = this.props.treeViewHideTitle || this.doc.treeViewHideTitle;

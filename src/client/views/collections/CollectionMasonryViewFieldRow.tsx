@@ -2,22 +2,22 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
-import { StrCast, NumCast } from "../../../fields/Types";
-import { numberRange, setupMoveUpEvents, emptyFunction, returnEmptyString } from "../../../Utils";
+import { NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, numberRange, returnEmptyString, setupMoveUpEvents } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
+import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
-import { SnappingManager } from "../../util/SnappingManager";
-import { FormattedTextBox } from "../nodes/formattedText/FormattedTextBox";
-import { Id } from "../../../fields/FieldSymbols";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -144,13 +144,13 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         if (!value && !forceEmptyNote) return false;
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument("", { _autoHeight: true, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument("", { _autoHeight: true, _width: 200, _fitWidth: true, title: value });
         const onLayoutDoc = this.onLayoutDoc(key);
         FormattedTextBox.SelectOnLoad = newDoc[Id];
         FormattedTextBox.SelectOnLoadChar = value;
         (onLayoutDoc ? newDoc : newDoc[DataSym])[key] = this.getValue(this.props.heading);
         const docs = this.props.parent.childDocList;
-        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument?.(newDoc) || false;
+        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument?.(newDoc) || false; // should really extend addDocument to specify insertion point (at beginning of list)
     }
 
     deleteRow = undoBatch(action(() => {

@@ -146,7 +146,7 @@ export class GroupManager extends React.Component<{}> {
     addGroup(groupDoc: Doc): boolean {
         if (this.GroupManagerDoc) {
             Doc.AddDocToList(this.GroupManagerDoc, "data", groupDoc);
-            this.GroupManagerDoc.lastModified = new DateField;
+            this.GroupManagerDoc["data-lastModified"] = new DateField;
             return true;
         }
         return false;
@@ -167,7 +167,7 @@ export class GroupManager extends React.Component<{}> {
                     const index = DocListCast(this.GroupManagerDoc.data).findIndex(grp => grp === group);
                     index !== -1 && Cast(this.GroupManagerDoc.data, listSpec(Doc), [])?.splice(index, 1);
                 }
-                this.GroupManagerDoc.lastModified = new DateField;
+                this.GroupManagerDoc["data-lastModified"] = new DateField;
                 if (group === this.currentGroup) {
                     this.currentGroup = undefined;
                 }
@@ -188,7 +188,7 @@ export class GroupManager extends React.Component<{}> {
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
             SharingManager.Instance.shareWithAddedMember(groupDoc, email);
-            this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
+            this.GroupManagerDoc && (this.GroupManagerDoc["data-lastModified"] = new DateField);
         }
     }
 
@@ -205,7 +205,7 @@ export class GroupManager extends React.Component<{}> {
                 const user = memberList.splice(index, 1)[0];
                 groupDoc.members = JSON.stringify(memberList);
                 SharingManager.Instance.removeMember(groupDoc, email);
-                this.GroupManagerDoc && (this.GroupManagerDoc.lastModified = new DateField);
+                this.GroupManagerDoc && (this.GroupManagerDoc["data-lastModified"] = new DateField);
             }
         }
     }

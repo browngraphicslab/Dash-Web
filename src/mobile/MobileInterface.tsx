@@ -76,7 +76,7 @@ export class MobileInterface extends React.Component {
     componentDidMount = () => {
         // if the home menu is in list view -> adjust the menu toggle appropriately
         this._menuListView = this._homeDoc._viewType === "stacking" ? true : false;
-        Doc.SetSelectedTool(InkTool.None); // ink should intially be set to none
+        CurrentUserUtils.SelectedTool = InkTool.None; // ink should intially be set to none
         Doc.UserDoc().activeMobile = this._homeDoc; // active mobile set to home
         AudioBox.Enabled = true;
 
@@ -419,10 +419,10 @@ export class MobileInterface extends React.Component {
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
-            Doc.SetSelectedTool(InkTool.Pen);
+            CurrentUserUtils.SelectedTool = InkTool.Pen;
             this._ink = true;
         } else {
-            Doc.SetSelectedTool(InkTool.None);
+            CurrentUserUtils.SelectedTool = InkTool.None;
             this._ink = false;
         }
     }

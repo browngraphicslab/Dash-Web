@@ -125,6 +125,7 @@ export interface DocumentViewProps extends DocumentViewSharedProps {
     freezeDimensions?: boolean;
     hideResizeHandles?: boolean; // whether to suppress DocumentDecorations when this document is selected 
     hideTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
+    hideDecorationTitle?: boolean;  // forces suppression of title. e.g, treeView document labels suppress titles in case they are globally active via settings
     treeViewDoc?: Doc;
     contentPointerEvents?: string; // pointer events allowed for content of a document view.  eg. set to "none" in menuSidebar for sharedDocs so that you can select a document, but not interact with its contents
     radialMenu?: String[];
@@ -284,7 +285,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     }
 
     handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        if ((e as any).formattedHandled) { e.stopPropagation; return; }
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
@@ -473,7 +473,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 } else clickFunc();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "add:right");
-            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey && !(e.nativeEvent as any).formattedHandled) {
+            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 this.allLinks.length && LinkManager.FollowLink(undefined, this.props.Document, this.props, e.altKey);
             } else {
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
@@ -490,7 +490,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     onPointerDown = (e: React.PointerEvent): void => {
         // continue if the event hasn't been canceled AND we are using a mouse or this has an onClick or onDragStart function (meaning it is a button document)
-        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
                 if (SelectionManager.IsSelected(this.props.DocumentView(), true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
@@ -502,7 +502,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
         this._downY = e.clientY;
         if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
-            !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
+            !(this.props.Document.rootDocument && !(e.ctrlKey || e.button > 0))) {
             if ((this.active || this.layoutDoc.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
@@ -515,14 +515,11 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
-
-            if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); }
         }
     }
 
     onPointerMove = (e: PointerEvent): void => {
-        if ((e as any).formattedHandled) { e.stopPropagation(); return; }
-        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || [InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool))) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
@@ -624,7 +621,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
     makeIntoPortal = async () => {
         const portalLink = this.allLinks.find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
-            const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });
+            const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), _fitWidth: true, title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
         this.Document.followLinkLocation = "inPlace";
@@ -1005,11 +1002,11 @@ export class DocumentView extends React.Component<DocumentViewProps> {
         return this.docView?._componentView?.reverseNativeScaling?.() ? 0 :
             returnVal(this.props.NativeHeight?.(), Doc.NativeHeight(this.layoutDoc, this.props.DataDoc, this.props.freezeDimensions));
     }
-    shouldNotScale = () => (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any);
-    @computed get effectiveNativeWidth() { return this.shouldNotScale() ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
-    @computed get effectiveNativeHeight() { return this.shouldNotScale() ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
+    @computed get shouldNotScale() { return (this.layoutDoc._fitWidth && !this.nativeWidth) || [CollectionViewType.Docking, CollectionViewType.Tree].includes(this.Document._viewType as any); }
+    @computed get effectiveNativeWidth() { return this.shouldNotScale ? 0 : (this.nativeWidth || NumCast(this.layoutDoc.width)); }
+    @computed get effectiveNativeHeight() { return this.shouldNotScale ? 0 : (this.nativeHeight || NumCast(this.layoutDoc.height)); }
     @computed get nativeScaling() {
-        if (this.shouldNotScale()) return 1;
+        if (this.shouldNotScale) return 1;
         const minTextScale = this.Document.type === DocumentType.RTF ? 0.1 : 0;
         if (this.layoutDoc._fitWidth || this.props.PanelHeight() / this.effectiveNativeHeight > this.props.PanelWidth() / this.effectiveNativeWidth) {
             return Math.max(minTextScale, this.props.PanelWidth() / this.effectiveNativeWidth);  // width-limited or fitWidth

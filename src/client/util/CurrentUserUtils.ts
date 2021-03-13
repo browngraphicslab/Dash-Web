@@ -1,4 +1,4 @@
-import { computed, observable, reaction } from "mobx";
+import { computed, observable, reaction, action } from "mobx";
 import * as rp from 'request-promise';
 import { DataSym, Doc, DocListCast, DocListCastAsync, AclReadonly } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
@@ -33,6 +33,8 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
+import { InkTool } from "../../fields/InkField";
+import { computedFn } from "mobx-utils";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -378,7 +380,7 @@ export class CurrentUserUtils {
             ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptySlide === undefined) {
-            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewType: "outline", _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, _backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            const textDoc = Docs.Create.TreeDocument([], { title: "Slide", _viewType: CollectionViewType.Tree, _fontSize: "20px", treeViewType: "outline", _xMargin: 0, _yMargin: 0, _width: 300, _height: 200, _singleLine: true, backgroundColor: "transparent", system: true, cloneFieldFilter: new List<string>(["system"]) });
             Doc.GetProto(textDoc).title = ComputedField.MakeFunction('self.text?.Text');
             FormattedTextBox.SelectOnLoad = textDoc[Id];
             doc.emptySlide = textDoc;
@@ -438,11 +440,6 @@ export class CurrentUserUtils {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyButton as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
-        if (doc.emptyDocHolder === undefined) {
-            doc.emptyDocHolder = Docs.Create.DocumentDocument(
-                ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
-                { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
-        }
         if (doc.emptyWebpage === undefined) {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, isTemplateDoc: true, _height: 512, _width: 400, useCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
@@ -462,7 +459,6 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
-            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Tap to create a custom header note document, drag for a custom header note", title: "Custom", icon: "window-maximize", click: 'openOnRight(delegateDragFactory(this.dragFactory))', drag: 'delegateDragFactory(this.dragFactory)', dragFactory: doc.emptyHeader as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
         ];
@@ -549,7 +545,7 @@ export class CurrentUserUtils {
                     dontUndo: true,
                     title,
                     target,
-                    _backgroundColor: "black",
+                    backgroundColor: "black",
                     dropAction: "alias",
                     removeDropProperties: new List<string>(["dropAction", "_stayInCollection"]),
                     _width: 60,
@@ -564,7 +560,7 @@ export class CurrentUserUtils {
                 title: "menuItemPanel",
                 childDropAction: "alias",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-                _backgroundColor: "black", ignoreClick: true,
+                backgroundColor: "black", ignoreClick: true,
                 _gridGap: 0,
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, _lockedPosition: true, _chromeStatus: "disabled", system: true
@@ -621,7 +617,7 @@ export class CurrentUserUtils {
                 title: data.title,
                 _lockedPosition: true,
                 onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-                _backgroundColor: data.backgroundColor, system: true
+                backgroundColor: data.backgroundColor, system: true
             },
                 [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)", system: true }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
         );
@@ -747,7 +743,7 @@ export class CurrentUserUtils {
                 title: "My Dashboards", _height: 400,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
@@ -763,7 +759,7 @@ export class CurrentUserUtils {
                 title: "My Presentations", _height: 100,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
             (doc.myPresentations as any as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
@@ -783,7 +779,7 @@ export class CurrentUserUtils {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
                 isFolder: true, treeViewType: "fileSystem",
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "proto", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "proto", system: true
             }));
         }
         return doc.myFilesystem as any as Doc;
@@ -796,7 +792,7 @@ export class CurrentUserUtils {
                 title: "Recently Closed",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([])`);
             (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
@@ -811,7 +807,7 @@ export class CurrentUserUtils {
                 title: "FilterDoc",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, childDropAction: "none",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             }));
         }
         const clearAll = ScriptField.MakeScript(`getProto(self).data = new List([]); scriptContext._docFilters = scriptContext._docRangeFilters = undefined;`, { scriptContext: Doc.name });
@@ -827,7 +823,7 @@ export class CurrentUserUtils {
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, _forceActive: true, title: "My UserDoc",
                 treeViewTruncateTitleWidth: 150, treeViewPreventOpen: false, ignoreClick: true,
-                _lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+                _lockedPosition: true, boxShadow: "0 0", childDontRegisterViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
     }
@@ -988,7 +984,7 @@ export class CurrentUserUtils {
     static async updateUserDocument(doc: Doc, sharingDocumentId: string, linkDatabaseId: string) {
         if (!doc.globalGroupDatabase) doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
         const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
-        reaction(() => DateCast((doc.globalGroupDatabase as Doc).lastModified),
+        reaction(() => DateCast((doc.globalGroupDatabase as Doc)["data-lastModified"]),
             async () => {
                 const groups = await DocListCastAsync((doc.globalGroupDatabase as Doc).data);
                 const mygroups = groups?.filter(group => JSON.parse(StrCast(group.members)).includes(Doc.CurrentUserEmail)) || [];
@@ -1200,7 +1196,7 @@ export class CurrentUserUtils {
     public static GetNewTextDoc(title: string, x: number, y: number, width?: number, height?: number, noMargins?: boolean, annotationOn?: Doc, maxHeight?: number) {
         const tbox = Docs.Create.TextDocument("", {
             _xMargin: noMargins ? 0 : undefined, _yMargin: noMargins ? 0 : undefined, annotationOn, docMaxAutoHeight: maxHeight,
-            _width: width || 200, _height: height || 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _width: width || 200, _height: height || 100, x: x, y: y, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
             _fontFamily: StrCast(Doc.UserDoc().fontFamily), title
         });
         const template = FormattedTextBox.DefaultLayout;
@@ -1219,6 +1215,8 @@ export class CurrentUserUtils {
     public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
     public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
     public static get OverlayDocs() { return DocListCast((Doc.UserDoc().myOverlayDocs as Doc)?.data); }
+    public static set SelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
+    @computed public static get SelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
 }
 
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {

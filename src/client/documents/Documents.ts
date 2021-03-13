@@ -35,7 +35,6 @@ import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveIn
 import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
-import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { DocFocusOptions } from "../views/nodes/DocumentView";
 import { FilterBox } from "../views/nodes/FilterBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
@@ -59,6 +58,8 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { EquationBox } from "../views/nodes/EquationBox";
 import { FunctionPlotBox } from "../views/nodes/FunctionPlotBox";
+import { script } from "googleapis/build/src/apis/script";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 const path = require('path');
 
 const defaultNativeImageDim = Number(DFLT_IMAGE_NATIVE_DIM.replace("px", ""));
@@ -169,6 +170,7 @@ export class DocumentOptions {
     childLimitHeight?: number; // whether to limit the height of colleciton children.  0 - means  height can be no bigger than width
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
+    childDontRegisterViews?: boolean;
     hideLinkButton?: boolean; // whether the blue link counter button should be hidden
     hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -191,7 +193,6 @@ export class DocumentOptions {
     presProgressivize?: boolean;
     borderRounding?: string;
     boxShadow?: string;
-    dontRegisterChildViews?: boolean;
     dontRegisterView?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
@@ -260,9 +261,9 @@ export namespace Docs {
     const _docOptions = new DocumentOptions();
 
     export async function setupFieldInfos() {
-        return await DocServer.GetRefField("FieldInfos7") as Doc ??
+        return await DocServer.GetRefField("FieldInfos8") as Doc ??
             runInAction(() => {
-                const infos = new Doc("FieldInfos7", true);
+                const infos = new Doc("FieldInfos8", true);
                 const keys = Object.keys(new DocumentOptions());
                 for (const key of keys) {
                     const options = (_docOptions as any)[key] as FInfo;
@@ -333,10 +334,6 @@ export namespace Docs {
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: defaultDataKey },
                 options: { _height: 150 }
-            }],
-            [DocumentType.DOCHOLDER, {
-                layout: { view: DocHolderBox, dataField: defaultDataKey },
-                options: { _height: 250 }
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: defaultDataKey },
@@ -667,8 +664,8 @@ export namespace Docs {
             viewDoc["acl-Public"] = dataDoc["acl-Public"] = Doc.UserDoc()?.defaultAclPrivate ? SharingPermissions.None : SharingPermissions.Add;
             viewDoc["acl-Override"] = dataDoc["acl-Override"] = "None";
 
-            !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
-                !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
+            !Doc.IsSystem(dataDoc) && ![DocumentType.PDFANNO, DocumentType.KVP, DocumentType.LINK, DocumentType.LINKANCHOR, DocumentType.TEXTANCHOR].includes(proto.type as any) &&
+                !dataDoc.isFolder && !protoProps.annotationOn && Doc.AddDocToList(Cast(Doc.UserDoc().myFileOrphans, Doc, null), "data", dataDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -728,7 +725,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -768,7 +765,7 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                dontRegisterChildViews: true,
+                childDontRegisterViews: true,
                 isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightblue", // lightblue is default color for linking dot and link documents text comment area
                 treeViewExpandedView: "fields", removeDropProperties: new List(["_layerTags", "isLinkButton"]), ...options
             }, id);
@@ -819,7 +816,7 @@ export namespace Docs {
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
             const pdfProto = Prototypes.get(DocumentType.PDF);
             pdfProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), options);
+            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), { _viewType: "stacking", ...options });
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
@@ -835,10 +832,6 @@ export namespace Docs {
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { _fitWidth: true, title: document.title + ".kvp", ...options });
-        }
-
-        export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
         }
 
         export function TextanchorDocument(options: DocumentOptions = {}, id?: string) {
@@ -876,7 +869,7 @@ export namespace Docs {
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _fitWidth: true, childDontRegisterViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string, protoId?: string) {
@@ -1047,8 +1040,9 @@ export namespace DocUtils {
                 const min = Number(docRangeFilters[i + 1]);
                 const max = Number(docRangeFilters[i + 2]);
                 const val = Cast(d[key], "number", null);
-                if (val === undefined || (val < min || val > max)) {
-                    return false;
+                if (val < min || val > max) return false;
+                if (val === undefined) {
+                    //console.log("Should 'undefined' pass range filter or not?")
                 }
             }
             return true;
@@ -1135,7 +1129,7 @@ export namespace DocUtils {
         linkDoc.hidden = true;
         Doc.GetProto(linkDoc)["acl-Public"] = linkDoc["acl-Public"] = SharingPermissions.Add;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction("generateLinkTitle(self)");
         showPopup && makeLink(linkDoc, showPopup);
         return linkDoc;
     }
@@ -1160,7 +1154,7 @@ export namespace DocUtils {
             created = Docs.Create.AudioDocument((field).url.href, resolved);
             layout = AudioBox.LayoutString;
         } else if (field instanceof InkField) {
-            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), (field).inkData, resolved);
+            created = Docs.Create.InkDocument(ActiveInkColor(), CurrentUserUtils.SelectedTool, ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), (field).inkData, resolved);
             layout = InkingStroke.LayoutString;
         } else if (field instanceof List && field[0] instanceof Doc) {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
@@ -1417,3 +1411,9 @@ export namespace DocUtils {
 
 Scripting.addGlobal("Docs", Docs);
 Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
+Scripting.addGlobal(function generateLinkTitle(self: Doc) {
+    const anchor1title = self.anchor1 && self.anchor1 !== self ? Cast(self.anchor1, Doc, null).title : "<?>";
+    const anchor2title = self.anchor2 && self.anchor2 !== self ? Cast(self.anchor2, Doc, null).title : "<?>";
+    const relation = self.linkRelationship || "to";
+    return `${anchor1title} (${relation}) ${anchor2title}`;
+});
