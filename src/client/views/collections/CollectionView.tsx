@@ -72,6 +72,8 @@ export interface CollectionViewProps extends FieldViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     childDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     childOpacity?: () => number;
+    childHideTitle?: () => boolean; // whether to hide the documentdecorations title for children
+    childHideDecorationTitle?: () => boolean;
     childLayoutTemplate?: () => (Doc | undefined);// specify a layout Doc template to use for children of the collection
     childLayoutString?: string;
     childFreezeDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
@@ -102,13 +104,15 @@ export class CollectionView extends Touchable<CollectionViewProps> {
         return viewField as any as CollectionViewType;
     }
 
-    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) ||
-        this.props.rootSelected(outsideReaction) ||
-        (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
-        this._isChildActive ||
-        this.props.renderDepth === 0) ?
-        true :
-        false
+    active = (outsideReaction?: boolean) => {
+        return this.props.renderDepth === 0 ||
+            this.props.isSelected(outsideReaction) ||
+            this.props.rootSelected(outsideReaction) ||
+            (this.props.layerProvider?.(this.props.Document) !== false && (this.props.Document.forceActive || this.props.Document._isGroup)) ||
+            this._isChildActive ?
+            true :
+            false;
+    }
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 

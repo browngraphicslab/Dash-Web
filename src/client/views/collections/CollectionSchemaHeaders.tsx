@@ -283,11 +283,11 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 const colpos = this._searchTerm.indexOf(":");
                 const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
                 if (temp === "") {
-                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, "remove");
                     this.updateFilter();
                 }
                 else {
-                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, "remove");
                     this.tempfilter = temp;
                     Doc.setDocFilter(this.props.Document, this._key, temp, "check");
                     this.props.col.setColor("green");
@@ -295,7 +295,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 }
             }
             else {
-                Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, "remove");
                 this.updateFilter();
                 if (this.showKeys.length) {
                     this.onSelect(this.showKeys[0]);
@@ -421,10 +421,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => e.stopPropagation()}
                     onChange={(e) => {
-                        e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+                        e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, "remove");
                         e.target.checked === true ? this.closeResultsVisibility = "contents" : console.log("");
                         e.target.checked === true ? this.props.col.setColor("green") : this.updateFilter();
-                        e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
+                        e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, "remove");
                     }}
                     checked={bool}
                 />

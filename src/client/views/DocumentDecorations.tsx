@@ -458,7 +458,7 @@ export class DocumentDecorations extends React.Component<{ boundsLeft: number, b
                     top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {!canDelete ? <div /> : topBtn("close", "times", this.onCloseClick, "Close")}
-                    {seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
+                    {seldoc.props.hideDecorationTitle || seldoc.props.Document.type === DocumentType.EQUATION ? (null) : titleArea}
                     {seldoc.props.hideResizeHandles || seldoc.props.Document.type === DocumentType.EQUATION ? (null) :
                         <>
                             {SelectionManager.Views().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :

@@ -11,6 +11,7 @@ import "../../views/nodes/WebBox.scss";
 import "./YoutubeBox.scss";
 import React = require("react");
 import { InkTool } from '../../../fields/InkField';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 
 interface VideoTemplate {
     thumbnailUrl: string;
@@ -350,7 +351,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >

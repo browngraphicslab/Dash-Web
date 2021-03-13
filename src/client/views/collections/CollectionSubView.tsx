@@ -66,7 +66,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataField() {
             // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
             // setTimeout changes it outside of the @computed section
-            !this.dataDoc[this.props.fieldKey] && setTimeout(() => this.dataDoc[this.props.fieldKey] = new List<Doc>());
+            !this.dataDoc[this.props.fieldKey] && setTimeout(() => !this.dataDoc[this.props.fieldKey] && (this.dataDoc[this.props.fieldKey] = new List<Doc>()));
             return this.dataDoc[this.props.fieldKey];
         }
 

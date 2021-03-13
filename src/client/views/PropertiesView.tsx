@@ -900,10 +900,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    /**
+     * Checks if a currentFilter (FilterDoc) exists on the current collection (if the Properties Panel + Filters submenu are open).
+     * If it doesn't exist, it creates it.
+     */
     checkFilterDoc() {
         if (this.filterDoc.type === DocumentType.COL && !this.filterDoc.currentFilter) CurrentUserUtils.setupFilterDocs(this.filterDoc);
     }
 
+    /**
+     * Creates a new currentFilter for this.filterDoc, 
+     */
     createNewFilterDoc = () => {
         const temp = this.filterDoc._docFilters;
         this.filterDoc._docFilters = new List<string>();
@@ -946,7 +953,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             removeDocument={returnFalse}
                             ScreenToLocalTransform={this.getTransform}
                             PanelWidth={this.docWidth}
-                            PanelHeight={this.docHeight}
+                            PanelHeight={() => this.docHeight}
                             renderDepth={0}
                             scriptContext={this.filterDoc.currentFilter as Doc}
                             focus={emptyFunction}

@@ -31,6 +31,7 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import { DocumentType } from '../../documents/DocumentTypes';
 import React = require("react");
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -487,7 +488,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance?.Interacting;
         const scale = this.props.scaling?.() || 1;
         return (<>
-            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
+            <div className={"webBox-cont" + (this.props.isSelected() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance?.Interacting ? "-interactive" : "")}
                 style={{
                     width: NumCast(this.layoutDoc[this.fieldKey + "-contentWidth"]) || `${100 / scale}%`,
                     height: `${100 / scale}%`,

@@ -87,6 +87,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         const keys = new Set<string>(noviceFields);
         this.allDocs.forEach(doc => SearchBox.documentKeys(doc).filter(key => keys.add(key)));
         return Array.from(keys.keys()).filter(key => key[0]).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("_")) || noviceFields.includes(key) || !Doc.UserDoc().noviceMode).sort();
+        // return [];
     }
 
 
@@ -231,10 +232,10 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
-                const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
-                // newFacet.target = targetDoc;
-                // newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
+                // const capturedVariables = { layoutDoc: targetDoc, system: true, _stayInCollection: true, _hideContextMenu: true, dataDoc: (targetDoc.data as any)[0][DataSym] };
+                // newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, "${facetHeader}")`, {}, capturedVariables);
+                newFacet.target = targetDoc;
+                newFacet.data = ComputedField.MakeFunction(`readFacetData(self.target, "${facetHeader}")`);
             }
             newFacet && Doc.AddDocToList(this.dataDoc, this.props.fieldKey, newFacet);
         }
@@ -332,6 +333,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
         // TODO uncomment the line below when the treeview x works
         // const options = this._allFacets.filter(facet => this.currentFacets.indexOf(facet) === -1).map(facet => ({ value: facet, label: facet }));
         const options = this._allFacets.map(facet => ({ value: facet, label: facet }));
+        console.log(this.props.PanelHeight());
         return this.props.dontRegisterView ? (null) : <div className="filterBox-treeView" style={{ width: "100%" }}>
 
             <div className="filterBox-title">
@@ -384,7 +386,7 @@ export class FilterBox extends ViewBoxBaseComponent<FieldViewProps, FilterBoxDoc
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.props.PanelWidth}
-                    PanelHeight={this.props.PanelHeight}
+                    PanelHeight={() => 100}
                     rootSelected={this.props.rootSelected}
                     renderDepth={1}
                     dropAction={this.props.dropAction}

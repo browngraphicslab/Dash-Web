@@ -71,7 +71,7 @@ export class DashDocViewInternal extends React.Component<IDashDocViewInternal> {
 
     constructor(props: IDashDocViewInternal) {
         super(props);
-        this._textBox = this.props.tbox as FormattedTextBox;
+        this._textBox = this.props.tbox;
 
         const updateDoc = action((dashDoc: Doc) => {
             this._dashDoc = dashDoc;
@@ -101,7 +101,7 @@ export class DashDocViewInternal extends React.Component<IDashDocViewInternal> {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, this.props.docid + this.props.alias);
                         aliasedDoc.layoutKey = "layout";
                         this.props.fieldKey && DocUtils.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, this.props.fieldKey, undefined);
-                        updateDoc(aliasedDoc)
+                        updateDoc(aliasedDoc);
                     }
                 });
             } else {

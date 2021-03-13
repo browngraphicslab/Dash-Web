@@ -1,4 +1,4 @@
-import { computed, observable, reaction } from "mobx";
+import { computed, observable, reaction, action } from "mobx";
 import * as rp from 'request-promise';
 import { DataSym, Doc, DocListCast, DocListCastAsync, AclReadonly } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
@@ -33,6 +33,8 @@ import { SearchUtil } from "./SearchUtil";
 import { SelectionManager } from "./SelectionManager";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
+import { InkTool } from "../../fields/InkField";
+import { computedFn } from "mobx-utils";
 
 
 export let resolvedPorts: { server: number, socket: number };
@@ -1214,6 +1216,8 @@ export class CurrentUserUtils {
     public static get MyDashboards() { return Cast(Doc.UserDoc().myDashboards, Doc, null); }
     public static get EmptyPane() { return Cast(Doc.UserDoc().emptyPane, Doc, null); }
     public static get OverlayDocs() { return DocListCast((Doc.UserDoc().myOverlayDocs as Doc)?.data); }
+    public static set SelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
+    @computed public static get SelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
 }
 
 Scripting.addGlobal(function openDragFactory(dragFactory: Doc) {

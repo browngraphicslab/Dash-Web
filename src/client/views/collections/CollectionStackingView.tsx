@@ -233,6 +233,8 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
             ScreenToLocalTransform={stackedDocTransform}
             focus={this.focusDocument}
             docFilters={this.docFilters}
+            hideDecorationTitle={this.props.childHideDecorationTitle?.()}
+            hideTitle={this.props.childHideTitle?.()}
             docRangeFilters={this.docRangeFilters}
             searchFilterDocs={this.searchFilterDocs}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
@@ -517,6 +519,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                         height: `${1 / this.scaling * 100}%`,
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
+                        background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.BackgroundColor),
                         pointerEvents: this.backgroundEvents ? "all" : undefined
                     }}
                     onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}

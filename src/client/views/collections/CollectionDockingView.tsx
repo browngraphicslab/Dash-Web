@@ -337,7 +337,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             }
         }
         if (!e.nativeEvent.cancelBubble && !InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE) &&
-            Doc.GetSelectedTool() !== InkTool.Highlighter && Doc.GetSelectedTool() !== InkTool.Pen) {
+            ![InkTool.Highlighter, InkTool.Pen].includes(CurrentUserUtils.SelectedTool)) {
             e.stopPropagation();
         }
     }
@@ -372,16 +372,17 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
 
         this.props.Document.dockingConfig = json;
         setTimeout(async () => {
-            const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
-            const tabs = Cast(sublists[0], Doc, null);
-            const other = Cast(sublists[1], Doc, null);
+            const sublists = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
+            const tabs = sublists && Cast(sublists[0], Doc, null);
+            const other = sublists && Cast(sublists[1], Doc, null);
             const tabdocs = await DocListCastAsync(tabs?.data);
             const otherdocs = await DocListCastAsync(other?.data);
             tabs && (Doc.GetProto(tabs).data = new List<Doc>(docs));
             const otherSet = new Set<Doc>();
             otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            tabdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            other && (Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values())));
+            tabdocs?.filter(doc => !docs.includes(doc) && doc.type !== DocumentType.KVP).forEach(doc => otherSet.add(doc));
+            const vals = Array.from(otherSet.values()).filter(val => val instanceof Doc).map(d => d as Doc).filter(d => d.type !== DocumentType.KVP);
+            other && (Doc.GetProto(other).data = new List<Doc>(vals));
         }, 0);
     }
 

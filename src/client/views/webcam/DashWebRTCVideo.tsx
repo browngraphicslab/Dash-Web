@@ -11,6 +11,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./DashWebRTCVideo.scss";
 import { hangup, initialize, refreshVideos } from "./WebCamLogic";
 import React = require("react");
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 
 /**
@@ -69,7 +70,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             </div >;
 
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
-        const classname = "webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && CurrentUserUtils.SelectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
 
         return (
             <>

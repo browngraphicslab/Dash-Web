@@ -17,6 +17,7 @@ import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { InkStrokeProperties } from "./InkStrokeProperties";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -242,7 +243,7 @@ export function ActiveDash(): string { return StrCast(ActiveInkPen()?.activeDash
 export function ActiveInkWidth(): string { return StrCast(ActiveInkPen()?.activeInkWidth, "1"); }
 export function ActiveInkBezierApprox(): string { return StrCast(ActiveInkPen()?.activeInkBezier); }
 Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any, fill: any, arrowStart: any, arrowEnd: any, dash: any) {
-    Doc.SetSelectedTool(pen ? InkTool.Highlighter : InkTool.None);
+    CurrentUserUtils.SelectedTool = pen ? InkTool.Highlighter : InkTool.None;
     SetActiveInkWidth(width);
     SetActiveInkColor(color);
     SetActiveFillColor(fill);
@@ -250,9 +251,9 @@ Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any, fil
     SetActiveArrowEnd(arrowEnd);
     SetActiveDash(dash);
 });
-Scripting.addGlobal(function activateEraser(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Eraser : InkTool.None); });
-Scripting.addGlobal(function activateStamp(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Stamp : InkTool.None); });
-Scripting.addGlobal(function deactivateInk() { return Doc.SetSelectedTool(InkTool.None); });
+Scripting.addGlobal(function activateEraser(pen: any) { return CurrentUserUtils.SelectedTool = pen ? InkTool.Eraser : InkTool.None; });
+Scripting.addGlobal(function activateStamp(pen: any) { return CurrentUserUtils.SelectedTool = pen ? InkTool.Stamp : InkTool.None; });
+Scripting.addGlobal(function deactivateInk() { return CurrentUserUtils.SelectedTool = InkTool.None; });
 Scripting.addGlobal(function setInkWidth(width: any) { return SetActiveInkWidth(width); });
 Scripting.addGlobal(function setInkColor(color: any) { return SetActiveInkColor(color); });
 Scripting.addGlobal(function setFillColor(fill: any) { return SetActiveFillColor(fill); });
