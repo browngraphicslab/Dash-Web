@@ -28,6 +28,8 @@ import { FormattedTextBox } from './formattedText/FormattedTextBox';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { DocFocusOptions } from './DocumentView';
+import { List } from '../../../fields/List';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -87,6 +89,12 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     initialScrollTarget: Opt<Doc>;
     scrollFocus = (doc: Doc, smooth: boolean) => {
+        if (DocListCast(this.rootDoc[this.sidebarKey()]).includes(doc)) {
+            if (this.layoutDoc["_" + this.sidebarKey() + "-docFilters"]) {
+                this.layoutDoc["_" + this.sidebarKey() + "-docFilters"] = new List<string>();
+                return 1;
+            }
+        }
         this.initialScrollTarget = doc;
         return this._pdfViewer?.scrollFocus(doc, smooth);
     }
@@ -298,7 +306,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </div>
         </div>;
     }
-
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         TraceMobx();
