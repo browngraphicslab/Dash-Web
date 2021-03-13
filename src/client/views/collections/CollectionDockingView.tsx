@@ -380,7 +380,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
             tabs && (Doc.GetProto(tabs).data = new List<Doc>(docs));
             const otherSet = new Set<Doc>();
             otherdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            tabdocs?.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            tabdocs?.filter(doc => !docs.includes(doc) && doc.type !== DocumentType.KVP).forEach(doc => otherSet.add(doc));
             other && (Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values())));
         }, 0);
     }
