@@ -143,7 +143,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
     renderTag = (tag: string) => {
         const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-        return <div className={`pdfbox-filterTag${active ? "-active" : ""}`}
+        return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
             onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey())}>
             {tag}
         </div>;
