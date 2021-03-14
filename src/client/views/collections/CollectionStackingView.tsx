@@ -12,7 +12,7 @@ import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
@@ -334,7 +334,13 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 }
             }
         }
-        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData);
+        else if (de.complete.linkDragData?.dragDocument.context === this.props.Document && de.complete.linkDragData?.linkDragView?.props.CollectionFreeFormDocumentView?.()) {
+            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, _fitWidth: true, title: "dropped annotation" });
+            this.props.addDocument?.(source);
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: de.complete.linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
+            e.stopPropagation();
+        }
+        else if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData);
         return false;
     }
 

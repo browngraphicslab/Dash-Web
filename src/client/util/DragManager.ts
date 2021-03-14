@@ -12,6 +12,7 @@ import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export type dropActionType = "alias" | "copy" | "move" | "same" | "proto" | "none" | undefined; // undefined = move, "same" = move but don't call removeDropProperties
 export function SetupDrag(
@@ -138,13 +139,14 @@ export namespace DragManager {
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
-        constructor(dragDoc: Doc, linkSourceGetAnchor: () => Doc) {
-            this.dragDocument = dragDoc;
+        constructor(dragView: DocumentView, linkSourceGetAnchor: () => Doc,) {
+            this.linkDragView = dragView;
             this.linkSourceGetAnchor = linkSourceGetAnchor;
         }
-        dragDocument: Doc;
+        get dragDocument() { return this.linkDragView.props.Document; }
         linkSourceGetAnchor: () => Doc;
         linkSourceDoc?: Doc;
+        linkDragView: DocumentView;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
@@ -253,8 +255,8 @@ export namespace DragManager {
     }
 
     // drags a linker button and creates a link on drop
-    export function StartLinkDrag(ele: HTMLElement, sourceDoc: Doc, sourceDocGetAnchor: undefined | (() => Doc), downX: number, downY: number, options?: DragOptions) {
-        StartDrag([ele], new DragManager.LinkDragData(sourceDoc, () => sourceDocGetAnchor?.() ?? sourceDoc), downX, downY, options);
+    export function StartLinkDrag(ele: HTMLElement, sourceView: DocumentView, sourceDocGetAnchor: undefined | (() => Doc), downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], new DragManager.LinkDragData(sourceView, () => sourceDocGetAnchor?.() ?? sourceView.rootDoc), downX, downY, options);
     }
 
     // drags a column from a schema view
