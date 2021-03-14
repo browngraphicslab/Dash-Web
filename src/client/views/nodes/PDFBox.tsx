@@ -179,6 +179,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         CollectionView={undefined}
                         ScreenToLocalTransform={this.sidebarTransform}
                         renderDepth={this.props.renderDepth + 1}
+                        viewType={CollectionViewType.Stacking}
                         fieldKey={this.sidebarKey()}
                         pointerEvents={"all"}
                     />
@@ -216,7 +217,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     });
 
-    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     setPdfViewer = (pdfViewer: PDFViewer) => {
         this._pdfViewer = pdfViewer;
         if (this.initialScrollTarget) {
@@ -306,7 +306,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </div>
         </div>;
     }
-    isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
@@ -316,12 +315,12 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             <PDFViewer {...this.props}
                 pdf={this._pdf!}
                 url={pdfUrl!.url.pathname}
+                active={this.active}
                 anchorMenuClick={this.anchorMenuClick}
                 loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer}
                 addDocument={this.addDocument}
                 whenActiveChanged={this.whenActiveChanged}
-                isChildActive={this.isChildActive}
                 startupLive={true}
                 ContentScaling={this.props.scaling}
                 sidebarWidth={this.sidebarWidth}
