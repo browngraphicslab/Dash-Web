@@ -225,7 +225,14 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
-
+    toggleSidebar = () => {
+        if (this.layoutDoc.nativeWidth === this.layoutDoc[this.fieldKey + "-nativeWidth"]) {
+            this.layoutDoc.nativeWidth = 250 + NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        } else {
+            this.layoutDoc.nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        }
+        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]))
+    }
     settingsPanel() {
         const pageBtns = <>
             <button className="pdfBox-overlayButton-back" key="back" title="Page Back"
@@ -270,6 +277,10 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
+                <button className="pdfBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar" style={{ right: this.sidebarWidth() + 7 }}
+                    onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
+                </button>
             </div>);
     }
 
@@ -279,6 +290,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Annotation View ", event: () => this.Document._showSidebar = !this.Document._showSidebar, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar ", event: () => this.toggleSidebar(), icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
