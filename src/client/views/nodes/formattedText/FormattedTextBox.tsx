@@ -1105,6 +1105,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        this.tryUpdateScrollHeight(); // if a doc a fitwidth doc is being viewed in different context (eg freeform & lightbox), then it will have conflicting heights.  so when the doc is clicked on, we want to make sure it has the appropriate height for the selected view.
         if ((e.target as any).tagName === "AUDIOTAG") {
             e.preventDefault();
             e.stopPropagation();
@@ -1394,13 +1395,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     tryUpdateScrollHeight() {
-        const proseHeight = this.ProseRef?.scrollHeight || 0;
-        const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
-        if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
-            if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
-                setScrollHeight();
-            } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+        if (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath())) {
+            const proseHeight = this.ProseRef?.scrollHeight || 0;
+            const scrollHeight = this.ProseRef && Math.min(NumCast(this.layoutDoc.docMaxAutoHeight, proseHeight), proseHeight);
+            if (scrollHeight && this.props.renderDepth && !this.props.dontRegisterView) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+                const setScrollHeight = () => this.rootDoc[this.fieldKey + "-scrollHeight"] = scrollHeight;
+                if (this.rootDoc === this.layoutDoc.doc || this.layoutDoc.resolvedDataDoc) {
+                    setScrollHeight();
+                } else setTimeout(setScrollHeight, 10); // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+            }
         }
     }
     fitToBox = () => this.props.Document._fitToBox;

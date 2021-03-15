@@ -15,6 +15,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: AnchorMenu;
 
+    private _disposer: IReactionDisposer | undefined;
     private _commentCont = React.createRef<HTMLButtonElement>();
     private _palette = [
         "rgba(208, 2, 27, 0.8)",
@@ -60,12 +61,9 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
         AnchorMenu.Instance._canFade = false;
     }
 
-    _disposer: IReactionDisposer | undefined;
     componentDidMount() {
         this._disposer = reaction(() => SelectionManager.Views(),
-            selected => {
-                AnchorMenu.Instance.fadeOut(true);
-            });
+            selected => AnchorMenu.Instance.fadeOut(true));
     }
 
     pointerDown = (e: React.PointerEvent) => {

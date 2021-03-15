@@ -816,7 +816,7 @@ export namespace Docs {
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
             const pdfProto = Prototypes.get(DocumentType.PDF);
             pdfProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), { _viewType: "stacking", ...options });
+            return InstanceFromProto(pdfProto, new PdfField(new URL(url)), { ...options });
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {

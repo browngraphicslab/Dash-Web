@@ -12,7 +12,7 @@ import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, smoothScroll, Utils } from "../../../Utils";
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
@@ -37,6 +37,7 @@ const StackingDocument = makeInterface(collectionSchema, documentSchema);
 
 export type collectionStackingViewProps = {
     chromeStatus?: string;
+    viewType?: CollectionViewType;
     NativeWidth?: () => number;
     NativeHeight?: () => number;
 };
@@ -60,7 +61,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return this.props.yMargin || NumCast(this.layoutDoc._yMargin, 5); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
-    @computed get isStackingView() { return this.layoutDoc._viewType === CollectionViewType.Stacking; }
+    @computed get isStackingView() { return (this.props.viewType ?? this.layoutDoc._viewType) === CollectionViewType.Stacking; }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.chromeStatus !== 'view-mode' && this.chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
@@ -315,7 +316,7 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 const pos1 = cd.stackedDocTransform().inverse().transformPoint(cd.width(), cd.height());
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && (i === this._docXfs.length - 1 || where[1] < pos1[1])) {
                     dropInd = i;
-                    const axis = this.Document._viewType === CollectionViewType.Masonry ? 0 : 1;
+                    const axis = this.isStackingView ? 1 : 0;
                     dropAfter = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
@@ -334,7 +335,13 @@ export class CollectionStackingView extends CollectionSubView<StackingDocument, 
                 }
             }
         }
-        if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData);
+        else if (de.complete.linkDragData?.dragDocument.context === this.props.Document && de.complete.linkDragData?.linkDragView?.props.CollectionFreeFormDocumentView?.()) {
+            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, _fitWidth: true, title: "dropped annotation" });
+            this.props.addDocument?.(source);
+            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: de.complete.linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
+            e.stopPropagation();
+        }
+        else if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData);
         return false;
     }
 

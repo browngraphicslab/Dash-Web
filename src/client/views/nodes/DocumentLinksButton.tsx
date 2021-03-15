@@ -51,7 +51,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (this.props.InMenu && this.props.StartLink) {
             if (this._linkButton.current !== null) {
                 const linkDrag = UndoManager.StartBatch("Drag Link");
-                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View.props.Document, this.props.View.ComponentView?.getAnchor, e.pageX, e.pageY, {
+                this.props.View && DragManager.StartLinkDrag(this._linkButton.current, this.props.View, this.props.View.ComponentView?.getAnchor, e.pageX, e.pageY, {
                     dragComplete: dropEv => {
                         if (this.props.View && dropEv.linkDocument) {// dropEv.linkDocument equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                             !dropEv.linkDocument.linkRelationship && (Doc.GetProto(dropEv.linkDocument).linkRelationship = "hyperlink");

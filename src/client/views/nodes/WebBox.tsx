@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, StrListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -14,8 +14,8 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, returnOne, smoothScroll, Utils } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
+import { emptyFunction, OmitKeys, returnOne, smoothScroll, Utils, returnZero, returnTrue } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { undoBatch } from "../../util/UndoManager";
@@ -32,6 +32,11 @@ import "./WebBox.scss";
 import { DocumentType } from '../../documents/DocumentTypes';
 import React = require("react");
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { SearchBox } from "../search/SearchBox";
+import { CollectionStackingView } from "../collections/CollectionStackingView";
+import { StyleProp } from "../StyleProvider";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
+import { CollectionViewType } from "../collections/CollectionView";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -461,6 +466,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.useCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.useCors = !this.layoutDoc.useCors, icon: "snowflake" });
         funcs.push({ description: (this.layoutDoc[this.fieldKey + "-contentWidth"] ? "Unfreeze" : "Freeze") + " Content Width", event: () => this.layoutDoc[this.fieldKey + "-contentWidth"] = this.layoutDoc[this.fieldKey + "-contentWidth"] ? undefined : Doc.NativeWidth(this.layoutDoc), icon: "snowflake" });
+        funcs.push({ description: "Toggle Annotation View ", event: () => this.Document._showSidebar = !this.Document._showSidebar, icon: "expand-arrows-alt" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -481,6 +487,83 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={action((r: HTMLIFrameElement | null) => this._iframe = r)} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
         return view;
+    }
+
+    anchorMenuClick = (anchor: Doc) => {
+        this.Document._showSidebar = true;
+        const startup = StrListCast(this.rootDoc.docFilters).map(filter => filter.split(":")[0]).join(" ");
+        const target = Docs.Create.TextDocument(startup, {
+            title: "anno",
+            annotationOn: this.rootDoc, _width: 200, _height: 50, _fitWidth: true, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
+            _fontFamily: StrCast(Doc.UserDoc().fontFamily)
+        });
+        FormattedTextBox.SelectOnLoad = target[Id];
+        FormattedTextBox.DontSelectInitialText = true;
+        this.allTags.map(tag => target[tag] = tag);
+        DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
+        this.sidebarAddDocument(target);
+    }
+    sidebarKey = () => this.fieldKey + "-sidebar";
+    sidebarFiltersHeight = () => 50;
+    sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
+    sidebarWidth = () => !this.layoutDoc._showSidebar ? 0 : (NumCast(this.layoutDoc.nativeWidth) - Doc.NativeWidth(this.dataDoc)) * this.props.PanelWidth() / NumCast(this.layoutDoc.nativeWidth);
+    sidebarHeight = () => this.props.PanelHeight() - this.sidebarFiltersHeight() - 20;
+    sidebarAddDocument = (doc: Doc | Doc[]) => this.addDocument(doc, this.sidebarKey());
+    sidebarMoveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean) => this.moveDocument(doc, targetCollection, addDocument, this.sidebarKey());
+    sidebarRemDocument = (doc: Doc | Doc[]) => this.removeDocument(doc, this.sidebarKey());
+    sidebarDocFilters = () => [...StrListCast(this.layoutDoc._docFilters), ...StrListCast(this.layoutDoc[this.sidebarKey() + "-docFilters"])];
+    @computed get allTags() {
+        const keys = new Set<string>();
+        DocListCast(this.rootDoc[this.sidebarKey()]).forEach(doc => SearchBox.documentKeys(doc).forEach(key => keys.add(key)));
+        return Array.from(keys.keys()).filter(key => key[0]).filter(key => !key.startsWith("_") && (key[0] === "#" || key[0] === key[0].toUpperCase())).sort();
+    }
+    renderTag = (tag: string) => {
+        const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
+        return <div className={`webBox-filterTag${active ? "-active" : ""}`}
+            onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey())}>
+            {tag}
+        </div>;
+    }
+    @computed get sidebarOverlay() {
+        return !this.layoutDoc._showSidebar ? (null) :
+            <div style={{
+                position: "absolute", pointerEvents: this.active() ? "all" : undefined, top: 0, right: 0,
+                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor),
+                width: `${this.sidebarWidth()}px`,
+                height: "100%"
+            }}>
+                <div style={{ width: "100%", height: this.sidebarHeight(), position: "relative" }}>
+                    <CollectionStackingView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                        NativeWidth={returnZero}
+                        NativeHeight={returnZero}
+                        PanelHeight={this.sidebarHeight}
+                        PanelWidth={this.sidebarWidth}
+                        xMargin={0}
+                        yMargin={0}
+                        docFilters={this.sidebarDocFilters}
+                        chromeStatus={"enabled"}
+                        scaleField={this.sidebarKey() + "-scale"}
+                        isAnnotationOverlay={false}
+                        select={emptyFunction}
+                        active={this.annotationsActive}
+                        scaling={returnOne}
+                        whenActiveChanged={this.whenActiveChanged}
+                        childHideDecorationTitle={returnTrue}
+                        removeDocument={this.sidebarRemDocument}
+                        moveDocument={this.sidebarMoveDocument}
+                        addDocument={this.sidebarAddDocument}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={this.sidebarTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        viewType={CollectionViewType.Stacking}
+                        fieldKey={this.sidebarKey()}
+                        pointerEvents={"all"}
+                    />
+                </div>
+                <div className="webBox-tagList" style={{ height: this.sidebarFiltersHeight(), width: this.sidebarWidth() }}>
+                    {this.allTags.map(tag => this.renderTag(tag))}
+                </div>
+            </div>;
     }
 
     @computed
@@ -521,63 +604,73 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     onMarqueeDown = (e: React.PointerEvent) => {
-        if (!e.altKey && e.button === 0 && this.active(true)) this._marqueeing = [e.clientX, e.clientY];
+        if (!e.altKey && e.button === 0 && this.active(true)) {
+            this._marqueeing = [e.clientX, e.clientY];
+            this.props.select(false);
+        }
     }
 
     @action
-    finishMarquee = () => {
-        this._marqueeing = undefined;
-        this.props.select(true);
-    }
+    finishMarquee = () => this._marqueeing = undefined;
 
-    panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
+    panelWidth = () => this.props.PanelWidth() / (this.props.scaling?.() || 1) - this.sidebarWidth(); // (this.Document.scrollHeight || Doc.NativeHeight(this.Document) || 0);
     panelHeight = () => this.props.PanelHeight() / (this.props.scaling?.() || 1); // () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : Doc.NativeWidth(this.Document);
     scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.layoutDoc._scrollTop));
     render() {
         const inactiveLayer = this.props.layerProvider?.(this.layoutDoc) === false;
         const scale = this.props.scaling?.() || 1;
-        return (<div className="webBox" ref={this._mainCont} >
-            <div className={`webBox-container`}
-                style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
-                onWheel={this.onWebWheel}
-                onContextMenu={this.specificContextMenu}>
-                <base target="_blank" />
-                {this.content}
-                <div className={"webBox-outerContent"} ref={this._outerRef}
-                    style={{
-                        width: `${100 / scale}%`, height: `${100 / scale}%`, transform: `scale(${scale})`,
-                        pointerEvents: !this.layoutDoc.isAnnotating || inactiveLayer ? "none" : "all"
-                    }}
-                    onWheel={this.onWheel}
-                    onPointerDown={this.onMarqueeDown}
-                    onScroll={this.onScroll}
-                >
-                    <div className={"webBox-innerContent"} style={{
-                        height: NumCast(this.scrollHeight, 50),
-                        pointerEvents: inactiveLayer ? "none" : undefined
-                    }}>
-                        <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
-                            renderDepth={this.props.renderDepth + 1}
-                            CollectionView={undefined}
-                            fieldKey={this.annotationKey}
-                            isAnnotationOverlay={true}
-                            scaling={returnOne}
-                            PanelWidth={this.panelWidth}
-                            PanelHeight={this.panelHeight}
-                            ScreenToLocalTransform={this.scrollXf}
-                            removeDocument={this.removeDocument}
-                            moveDocument={this.moveDocument}
-                            addDocument={this.addDocument}
-                            select={emptyFunction}
-                            active={this.active}
-                            whenActiveChanged={this.whenActiveChanged} />
+        return (
+            <div className="webBox" ref={this._mainCont} >
+                <div className={`webBox-container`}
+                    style={{ pointerEvents: inactiveLayer ? "none" : undefined }}
+                    onWheel={this.onWebWheel}
+                    onContextMenu={this.specificContextMenu}>
+                    <base target="_blank" />
+                    {this.content}
+                    <div className={"webBox-outerContent"} ref={this._outerRef}
+                        style={{
+                            width: `calc(${100 / scale}% - ${this.sidebarWidth()}px)`, height: `${100 / scale}%`, transform: `scale(${scale})`,
+                            pointerEvents: !this.layoutDoc.isAnnotating || inactiveLayer ? "none" : "all"
+                        }}
+                        onWheel={this.onWheel}
+                        onPointerDown={this.onMarqueeDown}
+                        onScroll={this.onScroll}
+                    >
+                        <div className={"webBox-innerContent"} style={{
+                            height: NumCast(this.scrollHeight, 50),
+                            pointerEvents: inactiveLayer ? "none" : undefined
+                        }}>
+                            <CollectionFreeFormView {...OmitKeys(this.props, ["NativeWidth", "NativeHeight", "setContentView"]).omit}
+                                renderDepth={this.props.renderDepth + 1}
+                                CollectionView={undefined}
+                                fieldKey={this.annotationKey}
+                                isAnnotationOverlay={true}
+                                scaling={returnOne}
+                                PanelWidth={this.panelWidth}
+                                PanelHeight={this.panelHeight}
+                                ScreenToLocalTransform={this.scrollXf}
+                                removeDocument={this.removeDocument}
+                                moveDocument={this.moveDocument}
+                                addDocument={this.addDocument}
+                                select={emptyFunction}
+                                active={this.active}
+                                whenActiveChanged={this.whenActiveChanged} />
+                        </div>
                     </div>
-                </div>
-                {this.annotationLayer}
-                {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
-                    <MarqueeAnnotator rootDoc={this.rootDoc} scrollTop={NumCast(this.rootDoc._scrollTop)} down={this._marqueeing} scaling={this.props.scaling} addDocument={this.addDocument} finishMarquee={this.finishMarquee} savedAnnotations={this._savedAnnotations} annotationLayer={this._annotationLayer.current} mainCont={this._mainCont.current} />}
-            </div >
-            {this.props.isSelected() ? this.editToggleBtn() : null}
-        </div>);
+                    {this.annotationLayer}
+                    {!this._marqueeing || !this._mainCont.current || !this._annotationLayer.current ? (null) :
+                        <MarqueeAnnotator rootDoc={this.rootDoc}
+                            anchorMenuClick={this.anchorMenuClick}
+                            scrollTop={NumCast(this.rootDoc._scrollTop)}
+                            down={this._marqueeing} scaling={this.props.scaling}
+                            addDocument={this.addDocument}
+                            finishMarquee={this.finishMarquee}
+                            savedAnnotations={this._savedAnnotations}
+                            annotationLayer={this._annotationLayer.current}
+                            mainCont={this._mainCont.current} />}
+                </div >
+                {this.sidebarOverlay}
+                {this.props.isSelected() ? this.editToggleBtn() : null}
+            </div>);
     }
 }

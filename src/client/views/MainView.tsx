@@ -245,7 +245,7 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight;
 
     @computed get mainDocView() {
-        return <DocumentView
+        return <DocumentView key="main"
             Document={this.mainContainer!}
             DataDoc={undefined}
             addDocument={undefined}
@@ -273,7 +273,7 @@ export class MainView extends React.Component {
     }
 
     @computed get dockingContent() {
-        return <div className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
+        return <div key="docking" className={`mainContent-div${this._flyoutWidth ? "-flyout" : ""}`} onDrop={e => { e.stopPropagation(); e.preventDefault(); }}
             style={{ minWidth: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)`, width: `calc(100% - ${this._flyoutWidth + this.menuPanelWidth() + this.propertiesWidth()}px)` }}>
             {!this.mainContainer ? (null) : this.mainDocView}
         </div>;
@@ -331,10 +331,10 @@ export class MainView extends React.Component {
 
 
     @computed get flyout() {
-        return !this._flyoutWidth ? <div className={`mainView-libraryFlyout-out`}>
+        return !this._flyoutWidth ? <div key="flyout" className={`mainView-libraryFlyout-out`}>
             {this.docButtons}
         </div> :
-            <div className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
+            <div key="libFlyout" className="mainView-libraryFlyout" style={{ minWidth: this._flyoutWidth, width: this._flyoutWidth }} >
                 <div className="mainView-contentArea" >
                     <DocumentView
                         Document={this._sidebarContent.proto || this._sidebarContent}
@@ -368,7 +368,7 @@ export class MainView extends React.Component {
     }
 
     @computed get menuPanel() {
-        return <div className="mainView-menuPanel">
+        return <div key="menu" className="mainView-menuPanel">
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
                 DataDoc={undefined}
@@ -424,7 +424,7 @@ export class MainView extends React.Component {
     @computed get mainInnerContent() {
         return <>
             {this.menuPanel}
-            <div className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
+            <div key="inner" className={`mainView-innerContent${this.darkScheme ? "-dark" : ""}`}>
                 {this.flyout}
                 <div className="mainView-libraryHandle" style={{ display: !this._flyoutWidth ? "none" : undefined, }} onPointerDown={this.onFlyoutPointerDown} >
                     <FontAwesomeIcon icon="chevron-left" color={this.darkScheme ? "white" : "black"} style={{ opacity: "50%" }} size="sm" />
@@ -432,7 +432,7 @@ export class MainView extends React.Component {
 
                 {this.dockingContent}
 
-                <div className="mainView-propertiesDragger" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
+                <div className="mainView-propertiesDragger" key="props" onPointerDown={this.onPropertiesPointerDown} style={{ right: this.propertiesWidth() - 1 }}>
                     <FontAwesomeIcon icon={this.propertiesWidth() < 10 ? "chevron-left" : "chevron-right"} color={this.darkScheme ? "white" : "black"} size="sm" />
                 </div>
                 {this.propertiesWidth() < 10 ? (null) : <PropertiesView styleProvider={DefaultStyleProvider} width={this.propertiesWidth()} height={this.getContentsHeight()} />}

@@ -143,7 +143,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     }
     renderTag = (tag: string) => {
         const active = StrListCast(this.rootDoc[this.sidebarKey() + "-docFilters"]).includes(`${tag}:${tag}:check`);
-        return <div className={`pdfbox-filterTag${active ? "-active" : ""}`}
+        return <div key={tag} className={`pdfbox-filterTag${active ? "-active" : ""}`}
             onClick={e => Doc.setDocFilter(this.rootDoc, tag, tag, "check", true, this.sidebarKey())}>
             {tag}
         </div>;
@@ -179,6 +179,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         CollectionView={undefined}
                         ScreenToLocalTransform={this.sidebarTransform}
                         renderDepth={this.props.renderDepth + 1}
+                        viewType={CollectionViewType.Stacking}
                         fieldKey={this.sidebarKey()}
                         pointerEvents={"all"}
                     />
@@ -216,7 +217,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     });
 
-    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     setPdfViewer = (pdfViewer: PDFViewer) => {
         this._pdfViewer = pdfViewer;
         if (this.initialScrollTarget) {
@@ -225,7 +225,14 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         }
     }
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => this._searchString = e.currentTarget.value;
-
+    toggleSidebar = () => {
+        if (this.layoutDoc.nativeWidth === this.layoutDoc[this.fieldKey + "-nativeWidth"]) {
+            this.layoutDoc.nativeWidth = 250 + NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        } else {
+            this.layoutDoc.nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        }
+        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]))
+    }
     settingsPanel() {
         const pageBtns = <>
             <button className="pdfBox-overlayButton-back" key="back" title="Page Back"
@@ -270,6 +277,10 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}
                 </div>
+                <button className="pdfBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar" style={{ right: this.sidebarWidth() + 7 }}
+                    onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
+                </button>
             </div>);
     }
 
@@ -279,6 +290,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Annotation View ", event: () => this.Document._showSidebar = !this.Document._showSidebar, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar ", event: () => this.toggleSidebar(), icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
@@ -306,7 +318,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </div>
         </div>;
     }
-    isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         TraceMobx();
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
@@ -316,12 +327,12 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             <PDFViewer {...this.props}
                 pdf={this._pdf!}
                 url={pdfUrl!.url.pathname}
+                active={this.active}
                 anchorMenuClick={this.anchorMenuClick}
                 loaded={!Doc.NativeAspect(this.dataDoc) ? this.loaded : undefined}
                 setPdfViewer={this.setPdfViewer}
                 addDocument={this.addDocument}
                 whenActiveChanged={this.whenActiveChanged}
-                isChildActive={this.isChildActive}
                 startupLive={true}
                 ContentScaling={this.props.scaling}
                 sidebarWidth={this.sidebarWidth}

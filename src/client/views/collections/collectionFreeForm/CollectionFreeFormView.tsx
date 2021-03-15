@@ -290,25 +290,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.dragDocument === this.props.Document || this.props.Document.annotationOn) return false;
-        if (!linkDragData.dragDocument.context || StrCast(Cast(linkDragData.dragDocument.context, Doc, null)?.type) === DocumentType.COL) {
-            // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            // this.props.addDocument(source);
-            // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-            return false;
-        } else {
-            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            this.props.addDocument?.(source);
-            de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
-            e.stopPropagation();
+        if (linkDragData.linkDragView.props.docViewPath().includes(this.props.docViewPath().lastElement())) { // dragged document is a child of this collection
+            if (!linkDragData.linkDragView.props.CollectionFreeFormDocumentView?.() || linkDragData.dragDocument.context !== this.props.Document) { // if the source doc view's context isn't this same freeformcollectionlinkDragData.dragDocument.context === this.props.Document
+                const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+                this.props.addDocument?.(source);
+                de.complete.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceGetAnchor() }, "doc annotation", ""); // TODODO this is where in text links get passed
+            }
+            e.stopPropagation();  //  do nothing if link is dropped into any freeform view parent of dragged document
             return true;
         }
+        return false;
     }
 
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
         if (de.complete.annoDragData?.dragDocument && super.onInternalDrop(e, de)) return this.internalAnchorAnnoDrop(e, de.complete.annoDragData, xp, yp);
-        else if (this.isAnnotationOverlay !== true && de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
+        else if (de.complete.linkDragData) return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
         else if (de.complete.docDragData?.droppedDocuments.length) return this.internalDocDrop(e, de, de.complete.docDragData, xp, yp);
         return false;
     }

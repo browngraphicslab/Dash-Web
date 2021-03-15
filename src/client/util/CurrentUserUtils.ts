@@ -772,7 +772,7 @@ export class CurrentUserUtils {
     static async setupFilesystem(doc: Doc) {
         await doc.myFilesystem;
         if (doc.myFilesystem === undefined) {
-            doc.myFileOrphans = Docs.Create.TreeDocument([], { title: "file orphans", _stayInCollection: true, system: true, isFolder: true });
+            doc.myFileOrphans = Docs.Create.TreeDocument([], { title: "Unfiled", _stayInCollection: true, system: true, isFolder: true });
             doc.myFileRoot = Docs.Create.TreeDocument([], { title: "file root", _stayInCollection: true, system: true, isFolder: true });
             doc.myFilesystem = new PrefetchProxy(Docs.Create.TreeDocument([doc.myFileRoot as Doc, doc.myFileOrphans as Doc], {
                 title: "My Documents", _height: 100,
