@@ -30,7 +30,7 @@ export interface MarqueeAnnotatorProps {
     annotationLayer: HTMLDivElement;
     addDocument: (doc: Doc) => boolean;
     getPageFromScroll?: (top: number) => number;
-    finishMarquee: () => void;
+    finishMarquee: (x?: number, y?: number) => void;
     anchorMenuClick?: (anchor: Doc) => void;
 }
 @observer
@@ -204,10 +204,11 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
             if (AnchorMenu.Instance.Highlighting) {// when highlighter has been toggled when menu is pinned, we auto-highlight immediately on mouse up
                 this.highlight("rgba(245, 230, 95, 0.75)", false);  // yellowish highlight color for highlighted text (should match AnchorMenu's highlight color)
             }
+            this.props.finishMarquee();
         } else {
             runInAction(() => this._width = this._height = 0);
+            this.props.finishMarquee(e.clientX, e.clientY);
         }
-        this.props.finishMarquee();
     }
 
     render() {
