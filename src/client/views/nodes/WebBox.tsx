@@ -37,6 +37,7 @@ import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
+import { LightboxView } from "../LightboxView";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -63,8 +64,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _isAnnotating = false;
     @observable private _iframe: HTMLIFrameElement | null = null;
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
-    get scrollHeight() { return this.webpage?.scrollHeight || 1000; }
-    get webpage() { return this._iframe?.contentDocument?.children[0]; }
+    @computed get scrollHeight() { return 100000; }//this._iframe?.scrollHeight || 1000; }
     @computed get inlineTextAnnotations() { return this.allAnnotations.filter(a => a.textInlineAnnotations); }
 
     constructor(props: any) {
@@ -191,13 +191,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 }
                 if (href) {
                     this.submitURL(href.replace(Utils.prepend(""), Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.origin));
-                    if (this.webpage) {
-                        this.webpage.scrollTop = NumCast(this.layoutDoc._scrollTop);
-                        this.webpage.scrollLeft = 0;
+                    if (this._outerRef.current) {
+                        this._outerRef.current.scrollTop = NumCast(this.layoutDoc._scrollTop);
+                        this._outerRef.current.scrollLeft = 0;
                     }
                 }
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
+            iframe.contentDocument.addEventListener('scroll', () => !this.active() && this._iframe && (this._iframe.scrollTop = NumCast(this.layoutDoc._scrollTop), false));
         }
     }
 
@@ -205,7 +206,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._scrollTimer && clearTimeout(this._scrollTimer);
         this._scrollTimer = setTimeout(() => {
             this._scrollTimer = undefined;
-            if (!LinkDocPreview.LinkInfo && this._outerRef.current) {
+            if (!LinkDocPreview.LinkInfo && this._outerRef.current &&
+                (!LightboxView.LightboxDoc || LightboxView.IsLightboxDocView(this.props.docViewPath()))) {
                 this.layoutDoc._scrollTop = this._outerRef.current.scrollTop;
             }
         }, timeout);
@@ -214,7 +216,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     onScroll = (e: any) => this.resetIgnoreScroll();
     scrollFocus = (doc: Doc, smooth: boolean) => {
         let focusSpeed: Opt<number>;
-        if (doc !== this.rootDoc && this.webpage) {
+        if (doc !== this.rootDoc && this._outerRef.current) {
             const scrollTo = doc.type === DocumentType.TEXTANCHOR ? NumCast(doc.y) : Utils.scrollIntoView(NumCast(doc.y), doc[HeightSym](), NumCast(this.layoutDoc._scrollTop), this.props.PanelHeight() / (this.props.scaling?.() || 1));
             if (scrollTo !== undefined) {
                 this._initialScroll !== undefined && (this._initialScroll = scrollTo);
