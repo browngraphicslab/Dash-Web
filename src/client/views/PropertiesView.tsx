@@ -919,6 +919,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         CurrentUserUtils.setupFilterDocs(this.filterDoc);
     }
 
+    /**
+     * Updates this.filterDoc's currentFilter and saves the docFilters on the currentFilter
+     */
     updateFilterDoc = (doc: Doc) => {
         if (doc === this.filterDoc.currentFilter) return; // causes problems if you try to reapply the same doc
         const temp = doc._docFiltersList;
@@ -953,7 +956,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             removeDocument={returnFalse}
                             ScreenToLocalTransform={this.getTransform}
                             PanelWidth={this.docWidth}
-                            PanelHeight={() => this.docHeight}
+                            PanelHeight={this.docHeight}
                             renderDepth={0}
                             scriptContext={this.filterDoc.currentFilter as Doc}
                             focus={emptyFunction}
