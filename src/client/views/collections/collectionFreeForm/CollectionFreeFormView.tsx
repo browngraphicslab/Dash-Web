@@ -1493,7 +1493,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onDragOver={e => e.preventDefault()}
             onContextMenu={this.onContextMenu}
             style={{
-                pointerEvents: this.backgroundEvents ? "all" : undefined,
+                pointerEvents: this.backgroundEvents ? "all" : this.props.pointerEvents,
                 transform: `scale(${this.contentScaling || 1})`,
                 width: `${100 / (this.contentScaling || 1)}%`,
                 height: this.isAnnotationOverlay && this.Document.scrollHeight ? this.Document.scrollHeight : `${100 / (this.contentScaling || 1)}%`// : this.isAnnotationOverlay ? (this.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()

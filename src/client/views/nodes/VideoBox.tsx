@@ -345,7 +345,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._disposers.youtubeReactionDisposer?.();
             this._disposers.reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._disposers.youtubeReactionDisposer = reaction(
-                () => !this.props.Document.isAnnotating && CurrentUserUtils.SelectedTool === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                () => CurrentUserUtils.SelectedTool === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         if (typeof (YT) === undefined) setTimeout(() => this.loadYouTube(iframe), 100);

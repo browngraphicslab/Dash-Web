@@ -180,7 +180,6 @@ export class DocumentOptions {
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
     caption?: RichTextField;
-    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isLinkButton?: boolean;
@@ -823,7 +822,7 @@ export namespace Docs {
             const webProto = Prototypes.get(DocumentType.WEB);
             webProto.scrollHeight = 100000;  // backward compatibility -- can be removed after db is reset
             webProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
+            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {

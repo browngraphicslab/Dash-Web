@@ -15,6 +15,8 @@ import { undoBatch } from "../util/UndoManager";
 import { NumCast } from "../../fields/Types";
 import { DocumentType } from "../documents/DocumentTypes";
 import { List } from "../../fields/List";
+import { Utils } from "../../Utils";
+import { util } from "chai";
 const _global = (window /* browser */ || global /* node */) as any;
 
 export interface MarqueeAnnotatorProps {
@@ -178,15 +180,20 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
     }
 
     onSelectEnd = (e: PointerEvent) => {
-        if (!e.ctrlKey) {
-            AnchorMenu.Instance.Marquee = { left: this._left, top: this._top, width: this._width, height: this._height };
-        }
-
         if (this._width > 10 || this._height > 10) {  // configure and show the annotation/link menu if a the drag region is big enough
             const marquees = this.props.mainCont.getElementsByClassName("marqueeAnnotator-dragBox");
             if (marquees?.length) { // copy the temporary marquee to allow for multiple selections (not currently available though).
                 const copy = document.createElement("div");
-                ["left", "top", "width", "height", "border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
+                ["border", "opacity"].forEach(prop => copy.style[prop as any] = (marquees[0] as HTMLDivElement).style[prop as any]);
+                const bounds = (marquees[0] as HTMLDivElement).getBoundingClientRect();
+                const uitls = Utils.GetScreenTransform(marquees[0] as HTMLDivElement);
+                const rbounds = { top: uitls.translateY, left: uitls.translateX, width: (bounds.right - bounds.left), height: (bounds.bottom - bounds.top) };
+                const otls = Utils.GetScreenTransform(this.props.annotationLayer);
+                const fbounds = { top: (rbounds.top - otls.translateY) / otls.scale, left: (rbounds.left - otls.translateX) / otls.scale, width: rbounds.width / otls.scale, height: rbounds.height / otls.scale };
+                copy.style.top = fbounds.top.toString() + "px";
+                copy.style.left = fbounds.left.toString() + "px";
+                copy.style.width = fbounds.width.toString() + "px";
+                copy.style.height = fbounds.height.toString() + "px";
                 copy.className = "marqueeAnnotator-annotationBox";
                 (copy as any).marqueeing = true;
                 MarqueeAnnotator.previewNewAnnotation(this.props.savedAnnotations, this.props.annotationLayer, copy, this.props.getPageFromScroll?.(this._top) || 0);

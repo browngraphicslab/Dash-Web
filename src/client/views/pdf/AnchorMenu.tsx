@@ -51,7 +51,6 @@ export class AnchorMenu extends AntimodeMenu<AntimodeMenuProps> {
     public PinToPres: () => void = unimplementedFunction;
     public MakePushpin: () => void = unimplementedFunction;
     public IsPushpin: () => boolean = returnFalse;
-    public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
     public get Active() { return this._left > 0; }
 
     constructor(props: Readonly<{}>) {
