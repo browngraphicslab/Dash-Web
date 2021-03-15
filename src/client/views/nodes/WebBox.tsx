@@ -503,6 +503,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         DocUtils.MakeLink({ doc: anchor }, { doc: target }, "inline markup", "annotation");
         this.sidebarAddDocument(target);
     }
+    toggleSidebar = () => {
+        if (this.layoutDoc.nativeWidth === this.layoutDoc[this.fieldKey + "-nativeWidth"]) {
+            this.layoutDoc.nativeWidth = 250 + NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        } else {
+            this.layoutDoc.nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
+        }
+        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]))
+    }
     sidebarKey = () => this.fieldKey + "-sidebar";
     sidebarFiltersHeight = () => 50;
     sidebarTransform = () => this.props.ScreenToLocalTransform().translate(Doc.NativeWidth(this.dataDoc), 0).scale(this.props.scaling?.() || 1);
@@ -669,6 +677,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             annotationLayer={this._annotationLayer.current}
                             mainCont={this._mainCont.current} />}
                 </div >
+                <button className="webBox-overlayButton-sidebar" key="sidebar" title="Toggle Sidebar" style={{ right: this.sidebarWidth() + 7 }}
+                    onPointerDown={e => e.stopPropagation()} onClick={e => this.toggleSidebar()} >
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"chevron-left"} size="sm" />
+                </button>
                 {this.sidebarOverlay}
                 {this.props.isSelected() ? this.editToggleBtn() : null}
             </div>);
