@@ -1107,8 +1107,8 @@ export class DocumentView extends React.Component<DocumentViewProps> {
                         position: this.props.Document.isInkMask ? "absolute" : undefined,
                         transform: `translate(${this.centeringX}px, ${this.centeringY}px)`,
                         width: xshift ?? `${100 * (this.props.PanelWidth() - this.Xshift * 2) / this.props.PanelWidth()}%`,
-                        height: yshift ?? this.props.Document._fitWidth ? `${this.panelHeight}px` :
-                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`,
+                        height: yshift ?? (this.props.Document._fitWidth ? `${this.panelHeight}px` :
+                            `${100 * this.effectiveNativeHeight / this.effectiveNativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%`),
                     }}>
                     <DocumentViewInternal {...this.props}
                         DocumentView={this.selfView}
