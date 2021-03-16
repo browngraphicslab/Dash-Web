@@ -1421,11 +1421,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         </div>;
     }
     @computed get sidebarHandle() {
+        TraceMobx();
         const annotated = DocListCast(this.dataDoc[this.SidebarKey]).filter(d => d?.author).length;
         return (!annotated && !this.active()) ? (null) : <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown}
             style={{
                 left: `max(0px, calc(100% - ${this.sidebarWidthPercent} ${this.sidebarWidth() ? "- 5px" : "- 10px"}))`,
-                background: this.props.styleProvider?.(this.props.Document, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
+                background: this.props.styleProvider?.(this.rootDoc, this.props, StyleProp.WidgetColor + (annotated ? ":annotated" : ""))
             }} />;
     }
     @computed get sidebarCollection() {

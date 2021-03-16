@@ -75,7 +75,7 @@ export class FontIconBadge extends React.Component<FontIconBadgeProps> {
     onPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e,
             (e: PointerEvent) => {
-                const dragData = new DragManager.DocumentDragData([this.props.collection]);
+                const dragData = new DragManager.DocumentDragData([this.props.collection!]);
                 DragManager.StartDocumentDrag([this._notifsRef.current!], dragData, e.x, e.y);
                 return true;
             },
