@@ -550,7 +550,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                     <base target="_blank" />
                     <div className={"webBox-outerContent"} ref={this._outerRef}
                         style={{
-                            width: `calc(${100 / scale}% - ${this.sidebarWidth()}px)`,
+                            width: `calc(${100 / scale}% - ${this.sidebarWidth() / scale}px)`,
                             height: `${100 / scale}%`,
                             transform: `scale(${scale})`,
                             pointerEvents: inactiveLayer ? "none" : undefined
