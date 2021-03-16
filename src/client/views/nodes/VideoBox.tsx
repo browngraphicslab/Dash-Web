@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, ObservableMap } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { Dictionary } from "typescript-collections";
@@ -51,7 +51,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     private _playRegionDuration = 0;
     @observable static _showControls: boolean;
     @observable _marqueeing: number[] | undefined;
-    @observable _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
+    @observable _savedAnnotations = new ObservableMap<number, HTMLDivElement[]>();
     @observable _screenCapture = false;
     @observable _clicking = false;
     @observable _forceCreateYouTubeIFrame = false;
@@ -206,7 +206,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         this.props.setContentView?.(this); // this tells the DocumentView that this AudioBox is the "content" of the document.  this allows the DocumentView to indirectly call getAnchor() on the AudioBox when making a link.
         this._disposers.selection = reaction(() => this.props.isSelected(),
             selected => !selected && setTimeout(() => {
-                this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                Array.from(this._savedAnnotations.values()).forEach(v => v.forEach(a => a.remove()));
                 this._savedAnnotations.clear();
             }));
         this._disposers.triggerVideo = reaction(
@@ -575,6 +575,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                         scrollTop={0}
                         rootDoc={this.rootDoc}
                         down={this._marqueeing}
+                        docView={this.props.docViewPath().lastElement()}
                         scaling={this.marqueeFitScaling}
                         containerOffset={this.marqueeOffset}
                         addDocument={this.addDocWithTimecode}

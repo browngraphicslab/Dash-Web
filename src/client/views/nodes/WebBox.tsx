@@ -436,7 +436,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         } else {
             this.layoutDoc.nativeWidth = NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]);
         }
-        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]))
+        this.layoutDoc._width = NumCast(this.layoutDoc._nativeWidth) * (NumCast(this.layoutDoc[this.fieldKey + "-nativeWidth"]) / NumCast(this.layoutDoc[this.fieldKey + "-nativeHeight"]));
     }
     sidebarKey = () => this.fieldKey + "-sidebar";
     sidebarFiltersHeight = () => 50;

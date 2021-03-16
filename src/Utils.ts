@@ -601,7 +601,7 @@ export function lightOrDark(color: any) {
 
 export function getWordAtPoint(elem: any, x: number, y: number): string | undefined {
     if (elem.nodeType === elem.TEXT_NODE) {
-        var range = elem.ownerDocument.createRange();
+        const range = elem.ownerDocument.createRange();
         range.selectNodeContents(elem);
         var currentPos = 0;
         const endPos = range.endOffset;
@@ -611,7 +611,7 @@ export function getWordAtPoint(elem: any, x: number, y: number): string | undefi
             const rangeRect = range.getBoundingClientRect();
             if (rangeRect.left <= x && rangeRect.right >= x &&
                 rangeRect.top <= y && rangeRect.bottom >= y) {
-                range.expand("word");
+                range.expand?.("word"); // doesn't exist in firefox
                 const ret = range.toString();
                 range.detach();
                 return (ret);
@@ -619,7 +619,7 @@ export function getWordAtPoint(elem: any, x: number, y: number): string | undefi
             currentPos += 1;
         }
     } else {
-        for (let childNode of elem.childNodes) {
+        for (const childNode of elem.childNodes) {
             const range = childNode.ownerDocument.createRange();
             range.selectNodeContents(childNode);
             const rangeRect = range.getBoundingClientRect();
