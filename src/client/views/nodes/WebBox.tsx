@@ -1,7 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, ObservableMap } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
 import { Doc, DocListCast, HeightSym, Opt, StrListCast, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -13,10 +12,11 @@ import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, OmitKeys, getWordAtPoint, returnOne, returnTrue, returnZero, smoothScroll, Utils } from "../../../Utils";
+import { emptyFunction, getWordAtPoint, OmitKeys, returnOne, returnTrue, returnZero, smoothScroll, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { SnappingManager } from "../../util/SnappingManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionStackingView } from "../collections/CollectionStackingView";
@@ -25,6 +25,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
+import { LightboxView } from "../LightboxView";
 import { MarqueeAnnotator } from "../MarqueeAnnotator";
 import { AnchorMenu } from "../pdf/AnchorMenu";
 import { Annotation } from "../pdf/Annotation";
@@ -35,8 +36,6 @@ import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { LinkDocPreview } from "./LinkDocPreview";
 import "./WebBox.scss";
 import React = require("react");
-import { LightboxView } from "../LightboxView";
-import { SnappingManager } from "../../util/SnappingManager";
 const htmlToText = require("html-to-text");
 
 type WebDocument = makeInterface<[typeof documentSchema]>;
@@ -141,6 +140,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (iframe?.contentDocument) {
             iframe?.contentDocument.addEventListener("pointerdown", this.iframeDown);
             this._scrollHeight = Math.max(this.scrollHeight, iframe?.contentDocument.body.scrollHeight);
+            setTimeout(action(() => this._scrollHeight = Math.max(this.scrollHeight, iframe?.contentDocument?.body.scrollHeight || 0)), 5000);
             if (this._initialScroll !== undefined && this._outerRef.current) {
                 this._outerRef.current.scrollTop = this._initialScroll;
                 this._initialScroll = undefined;
@@ -160,13 +160,17 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 }
             })));
             iframe.contentDocument.addEventListener('wheel', this.iframeWheel, false);
-            iframe.contentDocument.addEventListener('scroll', () => !this.active() && this._iframe && (this._iframe.scrollTop = NumCast(this.layoutDoc._scrollTop), false));
+            //iframe.contentDocument.addEventListener('scroll', () => !this.active() && this._iframe && (this._iframe.scrollTop = NumCast(this.layoutDoc._scrollTop), false));
+            iframe.contentDocument.addEventListener('scroll', () => {
+                console.log("Scroll = " + this._iframe?.scrollTop)
+            }
+                , true);
         }
     }
 
     @action
     setDashScrollTop = (scrollTop: number, timeout: number = 250) => {
-        const iframeHeight = this._scrollHeight - this.panelHeight();
+        const iframeHeight = Math.max(1000, this._scrollHeight - this.panelHeight());
         timeout = scrollTop > iframeHeight ? 0 : timeout;
         this._scrollTimer && clearTimeout(this._scrollTimer);
         this._scrollTimer = setTimeout(action(() => {
@@ -266,7 +270,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     goTo = (scrollTop: number, duration: number) => {
         if (this._outerRef.current) {
-            const iframeHeight = this._scrollHeight - this.panelHeight();
+            const iframeHeight = Math.max(1000, this._scrollHeight - this.panelHeight());
             scrollTop = scrollTop > iframeHeight + 50 ? iframeHeight : scrollTop;
             if (duration) {
                 smoothScroll(duration, [this._outerRef.current], scrollTop);
@@ -513,7 +517,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @computed get allAnnotations() { return DocListCast(this.dataDoc[this.annotationKey]); }
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="webBox-annotationLayer" style={{ display: !this._savedAnnotations.size && !this.allAnnotations.length ? "none" : undefined, height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
+        return <div className="webBox-annotationLayer" style={{ height: Doc.NativeHeight(this.Document) || undefined }} ref={this._annotationLayer}>
             {this.inlineTextAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
                 <Annotation {...this.props} fieldKey={this.annotationKey} showInfo={this.showInfo} dataDoc={this.dataDoc} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
