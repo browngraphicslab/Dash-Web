@@ -1207,7 +1207,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         // jump rich text menu to this textbox
         const bounds = this._ref.current?.getBoundingClientRect();
-        if (bounds && this.layoutDoc._chromeStatus !== "disabled" && RichTextMenu.Instance) {
+        if (bounds && this.layoutDoc._chromeStatus && RichTextMenu.Instance) {
             const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
             let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {

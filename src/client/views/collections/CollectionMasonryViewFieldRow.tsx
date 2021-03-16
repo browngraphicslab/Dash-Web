@@ -187,7 +187,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button === 0 && !e.ctrlKey) {
-            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => (this.props.parent.props.Document._chromeStatus === "disabled") && this.collapseSection(e));
+            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, e => !this.props.parent.props.Document._chromeStatus && this.collapseSection(e));
             this._createAliasSelected = false;
         }
     }
@@ -286,7 +286,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     @computed get headingView() {
-        const noChrome = this.props.parent.props.Document._chromeStatus === "disabled";
+        const noChrome = !this.props.parent.props.Document._chromeStatus;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const evContents = this.heading ? this.heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const editableHeaderView = <EditableView

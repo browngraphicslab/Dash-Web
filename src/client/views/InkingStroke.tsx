@@ -28,8 +28,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
-
-
     private analyzeStrokes = () => {
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);

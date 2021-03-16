@@ -594,7 +594,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
 
     @undoBatch deleteClicked = () => this.props.removeDocument?.(this.props.Document);
     @undoBatch toggleDetail = () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`);
-    @undoBatch toggleLockPosition = () => this.Document._lockedPosition = this.Document._lockedPosition ? undefined : true;
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -689,7 +688,6 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             if (!this.Document.annotationOn) {
                 const options = cm.findByDescription("Options...");
                 const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-                this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document._lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document._lockedPosition) ? "unlock" : "lock" });
                 !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
                 onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
@@ -721,7 +719,7 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
             (this.rootDoc._viewType !== CollectionViewType.Docking || !Doc.UserDoc().noviceMode) && moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this.props.DocumentView()), icon: "users" });
             if (!Doc.UserDoc().noviceMode) {
                 moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-                moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+                moreItems.push({ description: `${this.Document._chromeStatus ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus ? undefined : "enabled"), icon: "project-diagram" });
 
                 if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
                     moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });

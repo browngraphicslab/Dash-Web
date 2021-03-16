@@ -822,7 +822,7 @@ export namespace Docs {
             const webProto = Prototypes.get(DocumentType.WEB);
             webProto.scrollHeight = 100000;  // backward compatibility -- can be removed after db is reset
             webProto._fitWidth = true;  // backward compatibility -- can be removed after db is reset
-            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? "disabled" : "enabled", _lockedTransform: true, ...options });
+            return InstanceFromProto(webProto, url ? new WebField(new URL(url)) : undefined, { _chromeStatus: url ? undefined : "enabled", _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
