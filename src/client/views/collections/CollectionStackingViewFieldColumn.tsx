@@ -146,7 +146,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         newDoc.heading = heading;
         FormattedTextBox.SelectOnLoad = newDoc[Id];
         FormattedTextBox.SelectOnLoadChar = forceEmptyNote ? "" : " ";
-        return this.props.parent.props.addDocument?.(newDoc) || false;
+        return this.props.parent.addDocument?.(newDoc) || false;
     }
 
     @action

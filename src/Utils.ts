@@ -598,6 +598,44 @@ export function lightOrDark(color: any) {
     }
 }
 
+
+export function getWordAtPoint(elem: any, x: number, y: number): Opt<string> {
+    if (elem.nodeType == elem.TEXT_NODE) {
+        var range = elem.ownerDocument.createRange();
+        range.selectNodeContents(elem);
+        var currentPos = 0;
+        var endPos = range.endOffset;
+        while (currentPos + 1 < endPos) {
+            range.setStart(elem, currentPos);
+            range.setEnd(elem, currentPos + 1);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.expand("word");
+                var ret = range.toString();
+                range.detach();
+                return (ret);
+            }
+            currentPos += 1;
+        }
+    } else {
+        for (var i = 0; i < elem.childNodes.length; i++) {
+            var range = elem.childNodes[i].ownerDocument.createRange();
+            range.selectNodeContents(elem.childNodes[i]);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.left <= x && rangeRect.right >= x &&
+                rangeRect.top <= y && rangeRect.bottom >= y) {
+                range.detach();
+                const word = getWordAtPoint(elem.childNodes[i], x, y);
+                if (word) return word;
+            } else {
+                range.detach();
+            }
+        }
+    }
+    return undefined;
+}
+
 export function hasDescendantTarget(x: number, y: number, target: HTMLDivElement | null) {
     let entered = false;
     for (let child = document.elementFromPoint(x, y); !entered && child; child = child.parentElement) {

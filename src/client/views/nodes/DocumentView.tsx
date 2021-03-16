@@ -479,7 +479,10 @@ export class DocumentViewInternal extends DocComponent<DocumentViewInternalProps
                 if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    this.props.select(e.ctrlKey || e.shiftKey);
+                    const ctrlPressed = e.ctrlKey || e.shiftKey;
+                    if (this.props.Document.type === DocumentType.WEB) {
+                        this._timeout = setTimeout(() => { this._timeout = undefined; this.props.select(ctrlPressed); }, 350);
+                    } else this.props.select(ctrlPressed);
                 }
                 preventDefault = false;
             }

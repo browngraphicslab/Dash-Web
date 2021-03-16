@@ -59,8 +59,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         this._startX = this._left = (this.props.down[0] - boundingRect.left) * (this.props.mainCont.offsetWidth / boundingRect.width);
         this._startY = this._top = (this.props.down[1] - boundingRect.top) * (this.props.mainCont.offsetHeight / boundingRect.height) + this.props.mainCont.scrollTop;
         this._height = this._width = 0;
-        document.addEventListener("pointermove", this.onSelectMove);
-        document.addEventListener("pointerup", this.onSelectEnd);
+        document.addEventListener("pointermove", this.onSelectMove, true);
+        document.addEventListener("pointerup", this.onSelectEnd, true);
 
         AnchorMenu.Instance.OnClick = (e: PointerEvent) => this.props.anchorMenuClick?.(this.highlight("rgba(173, 216, 230, 0.75)", true));
         AnchorMenu.Instance.Highlight = this.highlight;
@@ -91,8 +91,8 @@ export class MarqueeAnnotator extends React.Component<MarqueeAnnotatorProps> {
         });
     }
     componentWillUnmount() {
-        document.removeEventListener("pointermove", this.onSelectMove);
-        document.removeEventListener("pointerup", this.onSelectEnd);
+        document.removeEventListener("pointermove", this.onSelectMove, true);
+        document.removeEventListener("pointerup", this.onSelectEnd, true);
     }
 
     @undoBatch

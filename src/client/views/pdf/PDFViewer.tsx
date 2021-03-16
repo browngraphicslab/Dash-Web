@@ -400,7 +400,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
-    finishMarquee = () => {
+    finishMarquee = (x?: number, y?: number) => {
         this._marqueeing = undefined;
         this._textSelecting = true;
         document.removeEventListener("pointermove", this.onSelectMove);
